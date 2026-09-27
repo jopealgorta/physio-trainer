@@ -1,0 +1,41 @@
+{
+  "Metadata": {
+    "title": "Physio Trainer",
+    "description": "Rehab routines your patients can open with one link."
+  },
+  "Landing": {
+    "eyebrow": "For physiotherapists",
+    "headline": "Rehab routines your patients actually open.",
+    "subheadline": "Build routines from your own exercise library, share them with a single clean link, and see how your patients are doing.",
+    "primaryCta": "Get started",
+    "secondaryCta": "Open dashboard"
+  },
+  "Login": {
+    "title": "Sign in",
+    "description": "Sign-in with an email link or Google arrives with the authentication feature.",
+    "back": "Back to home"
+  },
+  "Nav": {
+    "dashboard": "Dashboard",
+    "customers": "Customers",
+    "library": "Exercise library",
+    "routines": "Routines",
+    "plans": "Weekly plans",
+    "settings": "Settings"
+  },
+  "Placeholder": {
+    "comingSoon": "Not built yet",
+    "specHint": "Specified in <code>{spec}</code>."
+  },
+  "Theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "description": "This link may have expired or been removed.",
+    "home": "Go home"
+  }
+}
