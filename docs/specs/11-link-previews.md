@@ -36,7 +36,7 @@ Previews never contain health information.
    so crawlers learn nothing about link status. Unknown codes return the app's generic card.
 4. Cache the image per physio branding version (e.g. include `updated_at` hash in the URL
    via metadata) so a logo change refreshes previews for new shares.
-5. Font: bundle Geist for `ImageResponse` (no network fetch at render).
+5. Font: bundle Outfit for `ImageResponse` (no network fetch at render).
 
 ## Security and privacy
 
