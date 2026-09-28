@@ -85,8 +85,13 @@ Namespace `Settings.branding`.
 
 ## Open questions
 
-1. Allow SVG logos (needs sanitising) or only PNG/WebP/JPEG?
-2. Should the app's own name appear on patient pages ("Powered by …"), or be fully white-label?
+1. SVG logos? → **No.** PNG, WebP and JPEG only (a public bucket serving SVG is a stored-XSS
+   risk; raster works for OG images and PDFs).
+2. App name on patient pages? → **Yes, a small "Powered by Physio Trainer" line** at the
+   bottom of patient-facing surfaces, not fully white-label.
+3. (Added) Low-contrast custom accent? → **Auto-adjust**: keep the chosen colour, derive
+   light/dark tokens at the same hue with lightness nudged until ≥ 3:1; the form says so.
+4. (Added) Settings layout? → **Tabs** driven by `?section=profile|branding|account`.
 
 ## Decisions made during implementation
 
