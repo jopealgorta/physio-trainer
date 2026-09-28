@@ -13,6 +13,7 @@
   "Login": {
     "title": "Ingresar",
     "description": "Te mandamos un link por email. Sin contraseña.",
+    "descriptionGoogleOnly": "Continuá con tu cuenta de Google.",
     "emailLabel": "Email",
     "emailPlaceholder": "vos@clinica.com",
     "sendLink": "Enviar link",
@@ -27,7 +28,7 @@
   "Auth": {
     "errors": {
       "linkInvalid": "Ese link para ingresar venció o ya se usó. Pedí uno nuevo.",
-      "oauthFailed": "El ingreso con Google no terminó. Probá de nuevo o usá un link por email.",
+      "oauthFailed": "No se pudo completar el ingreso con Google. Probá de nuevo.",
       "unknown": "Algo salió mal al ingresar. Probá de nuevo.",
       "emailInvalid": "Ingresá un email válido.",
       "sendFailed": "No pudimos enviar el link. Esperá un momento y probá de nuevo."
