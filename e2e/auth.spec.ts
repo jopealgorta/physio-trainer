@@ -76,6 +76,7 @@ test("a new physio signs in with an emailed link opened in another browser", asy
     await page.getByRole("button", { name: "Send link" }).click();
     await expect(page.getByText("Check your inbox")).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("Check your inbox");
 
     // A fresh context has none of the first browser's cookies (like opening it on a phone).
     const otherBrowser = await browser.newContext();

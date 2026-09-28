@@ -39,7 +39,7 @@ export function LoginForm({
 
   if (state.status === "sent" && dismissed !== state) {
     return (
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm" role="status">
         <CardHeader>
           <CardTitle>{t("checkInboxTitle")}</CardTitle>
           <CardDescription>{t("checkInboxDescription", { email: state.email })}</CardDescription>
