@@ -30,7 +30,7 @@ Add to `physios`:
 | Column                     | Type                          | Notes                                                     |
 | -------------------------- | ----------------------------- | --------------------------------------------------------- |
 | `clinic_name`              | text null                     | ≤ 80; falls back to `display_name`                        |
-| `logo_path`                | text null                     | Storage `branding/{physio_id}/logo-{uuid}.{png,webp,svg}` |
+| `logo_path`                | text null                     | Storage `branding/{physio_id}/logo-{uuid}.{png,webp,jpg}` |
 | `accent_color`             | text null                     | `#RRGGBB`; null = app default                             |
 | `contact_email`            | text null                     |                                                           |
 | `contact_phone`            | text null                     | also used for a WhatsApp "message your physio" button     |
