@@ -81,7 +81,8 @@ server-side through Drizzle. With Supabase's defaults, a signed-in physio could 
 directly with their JWT and update their own row, skipping app validation (e.g. setting a
 reserved handle), and the same would hold for every later table.
 
-- Local: `supabase/config.toml` `[api] schemas = []`.
+- Local: `supabase/config.toml` `[api] enabled = false` (PostgREST is not started;
+  `schemas = []` is not enough, PostgREST falls back to `public`).
 - Hosted: Dashboard → Data API → disable it (documented in the README setup section).
 - Auth and Storage are separate services and keep working. RLS stays as the second guard for
   `withPhysio`.
@@ -93,7 +94,7 @@ reserved handle), and the same would hold for every later table.
 | ------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `getSessionPhysio()`      | `src/server/auth/session.ts` | `supabase.auth.getClaims()` → `{ physioId, claims } \| null`. No DB access. `cache()`d per request.                                                                                                                              |
 | `runAsPhysio(claims, fn)` | `src/db/rls.ts`              | Opens a Drizzle transaction, runs `select set_config('request.jwt.claims', <claims json>, true)` and `set local role authenticated`, then `fn(tx, physioId)`. No Next.js imports, so integration tests call it with test claims. |
-| `withPhysio(fn)`          | `src/db/rls.ts`              | Requires a **session** (redirects to `/login` when signed out), then `runAsPhysio(claims, fn)`. Does not require onboarding.                                                                                                     |
+| `withPhysio(fn)`          | `src/server/auth/session.ts` | Requires a **session** (redirects to `/login` when signed out), then `runAsPhysio(claims, fn)`. Does not require onboarding.                                                                                                     |
 | `requirePhysio()`         | `src/server/auth/session.ts` | Session + profile row (via `withPhysio`). Redirects to `/login` when signed out and to `/onboarding` when `onboarded_at` is null. Returns `{ physioId, profile }`. `cache()`d. Used by `(app)/layout.tsx`.                       |
 
 - `withPhysio` requires only a session because `requirePhysio` reads the profile through
@@ -107,8 +108,9 @@ reserved handle), and the same would hold for every later table.
   - `mutations.ts`: writes taking `(tx, physioId, input)`: `completeOnboarding`,
     `updateProfile`. Return `{ ok: true, data } | { ok: false, error }`.
   - `actions.ts` (`"use server"`): thin wrappers: parse → `withPhysio(tx => mutation(...))` →
-    set locale cookie → revalidate/redirect. Plus `checkHandle(handle)` →
-    `{ status: "available" | "taken" | "reserved" | "invalid" }`.
+    set locale cookie → revalidate/redirect. Plus `checkHandleAction(handle)` → `boolean`
+    (invalid handles are never available; the form shows rule problems itself, without a
+    request).
 - `src/server/auth/actions.ts`: `sendMagicLink`, `signInWithGoogle`, `signOut`.
 
 ## Auth flows
@@ -247,7 +249,7 @@ cookie and redirects to `next` or `/dashboard`.
 | ---------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED`  | `src/env.ts` (client)   | Boolean, default `false`. Shows the Google button.                                                  |
 | Google client id / secret          | `.env` for Supabase CLI | Read by `[auth.external.google]` via `env(...)`; names documented in `.env.example`.                |
-| `[api] schemas = []`               | `supabase/config.toml`  | Data API closed.                                                                                    |
+| `[api] enabled = false`            | `supabase/config.toml`  | Data API closed.                                                                                    |
 | `additional_redirect_urls`         | `supabase/config.toml`  | Globs covering `/auth/**` on `localhost` and `127.0.0.1` for any port (dev on :3000, e2e on :3100). |
 | `[auth.email.template.magic_link]` | `supabase/config.toml`  | Points at `supabase/templates/magic_link.html`.                                                     |
 | Playwright `webServer.env`         | `playwright.config.ts`  | Sets `NEXT_PUBLIC_APP_URL` to the e2e base URL so links and redirects target :3100.                 |
@@ -330,7 +332,8 @@ Specs:
 ## CI
 
 - `check` job unchanged (placeholder env, no database).
-- New `integration` job: `supabase/setup-cli` → `supabase start` excluding services this spec
+- New `integration` job: `pnpm exec supabase start` (the CLI is a pinned devDependency)
+  excluding services this spec
   does not need (studio, imgproxy, vector, logflare, edge-runtime, realtime) → export real keys
   from `supabase status -o env` into `$GITHUB_ENV` → `pnpm db:generate` +
   `git diff --exit-code supabase/migrations` (catches schema changes without a generated
@@ -370,6 +373,24 @@ Agreed with the user on 2026-09-27 before planning:
 - **Native `<select>`** for language and timezone; `alert` is the only new shadcn primitive.
 - **`ProfileForm` namespace** added for copy shared by onboarding and settings.
 - **Landing** shows a single CTA per state.
+
+## Decisions made during planning
+
+Found while writing `docs/plans/01-auth-and-physio-profile.md` (2026-09-27), by probing local
+Supabase:
+
+- **Data API off via `[api] enabled = false`**: with `schemas = []` PostgREST still served
+  `public`. With the API off, REST and GraphQL return 503 while Auth and Storage keep working.
+- **`withPhysio` lives in `src/server/auth/session.ts`** next to `getSessionPhysio` and
+  `requirePhysio`; `src/db/rls.ts` only has `runAsPhysio`. Keeps `db` free of Next.js imports
+  and avoids an import cycle.
+- **Both `magic_link` and `confirmation` email templates** point at `/auth/confirm`: new users
+  get `magic_link` locally, but hosted projects with confirmations on send `confirmation`.
+  `pkce_` token hashes verify from a different browser, confirming the cross-device choice.
+- **Redirect allow-list uses port globs** (`http://localhost:*/auth/**`): a non-allow-listed
+  `emailRedirectTo` silently falls back to the Site URL and breaks the link.
+- **`checkHandleAction` returns a boolean**; handle rule problems are computed client-side.
+- **CI uses `pnpm exec supabase`** (lockfile-pinned CLI) rather than `supabase/setup-cli`.
 
 ## Decisions made during implementation
 

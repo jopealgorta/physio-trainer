@@ -108,7 +108,7 @@ These rules are the security model. Every spec must follow them.
    `server` block). Never import `@/db` or `@/lib/supabase/server` from a Client Component
    (both import `server-only`).
 6. **No Data API**: the Supabase Data API (PostgREST/GraphQL) does not expose `public`
-   (`[api] schemas = []` locally, disabled in the hosted dashboard). All table access is
+   (`[api] enabled = false` locally, disabled in the hosted dashboard). All table access is
    server-side through Drizzle; browser code uses supabase-js only for Auth and Storage. This
    stops a signed-in user from writing rows directly and skipping app validation (spec 01).
 
