@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config } from "dotenv";
+
+// E2E helpers talk to local Supabase with the keys in .env.local (`pnpm db:start`).
+config({ path: [".env.local", ".env"], quiet: true });
 
 const port = Number(process.env.PORT ?? 3100);
 const baseURL = `http://localhost:${port}`;
@@ -27,5 +31,7 @@ export default defineConfig({
     url: `${baseURL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
+    // Links in emails and OAuth redirects must point at the e2e server, not :3000.
+    env: { NEXT_PUBLIC_APP_URL: baseURL },
   },
 });
