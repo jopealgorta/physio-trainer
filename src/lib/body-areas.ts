@@ -61,12 +61,17 @@ export function isPairedArea(area: BodyArea): boolean {
 /** Single-mode picker value. `side` is null for midline areas or when no side was chosen. */
 export type BodyAreaSelection = { area: BodyArea; side: BodySide | null };
 
+/** Multi mode: include or exclude `area`, returning a new, deduplicated array in canonical order. */
+export function setArea(value: readonly BodyArea[], area: BodyArea, selected: boolean): BodyArea[] {
+  const next = new Set(value);
+  if (selected) next.add(area);
+  else next.delete(area);
+  return BODY_AREAS.filter((candidate) => next.has(candidate));
+}
+
 /** Multi mode: add or remove `area`, returning a new array in canonical order. */
 export function toggleArea(value: readonly BodyArea[], area: BodyArea): BodyArea[] {
-  const next = new Set(value);
-  if (next.has(area)) next.delete(area);
-  else next.add(area);
-  return BODY_AREAS.filter((candidate) => next.has(candidate));
+  return setArea(value, area, !value.includes(area));
 }
 
 const otherSide = (side: RegionSide): RegionSide => (side === "left" ? "right" : "left");

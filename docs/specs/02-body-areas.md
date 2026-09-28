@@ -105,6 +105,20 @@ Namespace `BodyAreas` with one key per area and side.
   none when empty; read with `formData.getAll`). Single mode renders `name` (area or `""`)
   and, with `withSide`, `sideName` (default `${name}Side`, side or `""`). Radix checkbox/radio
   internals submit nothing.
+- **Form reset keeps the picker's value** (controlled or not), without calling `onChange`.
+  React 19 resets a `<form action={fn}>` after every action, and Radix's Checkbox/RadioGroup
+  answer a reset by reporting their mount-time value, which corrupted the selection (and could
+  report `{ area: "" }`). The form the picker lives in usually re-renders with the saved value,
+  so wiping it is never what the physio wants; a parent that wants a blank picker passes a new
+  `value` or `key`. The picker ignores changes reported while its form dispatches `reset`
+  (document-level capture/bubble listeners bracket the dispatch), checkboxes set rather than
+  toggle, and radio values are validated with zod before use.
+- **Side phrase:** `withSide` selects on the raw side key (`{side, select, …}`), so Spanish
+  reads "Rodilla · lado izquierdo" / "ambos lados" and agrees with any area's gender.
+  `sides.*` stays for the side radio labels.
+- **Container queries:** a `@container` div inside the fieldset; the map toggle, two-view grid and list
+  columns follow the picker's width (spec 04 embeds it in a sheet). A single view renders wider
+  (`max-w-60`) for bigger touch targets.
 - **Map front view is mirrored:** the patient's left is on the viewer's right; the back view is
   not mirrored. The geometry is data in `body-map-regions.ts`, pinned by tests for mirroring,
   bounds and coverage.

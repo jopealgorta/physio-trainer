@@ -13,6 +13,7 @@ import {
   coversRegion,
   isPairedArea,
   selectArea,
+  setArea,
   toggleArea,
 } from "./body-areas";
 
@@ -52,6 +53,19 @@ describe("toggleArea", () => {
     const value = ["knee"] as const;
     toggleArea(value, "neck");
     expect(value).toEqual(["knee"]);
+  });
+});
+
+describe("setArea", () => {
+  it("sets membership idempotently, keeping head-to-toe order", () => {
+    expect(setArea(["knee"], "neck", true)).toEqual(["neck", "knee"]);
+    expect(setArea(["neck", "knee"], "neck", true)).toEqual(["neck", "knee"]);
+    expect(setArea(["neck", "knee"], "neck", false)).toEqual(["knee"]);
+    expect(setArea(["knee"], "neck", false)).toEqual(["knee"]);
+  });
+
+  it("canonicalises an unsorted or duplicated input", () => {
+    expect(setArea(["knee", "neck", "knee"], "elbow", true)).toEqual(["neck", "elbow", "knee"]);
   });
 });
 
