@@ -1,6 +1,6 @@
 # 01 · Auth and physio profile
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** Core
 - **Depends on:** Scaffold
 
@@ -263,20 +263,20 @@ onboarding and settings), `Settings.profile`, `Settings.account`, `UserMenu`, `A
 
 ## Acceptance criteria
 
-- [ ] A new user can sign in with a magic link (local Mailpit) and lands on `/onboarding`.
+- [x] A new user can sign in with a magic link (local Mailpit) and lands on `/onboarding`.
 - [ ] Google sign-in is hidden when `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED` is not `true`, and the
       button starts the OAuth redirect when it is (real flow verified manually once
-      credentials exist).
-- [ ] Onboarding rejects reserved, invalid and taken handles with clear messages.
-- [ ] Signed-out visits to `/customers` redirect to `/login?next=/customers` and return there
+      credentials exist). (render verified; OAuth redirect pending Google credentials)
+- [x] Onboarding rejects reserved, invalid and taken handles with clear messages.
+- [x] Signed-out visits to `/customers` redirect to `/login?next=/customers` and return there
       after sign-in (via onboarding for a new physio).
-- [ ] Settings updates name, handle, locale, timezone; sign out works.
-- [ ] `withPhysio` exists, is used by all profile queries, and RLS tests prove isolation.
-- [ ] The Data API does not serve `public` tables (`/rest/v1/physios` is refused).
-- [ ] Integration tests fail if a `public` table lacks RLS or a table with `updated_at` lacks
+- [x] Settings updates name, handle, locale, timezone; sign out works.
+- [x] `withPhysio` exists, is used by all profile queries, and RLS tests prove isolation.
+- [x] The Data API does not serve `public` tables (`/rest/v1/physios` is refused).
+- [x] Integration tests fail if a `public` table lacks RLS or a table with `updated_at` lacks
       the `set_updated_at` trigger.
-- [ ] `pnpm test:int` runs integration tests against local Supabase; CI runs them.
-- [ ] Playwright has a helper and a `physioPage` fixture that sign in a seeded test physio
+- [x] `pnpm test:int` runs integration tests against local Supabase; CI runs them.
+- [x] Playwright has a helper and a `physioPage` fixture that sign in a seeded test physio
       without email, used by later e2e tests.
 
 ## Test plan
@@ -394,4 +394,30 @@ Supabase:
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Timezone option values are exactly the runtime's IANA names** (Node 24's ICU lists
+  "Asia/Calcutta" and "Europe/Kiev", not the newer aliases). There is no alias table:
+  `normalizeTimeZone` returns the runtime's canonical name, and saved values must match an
+  option. The unit test keys the half-hour offset case on `normalizeTimeZone("Asia/Kolkata")`.
+- **One email template file** (`supabase/templates/magic_link.html`) serves both the
+  `magic_link` and `confirmation` templates, instead of two identical files.
+- **CI**: the Supabase start + key export steps are in both the `integration` and `e2e` jobs
+  from the start; the placeholder keys live only on the `check` job so `$GITHUB_ENV` exports
+  are not shadowed by workflow-level `env`.
+- **Sign-in failures never loop**: `postSignInPath` catches any failure (including a missing
+  `physios` row), signs out best-effort and returns `/login?error=unknown`; the proxy lets
+  signed-in users see `/login` when it carries an `error` param; `requirePhysio` sends a
+  session with no profile row to `/login?error=unknown`. (A deleted account with a
+  still-valid JWT would otherwise redirect forever.) This refines the Proxy section's rule that
+  sends a signed-in physio at `/login` to `/dashboard`, to mention the `?error=` exception.
+- **Next 16.3 with `typedRoutes` types `redirect()` too**: dynamic targets use `as Route`.
+- **ESLint**: `react-hooks/rules-of-hooks` is off for `e2e/**` in `eslint.config.mjs`
+  (Playwright's fixture `use` parameter is a false positive).
+- **`vitest.setup.ts` registers `afterEach(cleanup)`**: Testing Library's auto-cleanup needs
+  Vitest globals, which the project does not enable.
+- **Accessibility**: the login "Check your inbox" card is a `role="status"` region;
+  `ProfileForm` field errors are live regions (display-name message `aria-live="polite"`,
+  language/timezone errors `role="alert"`).
+- **The "cannot insert" RLS test asserts Postgres error 42501**, because the `auth.users`
+  foreign key would also reject a random id.
+- **Commits written by implementation subagents carry a Co-Authored-By trailer** naming the
+  model that wrote them.

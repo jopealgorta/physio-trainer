@@ -16,6 +16,7 @@ rules, conventions) and the relevant spec in `docs/specs/` (index and build orde
 pnpm dev             # dev server (http://localhost:3000)
 pnpm check           # lint + typecheck + format:check + unit tests: run before every commit
 pnpm test            # unit tests (Vitest)
+pnpm test:int        # integration tests against local Supabase (needs pnpm db:start)
 pnpm test:e2e        # Playwright (builds and starts the app on :3100)
 pnpm db:start        # local Supabase (Docker); prints URLs and keys for .env.local
 pnpm db:generate     # generate a SQL migration from src/db/schema into supabase/migrations
