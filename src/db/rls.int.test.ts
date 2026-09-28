@@ -61,6 +61,10 @@ describe("runAsPhysio (RLS on physios)", () => {
   });
 
   it("cannot insert physio rows", async () => {
+    // Assert the RLS error specifically (Postgres 42501, surfaced on DrizzleQueryError.cause):
+    // the row also violates the physios_id_users_id_fk FK to auth.users, so a bare
+    // `rejects.toThrow()` would still pass if a permissive INSERT policy let the FK error
+    // take over instead, and wouldn't prove RLS is what blocked the insert.
     await expect(
       runAsPhysio(a.claims, (tx) =>
         tx.insert(physios).values({
@@ -70,7 +74,7 @@ describe("runAsPhysio (RLS on physios)", () => {
           handle: `intruder-${a.id.slice(0, 8)}`,
         }),
       ),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ cause: expect.objectContaining({ code: "42501" }) });
   });
 
   it("cannot delete physio rows, not even its own", async () => {
