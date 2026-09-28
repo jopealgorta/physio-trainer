@@ -12,8 +12,26 @@
   },
   "Login": {
     "title": "Sign in",
-    "description": "Sign-in with an email link or Google arrives with the authentication feature.",
+    "description": "We'll email you a link. No password needed.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@clinic.com",
+    "sendLink": "Send link",
+    "sending": "Sending…",
+    "or": "or",
+    "google": "Continue with Google",
+    "checkInboxTitle": "Check your inbox",
+    "checkInboxDescription": "We sent a sign-in link to {email}. You can open it on any device.",
+    "useDifferentEmail": "Use a different email",
     "back": "Back to home"
+  },
+  "Auth": {
+    "errors": {
+      "linkInvalid": "That sign-in link has expired or was already used. Request a new one.",
+      "oauthFailed": "Google sign-in didn't finish. Try again or use an email link.",
+      "unknown": "Something went wrong while signing you in. Try again.",
+      "emailInvalid": "Enter a valid email address.",
+      "sendFailed": "We couldn't send the link. Wait a moment and try again."
+    }
   },
   "Nav": {
     "dashboard": "Dashboard",
