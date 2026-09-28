@@ -4,7 +4,7 @@
     {
       "name": "dev",
       "runtimeExecutable": "zsh",
-      "runtimeArgs": ["-c", "source ~/.nvm/nvm.sh && nvm use 24 >/dev/null && pnpm dev"],
+      "runtimeArgs": ["-c", "source ~/.nvm/nvm.sh && nvm use >/dev/null && pnpm dev"],
       "port": 3000
     }
   ]
