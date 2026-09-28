@@ -27,6 +27,10 @@ describe("routeGuard", () => {
     expect(routeGuard("/login", "?next=%2F%2Fevil.example", true)).toBe("/dashboard");
   });
 
+  it("lets a signed-in physio see the login page when it carries an error", () => {
+    expect(routeGuard("/login", "?error=unknown", true)).toBeNull();
+  });
+
   it("lets signed-in physios through to protected pages", () => {
     expect(routeGuard("/customers", "", true)).toBeNull();
   });

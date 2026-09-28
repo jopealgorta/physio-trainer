@@ -2,9 +2,6 @@ import { test as base, expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import postgres from "postgres";
 
-/* eslint-disable react-hooks/rules-of-hooks -- Playwright fixtures name their callback "use";
-   it is not the React 19 `use()` hook that this rule guards. */
-
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is not set: run pnpm db:start and fill .env.local`);
@@ -48,12 +45,18 @@ export async function createPhysio(
 }
 
 export async function deletePhysio(physio: E2EPhysio): Promise<void> {
-  await admin.auth.admin.deleteUser(physio.id);
+  // Tolerant of a user already deleted by the test itself (e.g. the redirect-loop test).
+  await admin.auth.admin.deleteUser(physio.id).catch(() => {});
 }
 
 /** Cleanup for users created through the real sign-up flow. */
 export async function deleteUserByEmail(email: string): Promise<void> {
   await sql`delete from auth.users where email = ${email}`;
+}
+
+/** Deletes only the physios row, simulating an account whose profile disappeared. */
+export async function deletePhysioRow(id: string): Promise<void> {
+  await sql`delete from public.physios where id = ${id}`;
 }
 
 /** Signs in without email: same /auth/confirm route the magic link uses. */
@@ -76,7 +79,6 @@ export async function signIn(page: Page, physio: E2EPhysio, next = "/dashboard")
  * `physioPage`: `page` signed in as that physio, on /dashboard.
  */
 export const test = base.extend<{ physio: E2EPhysio; physioPage: Page }>({
-  // eslint-disable-next-line no-empty-pattern -- Playwright requires object destructuring here.
   physio: async ({}, use) => {
     const physio = await createPhysio({ onboarded: true });
     await use(physio);

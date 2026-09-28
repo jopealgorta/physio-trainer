@@ -33,7 +33,7 @@ export async function withPhysio<T>(fn: (tx: Tx, physioId: string) => Promise<T>
 /** The signed-in, onboarded physio. Redirects to /login or /onboarding otherwise. */
 export const requirePhysio = cache(async (): Promise<{ physioId: string; profile: Physio }> => {
   const profile = await withPhysio((tx, physioId) => getProfile(tx, physioId));
-  if (!profile) redirect("/login");
+  if (!profile) redirect("/login?error=unknown");
   if (!profile.onboardedAt) redirect("/onboarding" as Route);
   return { physioId: profile.id, profile };
 });

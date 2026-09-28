@@ -15,12 +15,20 @@ export async function postSignInPath(
   accessToken: string,
   next: string,
 ): Promise<string> {
-  const { data, error } = await supabase.auth.getClaims(accessToken);
-  if (error || !data) return "/login?error=unknown";
+  try {
+    const { data, error } = await supabase.auth.getClaims(accessToken);
+    if (error || !data) throw error ?? new Error("getClaims returned no data");
 
-  const profile = await runAsPhysio(data.claims, (tx, physioId) => getProfile(tx, physioId));
-  if (!profile) return "/login?error=unknown";
+    const profile = await runAsPhysio(data.claims, (tx, physioId) => getProfile(tx, physioId));
+    if (!profile) throw new Error("signed-in user has no physios row");
 
-  await setLocaleCookie(profile.locale);
-  return profile.onboardedAt ? next : `/onboarding?${new URLSearchParams({ next })}`;
+    await setLocaleCookie(profile.locale);
+    return profile.onboardedAt ? next : `/onboarding?${new URLSearchParams({ next })}`;
+  } catch {
+    // The session cookie is already set at this point (verifyOtp/exchangeCodeForSession ran
+    // before this call): sign out so /login shows the error instead of the proxy bouncing a
+    // still-signed-in request straight back past it.
+    await supabase.auth.signOut().catch(() => {});
+    return "/login?error=unknown";
+  }
 }

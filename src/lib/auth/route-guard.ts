@@ -26,7 +26,11 @@ export function routeGuard(pathname: string, search: string, signedIn: boolean):
     return `/login?${new URLSearchParams({ next: `${pathname}${search}` })}`;
   }
   if (signedIn && pathname === "/login") {
-    return safeNextPath(new URLSearchParams(search).get("next"));
+    const params = new URLSearchParams(search);
+    // A sign-in failure signs the physio back out, but if it hasn't taken effect yet, showing
+    // the error still beats bouncing back to /dashboard and losing it.
+    if (params.has("error")) return null;
+    return safeNextPath(params.get("next"));
   }
   return null;
 }

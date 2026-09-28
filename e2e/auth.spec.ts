@@ -1,4 +1,4 @@
-import { createPhysio, deletePhysio, expect, signIn, test } from "./helpers/auth";
+import { createPhysio, deletePhysio, deletePhysioRow, expect, signIn, test } from "./helpers/auth";
 
 test("signed-out visits return to the requested page after sign-in", async ({ page, physio }) => {
   await page.goto("/customers");
@@ -31,4 +31,24 @@ test("signed-in physios skip the login page", async ({ physioPage: page }) => {
 test("an invalid sign-in link goes back to login with an error", async ({ page }) => {
   await page.goto("/auth/confirm?token_hash=not-a-token&type=email");
   await expect(page).toHaveURL(/\/login\?error=linkInvalid$/);
+});
+
+test("a signed-in physio whose account was deleted is sent to login without a redirect loop", async ({
+  physioPage: page,
+  physio,
+}) => {
+  await deletePhysio(physio);
+  await page.goto("/dashboard");
+  await expect(page).toHaveURL(/\/login/);
+});
+
+test("sign-in for a user without a profile row goes to login with an error", async ({ page }) => {
+  const physio = await createPhysio();
+  try {
+    await deletePhysioRow(physio.id);
+    await signIn(page, physio);
+    await expect(page).toHaveURL(/\/login\?error=unknown$/);
+  } finally {
+    await deletePhysio(physio);
+  }
 });
