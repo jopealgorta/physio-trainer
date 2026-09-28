@@ -118,7 +118,9 @@ Namespace `BodyAreas` with one key per area and side.
   `sides.*` stays for the side radio labels.
 - **Container queries:** a `@container` div inside the fieldset; the map toggle, two-view grid and list
   columns follow the picker's width (spec 04 embeds it in a sheet). A single view renders wider
-  (`max-w-60`) for bigger touch targets.
+  (`max-w-60`) for bigger touch targets. Because of `container-type: inline-size`, the picker
+  needs a parent with a definite width: inside a shrink-to-fit parent (`w-fit` dialog,
+  inline-flex row) it collapses, so give it a width there.
 - **Map front view is mirrored:** the patient's left is on the viewer's right; the back view is
   not mirrored. The geometry is data in `body-map-regions.ts`, pinned by tests for mirroring,
   bounds and coverage.
