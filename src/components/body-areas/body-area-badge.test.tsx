@@ -25,8 +25,13 @@ describe("BodyAreaBadge", () => {
     render(
       <NextIntlClientProvider locale="es" messages={es} timeZone="UTC">
         <BodyAreaBadge area="knee" side="both" />
+        <BodyAreaBadge area="hip_groin" side="left" />
+        <BodyAreaBadge area="elbow" side="right" />
       </NextIntlClientProvider>,
     );
-    expect(screen.getByText("Rodilla · Ambos")).toBeInTheDocument();
+    // The side reads as "lado …" so it agrees whatever the area's grammatical gender.
+    expect(screen.getByText("Rodilla · ambos lados")).toBeInTheDocument();
+    expect(screen.getByText("Cadera e ingle · lado izquierdo")).toBeInTheDocument();
+    expect(screen.getByText("Codo · lado derecho")).toBeInTheDocument();
   });
 });

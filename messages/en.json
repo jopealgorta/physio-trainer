@@ -133,7 +133,7 @@
       "full_body": "Full body"
     },
     "sides": { "left": "Left", "right": "Right", "both": "Both" },
-    "withSide": "{area} · {side}",
+    "withSide": "{area} · {side, select, left {Left} right {Right} other {Both}}",
     "picker": {
       "areaLabel": "Body area",
       "areasLabel": "Body areas",

@@ -35,7 +35,7 @@ export function BodyMap({ view, isSelected, onRegionClick, className }: BodyMapP
         const selected = isSelected(region);
         const areaLabel = t(`areas.${region.area}`);
         const label = region.side
-          ? t("withSide", { area: areaLabel, side: t(`sides.${region.side}`) })
+          ? t("withSide", { area: areaLabel, side: region.side })
           : areaLabel;
         const props = {
           role: "checkbox" as const,

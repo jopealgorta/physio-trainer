@@ -133,7 +133,7 @@
       "full_body": "Cuerpo completo"
     },
     "sides": { "left": "Izquierdo", "right": "Derecho", "both": "Ambos" },
-    "withSide": "{area} · {side}",
+    "withSide": "{area} · {side, select, left {lado izquierdo} right {lado derecho} other {ambos lados}}",
     "picker": {
       "areaLabel": "Zona del cuerpo",
       "areasLabel": "Zonas del cuerpo",
