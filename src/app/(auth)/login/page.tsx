@@ -21,6 +21,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <Logo />
       <LoginForm
         next={safeNextPath(firstParam(params.next))}
+        // With Google off too, keep email so there is always a way to sign in.
+        emailEnabled={env.NEXT_PUBLIC_AUTH_EMAIL_ENABLED || !env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED}
         googleEnabled={env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED}
         error={parseLoginError(firstParam(params.error))}
       />

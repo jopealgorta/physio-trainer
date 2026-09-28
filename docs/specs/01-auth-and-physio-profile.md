@@ -251,6 +251,7 @@ cookie and redirects to `next` or `/dashboard`.
 | Item                               | Where                   | Notes                                                                                               |
 | ---------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED`  | `src/env.ts` (client)   | Boolean, default `false`. Shows the Google button.                                                  |
+| `NEXT_PUBLIC_AUTH_EMAIL_ENABLED`   | `src/env.ts` (client)   | Boolean, default `true`. `false` hides the magic-link form; ignored when Google is off.             |
 | Google client id / secret          | `.env` for Supabase CLI | Read by `[auth.external.google]` via `env(...)`; names documented in `.env.example`.                |
 | `[api] enabled = false`            | `supabase/config.toml`  | Data API closed.                                                                                    |
 | `additional_redirect_urls`         | `supabase/config.toml`  | Globs covering `/auth/**` on `localhost` and `127.0.0.1` for any port (dev on :3000, e2e on :3100). |
@@ -269,7 +270,8 @@ onboarding and settings), `Settings.profile`, `Settings.account`, `UserMenu`, `A
 - [x] A new user can sign in with a magic link (local Mailpit) and lands on `/onboarding`.
 - [ ] Google sign-in is hidden when `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED` is not `true`, and the
       button starts the OAuth redirect when it is (real flow verified manually once
-      credentials exist). (render verified; OAuth redirect pending Google credentials)
+      credentials exist). (render verified; OAuth redirect to Google's account chooser verified
+      on production 2026-09-28; a full sign-in is still to be done manually)
 - [x] Onboarding rejects reserved, invalid and taken handles with clear messages.
 - [x] Signed-out visits to `/customers` redirect to `/login?next=/customers` and return there
       after sign-in (via onboarding for a new physio).
@@ -458,3 +460,7 @@ Decide before launch (not blocking this spec):
   `src/lib/auth/login-errors.ts` (e.g. `/login?error=linkInvalid&next=%2Fcustomers`); the
   default `/dashboard` is left out. `requirePhysio` has no `next` to keep and still uses
   `/login?error=unknown`; the onboarding page's missing-profile redirect uses the helper.
+- **`NEXT_PUBLIC_AUTH_EMAIL_ENABLED`** (default `true`) hides the magic-link form, so production
+  can run Google-only while Supabase uses its built-in sender (which only delivers to project
+  team members). `/login` ignores it when Google is off too, so there is always a way in. The
+  `oauthFailed` message no longer suggests "use an email link".

@@ -40,6 +40,14 @@ pnpm dev                 # http://localhost:3000, sign-in emails land in Mailpit
 | `pnpm db:generate`                       | Generate a migration from the Drizzle schema                      |
 | `pnpm db:studio`                         | Drizzle Studio                                                    |
 
+## Deployment
+
+Vercel deploys `main` to production through its GitHub integration. `vercel.json` turns off
+deployments for every other branch: there is no separate preview database, and the env vars
+are set for Production only. Set them in Vercel from `.env.example`, with `DATABASE_URL` on
+Supabase's transaction pooler (port 6543). `NEXT_PUBLIC_*` values are inlined at build time, so
+redeploy after changing one.
+
 ## Hosted Supabase setup
 
 Local config lives in `supabase/config.toml`; a hosted project needs the same settings in the
@@ -55,7 +63,8 @@ dashboard:
 4. **Auth → Email templates**: paste `supabase/templates/magic_link.html` into both "Magic
    Link" and "Confirm signup".
 5. **Auth → SMTP**: configure a real SMTP provider before launch; the built-in sender is
-   rate-limited.
+   rate-limited and only delivers to project team members. Until then, set
+   `NEXT_PUBLIC_AUTH_EMAIL_ENABLED=false` (with Google enabled) to hide the magic-link form.
 6. **Google** (optional): enable the provider with the Google Cloud client id/secret, then set
    `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED=true` in the app's environment.
 
