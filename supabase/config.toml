@@ -5,7 +5,9 @@
 project_id = "physio-trainer"
 
 [api]
-enabled = true
+# The Data API (PostgREST/GraphQL) is off: all table access is server-side through Drizzle
+# (docs/architecture.md, rule 6). `schemas = []` is not enough: PostgREST falls back to public.
+enabled = false
 # Port to use for the API URL.
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
@@ -159,7 +161,7 @@ site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3000/auth/callback", "http://127.0.0.1:3000/auth/callback"]
+additional_redirect_urls = ["http://localhost:*/auth/**", "http://127.0.0.1:*/auth/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -242,6 +244,17 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Magic-link emails point at /auth/confirm with a token_hash so they work on any device.
+# New users get "magic_link" locally; hosted projects with confirmations on send
+# "confirmation", so both templates use the same file.
+[auth.email.template.magic_link]
+subject = "Your Physio Trainer sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Your Physio Trainer sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
@@ -318,6 +331,16 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+
+# Google sign-in. To try it locally: export SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID and
+# SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET, set enabled = true, restart Supabase, and set
+# NEXT_PUBLIC_AUTH_GOOGLE_ENABLED=true in .env.local. Never commit the secret.
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = true
+
 [auth.external.apple]
 enabled = false
 client_id = ""
