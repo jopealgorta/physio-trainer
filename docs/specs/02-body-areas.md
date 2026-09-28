@@ -1,6 +1,6 @@
 # 02 · Body areas
 
-- **Status:** Not started
+- **Status:** In progress
 - **Feature:** H (body-area picker)
 - **Depends on:** 01
 
@@ -80,7 +80,13 @@ Namespace `BodyAreas` with one key per area and side.
 ## Open questions
 
 1. Is this list of areas right for your practice? Anything to add (e.g. "ribs", "pelvic floor")?
+   **Answer (2026-09-28):** keep the 17 listed areas as is.
 2. Do you have a body-outline illustration style in mind, or should we draw a simple minimalist one?
+   **Answer:** minimal segmented silhouette (simple region shapes, neutral fill, `primary` on
+   hover/selected, gender-neutral), drawn in-house.
+3. With no consumer until specs 03/04, how is the picker viewable in this PR?
+   **Answer:** a dev-only preview page at `/dev/body-areas` (404 in production); `dev` is added
+   to `RESERVED_HANDLES`.
 
 ## Decisions made during implementation
 
