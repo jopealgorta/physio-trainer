@@ -55,7 +55,8 @@ dashboard:
 4. **Auth → Email templates**: paste `supabase/templates/magic_link.html` into both "Magic
    Link" and "Confirm signup".
 5. **Auth → SMTP**: configure a real SMTP provider before launch; the built-in sender is
-   rate-limited.
+   rate-limited and only delivers to project team members. Until then, set
+   `NEXT_PUBLIC_AUTH_EMAIL_ENABLED=false` (with Google enabled) to hide the magic-link form.
 6. **Google** (optional): enable the provider with the Google Cloud client id/secret, then set
    `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED=true` in the app's environment.
 
