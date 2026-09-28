@@ -133,6 +133,7 @@ export function ProfileForm({
         />
         <p
           id="displayName-message"
+          aria-live="polite"
           className={cn(
             "text-sm",
             errors.displayName ? "text-destructive" : "text-muted-foreground",
@@ -195,7 +196,9 @@ export function ProfileForm({
             ))}
           </select>
           {errors.locale ? (
-            <p className="text-destructive text-sm">{t(`errors.${errors.locale}`)}</p>
+            <p role="alert" className="text-destructive text-sm">
+              {t(`errors.${errors.locale}`)}
+            </p>
           ) : null}
         </div>
         <div className="grid gap-2">
@@ -214,7 +217,9 @@ export function ProfileForm({
             ))}
           </select>
           {errors.timezone ? (
-            <p className="text-destructive text-sm">{t(`errors.${errors.timezone}`)}</p>
+            <p role="alert" className="text-destructive text-sm">
+              {t(`errors.${errors.timezone}`)}
+            </p>
           ) : null}
         </div>
       </div>

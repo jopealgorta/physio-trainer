@@ -134,4 +134,16 @@ describe("ProfileForm", () => {
       expect(screen.getByText("That handle is already taken.")).toBeInTheDocument(),
     );
   });
+
+  it("announces a server-side display name error to screen readers", async () => {
+    const action = vi.fn(async () => ({
+      status: "error" as const,
+      fieldErrors: { displayName: "displayNameRequired" as const },
+      submittedHandle: "maria-lopez",
+    }));
+    const user = userEvent.setup();
+    renderForm({ action });
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByText("Enter your name.")).toHaveAttribute("aria-live", "polite");
+  });
 });
