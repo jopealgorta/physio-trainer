@@ -70,8 +70,9 @@ src/
   i18n/                   locale config + next-intl request config
   lib/                    framework-agnostic helpers (pure, unit-tested)
   server/<domain>/        server-only code per domain:
-    queries.ts            reads
-    actions.ts            Server Actions ("use server"), thin: validate → call service → revalidate
+    queries.ts            reads, taking (tx, physioId)
+    mutations.ts          writes, taking (tx, physioId, input); testable via runAsPhysio
+    actions.ts            Server Actions ("use server"), thin: validate → withPhysio(mutation) → revalidate
     schemas.ts            zod input schemas shared by forms and actions
   proxy.ts                session refresh + route protection
 messages/                 translations (en.json, ...)
@@ -88,10 +89,11 @@ These rules are the security model. Every spec must follow them.
    has RLS enabled, and has policies allowing `select/insert/update/delete` only when
    `physio_id = (select auth.uid())`. Child tables (e.g. `routine_items`) carry `physio_id`
    too, so every policy is a single-column check with no joins. Index `physio_id` everywhere.
-2. **Physio-facing code** reads and writes through `withPhysio(fn)` (built in spec 01): a Drizzle
-   transaction that runs `set local role authenticated` and sets `request.jwt.claims` from the
-   verified session, so RLS applies to Drizzle queries. Queries _also_ filter by `physio_id`
-   explicitly. Two independent guards.
+2. **Physio-facing code** reads and writes through `withPhysio(fn)` (built in spec 01): it requires
+   a verified session and calls `runAsPhysio(claims, fn)`, a Drizzle transaction that sets
+   `request.jwt.claims` and runs `set local role authenticated`, so RLS applies to Drizzle
+   queries. Queries _also_ filter by `physio_id` explicitly. Two independent guards.
+   Integration tests call `runAsPhysio` directly with test claims.
 3. **Patient-facing code** (no session) lives only in `src/server/patient/`. It uses the owner
    `db` connection (RLS bypassed) and must:
    - resolve the share link by `code` first (not revoked, not expired, PIN satisfied);
@@ -105,6 +107,10 @@ These rules are the security model. Every spec must follow them.
 5. **Secrets**: `SUPABASE_SECRET_KEY` and `DATABASE_URL` are server-only (`src/env.ts`
    `server` block). Never import `@/db` or `@/lib/supabase/server` from a Client Component
    (both import `server-only`).
+6. **No Data API**: the Supabase Data API (PostgREST/GraphQL) does not expose `public`
+   (`[api] enabled = false` locally, disabled in the hosted dashboard). All table access is
+   server-side through Drizzle; browser code uses supabase-js only for Auth and Storage. This
+   stops a signed-in user from writing rows directly and skipping app validation (spec 01).
 
 ## Domain model
 
@@ -154,7 +160,10 @@ erDiagram
 
 - Primary keys: `uuid` default `gen_random_uuid()`.
 - `created_at timestamptz not null default now()`, `updated_at timestamptz not null default now()`
-  (updated by the app or a trigger; pick one in spec 01 and use it everywhere).
+  via the `timestamps` helper in `src/db/schema/_columns.ts`. `updated_at` is maintained by the
+  shared `set_updated_at()` trigger function (spec 01): every table with `updated_at` attaches it
+  (`before update ... for each row`) in the spec's custom migration. An integration test fails
+  when a table is missing it, or when a `public` table lacks RLS.
 - Soft delete via `archived_at timestamptz` where the spec says so. Hard delete otherwise.
 - Calendar dates (injury date, phase start, log date) are `date`, not `timestamptz`.
 - Weekdays are ISO numbers: 1 = Monday … 7 = Sunday.
@@ -176,8 +185,9 @@ for these in spec 03 and reuse them in spec 05.
   functions (including icon components) from Server to Client Components; pass serialisable
   props.
 - **Mutations** are Server Actions in `src/server/<domain>/actions.ts`: parse input with the zod
-  schema, run the change inside `withPhysio`, `revalidatePath`/`revalidateTag`, return a typed
-  result (`{ ok: true, data } | { ok: false, error }`). No business logic in components.
+  schema, run the change from `mutations.ts` inside `withPhysio`, `revalidatePath`/`revalidateTag`,
+  return a typed result (`{ ok: true, data } | { ok: false, error }`). No business logic in
+  components or actions.
 - **Forms**: native `<form action>` + `useActionState`; the same zod schema validates client
   hints and the server.
 - **Strings**: every user-visible string goes in `messages/en.json` under a namespace per
@@ -191,13 +201,14 @@ for these in spec 03 and reuse them in spec 05.
 
 ## Testing strategy
 
-| Layer       | Tool                                                                    | What                                                                                                                                                                                 |
-| ----------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Unit        | Vitest (`src/**/*.test.ts(x)`)                                          | Pure helpers in `src/lib`, zod schemas, components with Testing Library.                                                                                                             |
-| Integration | Vitest (`src/**/*.int.test.ts`, separate config, needs `pnpm db:start`) | Queries/actions against local Supabase, **including RLS tests** proving physio A cannot read or write physio B's rows. Set up in spec 01, required for every spec that adds a table. |
-| E2E         | Playwright (`e2e/`), desktop + mobile                                   | Critical flows per spec. Auth helper that signs in a seeded test physio is added in spec 01.                                                                                         |
+| Layer       | Tool                                                                    | What                                                                                                                                                                                                     |
+| ----------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit        | Vitest (`src/**/*.test.ts(x)`)                                          | Pure helpers in `src/lib`, zod schemas, components with Testing Library.                                                                                                                                 |
+| Integration | Vitest (`src/**/*.int.test.ts`, `pnpm test:int`, needs `pnpm db:start`) | Queries/mutations against local Supabase via `runAsPhysio`, **including RLS tests** proving physio A cannot read or write physio B's rows. Set up in spec 01, required for every spec that adds a table. |
+| E2E         | Playwright (`e2e/`), desktop + mobile                                   | Critical flows per spec. Auth helper that signs in a seeded test physio is added in spec 01.                                                                                                             |
 
-`pnpm check` runs lint, typecheck, format check and unit tests; CI runs it plus e2e.
+`pnpm check` runs lint, typecheck, format check and unit tests (no database); CI runs it plus
+integration and e2e jobs against a local Supabase started with the Supabase CLI.
 
 ## How features get built
 

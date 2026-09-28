@@ -12,6 +12,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:int": "vitest run --config vitest.int.config.mts",
     "test:e2e": "playwright test",
     "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test",
     "db:start": "supabase start",

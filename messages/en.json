@@ -8,12 +8,82 @@
     "headline": "Rehab routines your patients actually open.",
     "subheadline": "Build routines from your own exercise library, share them with a single clean link, and see how your patients are doing.",
     "primaryCta": "Get started",
-    "secondaryCta": "Open dashboard"
+    "dashboardCta": "Open dashboard"
   },
   "Login": {
     "title": "Sign in",
-    "description": "Sign-in with an email link or Google arrives with the authentication feature.",
+    "description": "We'll email you a link. No password needed.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@clinic.com",
+    "sendLink": "Send link",
+    "sending": "Sending…",
+    "or": "or",
+    "google": "Continue with Google",
+    "checkInboxTitle": "Check your inbox",
+    "checkInboxDescription": "We sent a sign-in link to {email}. You can open it on any device.",
+    "useDifferentEmail": "Use a different email",
     "back": "Back to home"
+  },
+  "Auth": {
+    "errors": {
+      "linkInvalid": "That sign-in link has expired or was already used. Request a new one.",
+      "oauthFailed": "Google sign-in didn't finish. Try again or use an email link.",
+      "unknown": "Something went wrong while signing you in. Try again.",
+      "emailInvalid": "Enter a valid email address.",
+      "sendFailed": "We couldn't send the link. Wait a moment and try again."
+    }
+  },
+  "ProfileForm": {
+    "displayName": "Display name",
+    "displayNameHint": "Shown to your patients.",
+    "handle": "Handle",
+    "handleHint": "Appears in the links you share with patients.",
+    "linkPreview": "Patient links will look like {url}",
+    "language": "Language",
+    "timezone": "Timezone",
+    "handleStatus": {
+      "checking": "Checking availability…",
+      "available": "Available",
+      "taken": "That handle is already taken.",
+      "reserved": "That handle is reserved. Pick another.",
+      "tooShort": "Use at least 3 characters.",
+      "tooLong": "Use at most 30 characters.",
+      "format": "Use lowercase letters, numbers and single hyphens, not at the start or end."
+    },
+    "errors": {
+      "displayNameRequired": "Enter your name.",
+      "displayNameTooLong": "Use at most 80 characters.",
+      "localeInvalid": "Pick a language from the list.",
+      "timezoneInvalid": "Pick a timezone from the list.",
+      "unknown": "Something went wrong. Try again."
+    },
+    "submitOnboarding": "Continue",
+    "submitSettings": "Save changes",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "handleChangeNotice": "Links you already shared keep working and will show your new handle."
+  },
+  "Onboarding": {
+    "title": "Set up your profile",
+    "description": "This is how you appear to patients. You can change it later in Settings."
+  },
+  "Settings": {
+    "title": "Settings",
+    "profile": {
+      "title": "Profile",
+      "description": "Your name, handle, language and timezone."
+    },
+    "account": {
+      "title": "Account",
+      "description": "You sign in with this email.",
+      "email": "Email",
+      "signOut": "Sign out"
+    }
+  },
+  "UserMenu": {
+    "trigger": "Account menu",
+    "settings": "Settings",
+    "signOut": "Sign out"
   },
   "Nav": {
     "dashboard": "Dashboard",

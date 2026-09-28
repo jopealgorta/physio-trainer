@@ -3,11 +3,15 @@ import Link from "next/link";
 import { AppNav, MobileNav } from "@/components/app-nav";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/user-menu";
+import { requirePhysio } from "@/server/auth/session";
 
 /**
- * Physio workspace shell. Auth gating is added in docs/specs/01-auth-and-physio-profile.md.
+ * Physio workspace shell. Requires a signed-in, onboarded physio.
  */
-export default function AppLayout({ children }: LayoutProps<"/">) {
+export default async function AppLayout({ children }: LayoutProps<"/">) {
+  const { profile } = await requirePhysio();
+
   return (
     <div className="flex min-h-svh flex-1">
       <aside className="bg-sidebar sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r px-3 py-4 md:flex">
@@ -16,7 +20,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         </Link>
         <AppNav group="main" />
         <div className="mt-auto flex items-end justify-between gap-2">
-          <AppNav group="secondary" className="flex-1" />
+          <UserMenu name={profile.displayName} email={profile.email} className="flex-1" />
           <ThemeToggle />
         </div>
       </aside>
@@ -26,7 +30,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <Link href="/dashboard">
               <Logo />
             </Link>
-            <ThemeToggle />
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <UserMenu name={profile.displayName} email={profile.email} compact />
+            </div>
           </div>
           <MobileNav />
         </header>

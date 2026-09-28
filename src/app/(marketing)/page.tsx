@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { getSessionPhysio } from "@/server/auth/session";
 
-export default function LandingPage() {
-  const t = useTranslations("Landing");
+export default async function LandingPage() {
+  const t = await getTranslations("Landing");
+  const session = await getSessionPhysio();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -22,14 +24,13 @@ export default function LandingPage() {
           {t("headline")}
         </h1>
         <p className="text-muted-foreground max-w-xl text-lg text-pretty">{t("subheadline")}</p>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button asChild size="lg">
+        <Button asChild size="lg">
+          {session ? (
+            <Link href="/dashboard">{t("dashboardCta")}</Link>
+          ) : (
             <Link href="/login">{t("primaryCta")}</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href="/dashboard">{t("secondaryCta")}</Link>
-          </Button>
-        </div>
+          )}
+        </Button>
       </main>
     </div>
   );

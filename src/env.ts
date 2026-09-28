@@ -16,6 +16,8 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_URL: z.url(),
     NEXT_PUBLIC_SUPABASE_URL: z.url(),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
+    // Shows "Continue with Google" on /login once the provider is configured in Supabase.
+    NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: z.stringbool().default(false),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
@@ -23,6 +25,7 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
