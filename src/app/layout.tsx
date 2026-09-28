@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
+import { Outfit } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { env } from "@/env";
+import { cn } from "@/lib/utils";
 
 import "./globals.css";
+
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Metadata");
@@ -31,7 +33,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={locale}
-      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
+      className={cn("h-full", "antialiased", "font-sans", outfit.variable)}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col font-sans">

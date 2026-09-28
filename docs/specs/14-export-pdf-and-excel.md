@@ -42,7 +42,7 @@ live link, so a printed sheet always leads back to the latest version.
 
 - PDF: `@react-pdf/renderer` in a Route Handler (Node runtime), or HTML → PDF with headless
   Chromium if layout fidelity demands it. Decide in the plan; `@react-pdf/renderer` is
-  recommended (no browser in production). Register Geist font files locally.
+  recommended (no browser in production). Register Outfit font files locally.
 - Excel: `exceljs`.
 - QR: `qrcode` package (SVG/PNG data URL).
 - Images: fetch signed URLs server-side, downscale thumbnails (e.g. `sharp`) to keep PDFs

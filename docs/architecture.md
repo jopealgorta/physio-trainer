@@ -41,7 +41,7 @@ that physio.
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework  | Next.js 16 (App Router, React 19, Server Components, Server Actions, `proxy.ts`). **Read `node_modules/next/dist/docs/` before using an API**: this version differs from older training data. |
 | Language   | TypeScript (strict)                                                                                                                                                                           |
-| UI         | Tailwind CSS v4, shadcn/ui (new-york, neutral; primitives in `src/components/ui`), lucide-react icons, Geist font, next-themes                                                                |
+| UI         | Tailwind CSS v4, shadcn/ui (`radix-mira` style from preset `b1D0dxHE`, neutral, Radix primitives in `src/components/ui`), lucide-react icons, Outfit font (`next/font/google`), next-themes   |
 | Database   | Supabase Postgres 17. Drizzle ORM for schema, migrations and queries                                                                                                                          |
 | Auth       | Supabase Auth via `@supabase/ssr` (cookie sessions refreshed in `src/proxy.ts`)                                                                                                               |
 | Files      | Supabase Storage (private buckets, signed URLs)                                                                                                                                               |
