@@ -2,8 +2,10 @@ import Link from "next/link";
 
 import { AppNav, MobileNav } from "@/components/app-nav";
 import { Logo } from "@/components/logo";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
+import { env } from "@/env";
 import { requirePhysio } from "@/server/auth/session";
 
 /**
@@ -41,6 +43,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
       </div>
+      <ServiceWorkerRegistration buildId={env.NEXT_PUBLIC_BUILD_ID} />
     </div>
   );
 }

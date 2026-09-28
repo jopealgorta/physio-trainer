@@ -153,5 +153,10 @@
     "submit": "Enviar",
     "submitted": "Datos enviados",
     "empty": "(sin campos)"
+  },
+  "Offline": {
+    "title": "Estás sin conexión",
+    "description": "Revisá tu conexión y probá de nuevo.",
+    "retry": "Reintentar"
   }
 }
