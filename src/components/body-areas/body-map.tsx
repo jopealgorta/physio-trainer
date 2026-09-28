@@ -47,7 +47,7 @@ export function BodyMap({ view, isSelected, onRegionClick, className }: BodyMapP
             "cursor-pointer stroke-1 transition-colors motion-reduce:transition-none",
             selected
               ? "fill-primary stroke-primary"
-              : "fill-muted stroke-border hover:fill-primary/30",
+              : "fill-muted-foreground/15 stroke-muted-foreground/35 hover:fill-primary/30",
           ),
         };
         const { shape } = region;
