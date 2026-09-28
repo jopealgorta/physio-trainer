@@ -22,6 +22,20 @@
       "when": 1790621054826,
       "tag": "20260928184414_body-area-enums",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790638662209,
+      "tag": "20260928233742_exercise-library",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790638662950,
+      "tag": "20260928233752_exercise-library-extras",
+      "breakpoints": true
     }
   ]
 }

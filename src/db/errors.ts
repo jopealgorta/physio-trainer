@@ -2,10 +2,23 @@ type PgErrorLike = { code?: unknown; constraint_name?: unknown; cause?: unknown 
 
 /** True when `error` (possibly wrapped by Drizzle) is a Postgres unique violation. */
 export function isUniqueViolation(error: unknown, constraint?: string): boolean {
+  return hasPgCode(error, "23505", constraint);
+}
+
+/** True when `error` is a Postgres foreign key violation. */
+export function isForeignKeyViolation(error: unknown, constraint?: string): boolean {
+  return hasPgCode(error, "23503", constraint);
+}
+
+/** True when `error` is a Postgres check violation. */
+export function isCheckViolation(error: unknown, constraint?: string): boolean {
+  return hasPgCode(error, "23514", constraint);
+}
+
+function hasPgCode(error: unknown, code: string, constraint?: string): boolean {
   const pgError = findPgError(error);
   return (
-    pgError?.code === "23505" &&
-    (constraint === undefined || pgError.constraint_name === constraint)
+    pgError?.code === code && (constraint === undefined || pgError.constraint_name === constraint)
   );
 }
 
