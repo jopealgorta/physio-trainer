@@ -103,6 +103,9 @@
     "dark": "Oscuro",
     "system": "Sistema"
   },
+  "LocaleSwitcher": {
+    "label": "Idioma"
+  },
   "NotFound": {
     "title": "Página no encontrada",
     "description": "Puede que este link haya vencido o se haya eliminado.",
