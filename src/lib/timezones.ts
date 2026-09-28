@@ -17,24 +17,9 @@ export function isValidTimeZone(value: string): boolean {
 
 export type TimeZoneOption = { value: string; label: string };
 
-// Known timezone aliases for systems where the primary name is not available
-const TIMEZONE_ALIASES: Record<string, string> = {
-  "Asia/Kolkata": "Asia/Calcutta",
-};
-
 /** Options for a timezone <select>: UTC first, then every zone, labelled "Europe/Madrid (GMT+1)". */
 export function timeZoneOptions(now: Date = new Date()): TimeZoneOption[] {
-  const supportedZones = Intl.supportedValuesOf("timeZone");
-  const zones = ["UTC", ...supportedZones.filter((zone) => zone !== "UTC")];
-
-  // Add aliases for zones not directly supported but available under different names
-  const zoneSet = new Set(zones);
-  for (const [alias, canonical] of Object.entries(TIMEZONE_ALIASES)) {
-    if (!zoneSet.has(alias) && zoneSet.has(canonical)) {
-      zones.push(alias);
-    }
-  }
-
+  const zones = ["UTC", ...Intl.supportedValuesOf("timeZone").filter((zone) => zone !== "UTC")];
   return zones.map((zone) => ({
     value: zone,
     label: `${zone.replaceAll("_", " ")} (${offsetLabel(zone, now)})`,
@@ -42,10 +27,8 @@ export function timeZoneOptions(now: Date = new Date()): TimeZoneOption[] {
 }
 
 function offsetLabel(timeZone: string, date: Date): string {
-  // Use the canonical timezone name if this is an alias
-  const canonical = TIMEZONE_ALIASES[timeZone] ?? timeZone;
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: canonical,
+    timeZone,
     timeZoneName: "shortOffset",
   }).formatToParts(date);
   return parts.find((part) => part.type === "timeZoneName")?.value ?? "GMT";

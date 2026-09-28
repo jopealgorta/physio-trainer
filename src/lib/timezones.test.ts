@@ -29,6 +29,8 @@ describe("timeZoneOptions", () => {
     const labels = new Map(timeZoneOptions(january).map((option) => [option.value, option.label]));
     expect(labels.get("Europe/Madrid")).toBe("Europe/Madrid (GMT+1)");
     expect(labels.get("America/New_York")).toBe("America/New York (GMT-5)");
-    expect(labels.get("Asia/Kolkata")).toBe("Asia/Kolkata (GMT+5:30)");
+    const kolkata = normalizeTimeZone("Asia/Kolkata");
+    expect(kolkata).not.toBeNull();
+    expect(labels.get(kolkata!)).toBe(`${kolkata!.replaceAll("_", " ")} (GMT+5:30)`);
   });
 });
