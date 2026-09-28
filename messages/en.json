@@ -8,7 +8,7 @@
     "headline": "Rehab routines your patients actually open.",
     "subheadline": "Build routines from your own exercise library, share them with a single clean link, and see how your patients are doing.",
     "primaryCta": "Get started",
-    "secondaryCta": "Open dashboard"
+    "dashboardCta": "Open dashboard"
   },
   "Login": {
     "title": "Sign in",
@@ -66,6 +66,24 @@
   "Onboarding": {
     "title": "Set up your profile",
     "description": "This is how you appear to patients. You can change it later in Settings."
+  },
+  "Settings": {
+    "title": "Settings",
+    "profile": {
+      "title": "Profile",
+      "description": "Your name, handle, language and timezone."
+    },
+    "account": {
+      "title": "Account",
+      "description": "You sign in with this email.",
+      "email": "Email",
+      "signOut": "Sign out"
+    }
+  },
+  "UserMenu": {
+    "trigger": "Account menu",
+    "settings": "Settings",
+    "signOut": "Sign out"
   },
   "Nav": {
     "dashboard": "Dashboard",

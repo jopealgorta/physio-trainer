@@ -24,6 +24,9 @@ test("a new physio picks a handle and reaches the dashboard", async ({ page }) =
     await expect(page.getByText("Available", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
+
+    await page.getByRole("button", { name: "Account menu" }).filter({ visible: true }).click();
+    await expect(page.getByRole("menu")).toContainText(`Nora Test ${suffix}`);
   } finally {
     await Promise.all([deletePhysio(physio), deletePhysio(other)]);
   }
