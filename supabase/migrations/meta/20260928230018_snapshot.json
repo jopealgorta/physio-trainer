@@ -1,0 +1,242 @@
+{
+  "id": "f32c0931-0785-4574-9881-a19c4f6e18d8",
+  "prevId": "82286b8e-1c6c-418a-8adb-0c92628ca084",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.physios": {
+      "name": "physios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "handle": {
+          "name": "handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UTC'"
+        },
+        "onboarded_at": {
+          "name": "onboarded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clinic_name": {
+          "name": "clinic_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo_path": {
+          "name": "logo_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accent_color": {
+          "name": "accent_color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_email": {
+          "name": "contact_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_phone": {
+          "name": "contact_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "show_contact_to_patients": {
+          "name": "show_contact_to_patients",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "physios_id_users_id_fk": {
+          "name": "physios_id_users_id_fk",
+          "tableFrom": "physios",
+          "columnsFrom": [
+            "id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "physios_handle_unique": {
+          "name": "physios_handle_unique",
+          "columns": [
+            "handle"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "physios_select_own": {
+          "name": "physios_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"physios\".\"id\" = (select auth.uid())"
+        },
+        "physios_update_own": {
+          "name": "physios_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"physios\".\"id\" = (select auth.uid())",
+          "withCheck": "\"physios\".\"id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {
+        "physios_handle_format": {
+          "name": "physios_handle_format",
+          "value": "\"physios\".\"handle\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(\"physios\".\"handle\") between 3 and 30"
+        },
+        "physios_display_name_length": {
+          "name": "physios_display_name_length",
+          "value": "char_length(\"physios\".\"display_name\") between 1 and 80"
+        },
+        "physios_clinic_name_length": {
+          "name": "physios_clinic_name_length",
+          "value": "char_length(\"physios\".\"clinic_name\") between 1 and 80"
+        },
+        "physios_accent_color_format": {
+          "name": "physios_accent_color_format",
+          "value": "\"physios\".\"accent_color\" ~ '^#[0-9a-f]{6}$'"
+        },
+        "physios_logo_path_own": {
+          "name": "physios_logo_path_own",
+          "value": "\"physios\".\"logo_path\" ~ ('^' || \"physios\".\"id\"::text || '/logo-[0-9a-f-]{36}\\.(png|webp|jpg)$')"
+        },
+        "physios_contact_email_length": {
+          "name": "physios_contact_email_length",
+          "value": "char_length(\"physios\".\"contact_email\") between 3 and 254"
+        },
+        "physios_contact_phone_format": {
+          "name": "physios_contact_phone_format",
+          "value": "\"physios\".\"contact_phone\" ~ '^\\+[0-9]{7,15}$'"
+        },
+        "physios_website_format": {
+          "name": "physios_website_format",
+          "value": "\"physios\".\"website\" ~ '^https://' and char_length(\"physios\".\"website\") <= 2048"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.body_area": {
+      "name": "body_area",
+      "schema": "public",
+      "values": [
+        "head_jaw",
+        "neck",
+        "shoulder",
+        "upper_back",
+        "chest",
+        "upper_arm",
+        "elbow",
+        "forearm_wrist_hand",
+        "lower_back",
+        "abdomen_core",
+        "hip_groin",
+        "glute",
+        "thigh",
+        "knee",
+        "lower_leg",
+        "ankle_foot",
+        "full_body"
+      ]
+    },
+    "public.body_side": {
+      "name": "body_side",
+      "schema": "public",
+      "values": [
+        "left",
+        "right",
+        "both"
+      ]
+    }
+  },
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
