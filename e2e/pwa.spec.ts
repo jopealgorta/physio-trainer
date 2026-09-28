@@ -62,7 +62,7 @@ test.describe("offline", () => {
     physioPage: page,
     context,
   }) => {
-    await page.waitForFunction(() => navigator.serviceWorker?.controller !== null);
+    await page.waitForFunction(() => !!navigator.serviceWorker?.controller);
 
     await context.setOffline(true);
     await page.goto("/customers");

@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 // Versions the service worker (docs/specs/18-pwa.md): a new id per deploy installs a new worker.
 const buildId =
-  process.env.NEXT_PUBLIC_BUILD_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? Date.now().toString(36);
+  process.env.NEXT_PUBLIC_BUILD_ID || process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString(36);
 
 const nextConfig: NextConfig = {
   typedRoutes: true,

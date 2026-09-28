@@ -2,8 +2,9 @@
 // Its only job: show /offline when a page can't load. It never caches pages, API responses or
 // Supabase calls, so no stale or cross-user data can come from here.
 // Registered as /sw.js?v=<build id>: every deploy installs a new worker with a new cache.
-// Kill switch: replace this file with one that deletes its caches and calls
-// self.registration.unregister().
+// Kill switch: remove <ServiceWorkerRegistration> from src/app/(app)/layout.tsx (or it registers
+// the worker again on every page load) and replace this file with one that deletes its caches
+// and calls self.registration.unregister().
 
 const CACHE_PREFIX = "physio-trainer-";
 const CACHE = CACHE_PREFIX + (new URL(self.location.href).searchParams.get("v") || "dev");
@@ -15,7 +16,13 @@ self.addEventListener("install", (event) => {
     (async () => {
       const cache = await caches.open(CACHE);
       const response = await fetch(OFFLINE_URL, { cache: "reload" });
-      if (!response.ok) throw new Error(`${OFFLINE_URL} returned ${response.status}`);
+      // A redirect could land on a signed-in page: caching that would show one physio's data to
+      // anyone offline on this device. Fail the install instead (the previous worker stays).
+      if (!response.ok || response.redirected) {
+        throw new Error(
+          `${OFFLINE_URL} returned ${response.status} (redirected: ${response.redirected})`,
+        );
+      }
       const html = await response.clone().text();
       await cache.put(OFFLINE_URL, response);
       // The offline page needs its CSS, JS and fonts when there is no network. Best effort: a
@@ -34,6 +41,8 @@ self.addEventListener("activate", (event) => {
       for (const name of await caches.keys()) {
         if (name.startsWith(CACHE_PREFIX) && name !== CACHE) await caches.delete(name);
       }
+      // Start page requests while the worker boots; it only steps in when they fail.
+      await self.registration.navigationPreload?.enable();
       await self.clients.claim();
     })(),
   );
@@ -48,10 +57,14 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     // Network only; HTTP errors pass through, only a failed connection shows /offline.
     event.respondWith(
-      fetch(request).catch(async () => {
-        const offline = await caches.match(OFFLINE_URL, { cacheName: CACHE });
-        return offline || Response.error();
-      }),
+      (async () => {
+        try {
+          return (await event.preloadResponse) || (await fetch(request));
+        } catch {
+          const offline = await caches.match(OFFLINE_URL, { cacheName: CACHE });
+          return offline || Response.error();
+        }
+      })(),
     );
     return;
   }

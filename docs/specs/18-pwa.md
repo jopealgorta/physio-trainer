@@ -79,18 +79,22 @@ statusBarStyle: "default" }`.
    a new script URL, so every deploy installs a fresh worker. Registration errors are swallowed
    (the app works without it).
 5. Service worker, cache name `physio-trainer-<v>`:
-   1. `install`: fetch `/offline`, cache it, cache every `/_next/static/…` URL referenced in
-      its HTML (CSS, JS, fonts), then `skipWaiting()`.
-   2. `activate`: delete every other `physio-trainer-*` cache, `clients.claim()`.
+   1. `install`: fetch `/offline` (a non-OK or redirected response fails the install, so a
+      redirect can never put a signed-in page in the cache), cache it, cache every
+      `/_next/static/…` URL referenced in its HTML (CSS, JS, fonts), then `skipWaiting()`.
+   2. `activate`: delete every other `physio-trainer-*` cache, enable navigation preload,
+      `clients.claim()`.
    3. `fetch`, same-origin `GET` only:
-      - `mode === "navigate"`: network; if the network throws, respond with cached `/offline`.
+      - `mode === "navigate"`: network (the preload response when there is one); if the network
+        throws, respond with cached `/offline`.
         HTTP error responses pass through unchanged.
       - `/_next/static/…`: cache first, then network (hashed, immutable, public).
       - Anything else: not intercepted.
 6. `/sw.js` is served with `Cache-Control: no-cache` so update checks always reach the server.
 7. The proxy matcher skips `sw.js`, `icon` and `apple-icon` (no Supabase session refresh for
    them). `/offline` still goes through the proxy; it is not a protected path.
-8. Kill switch: if a bad worker ships, replace `public/sw.js` with one that calls
+8. Kill switch: if a bad worker ships, remove `<ServiceWorkerRegistration>` from the `(app)`
+   layout (it re-registers on every page load) and replace `public/sw.js` with one that calls
    `self.registration.unregister()` and deletes its caches.
 
 ## Security and privacy
@@ -162,3 +166,12 @@ Resolved in brainstorming (2026-09-28):
 - `NEXT_PUBLIC_BUILD_ID` can also be set explicitly (it wins over `VERCEL_GIT_COMMIT_SHA`), and
   `@/env` defaults it to `dev`.
 - Verified in Chrome via CDP: `Page.getInstallabilityErrors` and manifest errors are empty.
+- The proxy matcher skips `apple-icon` as an exact segment (`apple-icon$`), so a handle such as
+  `apple-iconic` still goes through the proxy.
+- Known limitation (from code review, not tested on a device): on iOS a home-screen app keeps
+  its own cookies, separate from Safari's. A magic link opens in Safari, so an installed app that
+  has lost its session can only sign in again with Google. A follow-up could add an email OTP
+  code entry.
+- Accepted: the maskable icon is also emitted as a `<link rel="icon">` by the `icon` convention;
+  browsers use `favicon.ico` or the smaller icons for tabs. The locale-dependent manifest sends no
+  `Vary` header; revisit if a CDN ever caches it.
