@@ -1,7 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -102,10 +109,14 @@ export function ProfileForm({
   const handleInvalid =
     handleMessage !== undefined && !["available", "checking"].includes(handleMessage);
 
-  const browserZoneListed =
-    browserTimeZone !== null && timeZones.some((zone) => zone.value === browserTimeZone);
-  const effectiveTimezone =
-    timezone ?? (mode === "onboarding" && browserZoneListed ? browserTimeZone : defaults.timezone);
+  // Onboarding starts from the browser's zone. A zone the server's list lacks (e.g. a newer
+  // alias from the browser's ICU) is still offered; profileSchema normalises it on save.
+  const initialTimezone =
+    mode === "onboarding" && browserTimeZone !== null ? browserTimeZone : defaults.timezone;
+  const timeZoneChoices = timeZones.some((zone) => zone.value === initialTimezone)
+    ? timeZones
+    : [{ value: initialTimezone, label: initialTimezone.replaceAll("_", " ") }, ...timeZones];
+  const effectiveTimezone = timezone ?? initialTimezone;
 
   function onDisplayNameChange(value: string) {
     setDisplayName(value);
@@ -114,8 +125,17 @@ export function ProfileForm({
     if (derived) setHandle(derived);
   }
 
+  // React resets a form after its `action` resolves, which snaps controlled <select>s back to
+  // their first-render option while state keeps the new value. Dispatching from onSubmit skips
+  // that reset; `action` stays for submits before hydration.
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
   return (
-    <form action={formAction} className="grid gap-6" noValidate>
+    <form action={formAction} onSubmit={onSubmit} className="grid gap-6" noValidate>
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
       <div className="grid gap-2">
@@ -174,7 +194,8 @@ export function ProfileForm({
       </div>
 
       {mode === "settings" && !unchanged ? (
-        <Alert>
+        // The handle status region already announces changes; this notice must not interrupt.
+        <Alert role="status">
           <AlertDescription>{t("handleChangeNotice")}</AlertDescription>
         </Alert>
       ) : null}
@@ -210,7 +231,7 @@ export function ProfileForm({
             onChange={(event) => setTimezone(event.target.value)}
             className={selectClassName}
           >
-            {timeZones.map((zone) => (
+            {timeZoneChoices.map((zone) => (
               <option key={zone.value} value={zone.value}>
                 {zone.label}
               </option>

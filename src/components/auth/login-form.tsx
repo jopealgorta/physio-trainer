@@ -93,9 +93,11 @@ export function LoginForm({
               autoComplete="email"
               required
               placeholder={t("emailPlaceholder")}
-              defaultValue={dismissed?.status === "sent" ? dismissed.email : undefined}
+              // React resets the form after each send; keep what was submitted (or the email a
+              // dismissed "Check your inbox" was for).
+              defaultValue={state.status === "idle" ? undefined : state.email}
               aria-invalid={formError === "emailInvalid"}
-              aria-describedby={formError ? "email-error" : undefined}
+              aria-describedby={formError === "emailInvalid" ? "email-error" : undefined}
             />
             {formError ? (
               <p id="email-error" role="alert" className="text-destructive text-sm">

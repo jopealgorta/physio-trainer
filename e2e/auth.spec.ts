@@ -94,6 +94,7 @@ test("the login form rejects an invalid email", async ({ page }) => {
   await page.getByLabel("Email").fill("not-an-email");
   await page.getByRole("button", { name: "Send link" }).click();
   await expect(page.getByText("Enter a valid email address.")).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveValue("not-an-email");
 });
 
 test("Google sign-in is hidden when it is not enabled", async ({ page }) => {

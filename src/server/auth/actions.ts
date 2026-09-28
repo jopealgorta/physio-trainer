@@ -19,12 +19,9 @@ export async function sendMagicLink(
   _state: MagicLinkState,
   formData: FormData,
 ): Promise<MagicLinkState> {
-  const email = z.email().safeParse(
-    String(formData.get("email") ?? "")
-      .trim()
-      .toLowerCase(),
-  );
-  if (!email.success) return { status: "error", error: "emailInvalid" };
+  const submitted = String(formData.get("email") ?? "");
+  const email = z.email().safeParse(submitted.trim().toLowerCase());
+  if (!email.success) return { status: "error", error: "emailInvalid", email: submitted };
 
   const next = safeNextPath(formData.get("next")?.toString());
   const supabase = await createClient();
@@ -32,7 +29,7 @@ export async function sendMagicLink(
     email: email.data,
     options: { emailRedirectTo: authUrl("/auth/confirm", next) },
   });
-  if (error) return { status: "error", error: "sendFailed" };
+  if (error) return { status: "error", error: "sendFailed", email: submitted };
   return { status: "sent", email: email.data };
 }
 

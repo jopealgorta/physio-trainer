@@ -109,7 +109,7 @@ describe("ProfileForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("warns about changing the handle only in settings", async () => {
+  it("warns about changing the handle only in settings, without interrupting", async () => {
     const user = userEvent.setup();
     renderForm({ mode: "settings", savedHandle: "maria-lopez" });
     const notice = "Links you already shared keep working and will show your new handle.";
@@ -118,7 +118,69 @@ describe("ProfileForm", () => {
     const handle = screen.getByLabelText("Handle");
     await user.clear(handle);
     await user.type(handle, "maria-physio");
-    expect(screen.getByText(notice)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(notice);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps the chosen selects after a successful save and submits them again", async () => {
+    const action = vi.fn<Props["action"]>(async () => ({ status: "saved" }));
+    const user = userEvent.setup();
+    renderForm({
+      mode: "settings",
+      savedHandle: "maria-lopez",
+      action,
+      languages: [
+        { value: "en", label: "English" },
+        { value: "es", label: "Español" },
+      ],
+    });
+    const timezone = screen.getByLabelText("Timezone");
+    const language = screen.getByLabelText("Language");
+    const save = screen.getByRole("button", { name: "Save changes" });
+
+    await user.selectOptions(timezone, "Europe/Madrid");
+    await user.selectOptions(language, "es");
+    await user.click(save);
+    expect(await screen.findByText("Saved")).toBeInTheDocument();
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(timezone).toHaveValue("Europe/Madrid");
+    expect(language).toHaveValue("es");
+
+    await user.click(save);
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    const secondSubmit = action.mock.calls[1][1];
+    expect(secondSubmit.get("timezone")).toBe("Europe/Madrid");
+    expect(secondSubmit.get("locale")).toBe("es");
+  });
+
+  it("shows a saved timezone that is missing from the options", () => {
+    renderForm({
+      mode: "settings",
+      savedHandle: "maria-lopez",
+      defaults: {
+        displayName: "Maria Lopez",
+        handle: "maria-lopez",
+        locale: "en",
+        timezone: "Asia/Ho_Chi_Minh",
+      },
+    });
+    expect(screen.getByLabelText("Timezone")).toHaveValue("Asia/Ho_Chi_Minh");
+    expect(screen.getByRole("option", { name: "Asia/Ho Chi Minh" })).toBeInTheDocument();
+  });
+
+  it("defaults onboarding to the browser's zone even when it is missing from the options", () => {
+    const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+    const spy = vi
+      .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+      .mockImplementation(function (this: Intl.DateTimeFormat) {
+        return { ...resolvedOptions.call(this), timeZone: "Asia/Ho_Chi_Minh" };
+      });
+    try {
+      renderForm();
+      expect(screen.getByLabelText("Timezone")).toHaveValue("Asia/Ho_Chi_Minh");
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("shows a server-side 'taken' error for the submitted handle", async () => {

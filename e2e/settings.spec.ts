@@ -11,7 +11,9 @@ test("a physio updates their profile", async ({ physioPage: page, physio }) => {
   await expect(page.getByText("Available", { exact: true })).toBeVisible();
   await page.getByLabel("Timezone").selectOption("Europe/Madrid");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("status")).toHaveText("Saved");
+  await expect(page.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
+  // React resets a form after its action; the chosen zone must survive that, not snap back.
+  await expect(page.getByLabel("Timezone")).toHaveValue("Europe/Madrid");
 
   await page.reload();
   await expect(page.getByLabel("Display name")).toHaveValue("Renamed Physio");
