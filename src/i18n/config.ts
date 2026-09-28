@@ -20,3 +20,9 @@ export function resolveLocale(candidate: string | null | undefined): Locale {
   const base = candidate.toLowerCase().split(/[-_]/)[0];
   return isLocale(base) ? base : defaultLocale;
 }
+
+/** Language <select> options, each named in the physio's current UI language. */
+export function languageOptions(displayLocale: Locale): { value: Locale; label: string }[] {
+  const names = new Intl.DisplayNames([displayLocale], { type: "language" });
+  return locales.map((value) => ({ value, label: names.of(value) ?? value }));
+}

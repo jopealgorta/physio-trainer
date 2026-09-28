@@ -33,6 +33,40 @@
       "sendFailed": "We couldn't send the link. Wait a moment and try again."
     }
   },
+  "ProfileForm": {
+    "displayName": "Display name",
+    "displayNameHint": "Shown to your patients.",
+    "handle": "Handle",
+    "handleHint": "Appears in the links you share with patients.",
+    "linkPreview": "Patient links will look like {url}",
+    "language": "Language",
+    "timezone": "Timezone",
+    "handleStatus": {
+      "checking": "Checking availability…",
+      "available": "Available",
+      "taken": "That handle is already taken.",
+      "reserved": "That handle is reserved. Pick another.",
+      "tooShort": "Use at least 3 characters.",
+      "tooLong": "Use at most 30 characters.",
+      "format": "Use lowercase letters, numbers and single hyphens, not at the start or end."
+    },
+    "errors": {
+      "displayNameRequired": "Enter your name.",
+      "displayNameTooLong": "Use at most 80 characters.",
+      "localeInvalid": "Pick a language from the list.",
+      "timezoneInvalid": "Pick a timezone from the list.",
+      "unknown": "Something went wrong. Try again."
+    },
+    "submitOnboarding": "Continue",
+    "submitSettings": "Save changes",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "handleChangeNotice": "Links you already shared keep working and will show your new handle."
+  },
+  "Onboarding": {
+    "title": "Set up your profile",
+    "description": "This is how you appear to patients. You can change it later in Settings."
+  },
   "Nav": {
     "dashboard": "Dashboard",
     "customers": "Customers",
