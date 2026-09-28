@@ -52,9 +52,13 @@ assist (M), GDPR tooling (N), patient reminders (O), clinics/teams, billing. Wri
 
 ## Working on a spec
 
-1. Start a new session on a new branch.
+The full loop (clarify → design approval → autonomous build → PR → merge on approval) is in
+the "Workflow" section of [`CLAUDE.md`](../../CLAUDE.md). Spec-specific parts:
+
+1. Start a new session on a new branch (`feat/NN-<name>`).
 2. Read `CLAUDE.md`, `docs/architecture.md`, the spec and the specs it depends on.
-3. Ask the user the spec's **Open questions** before planning; record the answers in the spec.
-4. Write the implementation plan (`docs/plans/NN-<name>.md`), then build it test-first.
-5. When done, set **Status** to `Done` here and in the spec, and note any deviations in the
-   spec's **Decisions made during implementation** section.
+3. Ask the user the spec's **Open questions** before designing; record the answers in the spec.
+4. After the design is approved, write the implementation plan (`docs/plans/NN-<name>.md`)
+   and build it test-first.
+5. Before opening the PR, set **Status** to `Done` here and in the spec, and note any
+   deviations in the spec's **Decisions made during implementation** section.

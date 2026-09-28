@@ -30,17 +30,38 @@ Claude Code on the web).
 ## Workflow (Superpowers)
 
 The Superpowers plugin is enabled in `.claude/settings.json`; use its skills at each step. The
-paths below override the skills' default `docs/superpowers/...` locations.
+user's loop is **task → clarifying questions → one design approval → review the PR**.
+Everything between the design approval and the open PR runs without stopping.
 
-1. One spec per session/branch. Resolve the spec's "Open questions" with the user first. The
-   specs are the `superpowers:brainstorming` output; a new feature gets its spec in
-   `docs/specs/NN-<name>.md` (from `_template.md`), not a dated design doc.
-2. `superpowers:writing-plans` → `docs/plans/NN-<name>.md`, then implement test-first
-   (`superpowers:test-driven-development`, `superpowers:subagent-driven-development`).
-3. `superpowers:verification-before-completion`: `pnpm check`, integration tests, e2e for the
-   feature. Bugs and failing tests go through `superpowers:systematic-debugging`.
-4. Update the spec's Status and "Decisions made during implementation", and the index table;
-   then `superpowers:requesting-code-review` and `superpowers:finishing-a-development-branch`.
+1. **Intake.** One task per session/branch: a spec (`NN`) or an ad-hoc change. Pull `main`,
+   branch as `feat/NN-<name>`, `fix/<name>` or `chore/<name>`, read `docs/architecture.md`
+   and the spec plus the specs it depends on.
+2. **Clarify.** Ask the spec's "Open questions" and anything else ambiguous, one batch at a
+   time. Record the answers in the spec (spec work) or the PR description (ad-hoc work).
+3. **Design checkpoint (the only gate).** Post a short design in chat: approach, files
+   touched, test plan, risks. Wait for an explicit yes. A new feature with no spec gets one
+   written from `docs/specs/_template.md` as the first commit after approval, not a dated
+   design doc.
+4. **Build autonomously.** Spec work: `superpowers:writing-plans` → `docs/plans/NN-<name>.md`
+   (no plan review), then `superpowers:subagent-driven-development`. Ad-hoc work: no plan
+   doc. Always test-first (`superpowers:test-driven-development`); bugs and failing tests go
+   through `superpowers:systematic-debugging`. Stop only for a decision that is genuinely the
+   user's, or when the work turns out bigger than the approved design (say so, re-design).
+5. **Verify and self-review.** `superpowers:verification-before-completion`: `pnpm check`,
+   `pnpm test:int`, e2e for the feature. Then `superpowers:requesting-code-review` and fix
+   what it finds. Update the spec's Status and "Decisions made during implementation", and
+   the index table in `docs/specs/README.md`.
+6. **Open the PR.** Push and open a PR against `main`: summary, answers to the clarifying
+   questions, decisions/deviations, verification evidence. Enable the desktop app's CI
+   monitor on it; CI failures and review comments that arrive through it get fixed, pushed
+   and replied to on their threads without asking.
+7. **Merge on approval.** When the user approves the PR or says "merge": squash-merge,
+   delete the branch, pull `main`. Never merge without that.
+
+These override the Superpowers defaults: no `docs/superpowers/...` paths (specs live in
+`docs/specs/`, plans in `docs/plans/`); no written-spec review or plan review gate; no
+execution-method question (subagent-driven); `superpowers:finishing-a-development-branch`
+always takes the "push and open a PR" option instead of offering the menu.
 
 ## Rules that are easy to get wrong
 
