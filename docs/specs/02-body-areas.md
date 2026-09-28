@@ -1,6 +1,6 @@
 # 02 · Body areas
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** H (body-area picker)
 - **Depends on:** 01
 
@@ -66,10 +66,10 @@ Namespace `BodyAreas` with one key per area and side.
 
 ## Acceptance criteria
 
-- [ ] Enum values in the DB, TS arrays and `messages/en.json` stay in sync (unit test).
-- [ ] Picker works with mouse, touch and keyboard; screen readers announce region names and selection.
-- [ ] Works in single-with-side and multi modes inside a native form submission.
-- [ ] Looks right in light and dark mode, desktop and mobile.
+- [x] Enum values in the DB, TS arrays and `messages/en.json` stay in sync (unit test).
+- [x] Picker works with mouse, touch and keyboard; screen readers announce region names and selection.
+- [x] Works in single-with-side and multi modes inside a native form submission.
+- [x] Looks right in light and dark mode, desktop and mobile.
 
 ## Test plan
 
@@ -90,4 +90,33 @@ Namespace `BodyAreas` with one key per area and side.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Single source:** `src/lib/body-areas.ts` holds `BODY_AREAS`, `BODY_SIDES`, `PAIRED_BODY_AREAS`,
+  the zod schemas (`bodyAreaSchema`, `bodySideSchema`, `caseBodyAreaSchema`) and `CASE_BODY_AREAS`
+  (all areas minus `full_body`, for spec 04). The `body_area`/`body_side` pgEnums in
+  `src/db/schema/enums.ts` are built from the same arrays; an integration test checks
+  `enum_range()` in Postgres against them. Treat the list as append-only.
+- **Single mode means injury:** it never offers `full_body` (no list item, no map region).
+- **Sides:** midline areas (head/jaw, neck, chest, upper back, lower back, abdomen/core) store
+  `side: null`. With `withSide`, map clicks on a paired area follow `selectArea()`: first side →
+  that side; other side → `both`; one side of `both` → the other side; the only chosen side
+  again → cleared. Choosing a paired area from the list starts with no side (the side radios
+  then appear); clicking a selected midline region again clears it. Multi mode ignores sides.
+- **Form contract:** multi mode renders one hidden `name` input per area (canonical order,
+  none when empty; read with `formData.getAll`). Single mode renders `name` (area or `""`)
+  and, with `withSide`, `sideName` (default `${name}Side`, side or `""`). Radix checkbox/radio
+  internals submit nothing.
+- **Map front view is mirrored:** the patient's left is on the viewer's right; the back view is
+  not mirrored. The geometry is data in `body-map-regions.ts`, pinned by tests for mirroring,
+  bounds and coverage.
+- **Accessibility:** the list (shadcn `Checkbox`/`RadioGroup`, added in this spec) is the
+  keyboard path. Map regions are `role="checkbox"` with `aria-checked` and names like
+  "Knee · Left", announced but not tab stops, so there are no duplicate tab stops across the two
+  views.
+- **Styling:** unselected regions use `fill-muted-foreground/15 stroke-muted-foreground/35`, since
+  `fill-muted` was almost invisible in light mode. Hover is `primary/30` and selected is
+  `primary`.
+- **Preview:** `/dev/body-areas` (404 in production) shows both modes, badges and the
+  submitted FormData; `dev` is in `RESERVED_HANDLES`. No e2e here: Playwright runs a
+  production build, so specs 03/04 cover e2e.
+- **Test env:** `vitest.setup.ts` stubs `ResizeObserver` (jsdom lacks it; Radix needs it).
+  `eslint.config.mjs` ignores `.claude/worktrees/**` (local agent worktrees broke `pnpm lint`).
