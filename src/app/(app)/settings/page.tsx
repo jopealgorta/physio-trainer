@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { PageHeader } from "@/components/page-header";
 import { ProfileForm } from "@/components/physios/profile-form";
@@ -39,7 +39,7 @@ export default async function SettingsPage() {
               timezone: profile.timezone,
             }}
             savedHandle={profile.handle}
-            {...profileFormOptions(await getLocale())}
+            {...profileFormOptions()}
           />
         </CardContent>
       </Card>

@@ -1,8 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { parse, TYPE, type MessageFormatElement } from "@formatjs/icu-messageformat-parser";
 import { describe, expect, it } from "vitest";
+
+import { locales } from "./config";
 
 type Tree = { [key: string]: string | Tree };
 
@@ -77,5 +79,16 @@ describe("messages", () => {
         expect(signature(parse(message))).toEqual(signature(parse(english[key])));
       },
     );
+  });
+});
+
+describe("locales", () => {
+  it.each(locales)("%s has a messages file", (locale) => {
+    expect(existsSync(path.join(MESSAGES_DIR, `${locale}.json`))).toBe(true);
+  });
+
+  it("every messages file is a supported locale", () => {
+    const files = readdirSync(MESSAGES_DIR).filter((file) => file.endsWith(".json"));
+    expect(files.map((file) => file.replace(/\.json$/, "")).sort()).toEqual([...locales].sort());
   });
 });
