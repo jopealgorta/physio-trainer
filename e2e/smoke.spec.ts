@@ -6,13 +6,9 @@ test("landing page renders the headline and a sign-in link", async ({ page }) =>
   await expect(page.getByRole("link", { name: "Get started" })).toHaveAttribute("href", "/login");
 });
 
-test("physio workspace shows navigation", async ({ page }) => {
+test("signed-out visitors of the workspace are sent to login", async ({ page }) => {
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
-  const nav = page.getByRole("navigation").filter({ visible: true }).first();
-  await nav.getByRole("link", { name: "Customers" }).click();
-  await expect(page).toHaveURL(/\/customers$/);
-  await expect(page.getByRole("heading", { name: "Customers" })).toBeVisible();
+  await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
 });
 
 test("unknown patient links return 404", async ({ page }) => {

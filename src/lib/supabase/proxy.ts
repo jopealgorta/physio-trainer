@@ -4,11 +4,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/env";
 
 /**
- * Refreshes the Supabase auth session cookie on every request.
- * Route protection (redirecting signed-out physios) is added in
- * docs/specs/01-auth-and-physio-profile.md.
+ * Refreshes the Supabase auth session cookie on every request and reports whether the
+ * request carries a valid session (JWT verified by getClaims).
  */
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+): Promise<{ response: NextResponse; signedIn: boolean }> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -33,7 +34,7 @@ export async function updateSession(request: NextRequest) {
 
   // Do not add code between createServerClient and getClaims(): it validates the JWT
   // and triggers the cookie refresh above.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
 
-  return response;
+  return { response, signedIn: data?.claims.role === "authenticated" };
 }
