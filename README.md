@@ -45,15 +45,18 @@ pnpm dev                 # http://localhost:3000, sign-in emails land in Mailpit
 Local config lives in `supabase/config.toml`; a hosted project needs the same settings in the
 dashboard:
 
-1. **Data API**: disable it (Project Settings → Data API). The app only talks to Postgres
+1. **Migrations**: apply them to the hosted project with
+   `pnpm exec supabase link --project-ref <ref>`, then `pnpm exec supabase db push`. This also
+   creates the `auth.users` trigger that gives every new user a `physios` row.
+2. **Data API**: disable it (Project Settings → Data API). The app only talks to Postgres
    through Drizzle on the server.
-2. **Auth → URL configuration**: Site URL = the app URL; add `<app URL>/auth/**` to the
+3. **Auth → URL configuration**: Site URL = the app URL; add `<app URL>/auth/**` to the
    redirect URLs. A missing redirect URL breaks magic links (they fall back to the Site URL).
-3. **Auth → Email templates**: paste `supabase/templates/magic_link.html` into both "Magic
+4. **Auth → Email templates**: paste `supabase/templates/magic_link.html` into both "Magic
    Link" and "Confirm signup".
-4. **Auth → SMTP**: configure a real SMTP provider before launch; the built-in sender is
+5. **Auth → SMTP**: configure a real SMTP provider before launch; the built-in sender is
    rate-limited.
-5. **Google** (optional): enable the provider with the Google Cloud client id/secret, then set
+6. **Google** (optional): enable the provider with the Google Cloud client id/secret, then set
    `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED=true` in the app's environment.
 
 ## Project docs

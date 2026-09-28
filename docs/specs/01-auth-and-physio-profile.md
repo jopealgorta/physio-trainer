@@ -137,7 +137,8 @@ options: { redirectTo: <APP_URL>/auth/callback?next=… } })` → redirect to th
 - Load the profile with `runAsPhysio` using the new session's claims.
 - Set the `NEXT_LOCALE` cookie from `physios.locale` (a new device gets the right language).
 - Not onboarded → `/onboarding?next=<next>`; onboarded → `<next>` or `/dashboard`.
-- Any failure → `/login?error=<code>` (`linkInvalid`, `oauthFailed`, `unknown`).
+- Any failure → `/login?error=<code>` (`linkInvalid`, `oauthFailed`, `unknown`), keeping a
+  non-default `next`.
 
 **Proxy** (`src/proxy.ts`): `updateSession` returns the claims it already validates; a pure
 `routeGuard(pathname, search, signedIn)` in `src/lib/auth/route-guard.ts` decides:
@@ -150,8 +151,9 @@ options: { redirectTo: <APP_URL>/auth/callback?next=… } })` → redirect to th
 
 The proxy only checks for a session; `requirePhysio()` and `withPhysio()` stay the real checks.
 
-**Sign out**: `signOut` server action → `supabase.auth.signOut()` → redirect to `/`. Called from
-the settings page and the user menu. There is no `/logout` page (the name stays reserved).
+**Sign out**: `signOut` server action → `supabase.auth.signOut({ scope: "local" })` → redirect
+to `/`. Called from the settings page and the user menu. There is no `/logout` page (the name
+stays reserved).
 
 ## Routes and UI
 
@@ -254,7 +256,7 @@ cookie and redirects to `next` or `/dashboard`.
 | `additional_redirect_urls`         | `supabase/config.toml`  | Globs covering `/auth/**` on `localhost` and `127.0.0.1` for any port (dev on :3000, e2e on :3100). |
 | `[auth.email.template.magic_link]` | `supabase/config.toml`  | Points at `supabase/templates/magic_link.html`.                                                     |
 | Playwright `webServer.env`         | `playwright.config.ts`  | Sets `NEXT_PUBLIC_APP_URL` to the e2e base URL so links and redirects target :3100.                 |
-| Hosted checklist                   | README                  | Disable Data API, set Site URL + redirect URLs, paste magic-link template, enable Google provider.  |
+| Hosted checklist                   | README                  | Push migrations, disable Data API, Site + redirect URLs, email template, SMTP, Google.              |
 
 ## i18n
 
@@ -393,12 +395,26 @@ Supabase:
 - **`checkHandleAction` returns a boolean**; handle rule problems are computed client-side.
 - **CI uses `pnpm exec supabase`** (lockfile-pinned CLI) rather than `supabase/setup-cli`.
 
+## Follow-ups
+
+Decide before launch (not blocking this spec):
+
+- **Magic links consumed by mail link-scanners**: some corporate mail filters open every link,
+  which uses up the one-time token before the physio clicks it. Decide between a 6-digit code
+  on `/login` or a POST confirm step (a button on `/auth/confirm`) before launch.
+- **Hardening migration before the first hosted deploy**: revoke `anon` table privileges;
+  revoke `TRUNCATE`, `INSERT` and `DELETE` from `authenticated`; grant column-level `UPDATE`
+  on the profile columns only.
+
 ## Decisions made during implementation
 
 - **Timezone option values are exactly the runtime's IANA names** (Node 24's ICU lists
   "Asia/Calcutta" and "Europe/Kiev", not the newer aliases). There is no alias table:
   `normalizeTimeZone` returns the runtime's canonical name, and saved values must match an
   option. The unit test keys the half-hour offset case on `normalizeTimeZone("Asia/Kolkata")`.
+  If the form's starting zone (the saved one in settings, the browser's in onboarding) is not in
+  the list, `ProfileForm` adds it as an extra option instead of falling back to UTC;
+  `profileSchema` normalises it on save.
 - **One email template file** (`supabase/templates/magic_link.html`) serves both the
   `magic_link` and `confirmation` templates, instead of two identical files.
 - **CI**: the Supabase start + key export steps are in both the `integration` and `e2e` jobs
@@ -417,8 +433,28 @@ Supabase:
   Vitest globals, which the project does not enable.
 - **Accessibility**: the login "Check your inbox" card is a `role="status"` region;
   `ProfileForm` field errors are live regions (display-name message `aria-live="polite"`,
-  language/timezone errors `role="alert"`).
+  language/timezone errors `role="alert"`). The settings handle-change notice is
+  `role="status"` rather than the shadcn `Alert`'s default `alert`, so it does not interrupt
+  typing. The login email field is marked invalid and described by the error only for
+  `emailInvalid`; `sendFailed` shows the error without blaming the field.
 - **The "cannot insert" RLS test asserts Postgres error 42501**, because the `auth.users`
   foreign key would also reject a random id.
 - **Commits written by implementation subagents carry a Co-Authored-By trailer** naming the
   model that wrote them.
+- **Forms dispatch from `onSubmit`, not only `<form action>`** (`ProfileForm`): React resets a
+  form after its action resolves, which snapped the controlled timezone and language `<select>`s
+  back to their first-render option while state kept the new value (the next save sent the old
+  zone). `onSubmit` calls `preventDefault()` and dispatches the `useActionState` action in
+  `startTransition`, which skips the reset; `action` stays for submits before hydration. The
+  login form keeps its plain `action` and gets the submitted email back in its error state as
+  the field's `defaultValue`, so the reset restores it.
+- **Sign out is local** (`signOut({ scope: "local" })`, Ruling 16): signing out on one device
+  does not end the physio's sessions on the others.
+- **A re-opened magic link while already signed in goes to `next`**: if `verifyOtp` fails
+  (used or expired token) but the request already has a valid session, `/auth/confirm`
+  redirects to the safe `next` instead of `/login?error=linkInvalid`. Signed-out requests
+  still get the error.
+- **Sign-in error redirects keep `next`** via `loginErrorPath(error, next)` in
+  `src/lib/auth/login-errors.ts` (e.g. `/login?error=linkInvalid&next=%2Fcustomers`); the
+  default `/dashboard` is left out. `requirePhysio` has no `next` to keep and still uses
+  `/login?error=unknown`; the onboarding page's missing-profile redirect uses the helper.
