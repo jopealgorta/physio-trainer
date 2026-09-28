@@ -1,0 +1,2 @@
+CREATE TYPE "public"."body_area" AS ENUM('head_jaw', 'neck', 'shoulder', 'upper_back', 'chest', 'upper_arm', 'elbow', 'forearm_wrist_hand', 'lower_back', 'abdomen_core', 'hip_groin', 'glute', 'thigh', 'knee', 'lower_leg', 'ankle_foot', 'full_body');--> statement-breakpoint
+CREATE TYPE "public"."body_side" AS ENUM('left', 'right', 'both');
