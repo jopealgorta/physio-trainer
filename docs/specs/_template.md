@@ -43,7 +43,8 @@ What is exposed to whom. RLS policies. Anything patient-facing.
 
 ## i18n
 
-New message namespaces. Locale-sensitive formatting.
+New message namespaces, added to **every** `messages/*.json` (en + es, Spanish in Rioplatense
+voseo). Locale-sensitive formatting (dates, numbers, week start).
 
 ## Acceptance criteria
 

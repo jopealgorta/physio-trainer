@@ -1,6 +1,6 @@
 # 17 · Spanish locale
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** Core (i18n)
 - **Depends on:** 01
 
@@ -54,8 +54,8 @@ No changes. `physios.locale` is already `text not null default 'en'`, validated 
 No new routes, so `RESERVED_HANDLES` is unchanged.
 
 **`LocaleSwitcher`** (client component, `src/components/locale-switcher.tsx`): a labelled native
-`<select>` listing `languageOptions()` (autonyms). Changing it calls `setLocaleAction(locale)` and
-then `router.refresh()`; the select is disabled while pending. Works at phone width. Not shown
+`<select>` listing `languageOptions()` (autonyms). Changing it calls `setLocaleAction(locale)`, which
+re-renders the page; the select is disabled while pending. Works at phone width. Not shown
 inside the signed-in app: there the Settings language field is the single control, because it
 also persists `physios.locale`.
 
@@ -83,10 +83,11 @@ A user who lands in the wrong language can still recognise their own.
 "language" }).of(locale)` with the first letter upper-cased for that locale. It no longer takes
    a display-locale argument.
 7. Onboarding: while `onboardedAt` is null, the language default is the current UI locale
-   (`getLocale()`), not the DB default. Settings keeps showing `physios.locale`.
-8. Sign-in email (`supabase/templates/magic_link.html`): Spanish block first, then English, a
-   single sign-in link, a thin divider between. Subject in `supabase/config.toml` (both
-   `magic_link` and `confirmation`): "Tu enlace para ingresar · Your sign-in link — Physio Trainer".
+   (`getLocale()`), not the DB default. Settings keeps showing `physios.locale`. Sign-in only
+   restores `physios.locale` into the cookie for onboarded physios.
+8. Sign-in email (`supabase/templates/magic_link.html`): Spanish then English for each
+   paragraph (`lang` attributes), a single sign-in link. Subject in `supabase/config.toml` (both
+   `magic_link` and `confirmation`): "Tu link para ingresar · Your sign-in link — Physio Trainer".
 9. Spanish copy uses Rioplatense voseo (`ingresá`, `elegí`, `revisá`), "email" for e-mail, and
    sentence case like English.
 10. `messages/es.json` mirrors `en.json` exactly: same key tree, same ICU arguments (`{email}`,
@@ -114,18 +115,18 @@ A user who lands in the wrong language can still recognise their own.
 
 ## Acceptance criteria
 
-- [ ] With `Accept-Language: es-UY,es;q=0.9` and no cookie, `/` and `/login` render in Spanish and
+- [x] With `Accept-Language: es-UY,es;q=0.9` and no cookie, `/` and `/login` render in Spanish and
       `<html lang="es">`.
-- [ ] With `Accept-Language: fr` and no cookie, pages render in English.
-- [ ] The switcher on `/` and `/login` changes the language, and the choice survives a reload.
-- [ ] A cookie always beats `Accept-Language`.
-- [ ] Onboarding preselects the current UI language.
-- [ ] Settings → Español saves, and the app (nav, settings, user menu) renders in Spanish.
-- [ ] Language options read "English" and "Español" regardless of the UI language.
-- [ ] `pnpm check` fails if `es.json` misses a key, has an extra key, or changes an ICU argument
+- [x] With `Accept-Language: fr` and no cookie, pages render in English.
+- [x] The switcher on `/` and `/login` changes the language, and the choice survives a reload.
+- [x] A cookie always beats `Accept-Language`.
+- [x] Onboarding preselects the current UI language.
+- [x] Settings → Español saves, and the app (nav, settings, user menu) renders in Spanish.
+- [x] Language options read "English" and "Español" regardless of the UI language.
+- [x] `pnpm check` fails if `es.json` misses a key, has an extra key, or changes an ICU argument
       or rich tag.
-- [ ] Sign-in email shows Spanish and English text with one working link (local Mailpit).
-- [ ] `CLAUDE.md`, `docs/architecture.md` and `_template.md` state the all-locales rule.
+- [x] Sign-in email shows Spanish and English text with one working link (local Mailpit).
+- [x] `CLAUDE.md`, `docs/architecture.md` and `_template.md` state the all-locales rule.
 
 ## Test plan
 
@@ -155,4 +156,16 @@ Resolved in brainstorming (2026-09-28):
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- No `router.refresh()` in `LocaleSwitcher`: setting a cookie in a Server Action already
+  re-renders the page (Next.js 16 docs, "Mutating data › Cookies"). It uses `useOptimistic`
+  so the select shows the new choice while the action runs.
+- `postSignInPath` no longer overwrites the cookie for non-onboarded physios (their row only has
+  the `en` default), so a visitor who picked Spanish onboards in Spanish. Found while planning.
+- `pickLocale` lets an unsupported cookie fall through to `Accept-Language` instead of forcing
+  English.
+- The switcher is hidden on the landing page for signed-in physios.
+- The parity test uses `@formatjs/icu-messageformat-parser` (dev dependency) to compare ICU
+  arguments and tags and to reject invalid ICU.
+- Email: Spanish and English paragraphs interleaved rather than two blocks with a divider.
+- Spanish wording: "link" (not "enlace"), "usuario" for handle, "Clientes" for customers,
+  "Panel" for dashboard.
