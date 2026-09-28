@@ -143,5 +143,15 @@
       "map": "Body map view",
       "clear": "Clear"
     }
+  },
+  "DevPreview": {
+    "title": "Body area picker",
+    "description": "Development preview. Not available in production.",
+    "multiTitle": "Multi-select (exercise)",
+    "singleTitle": "Single-select with side (injury case)",
+    "badgesTitle": "Badges",
+    "submit": "Submit",
+    "submitted": "Submitted form data",
+    "empty": "(no fields)"
   }
 }

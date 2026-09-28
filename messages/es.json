@@ -143,5 +143,15 @@
       "map": "Vista del mapa del cuerpo",
       "clear": "Limpiar"
     }
+  },
+  "DevPreview": {
+    "title": "Selector de zonas del cuerpo",
+    "description": "Vista previa de desarrollo. No está disponible en producción.",
+    "multiTitle": "Selección múltiple (ejercicio)",
+    "singleTitle": "Selección única con lado (caso de lesión)",
+    "badgesTitle": "Etiquetas",
+    "submit": "Enviar",
+    "submitted": "Datos enviados",
+    "empty": "(sin campos)"
   }
 }
