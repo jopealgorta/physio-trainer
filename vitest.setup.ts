@@ -9,3 +9,12 @@ import { afterEach } from "vitest";
 afterEach(() => {
   cleanup();
 });
+
+// jsdom has no ResizeObserver. Radix's RadioGroup (via `@radix-ui/react-use-size`) calls it on
+// mount to measure the checked indicator, which throws `ReferenceError` without this stub.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
