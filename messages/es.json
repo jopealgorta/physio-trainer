@@ -70,6 +70,16 @@
   },
   "Settings": {
     "title": "Configuración",
+    "tabs": {
+      "label": "Secciones de configuración",
+      "profile": "Perfil",
+      "branding": "Marca",
+      "account": "Cuenta"
+    },
+    "branding": {
+      "title": "Marca",
+      "description": "Cómo ven tu consultorio tus pacientes: en su página, en los links compartidos y en los PDF."
+    },
     "profile": {
       "title": "Perfil",
       "description": "Tu nombre, usuario, idioma y zona horaria."
