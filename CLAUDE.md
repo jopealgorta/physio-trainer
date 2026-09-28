@@ -28,10 +28,18 @@ Claude Code on the web).
 
 ## Workflow (Superpowers)
 
-1. One spec per session/branch. Resolve the spec's "Open questions" with the user first.
-2. Write a plan in `docs/plans/NN-<name>.md`, then implement test-first (red → green → refactor).
-3. Verify before claiming done: `pnpm check`, integration tests, e2e for the feature.
-4. Update the spec's Status and "Decisions made during implementation", and the index table.
+The Superpowers plugin is enabled in `.claude/settings.json`; use its skills at each step. The
+paths below override the skills' default `docs/superpowers/...` locations.
+
+1. One spec per session/branch. Resolve the spec's "Open questions" with the user first. The
+   specs are the `superpowers:brainstorming` output; a new feature gets its spec in
+   `docs/specs/NN-<name>.md` (from `_template.md`), not a dated design doc.
+2. `superpowers:writing-plans` → `docs/plans/NN-<name>.md`, then implement test-first
+   (`superpowers:test-driven-development`, `superpowers:subagent-driven-development`).
+3. `superpowers:verification-before-completion`: `pnpm check`, integration tests, e2e for the
+   feature. Bugs and failing tests go through `superpowers:systematic-debugging`.
+4. Update the spec's Status and "Decisions made during implementation", and the index table;
+   then `superpowers:requesting-code-review` and `superpowers:finishing-a-development-branch`.
 
 ## Rules that are easy to get wrong
 

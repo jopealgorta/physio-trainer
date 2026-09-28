@@ -210,3 +210,7 @@ Superpowers workflow (`brainstorming` is already done: the spec is its output):
 4. `test-driven-development` / `subagent-driven-development` to execute the plan.
 5. `verification-before-completion`: `pnpm check`, integration and e2e tests green.
 6. Update the spec's **Status** and the index in `docs/specs/README.md`.
+7. `requesting-code-review`, then `finishing-a-development-branch` to merge or open a PR.
+
+The plugin is enabled for the project in `.claude/settings.json`. Specs and plans live in
+`docs/specs/` and `docs/plans/`, not the skills' default `docs/superpowers/` folders.
