@@ -158,5 +158,8 @@
     "title": "Estás sin conexión",
     "description": "Revisá tu conexión y probá de nuevo.",
     "retry": "Reintentar"
+  },
+  "Branding": {
+    "poweredBy": "Hecho con Physio Trainer"
   }
 }

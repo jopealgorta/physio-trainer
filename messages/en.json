@@ -158,5 +158,8 @@
     "title": "You're offline",
     "description": "Check your connection and try again.",
     "retry": "Try again"
+  },
+  "Branding": {
+    "poweredBy": "Powered by Physio Trainer"
   }
 }
