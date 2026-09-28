@@ -112,6 +112,48 @@
     "description": "Puede que este link haya vencido o se haya eliminado.",
     "home": "Ir al inicio"
   },
+  "BodyAreas": {
+    "areas": {
+      "head_jaw": "Cabeza y mandíbula",
+      "neck": "Cuello",
+      "shoulder": "Hombro",
+      "upper_back": "Espalda alta",
+      "chest": "Pecho",
+      "upper_arm": "Brazo",
+      "elbow": "Codo",
+      "forearm_wrist_hand": "Antebrazo, muñeca y mano",
+      "lower_back": "Zona lumbar",
+      "abdomen_core": "Abdomen y core",
+      "hip_groin": "Cadera e ingle",
+      "glute": "Glúteo",
+      "thigh": "Muslo",
+      "knee": "Rodilla",
+      "lower_leg": "Pantorrilla y tibia",
+      "ankle_foot": "Tobillo y pie",
+      "full_body": "Cuerpo completo"
+    },
+    "sides": { "left": "Izquierdo", "right": "Derecho", "both": "Ambos" },
+    "withSide": "{area} · {side, select, left {lado izquierdo} right {lado derecho} other {ambos lados}}",
+    "picker": {
+      "areaLabel": "Zona del cuerpo",
+      "areasLabel": "Zonas del cuerpo",
+      "sideLabel": "Lado",
+      "front": "Frente",
+      "back": "Dorso",
+      "map": "Vista del mapa del cuerpo",
+      "clear": "Limpiar"
+    }
+  },
+  "DevPreview": {
+    "title": "Selector de zonas del cuerpo",
+    "description": "Vista previa de desarrollo. No está disponible en producción.",
+    "multiTitle": "Selección múltiple (ejercicio)",
+    "singleTitle": "Selección única con lado (caso de lesión)",
+    "badgesTitle": "Etiquetas",
+    "submit": "Enviar",
+    "submitted": "Datos enviados",
+    "empty": "(sin campos)"
+  },
   "Offline": {
     "title": "Estás sin conexión",
     "description": "Revisá tu conexión y probá de nuevo.",

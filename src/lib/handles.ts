@@ -8,6 +8,7 @@ export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
   "auth",
   "customers",
   "dashboard",
+  "dev", // dev-only previews
   "library",
   "login",
   "logout",

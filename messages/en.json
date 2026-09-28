@@ -112,6 +112,48 @@
     "description": "This link may have expired or been removed.",
     "home": "Go home"
   },
+  "BodyAreas": {
+    "areas": {
+      "head_jaw": "Head and jaw",
+      "neck": "Neck",
+      "shoulder": "Shoulder",
+      "upper_back": "Upper back",
+      "chest": "Chest",
+      "upper_arm": "Upper arm",
+      "elbow": "Elbow",
+      "forearm_wrist_hand": "Forearm, wrist and hand",
+      "lower_back": "Lower back",
+      "abdomen_core": "Abdomen and core",
+      "hip_groin": "Hip and groin",
+      "glute": "Glute",
+      "thigh": "Thigh",
+      "knee": "Knee",
+      "lower_leg": "Lower leg",
+      "ankle_foot": "Ankle and foot",
+      "full_body": "Full body"
+    },
+    "sides": { "left": "Left", "right": "Right", "both": "Both" },
+    "withSide": "{area} · {side, select, left {Left} right {Right} other {Both}}",
+    "picker": {
+      "areaLabel": "Body area",
+      "areasLabel": "Body areas",
+      "sideLabel": "Side",
+      "front": "Front",
+      "back": "Back",
+      "map": "Body map view",
+      "clear": "Clear"
+    }
+  },
+  "DevPreview": {
+    "title": "Body area picker",
+    "description": "Development preview. Not available in production.",
+    "multiTitle": "Multi-select (exercise)",
+    "singleTitle": "Single-select with side (injury case)",
+    "badgesTitle": "Badges",
+    "submit": "Submit",
+    "submitted": "Submitted form data",
+    "empty": "(no fields)"
+  },
   "Offline": {
     "title": "You're offline",
     "description": "Check your connection and try again.",
