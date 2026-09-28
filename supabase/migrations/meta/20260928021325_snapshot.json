@@ -1,0 +1,142 @@
+{
+  "id": "4f1f46d3-4ede-4e01-a742-4c98c881b74a",
+  "prevId": "cd80ecbf-0783-42a3-9211-54efb53fdc07",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.physios": {
+      "name": "physios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "handle": {
+          "name": "handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UTC'"
+        },
+        "onboarded_at": {
+          "name": "onboarded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "physios_id_users_id_fk": {
+          "name": "physios_id_users_id_fk",
+          "tableFrom": "physios",
+          "columnsFrom": [
+            "id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "physios_handle_unique": {
+          "name": "physios_handle_unique",
+          "columns": [
+            "handle"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "physios_select_own": {
+          "name": "physios_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"physios\".\"id\" = (select auth.uid())"
+        },
+        "physios_update_own": {
+          "name": "physios_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"physios\".\"id\" = (select auth.uid())",
+          "withCheck": "\"physios\".\"id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {
+        "physios_handle_format": {
+          "name": "physios_handle_format",
+          "value": "\"physios\".\"handle\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(\"physios\".\"handle\") between 3 and 30"
+        },
+        "physios_display_name_length": {
+          "name": "physios_display_name_length",
+          "value": "char_length(\"physios\".\"display_name\") between 1 and 80"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
