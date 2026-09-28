@@ -18,10 +18,15 @@ vi.mock("next/link", () => ({
 
 const sendMagicLinkMock = vi.mocked(sendMagicLink);
 
-function renderForm() {
+function renderForm({ emailEnabled = true, googleEnabled = false } = {}) {
   render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <LoginForm next="/dashboard" googleEnabled={false} error={null} />
+      <LoginForm
+        next="/dashboard"
+        emailEnabled={emailEnabled}
+        googleEnabled={googleEnabled}
+        error={null}
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -69,5 +74,26 @@ describe("LoginForm", () => {
     expect(email).toHaveValue("maria@clinic.example");
     expect(email).toHaveAttribute("aria-invalid", "false");
     expect(email).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("shows only Google sign-in when email sign-in is disabled", () => {
+    renderForm({ emailEnabled: false, googleEnabled: true });
+
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+    expect(screen.getByText("Continue with your Google account.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send link" })).not.toBeInTheDocument();
+    expect(screen.queryByText("or")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("We'll email you a link. No password needed."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows both sign-in options with a divider when both are enabled", () => {
+    renderForm({ emailEnabled: true, googleEnabled: true });
+
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send link" })).toBeInTheDocument();
+    expect(screen.getByText("or")).toBeInTheDocument();
   });
 });

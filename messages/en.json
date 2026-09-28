@@ -13,6 +13,7 @@
   "Login": {
     "title": "Sign in",
     "description": "We'll email you a link. No password needed.",
+    "descriptionGoogleOnly": "Continue with your Google account.",
     "emailLabel": "Email",
     "emailPlaceholder": "you@clinic.com",
     "sendLink": "Send link",
@@ -27,7 +28,7 @@
   "Auth": {
     "errors": {
       "linkInvalid": "That sign-in link has expired or was already used. Request a new one.",
-      "oauthFailed": "Google sign-in didn't finish. Try again or use an email link.",
+      "oauthFailed": "Google sign-in didn't finish. Try again.",
       "unknown": "Something went wrong while signing you in. Try again.",
       "emailInvalid": "Enter a valid email address.",
       "sendFailed": "We couldn't send the link. Wait a moment and try again."

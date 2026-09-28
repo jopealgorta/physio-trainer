@@ -24,10 +24,12 @@ const initialState: MagicLinkState = { status: "idle" };
 
 export function LoginForm({
   next,
+  emailEnabled,
   googleEnabled,
   error,
 }: {
   next: string;
+  emailEnabled: boolean;
   googleEnabled: boolean;
   error: LoginError | null;
 }) {
@@ -59,7 +61,9 @@ export function LoginForm({
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
+        <CardDescription>
+          {t(emailEnabled ? "description" : "descriptionGoogleOnly")}
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         {error ? (
@@ -75,40 +79,44 @@ export function LoginForm({
                 {t("google")}
               </Button>
             </form>
-            <div className="text-muted-foreground flex items-center gap-3 text-xs uppercase">
-              <span className="bg-border h-px flex-1" />
-              {t("or")}
-              <span className="bg-border h-px flex-1" />
-            </div>
+            {emailEnabled ? (
+              <div className="text-muted-foreground flex items-center gap-3 text-xs uppercase">
+                <span className="bg-border h-px flex-1" />
+                {t("or")}
+                <span className="bg-border h-px flex-1" />
+              </div>
+            ) : null}
           </>
         ) : null}
-        <form action={formAction} className="grid gap-3" noValidate>
-          <input type="hidden" name="next" value={next} />
-          <div className="grid gap-2">
-            <Label htmlFor="email">{t("emailLabel")}</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder={t("emailPlaceholder")}
-              // React resets the form after each send; keep what was submitted (or the email a
-              // dismissed "Check your inbox" was for).
-              defaultValue={state.status === "idle" ? undefined : state.email}
-              aria-invalid={formError === "emailInvalid"}
-              aria-describedby={formError === "emailInvalid" ? "email-error" : undefined}
-            />
-            {formError ? (
-              <p id="email-error" role="alert" className="text-destructive text-sm">
-                {tErrors(formError)}
-              </p>
-            ) : null}
-          </div>
-          <Button type="submit" disabled={pending}>
-            {pending ? t("sending") : t("sendLink")}
-          </Button>
-        </form>
+        {emailEnabled ? (
+          <form action={formAction} className="grid gap-3" noValidate>
+            <input type="hidden" name="next" value={next} />
+            <div className="grid gap-2">
+              <Label htmlFor="email">{t("emailLabel")}</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder={t("emailPlaceholder")}
+                // React resets the form after each send; keep what was submitted (or the email a
+                // dismissed "Check your inbox" was for).
+                defaultValue={state.status === "idle" ? undefined : state.email}
+                aria-invalid={formError === "emailInvalid"}
+                aria-describedby={formError === "emailInvalid" ? "email-error" : undefined}
+              />
+              {formError ? (
+                <p id="email-error" role="alert" className="text-destructive text-sm">
+                  {tErrors(formError)}
+                </p>
+              ) : null}
+            </div>
+            <Button type="submit" disabled={pending}>
+              {pending ? t("sending") : t("sendLink")}
+            </Button>
+          </form>
+        ) : null}
       </CardContent>
       <CardFooter>
         <Button asChild variant="ghost" className="w-full">
