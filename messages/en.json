@@ -111,5 +111,10 @@
     "title": "Page not found",
     "description": "This link may have expired or been removed.",
     "home": "Go home"
+  },
+  "Offline": {
+    "title": "You're offline",
+    "description": "Check your connection and try again.",
+    "retry": "Try again"
   }
 }

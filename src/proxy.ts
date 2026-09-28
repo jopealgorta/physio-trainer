@@ -16,7 +16,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets, image optimisation, the health check and files with an extension.
-    "/((?!_next/static|_next/image|api/health|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|webmanifest)$).*)",
+    // Skip static assets, image optimisation, the health check, app icons, the service worker
+    // and files with an extension.
+    "/((?!_next/static|_next/image|api/health|favicon.ico|icon/|apple-icon$|sw\\.js$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|webmanifest)$).*)",
   ],
 };

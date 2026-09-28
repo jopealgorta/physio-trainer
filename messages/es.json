@@ -111,5 +111,10 @@
     "title": "Página no encontrada",
     "description": "Puede que este link haya vencido o se haya eliminado.",
     "home": "Ir al inicio"
+  },
+  "Offline": {
+    "title": "Estás sin conexión",
+    "description": "Revisá tu conexión y probá de nuevo.",
+    "retry": "Reintentar"
   }
 }

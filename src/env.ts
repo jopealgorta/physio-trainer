@@ -21,6 +21,8 @@ export const env = createEnv({
     // Hides the magic-link form, e.g. while Supabase has no custom SMTP (its built-in sender
     // only delivers to project team members). Ignored when Google is disabled too.
     NEXT_PUBLIC_AUTH_EMAIL_ENABLED: z.stringbool().default(true),
+    // Set by next.config.ts at build time; versions the service worker (docs/specs/18-pwa.md).
+    NEXT_PUBLIC_BUILD_ID: z.string().min(1).default("dev"),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
@@ -30,6 +32,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED,
     NEXT_PUBLIC_AUTH_EMAIL_ENABLED: process.env.NEXT_PUBLIC_AUTH_EMAIL_ENABLED,
+    NEXT_PUBLIC_BUILD_ID: process.env.NEXT_PUBLIC_BUILD_ID,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

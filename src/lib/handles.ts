@@ -16,6 +16,7 @@ export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
   "settings",
   "signup",
   "onboarding",
+  "offline",
   // Framework and well-known paths
   "_next",
   "static",
@@ -25,6 +26,9 @@ export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
   "robots.txt",
   "sitemap.xml",
   "manifest.webmanifest",
+  "icon",
+  "apple-icon",
+  "sw.js",
   ".well-known",
   // Names that would look official or confusing in a share link
   "about",
