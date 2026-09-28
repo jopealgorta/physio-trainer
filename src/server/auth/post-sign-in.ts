@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { runAsPhysio } from "@/db/rls";
+import { loginErrorPath } from "@/lib/auth/login-errors";
 import { setLocaleCookie } from "@/server/i18n/locale-cookie";
 import { getProfile } from "@/server/physios/queries";
 
@@ -29,6 +30,6 @@ export async function postSignInPath(
     // before this call): sign out so /login shows the error instead of the proxy bouncing a
     // still-signed-in request straight back past it.
     await supabase.auth.signOut().catch(() => {});
-    return "/login?error=unknown";
+    return loginErrorPath("unknown", next);
   }
 }

@@ -59,8 +59,11 @@ export async function deletePhysioRow(id: string): Promise<void> {
   await sql`delete from public.physios where id = ${id}`;
 }
 
-/** Signs in without email: same /auth/confirm route the magic link uses. */
-export async function signIn(page: Page, physio: E2EPhysio, next = "/dashboard"): Promise<void> {
+/**
+ * Signs in without email: same /auth/confirm route the magic link uses. Returns that link
+ * (now used up).
+ */
+export async function signIn(page: Page, physio: E2EPhysio, next = "/dashboard"): Promise<string> {
   const { data, error } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email: physio.email,
@@ -71,7 +74,9 @@ export async function signIn(page: Page, physio: E2EPhysio, next = "/dashboard")
     type: "email",
     next,
   });
-  await page.goto(`/auth/confirm?${params}`);
+  const link = `/auth/confirm?${params}`;
+  await page.goto(link);
+  return link;
 }
 
 /**

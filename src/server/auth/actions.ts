@@ -5,13 +5,17 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { loginErrorPath } from "@/lib/auth/login-errors";
 import { safeNextPath } from "@/lib/redirects";
 import { createClient } from "@/lib/supabase/server";
 
 import type { MagicLinkState } from "./schemas";
 
 function authUrl(path: "/auth/confirm" | "/auth/callback", next: string): string {
-  return `${env.NEXT_PUBLIC_APP_URL}${path}?${new URLSearchParams({ next })}`;
+  // new URL() copes with a trailing slash on the app URL ("https://x.app/" + "/auth/…").
+  const url = new URL(path, env.NEXT_PUBLIC_APP_URL);
+  url.search = new URLSearchParams({ next }).toString();
+  return url.toString();
 }
 
 /** Emails a sign-in link (creates the account on first use). */
@@ -41,12 +45,13 @@ export async function signInWithGoogle(formData: FormData): Promise<void> {
     provider: "google",
     options: { redirectTo: authUrl("/auth/callback", next) },
   });
-  if (error || !data.url) redirect("/login?error=oauthFailed");
+  if (error || !data.url) redirect(loginErrorPath("oauthFailed", next) as Route);
   redirect(data.url as Route);
 }
 
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // This device only: signing out on the laptop must not end the session on the phone.
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/");
 }

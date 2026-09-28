@@ -37,12 +37,55 @@ test("signed-in physios skip the login page", async ({ physioPage: page }) => {
   await expect(page).toHaveURL(/\/dashboard$/);
 });
 
-test("an invalid sign-in link goes back to login with an error", async ({ page }) => {
-  await page.goto("/auth/confirm?token_hash=not-a-token&type=email");
-  await expect(page).toHaveURL(/\/login\?error=linkInvalid$/);
+test("an invalid sign-in link goes back to login with an error, keeping next", async ({ page }) => {
+  await page.goto("/auth/confirm?token_hash=not-a-token&type=email&next=%2Fcustomers");
+  await expect(page).toHaveURL(/\/login\?error=linkInvalid&next=%2Fcustomers$/);
   await expect(
     page.getByText("That sign-in link has expired or was already used. Request a new one."),
   ).toBeVisible();
+});
+
+test("re-opening a used sign-in link while signed in carries on to next", async ({
+  page,
+  physio,
+}) => {
+  const link = await signIn(page, physio, "/customers");
+  await expect(page).toHaveURL(/\/customers$/);
+  await page.goto(link);
+  await expect(page).toHaveURL(/\/customers$/);
+});
+
+test("a signed-in physio who has not finished onboarding is sent there", async ({ page }) => {
+  const physio = await createPhysio();
+  try {
+    await signIn(page, physio, "/customers");
+    await expect(page).toHaveURL(/\/onboarding/);
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/onboarding/);
+  } finally {
+    await deletePhysio(physio);
+  }
+});
+
+test("a profile that disappears during onboarding goes straight to the login error", async ({
+  page,
+}) => {
+  const physio = await createPhysio();
+  try {
+    await signIn(page, physio);
+    await expect(page).toHaveURL(/\/onboarding/);
+    await deletePhysioRow(physio.id);
+
+    const visited: string[] = [];
+    page.on("request", (request) => {
+      if (request.isNavigationRequest()) visited.push(new URL(request.url()).pathname);
+    });
+    await page.goto("/onboarding?next=%2Fcustomers");
+    await expect(page).toHaveURL(/\/login\?error=unknown&next=%2Fcustomers$/);
+    expect(visited).not.toContain("/dashboard");
+  } finally {
+    await deletePhysio(physio);
+  }
 });
 
 test("a signed-in physio whose account was deleted is sent to login without a redirect loop", async ({

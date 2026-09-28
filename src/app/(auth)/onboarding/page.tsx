@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Logo } from "@/components/logo";
 import { ProfileForm } from "@/components/physios/profile-form";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { loginErrorPath } from "@/lib/auth/login-errors";
 import { isPlaceholderHandle } from "@/lib/handles";
 import { safeNextPath } from "@/lib/redirects";
 import { firstParam } from "@/lib/search-params";
@@ -28,7 +29,9 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
         : null;
     return { profile, suggestion };
   });
-  if (!profile) redirect("/login");
+  // Straight to the error, like requirePhysio: a bare /login would bounce a signed-in physio
+  // to /dashboard first.
+  if (!profile) redirect(loginErrorPath("unknown", next) as Route);
   if (profile.onboardedAt) redirect(next as Route);
 
   const t = await getTranslations("Onboarding");

@@ -29,6 +29,7 @@ describe("routeGuard", () => {
 
   it("lets a signed-in physio see the login page when it carries an error", () => {
     expect(routeGuard("/login", "?error=unknown", true)).toBeNull();
+    expect(routeGuard("/login", "?error=linkInvalid&next=%2Fcustomers", true)).toBeNull();
   });
 
   it("lets signed-in physios through to protected pages", () => {
