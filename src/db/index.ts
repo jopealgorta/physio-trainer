@@ -16,7 +16,7 @@ if (process.env.NODE_ENV !== "production") globalForDb.pgClient = client;
 
 /**
  * Drizzle client connected as the database owner: it BYPASSES Row Level Security.
- * Physio-facing code must go through the RLS-scoped helper introduced in
- * docs/specs/01-auth-and-physio-profile.md; see docs/architecture.md → "Data access".
+ * Physio-facing code must use withPhysio() (src/server/auth/session.ts) / runAsPhysio()
+ * (src/db/rls.ts); see docs/architecture.md → "Tenancy and data access".
  */
 export const db = drizzle(client, { schema, casing: "snake_case" });
