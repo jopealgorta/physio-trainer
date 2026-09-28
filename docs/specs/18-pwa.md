@@ -1,0 +1,149 @@
+# 18 · Installable physio app (PWA)
+
+- **Status:** In progress
+- **Feature:** Core (platform)
+- **Depends on:** 01, 17
+
+## Summary
+
+Makes the physio workspace an installable Progressive Web App: a web app manifest, generated
+app icons, iOS home-screen metadata and a small service worker whose only job is to show a
+branded, localized "You're offline" page instead of the browser's error page. Physios get an
+app icon on their phone, tablet or desktop that opens straight into the dashboard.
+
+## Goals
+
+- `/manifest.webmanifest` describes the physio app (`start_url: /dashboard`, standalone).
+- Icons (192, 512, maskable 512, Apple touch 180) are generated in code from the logo, not
+  committed as binaries.
+- iOS "Add to Home Screen" gets the right icon, title and standalone mode.
+- A versioned service worker serves a localized offline page when a navigation fails.
+- No page, API or Supabase response is ever cached: no stale or cross-user data.
+
+## Non-goals
+
+- Per-link patient manifest and installable patient page (spec 10 overrides `manifest` in the
+  patient layout).
+- Offline patient view or offline data (feature L, deferred).
+- Push notifications (feature O, deferred).
+- An in-app "Install app" button or iOS instructions dialog: browsers' native install UI only.
+- Service worker in `pnpm dev` (HMR and a caching worker fight; production builds only).
+
+## User stories
+
+- As a physio, I want to install Physio Trainer on my phone's home screen so that it opens like
+  an app, straight into my dashboard.
+- As a physio on a flaky clinic connection, I want a clear "You're offline" screen with a retry
+  button instead of the browser's error page.
+
+## Data model
+
+No changes.
+
+## Routes and UI
+
+| Route                   | Kind            | Purpose                                                                |
+| ----------------------- | --------------- | ---------------------------------------------------------------------- |
+| `/manifest.webmanifest` | Metadata        | `src/app/manifest.ts`. Localized description and `lang`.               |
+| `/icon/<id>`            | Metadata        | `src/app/icon.tsx`: `192`, `512`, `maskable` (512, safe-zone padding). |
+| `/apple-icon`           | Metadata        | `src/app/apple-icon.tsx`: 180×180 Apple touch icon.                    |
+| `/offline`              | Server page     | Public, localized offline screen: logo, title, hint, "Try again".      |
+| `/sw.js`                | Static (public) | Service worker, registered as `/sw.js?v=<build id>`.                   |
+
+**Icons:** lucide `Activity` glyph (the `Logo` mark) in `primary-foreground` on a `primary`
+(`#171717`) background. `any` icons are a rounded square; the maskable icon is full-bleed with
+the glyph inside the central 80 % safe zone.
+
+**Offline page:** centred card like `not-found.tsx`: `Logo`, "You're offline", "Check your
+connection and try again.", and a "Try again" button that reloads. Works at phone width, light
+and dark.
+
+**Registration:** `ServiceWorkerRegistration` (client component, renders nothing) in the
+`(app)` layout. Only physios' browsers register the worker; patients never do.
+
+New top-level routes `offline`, `icon`, `apple-icon` and `sw.js` are added to
+`RESERVED_HANDLES`.
+
+## Behaviour and rules
+
+1. Manifest: `id: "/"`, `name` and `short_name` "Physio Trainer", `description` from
+   `Metadata.description` in the request locale, `lang` = locale, `start_url: "/dashboard"`,
+   `scope: "/"`, `display: "standalone"`, `background_color` and `theme_color` `#ffffff`, icons
+   192/512 (`purpose: "any"`) and the maskable 512 (`purpose: "maskable"`).
+2. Root metadata adds `appleWebApp: { capable: true, title: "Physio Trainer",
+statusBarStyle: "default" }`.
+3. Build id: `VERCEL_GIT_COMMIT_SHA`, else a timestamp taken when `next.config.ts` loads, exposed
+   as `NEXT_PUBLIC_BUILD_ID` (declared in `@/env`).
+4. Registration runs only when `NODE_ENV === "production"` and `serviceWorker` is supported:
+   `navigator.serviceWorker.register("/sw.js?v=<build id>", { scope: "/" })`. A new build id is
+   a new script URL, so every deploy installs a fresh worker. Registration errors are swallowed
+   (the app works without it).
+5. Service worker, cache name `physio-trainer-<v>`:
+   1. `install`: fetch `/offline`, cache it, cache every `/_next/static/…` URL referenced in
+      its HTML (CSS, JS, fonts), then `skipWaiting()`.
+   2. `activate`: delete every other `physio-trainer-*` cache, `clients.claim()`.
+   3. `fetch`, same-origin `GET` only:
+      - `mode === "navigate"`: network; if the network throws, respond with cached `/offline`.
+        HTTP error responses pass through unchanged.
+      - `/_next/static/…`: cache first, then network (hashed, immutable, public).
+      - Anything else: not intercepted.
+6. `/sw.js` is served with `Cache-Control: no-cache` so update checks always reach the server.
+7. The proxy matcher skips `sw.js`, `icon` and `apple-icon` (no Supabase session refresh for
+   them). `/offline` still goes through the proxy; it is not a protected path.
+8. Kill switch: if a bad worker ships, replace `public/sw.js` with one that calls
+   `self.registration.unregister()` and deletes its caches.
+
+## Security and privacy
+
+- The worker caches only `/offline` (no user data: same HTML for everyone in a locale) and
+  public hashed build assets. Pages, Server Actions, API routes and Supabase calls are never
+  cached, so a shared device never shows one physio's data to another.
+- Same-origin `GET` only; cross-origin requests (Supabase, YouTube) are never touched.
+- Registration is limited to the signed-in physio layout.
+
+## i18n
+
+- New namespace `Offline`: `title`, `description`, `retry` (en + es, voseo).
+- The manifest description reuses `Metadata.description`.
+- The cached offline page is in the locale active when the worker installed; it refreshes on
+  every deploy.
+
+## Acceptance criteria
+
+- [ ] `/manifest.webmanifest` returns the fields in rule 1; every icon URL in it returns a PNG
+      of the declared size.
+- [ ] Pages include `<link rel="manifest">` and `<link rel="apple-touch-icon">`.
+- [ ] Chrome reports the app installable (Lighthouse/DevTools "Installability" has no errors).
+- [ ] Signed-in physio, production build: the worker controls the page; going offline and
+      navigating shows the localized offline page; back online, "Try again" loads the page.
+- [ ] No service worker is registered by `pnpm dev`.
+- [ ] Only `/offline` and `/_next/static/…` entries exist in the worker's cache.
+
+## Test plan
+
+- Unit:
+  - `manifest()`: fields, icon URLs, sizes and purposes, localized description.
+  - `ServiceWorkerRegistration`: registers `/sw.js?v=<id>` in production, does nothing in
+    development or without `serviceWorker` support.
+  - Offline page renders title, description and retry button; retry reloads.
+  - `RESERVED_HANDLES` test covers the new top-level routes; message parity test covers
+    `Offline`.
+- Integration: none (no database change).
+- E2E (`e2e/pwa.spec.ts`):
+  - Manifest JSON and every icon (and the Apple icon) return `image/png`.
+  - Signed-in physio: wait for the worker to control the page, go offline, navigate → offline
+    page; cache keys are only `/offline` and `/_next/static/…`; online again → "Try again" loads
+    the dashboard.
+
+## Open questions
+
+Resolved in brainstorming (2026-09-28):
+
+1. Which surface? → The physio app only; the patient per-link manifest stays in spec 10.
+2. How much offline? → A minimal worker with an offline fallback page; no data caching.
+3. Icons? → Generated from the current logo with `next/og`.
+4. Install UI? → None; browsers' native install flow.
+
+## Decisions made during implementation
+
+(Fill in while building.)
