@@ -144,7 +144,8 @@ options: { redirectTo: <APP_URL>/auth/callback?next=… } })` → redirect to th
 
 - signed out + path under `PROTECTED_PREFIXES` (`/dashboard`, `/customers`, `/library`,
   `/routines`, `/plans`, `/settings`, `/onboarding`) → `/login?next=<path + search>`;
-- signed in + `/login` → `/dashboard`;
+- signed in + `/login` → the safe `next` path or `/dashboard`, unless `/login` carries an
+  `error` param (then the page renders, so a sign-in failure never loops);
 - otherwise pass through. The landing page stays public.
 
 The proxy only checks for a session; `requirePhysio()` and `withPhysio()` stay the real checks.
