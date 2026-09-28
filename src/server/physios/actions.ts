@@ -41,7 +41,10 @@ export async function updateProfileAction(
 
 /** Live availability check for the handle field; invalid handles are never available. */
 export async function checkHandleAction(handle: string): Promise<boolean> {
-  const normalized = handle.trim().toLowerCase();
+  // A public endpoint: the argument is only typed as a string, so coerce it.
+  const normalized = String(handle ?? "")
+    .trim()
+    .toLowerCase();
   if (handleProblem(normalized)) return false;
   return withPhysio((tx) => isHandleAvailable(tx, normalized));
 }
