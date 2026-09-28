@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { languageOptions } from "@/i18n/config";
 import { getSessionPhysio } from "@/server/auth/session";
+import { setLocaleAction } from "@/server/i18n/actions";
 
 export default async function LandingPage() {
   const t = await getTranslations("Landing");
@@ -14,7 +17,13 @@ export default async function LandingPage() {
     <div className="flex flex-1 flex-col">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
         <Logo />
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {/* Signed-in physios change language in Settings, which also saves it to their profile. */}
+          {session ? null : (
+            <LocaleSwitcher options={languageOptions()} setLocale={setLocaleAction} />
+          )}
+          <ThemeToggle />
+        </div>
       </header>
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-8 px-6 pb-24 text-center">
         <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">

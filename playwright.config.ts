@@ -15,6 +15,8 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL,
+    // Pages now follow Accept-Language; existing specs assert English copy.
+    locale: "en-US",
     trace: "on-first-retry",
     // Use a preinstalled Chromium when the bundled one is not available (e.g. sandboxes).
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE

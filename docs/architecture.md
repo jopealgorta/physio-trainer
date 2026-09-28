@@ -15,25 +15,25 @@ that physio.
 
 ## Decisions log (from the initial brainstorm, 2026-09-27)
 
-| Topic                | Decision                                                                                                                                                                                                         |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tenancy              | Multi-tenant from day one; one physio per account; data model leaves room for clinics later. No billing yet.                                                                                                     |
-| Languages            | i18n from the start (next-intl). Locale is **not** in the URL. Physio UI locale from profile/cookie; patient pages use the customer's `locale`. Ships with `en`.                                                 |
-| Privacy              | Health data. Tenant isolation enforced by Postgres RLS plus explicit filters. No health data in URLs or link previews.                                                                                           |
-| Patient access       | No account. Share link per customer (always shows what is currently active) plus optional links for a single routine/plan. Revocable, optional expiry, optional 4-digit PIN.                                     |
-| Link format          | `/{physio-handle}/{slug}-{code}`, e.g. `/maria-lopez/ana-7k2m9qpx`. `code` is 8 random Crockford base32 chars and is the only lookup key; `handle` and `slug` are cosmetic and redirect to canonical when stale. |
-| Patient input        | Patients log sessions (done, pain 0–10, comment) from v1 (feature D).                                                                                                                                            |
-| Routine types        | **Single routine** (shared on its own) and **weekly plan** (Mon–Sun, each day has 0..n routines, e.g. gym + rehab).                                                                                              |
-| Weekly plans         | One repeating 7-day template. Routines are attached by reference (edit once, updates every day); "make a separate copy" to diverge. Optional per-entry label ("Morning").                                        |
-| Progression          | "Copy into next phase" with start/end dates (feature B) rather than multi-week plans.                                                                                                                            |
-| Categories           | Two levels (category → sub-category) plus free tags. Rehab and gym exercises share one library.                                                                                                                  |
-| Media                | Uploaded videos/images (≤ 100 MB each, Supabase Storage) and YouTube/Vimeo links.                                                                                                                                |
-| Export               | Branded PDF (with QR code back to the live link) and Excel `.xlsx`.                                                                                                                                              |
-| Login                | Supabase Auth: magic link + Google.                                                                                                                                                                              |
-| Platform             | Responsive web; patient page mobile-first and installable (PWA manifest).                                                                                                                                        |
-| Design               | Minimal, neutral palette, one accent colour (overridable per physio on patient-facing surfaces), light + dark.                                                                                                   |
-| In scope now         | Features A (templates), B (phases), C (workout mode), D (logging), E (link previews), F (branding), H (body areas), I (version history), J (visit notes).                                                        |
-| Out of scope for now | Seed library/CSV import (G), outcome measures (K), offline patient view (L), AI assist (M), GDPR tooling (N), reminders (O), clinics/teams, billing.                                                             |
+| Topic                | Decision                                                                                                                                                                                                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tenancy              | Multi-tenant from day one; one physio per account; data model leaves room for clinics later. No billing yet.                                                                                                                                                                           |
+| Languages            | i18n from the start (next-intl). Locale is **not** in the URL. Physio UI locale from profile/cookie; patient pages use the customer's `locale`. Signed-out visitors get `Accept-Language` and a switcher. Ships with `en` and `es` (Rioplatense); every feature ships in every locale. |
+| Privacy              | Health data. Tenant isolation enforced by Postgres RLS plus explicit filters. No health data in URLs or link previews.                                                                                                                                                                 |
+| Patient access       | No account. Share link per customer (always shows what is currently active) plus optional links for a single routine/plan. Revocable, optional expiry, optional 4-digit PIN.                                                                                                           |
+| Link format          | `/{physio-handle}/{slug}-{code}`, e.g. `/maria-lopez/ana-7k2m9qpx`. `code` is 8 random Crockford base32 chars and is the only lookup key; `handle` and `slug` are cosmetic and redirect to canonical when stale.                                                                       |
+| Patient input        | Patients log sessions (done, pain 0–10, comment) from v1 (feature D).                                                                                                                                                                                                                  |
+| Routine types        | **Single routine** (shared on its own) and **weekly plan** (Mon–Sun, each day has 0..n routines, e.g. gym + rehab).                                                                                                                                                                    |
+| Weekly plans         | One repeating 7-day template. Routines are attached by reference (edit once, updates every day); "make a separate copy" to diverge. Optional per-entry label ("Morning").                                                                                                              |
+| Progression          | "Copy into next phase" with start/end dates (feature B) rather than multi-week plans.                                                                                                                                                                                                  |
+| Categories           | Two levels (category → sub-category) plus free tags. Rehab and gym exercises share one library.                                                                                                                                                                                        |
+| Media                | Uploaded videos/images (≤ 100 MB each, Supabase Storage) and YouTube/Vimeo links.                                                                                                                                                                                                      |
+| Export               | Branded PDF (with QR code back to the live link) and Excel `.xlsx`.                                                                                                                                                                                                                    |
+| Login                | Supabase Auth: magic link + Google.                                                                                                                                                                                                                                                    |
+| Platform             | Responsive web; patient page mobile-first and installable (PWA manifest).                                                                                                                                                                                                              |
+| Design               | Minimal, neutral palette, one accent colour (overridable per physio on patient-facing surfaces), light + dark.                                                                                                                                                                         |
+| In scope now         | Features A (templates), B (phases), C (workout mode), D (logging), E (link previews), F (branding), H (body areas), I (version history), J (visit notes).                                                                                                                              |
+| Out of scope for now | Seed library/CSV import (G), outcome measures (K), offline patient view (L), AI assist (M), GDPR tooling (N), reminders (O), clinics/teams, billing.                                                                                                                                   |
 
 ## Stack
 
@@ -75,7 +75,7 @@ src/
     actions.ts            Server Actions ("use server"), thin: validate → withPhysio(mutation) → revalidate
     schemas.ts            zod input schemas shared by forms and actions
   proxy.ts                session refresh + route protection
-messages/                 translations (en.json, ...)
+messages/                 translations (en.json, es.json)
 supabase/                 Supabase CLI project; migrations generated by drizzle-kit
 e2e/                      Playwright tests
 docs/                     this file, feature specs
@@ -190,8 +190,10 @@ for these in spec 03 and reuse them in spec 05.
   components or actions.
 - **Forms**: native `<form action>` + `useActionState`; the same zod schema validates client
   hints and the server.
-- **Strings**: every user-visible string goes in `messages/en.json` under a namespace per
-  feature. No hard-coded copy in components.
+- **Strings**: every user-visible string goes in **every** `messages/<locale>.json` under a
+  namespace per feature, in the same change (`src/i18n/messages.test.ts` enforces same keys,
+  ICU arguments and tags). No hard-coded copy in components. Dates, numbers and lists use
+  next-intl formatters or `Intl` with the active locale.
 - **Accessibility**: labelled inputs, keyboard-reachable controls, visible focus, respects
   reduced motion (workout timers and animations).
 - **Styling**: use design tokens (`bg-background`, `text-muted-foreground`, `bg-primary`…). Never

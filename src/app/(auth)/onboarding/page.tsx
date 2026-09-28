@@ -52,12 +52,14 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
             defaults={{
               displayName: profile.displayName,
               handle: suggestion ?? profile.handle,
-              locale: profile.locale,
+              // Not onboarded yet: the row still has the column default, so offer the language
+              // the page is already in (cookie or browser).
+              locale: await getLocale(),
               timezone: profile.timezone,
             }}
             savedHandle={profile.handle}
             next={next}
-            {...profileFormOptions(await getLocale())}
+            {...profileFormOptions()}
           />
         </CardContent>
       </Card>

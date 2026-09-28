@@ -8,7 +8,8 @@ import { setLocaleCookie } from "@/server/i18n/locale-cookie";
 import { getProfile } from "@/server/physios/queries";
 
 /**
- * Where to send a physio right after a session was created, and remembers their language.
+ * Where to send a physio right after a session was created; restores an onboarded physio's
+ * language.
  * New physios go through onboarding first, keeping `next`.
  */
 export async function postSignInPath(
@@ -23,7 +24,9 @@ export async function postSignInPath(
     const profile = await runAsPhysio(data.claims, (tx, physioId) => getProfile(tx, physioId));
     if (!profile) throw new Error("signed-in user has no physios row");
 
-    await setLocaleCookie(profile.locale);
+    // Before onboarding the row only has the column default; keep the language the physio
+    // chose (or their browser's) while signed out. Onboarding saves it to the profile.
+    if (profile.onboardedAt) await setLocaleCookie(profile.locale);
     return profile.onboardedAt ? next : `/onboarding?${new URLSearchParams({ next })}`;
   } catch {
     // The session cookie is already set at this point (verifyOtp/exchangeCodeForSession ran

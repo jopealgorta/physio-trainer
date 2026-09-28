@@ -104,6 +104,9 @@
     "dark": "Dark",
     "system": "System"
   },
+  "LocaleSwitcher": {
+    "label": "Language"
+  },
   "NotFound": {
     "title": "Page not found",
     "description": "This link may have expired or been removed.",

@@ -61,7 +61,10 @@ dashboard:
 3. **Auth → URL configuration**: Site URL = the app URL; add `<app URL>/auth/**` to the
    redirect URLs. A missing redirect URL breaks magic links (they fall back to the Site URL).
 4. **Auth → Email templates**: paste `supabase/templates/magic_link.html` into both "Magic
-   Link" and "Confirm signup".
+   Link" and "Confirm signup", and set both subjects to
+   `Tu link para ingresar · Your sign-in link — Physio Trainer` (the subjects in
+   `supabase/config.toml` only apply locally). Re-paste whenever the template changes (it
+   became bilingual in spec 17).
 5. **Auth → SMTP**: configure a real SMTP provider before launch; the built-in sender is
    rate-limited and only delivers to project team members. Until then, set
    `NEXT_PUBLIC_AUTH_EMAIL_ENABLED=false` (with Google enabled) to hide the magic-link form.

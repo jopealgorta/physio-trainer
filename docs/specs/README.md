@@ -27,6 +27,7 @@ feature list agreed in the initial brainstorm.
 | 14  | [PDF and Excel export](./14-export-pdf-and-excel.md)                   | Core    | 05, 06, 09, 10   | Not started |
 | 15  | [Version history](./15-version-history.md)                             | I       | 05, 06           | Not started |
 | 16  | [Visit notes](./16-visit-notes.md)                                     | J       | 04               | Not started |
+| 17  | [Spanish locale](./17-spanish-locale.md)                               | Core    | 01               | Done        |
 
 ```mermaid
 graph LR

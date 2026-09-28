@@ -1,0 +1,115 @@
+{
+  "Metadata": {
+    "title": "Physio Trainer",
+    "description": "Rutinas de rehabilitación que tus pacientes abren con un solo link."
+  },
+  "Landing": {
+    "eyebrow": "Para fisioterapeutas",
+    "headline": "Rutinas de rehabilitación que tus pacientes de verdad abren.",
+    "subheadline": "Armá rutinas con tu propia biblioteca de ejercicios, compartilas con un solo link y mirá cómo les va a tus pacientes.",
+    "primaryCta": "Empezar",
+    "dashboardCta": "Abrir panel"
+  },
+  "Login": {
+    "title": "Ingresar",
+    "description": "Te mandamos un link por email. Sin contraseña.",
+    "descriptionGoogleOnly": "Continuá con tu cuenta de Google.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "vos@clinica.com",
+    "sendLink": "Enviar link",
+    "sending": "Enviando…",
+    "or": "o",
+    "google": "Continuar con Google",
+    "checkInboxTitle": "Revisá tu email",
+    "checkInboxDescription": "Te mandamos un link para ingresar a {email}. Podés abrirlo en cualquier dispositivo.",
+    "useDifferentEmail": "Usar otro email",
+    "back": "Volver al inicio"
+  },
+  "Auth": {
+    "errors": {
+      "linkInvalid": "Ese link para ingresar venció o ya se usó. Pedí uno nuevo.",
+      "oauthFailed": "No se pudo completar el ingreso con Google. Probá de nuevo.",
+      "unknown": "Algo salió mal al ingresar. Probá de nuevo.",
+      "emailInvalid": "Ingresá un email válido.",
+      "sendFailed": "No pudimos enviar el link. Esperá un momento y probá de nuevo."
+    }
+  },
+  "ProfileForm": {
+    "displayName": "Nombre visible",
+    "displayNameHint": "Lo ven tus pacientes.",
+    "handle": "Usuario",
+    "handleHint": "Aparece en los links que compartís con tus pacientes.",
+    "linkPreview": "Los links para pacientes se van a ver así: {url}",
+    "language": "Idioma",
+    "timezone": "Zona horaria",
+    "handleStatus": {
+      "checking": "Verificando disponibilidad…",
+      "available": "Disponible",
+      "taken": "Ese usuario ya está en uso.",
+      "reserved": "Ese usuario está reservado. Elegí otro.",
+      "tooShort": "Usá al menos 3 caracteres.",
+      "tooLong": "Usá como máximo 30 caracteres.",
+      "format": "Usá letras minúsculas, números y guiones simples, sin guion al principio ni al final."
+    },
+    "errors": {
+      "displayNameRequired": "Ingresá tu nombre.",
+      "displayNameTooLong": "Usá como máximo 80 caracteres.",
+      "localeInvalid": "Elegí un idioma de la lista.",
+      "timezoneInvalid": "Elegí una zona horaria de la lista.",
+      "unknown": "Algo salió mal. Probá de nuevo."
+    },
+    "submitOnboarding": "Continuar",
+    "submitSettings": "Guardar cambios",
+    "saving": "Guardando…",
+    "saved": "Guardado",
+    "handleChangeNotice": "Los links que ya compartiste siguen funcionando y van a mostrar tu nuevo usuario."
+  },
+  "Onboarding": {
+    "title": "Configurá tu perfil",
+    "description": "Así te ven tus pacientes. Podés cambiarlo después en Configuración."
+  },
+  "Settings": {
+    "title": "Configuración",
+    "profile": {
+      "title": "Perfil",
+      "description": "Tu nombre, usuario, idioma y zona horaria."
+    },
+    "account": {
+      "title": "Cuenta",
+      "description": "Ingresás con este email.",
+      "email": "Email",
+      "signOut": "Cerrar sesión"
+    }
+  },
+  "UserMenu": {
+    "trigger": "Menú de la cuenta",
+    "settings": "Configuración",
+    "signOut": "Cerrar sesión"
+  },
+  "Nav": {
+    "dashboard": "Panel",
+    "customers": "Clientes",
+    "library": "Biblioteca de ejercicios",
+    "routines": "Rutinas",
+    "plans": "Planes semanales",
+    "settings": "Configuración"
+  },
+  "Placeholder": {
+    "comingSoon": "Todavía no está hecho",
+    "specHint": "Especificado en <code>{spec}</code>."
+  },
+  "Theme": {
+    "toggle": "Cambiar tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "LocaleSwitcher": {
+    "label": "Idioma"
+  },
+  "NotFound": {
+    "title": "Página no encontrada",
+    "description": "Puede que este link haya vencido o se haya eliminado.",
+    "home": "Ir al inicio"
+  }
+}

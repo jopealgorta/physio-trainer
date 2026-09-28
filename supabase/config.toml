@@ -248,11 +248,11 @@ otp_expiry = 3600
 # New users get "magic_link" locally; hosted projects with confirmations on send
 # "confirmation", so both templates use the same file.
 [auth.email.template.magic_link]
-subject = "Your Physio Trainer sign-in link"
+subject = "Tu link para ingresar · Your sign-in link — Physio Trainer"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.confirmation]
-subject = "Your Physio Trainer sign-in link"
+subject = "Tu link para ingresar · Your sign-in link — Physio Trainer"
 content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize email template
