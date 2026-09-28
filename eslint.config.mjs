@@ -24,6 +24,7 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "supabase/**",
+    ".claude/worktrees/**",
   ]),
 ]);
 
