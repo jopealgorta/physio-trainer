@@ -17,6 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
     title: { default: t("title"), template: `%s · ${t("title")}` },
     description: t("description"),
+    // iOS "Add to Home Screen" (the manifest is src/app/manifest.ts).
+    appleWebApp: { capable: true, title: t("title"), statusBarStyle: "default" },
   };
 }
 

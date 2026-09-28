@@ -71,11 +71,11 @@ Physio side:
 
 Patient side (`src/app/(patient)/[handle]/[slug]/`):
 
-| Route                           | Purpose                                                                          |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| `page.tsx`                      | Patient page.                                                                    |
-| `pin/` (or inline state)        | PIN entry screen when required.                                                  |
-| `manifest.webmanifest/route.ts` | Per-link manifest (name = clinic name, start_url = link, theme colour = accent). |
+| Route                           | Purpose                                                                                                                                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `page.tsx`                      | Patient page.                                                                                                                                                                       |
+| `pin/` (or inline state)        | PIN entry screen when required.                                                                                                                                                     |
+| `manifest.webmanifest/route.ts` | Per-link manifest (name = clinic name, start_url = link, theme colour = accent). Set `metadata.manifest` in the patient layout so it replaces the physio app manifest from spec 18. |
 
 Patient page layout (mobile-first, branded via spec 09):
 

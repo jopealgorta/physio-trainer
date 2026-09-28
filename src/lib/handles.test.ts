@@ -61,6 +61,14 @@ describe("RESERVED_HANDLES", () => {
       expect(RESERVED_HANDLES.has(segment), `"${segment}" must be reserved`).toBe(true);
     }
   });
+
+  // Metadata files (icon.tsx, manifest.ts) and public/ files are routes too, but not folders.
+  it.each(["manifest.webmanifest", "icon", "apple-icon", "sw.js", "offline"])(
+    "reserves the PWA route %s",
+    (segment) => {
+      expect(RESERVED_HANDLES.has(segment)).toBe(true);
+    },
+  );
 });
 
 function topLevelSegments(dir: string): string[] {

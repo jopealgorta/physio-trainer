@@ -1,6 +1,6 @@
 # 18 · Installable physio app (PWA)
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** Core (platform)
 - **Depends on:** 01, 17
 
@@ -110,14 +110,14 @@ statusBarStyle: "default" }`.
 
 ## Acceptance criteria
 
-- [ ] `/manifest.webmanifest` returns the fields in rule 1; every icon URL in it returns a PNG
+- [x] `/manifest.webmanifest` returns the fields in rule 1; every icon URL in it returns a PNG
       of the declared size.
-- [ ] Pages include `<link rel="manifest">` and `<link rel="apple-touch-icon">`.
-- [ ] Chrome reports the app installable (Lighthouse/DevTools "Installability" has no errors).
-- [ ] Signed-in physio, production build: the worker controls the page; going offline and
+- [x] Pages include `<link rel="manifest">` and `<link rel="apple-touch-icon">`.
+- [x] Chrome reports the app installable (Lighthouse/DevTools "Installability" has no errors).
+- [x] Signed-in physio, production build: the worker controls the page; going offline and
       navigating shows the localized offline page; back online, "Try again" loads the page.
-- [ ] No service worker is registered by `pnpm dev`.
-- [ ] Only `/offline` and `/_next/static/…` entries exist in the worker's cache.
+- [x] No service worker is registered by `pnpm dev`.
+- [x] Only `/offline` and `/_next/static/…` entries exist in the worker's cache.
 
 ## Test plan
 
@@ -146,4 +146,19 @@ Resolved in brainstorming (2026-09-28):
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- Manifest data and the icon list live in `src/lib/pwa.ts` (`buildManifest`, `APP_ICONS`,
+  `serviceWorkerUrl`) so they are unit-tested without mocking next-intl; `src/app/manifest.ts`
+  and `src/app/icon.tsx` are thin wrappers over them.
+- Icons are drawn from the lucide `activity` path inlined as SVG (`src/lib/app-icon-image.tsx`):
+  `ImageResponse` renders plain SVG reliably, not the lucide React component. Colours are
+  hex copies of light-mode `--primary`/`--primary-foreground` (it can't read CSS variables).
+- The Apple icon is full-bleed like the maskable one: iOS rounds corners itself, and a rounded
+  PNG would show black corners.
+- `ServiceWorkerRegistration` takes `buildId` as a prop from the `(app)` layout (server reads
+  `@/env`), matching how the login page passes env flags to client components.
+- The worker caches offline-page assets best-effort (`Promise.allSettled`): a missing asset only
+  degrades the page's look and must not block install. The asset regex stops at backslashes
+  because the RSC payload inlines the same URLs inside escaped JSON.
+- `NEXT_PUBLIC_BUILD_ID` can also be set explicitly (it wins over `VERCEL_GIT_COMMIT_SHA`), and
+  `@/env` defaults it to `dev`.
+- Verified in Chrome via CDP: `Page.getInstallabilityErrors` and manifest errors are empty.
