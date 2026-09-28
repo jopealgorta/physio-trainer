@@ -24,16 +24,22 @@ export function LocaleSwitcher({
     <select
       aria-label={t("label")}
       value={shown}
-      disabled={pending}
+      // Busy, not disabled: disabling a focused control drops keyboard focus to <body>.
+      aria-busy={pending}
       onChange={(event) => {
+        if (pending) return;
         const next = event.target.value;
         startTransition(async () => {
           setShown(next);
-          await setLocale(next);
+          try {
+            await setLocale(next);
+          } catch {
+            // Offline or a stale deploy: the optimistic value reverts; keep the page usable.
+          }
         });
       }}
       className={cn(
-        "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 rounded-md border bg-transparent px-2 text-sm outline-none focus-visible:ring-[3px] disabled:opacity-50",
+        "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 rounded-md border bg-transparent px-2 text-base outline-none focus-visible:ring-[3px] aria-busy:opacity-70 md:text-sm",
         className,
       )}
     >

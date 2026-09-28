@@ -50,3 +50,6 @@ next-env.d.ts
 # supabase
 /supabase/.temp/
 /supabase/.branches/
+
+# Superpowers plan workspaces (ledgers, briefs, review packages)
+.superpowers/
