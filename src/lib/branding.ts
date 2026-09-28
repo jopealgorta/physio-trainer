@@ -84,6 +84,8 @@ export function normalizeWebsite(
   if (url.protocol !== "https:" || !url.hostname.includes(".")) {
     return { ok: false, error: "websiteInvalid" };
   }
+  // Credentials in the URL can spoof the visible host ("kine.com@evil.com") or leak a secret.
+  if (url.username || url.password) return { ok: false, error: "websiteInvalid" };
   return { ok: true, url: url.toString() };
 }
 

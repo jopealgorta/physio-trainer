@@ -77,6 +77,8 @@ describe("normalizeWebsite", () => {
     "ftp://x.com",
     "https://",
     "localhost",
+    "https://user:pass@example.com",
+    "https://kine.com@evil.com",
     "x".repeat(2100),
   ])("rejects %j", (input) => expect(normalizeWebsite(input)).toMatchObject({ ok: false }));
 });
