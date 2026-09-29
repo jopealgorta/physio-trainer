@@ -32,3 +32,14 @@ export function ageInYears(dob: string, timeZone: string, now: Date = new Date()
   // Compare (month, day) lexicographically: Feb 29 birthdays are reached on Mar 1 in common years.
   return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
 }
+
+/**
+ * A `YYYY-MM-DD` day as a Date at UTC midnight. Format it with `CALENDAR_DATE_FORMAT` (UTC) so
+ * the day never shifts with the viewer's or the server's time zone.
+ */
+export function calendarDateToDate(value: string): Date {
+  return new Date(`${value}T00:00:00Z`);
+}
+
+/** Intl options for displaying a `calendarDateToDate` value. */
+export const CALENDAR_DATE_FORMAT = { dateStyle: "medium", timeZone: "UTC" } as const;

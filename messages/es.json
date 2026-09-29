@@ -483,7 +483,8 @@
       }
     },
     "detail": {
-      "age": "{age, number} años",
+      "age": "{age, plural, one {# año} other {# años}}",
+      "backToCustomer": "Volver al cliente",
       "call": "Llamar",
       "email": "Enviar email",
       "whatsapp": "WhatsApp",

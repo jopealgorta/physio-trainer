@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { ageInYears, isCalendarDate, todayIn } from "./calendar-date";
+import {
+  ageInYears,
+  CALENDAR_DATE_FORMAT,
+  calendarDateToDate,
+  isCalendarDate,
+  todayIn,
+} from "./calendar-date";
 
 describe("todayIn", () => {
   it("uses the given time zone's calendar day", () => {
@@ -47,5 +53,14 @@ describe("ageInYears", () => {
   it("returns null for invalid or future dates", () => {
     expect(ageInYears("nope", "UTC", now)).toBeNull();
     expect(ageInYears("2030-01-01", "UTC", now)).toBeNull();
+  });
+});
+
+describe("calendarDateToDate", () => {
+  it("is UTC midnight of that day, so UTC formatting never shifts it", () => {
+    const date = calendarDateToDate("1990-09-29");
+    expect(date.toISOString()).toBe("1990-09-29T00:00:00.000Z");
+    expect(CALENDAR_DATE_FORMAT.timeZone).toBe("UTC");
+    expect(new Intl.DateTimeFormat("en", CALENDAR_DATE_FORMAT).format(date)).toBe("Sep 29, 1990");
   });
 });

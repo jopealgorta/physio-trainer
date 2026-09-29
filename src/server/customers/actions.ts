@@ -1,6 +1,5 @@
 "use server";
 
-import type { Route } from "next";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -65,7 +64,7 @@ export async function saveCustomerAction(
   );
   if (!result.ok) return { status: "error", fieldErrors: {}, formError: "notFound" };
   revalidateCustomers();
-  if (result.data.id) redirect(`/customers/${result.data.id}` as Route);
+  if (result.data.id) redirect(`/customers/${result.data.id}`);
   return { status: "saved" };
 }
 

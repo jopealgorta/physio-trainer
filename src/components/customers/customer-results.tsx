@@ -1,4 +1,3 @@
-import type { Route } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
@@ -8,14 +7,13 @@ import type { CustomerSummary } from "@/server/customers/queries";
 
 import { CustomerAvatar } from "./customer-avatar";
 
-const href = (id: string) => `/customers/${id}` as Route;
 const displayName = (c: CustomerSummary) => [c.firstName, c.lastName].filter(Boolean).join(" ");
 
 function NameLink({ customer }: { customer: CustomerSummary }) {
   const t = useTranslations("Customers");
   return (
     <Link
-      href={href(customer.id)}
+      href={`/customers/${customer.id}`}
       className="focus-visible:ring-ring/30 flex min-w-0 items-center gap-3 rounded-md font-medium outline-none hover:underline focus-visible:ring-2"
     >
       <CustomerAvatar firstName={customer.firstName} lastName={customer.lastName} size="sm" />

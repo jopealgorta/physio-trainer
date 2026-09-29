@@ -483,7 +483,8 @@
       }
     },
     "detail": {
-      "age": "{age, number} years old",
+      "age": "{age, plural, one {# year old} other {# years old}}",
+      "backToCustomer": "Back to customer",
       "call": "Call",
       "email": "Email",
       "whatsapp": "WhatsApp",

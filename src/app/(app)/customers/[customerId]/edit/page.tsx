@@ -1,49 +1,46 @@
 import { ArrowLeftIcon } from "lucide-react";
-import type { Metadata, Route } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { cache } from "react";
 
 import { CustomerForm } from "@/components/customers/customer-form";
 import { PageHeader } from "@/components/page-header";
 import { resolveLocale } from "@/i18n/config";
-import { withPhysio } from "@/server/auth/session";
 import { saveCustomerAction } from "@/server/customers/actions";
-import { getCustomer } from "@/server/customers/queries";
-import { idSchema } from "@/server/customers/schemas";
+import { customerDisplayName, loadCustomer } from "@/server/customers/load";
 
-// Shared by generateMetadata and the page within one request.
-const loadCustomer = cache(async (rawId: string) => {
-  const parsed = idSchema.safeParse(rawId);
-  if (!parsed.success) return null;
-  return withPhysio((tx, physioId) => getCustomer(tx, physioId, parsed.data));
-});
-
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/customers/[customerId]/edit">): Promise<Metadata> {
+  const { customerId } = await params;
+  const loaded = await loadCustomer(customerId);
   const t = await getTranslations("Customers.form");
-  return { title: t("editTitle") };
+  return {
+    title: loaded ? `${t("editTitle")} · ${customerDisplayName(loaded.customer)}` : t("editTitle"),
+  };
 }
 
 export default async function EditCustomerPage({
   params,
 }: PageProps<"/customers/[customerId]/edit">) {
   const { customerId } = await params;
-  const customer = await loadCustomer(customerId);
-  if (!customer) notFound();
-  const t = await getTranslations("Customers.form");
+  const loaded = await loadCustomer(customerId);
+  if (!loaded) notFound();
+  const { customer } = loaded;
+  const t = await getTranslations("Customers");
 
   return (
     <div className="grid gap-8">
       <div className="grid gap-2">
         <Link
-          href={`/customers/${customer.id}` as Route}
+          href={`/customers/${customer.id}`}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeftIcon aria-hidden className="size-4" />
-          {t("cancel")}
+          {t("detail.backToCustomer")}
         </Link>
-        <PageHeader title={t("editTitle")} />
+        <PageHeader title={t("form.editTitle")} />
       </div>
       <CustomerForm
         action={saveCustomerAction}
