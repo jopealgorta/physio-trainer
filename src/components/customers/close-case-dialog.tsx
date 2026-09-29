@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useId, useState, useTransition } from "react";
+import { type FormEvent, useId, useState, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,11 @@ export function CloseCaseDialog({ caseId, today }: { caseId: string; today: stri
     if (next) setError(null);
   }
 
-  function submit(formData: FormData) {
+  // Not `<form action>`: React resets the form once an action returns, and the real work runs
+  // in the inner transition, so the typed date would snap back to `today` after an error.
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     const raw = formData.get("closedOn");
     const closedOn = typeof raw === "string" && raw !== "" ? raw : null;
     setError(null);
@@ -66,7 +70,7 @@ export function CloseCaseDialog({ caseId, today }: { caseId: string; today: stri
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <form action={submit} className="grid gap-4">
+        <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>{t("closeTitle")}</DialogTitle>
             <DialogDescription>{t("closeBody")}</DialogDescription>

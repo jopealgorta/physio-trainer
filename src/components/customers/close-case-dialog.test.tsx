@@ -91,4 +91,21 @@ describe("CloseCaseDialog", () => {
     await user.click(screen.getByRole("button", { name: "Close case" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
   });
+
+  it.each(["closedBeforeOpened", "dateInvalid"] as const)(
+    "keeps the typed date after a %s error",
+    async (error) => {
+      const user = userEvent.setup();
+      closeCase.mockResolvedValue({ ok: false, error });
+      setup();
+      await open(user);
+      const input = screen.getByLabelText("Closing date");
+      await user.clear(input);
+      await user.type(input, "2026-01-02");
+      await user.click(screen.getByRole("button", { name: "Close case" }));
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(closeCase).toHaveBeenCalledWith("case-1", "2026-01-02");
+      expect(screen.getByLabelText("Closing date")).toHaveValue("2026-01-02");
+    },
+  );
 });
