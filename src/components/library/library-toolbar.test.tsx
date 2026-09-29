@@ -11,14 +11,17 @@ import { LibraryToolbar } from "./library-toolbar";
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
 
-function setup(filters: Partial<LibraryFilters> = {}) {
-  return render(
+function ui(filters: Partial<LibraryFilters> = {}) {
+  return (
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
       <LibraryToolbar filters={{ ...DEFAULT_LIBRARY_FILTERS, ...filters }} tags={["band", "core"]}>
         <div>tree</div>
       </LibraryToolbar>
-    </NextIntlClientProvider>,
+    </NextIntlClientProvider>
   );
+}
+function setup(filters: Partial<LibraryFilters> = {}) {
+  return render(ui(filters));
 }
 
 beforeEach(() => {
@@ -92,5 +95,48 @@ describe("LibraryToolbar", () => {
     await user.click(screen.getByRole("button", { name: "Filters" }));
     expect(screen.getByText("tree")).toBeInTheDocument();
     expect(screen.getAllByRole("combobox", { name: "Body area", hidden: true })).toHaveLength(2);
+  });
+
+  it("keeps newer keystrokes when an older search URL arrives while typing", () => {
+    const { rerender } = setup();
+    const input = screen.getByRole("searchbox", { name: "Search exercises" }) as HTMLInputElement;
+    input.focus();
+    fireEvent.change(input, { target: { value: "bridg" } });
+    act(() => void vi.advanceTimersByTime(300));
+    fireEvent.change(input, { target: { value: "bridge" } });
+    rerender(ui({ q: "bridg" }));
+    expect(input.value).toBe("bridge");
+  });
+
+  it("resets the box when the search is cleared elsewhere", () => {
+    const { rerender } = setup({ q: "bridge" });
+    const input = screen.getByRole("searchbox", { name: "Search exercises" }) as HTMLInputElement;
+    expect(input.value).toBe("bridge");
+    rerender(ui({ q: "" }));
+    expect(input.value).toBe("");
+  });
+
+  it("a pending search does not revert a filter changed meanwhile", () => {
+    const { rerender } = setup();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search exercises" }), {
+      target: { value: "hip" },
+    });
+    rerender(ui({ category: { kind: "none" } }));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith("/library?q=hip&category=none", { scroll: false });
+  });
+
+  it("a filter change during a pending search keeps the typed text", () => {
+    setup();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search exercises" }), {
+      target: { value: "hip" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Body area" }), {
+      target: { value: "knee" },
+    });
+    expect(replace).toHaveBeenCalledWith("/library?q=hip&area=knee", { scroll: false });
+    act(() => void vi.advanceTimersByTime(500));
+    expect(replace).toHaveBeenCalledTimes(1);
   });
 });

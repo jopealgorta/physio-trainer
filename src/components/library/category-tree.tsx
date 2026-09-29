@@ -51,16 +51,23 @@ function TreeLink({
 export function CategoryTree({ tree, filters }: { tree: CategoryNode[]; filters: LibraryFilters }) {
   const t = useTranslations("Library.tree");
   const baseId = useId();
+  const parentOf = (category: LibraryCategoryFilter) =>
+    category.kind === "category"
+      ? tree.find((node) => node.children.some((child) => child.id === category.id))?.id
+      : undefined;
   const [expanded, setExpanded] = useState<Set<string>>(() => {
-    const current = filters.category;
-    const open = new Set<string>();
-    if (current.kind === "category") {
-      for (const node of tree) {
-        if (node.children.some((child) => child.id === current.id)) open.add(node.id);
-      }
-    }
-    return open;
+    const parent = parentOf(filters.category);
+    return new Set(parent ? [parent] : []);
   });
+  const categoryKey =
+    filters.category.kind === "category" ? filters.category.id : filters.category.kind;
+  // When the URL moves to a sub-category, open its branch (adjust state during render).
+  const [seenCategory, setSeenCategory] = useState(categoryKey);
+  if (seenCategory !== categoryKey) {
+    setSeenCategory(categoryKey);
+    const parent = parentOf(filters.category);
+    if (parent && !expanded.has(parent)) setExpanded(new Set(expanded).add(parent));
+  }
   const toggle = (id: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);

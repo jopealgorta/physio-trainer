@@ -9,6 +9,7 @@ import { ExerciseResults, NoResults } from "@/components/library/exercise-result
 import { LibraryToolbar } from "@/components/library/library-toolbar";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { libraryLayoutState } from "@/lib/library-layout";
 import { hasActiveFilters, parseLibraryParams } from "@/lib/library-params";
 import { withPhysio } from "@/server/auth/session";
 import { listCategoryTree, listExercises, listTags } from "@/server/library/queries";
@@ -26,7 +27,11 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
     exercises: await listExercises(tx, physioId, filters),
     tags: await listTags(tx, physioId),
   }));
-  const filtered = hasActiveFilters(filters);
+  const layout = libraryLayoutState({
+    hasCategories: tree.length > 0,
+    hasExercises: exercises.length > 0,
+    filtersActive: hasActiveFilters(filters),
+  });
   const categoryTree = <CategoryTree tree={tree} filters={filters} />;
 
   return (
@@ -44,7 +49,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
           </>
         }
       />
-      {exercises.length === 0 && !filtered && tree.length === 0 ? (
+      {layout === "empty-page" ? (
         <EmptyLibrary />
       ) : (
         <div className="grid gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
@@ -53,13 +58,13 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
             <LibraryToolbar filters={filters} tags={tags}>
               {categoryTree}
             </LibraryToolbar>
-            {exercises.length > 0 ? (
+            {layout === "results" ? (
               <ExerciseResults
                 exercises={exercises}
                 view={filters.view}
                 archived={filters.category.kind === "archived"}
               />
-            ) : filtered ? (
+            ) : layout === "no-results" ? (
               <NoResults view={filters.view} />
             ) : (
               <EmptyLibrary />

@@ -1,6 +1,7 @@
 import { DumbbellIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
 import { BodyAreaBadge } from "@/components/body-areas/body-area-badge";
@@ -14,8 +15,8 @@ import { YouTubeThumbnail } from "./youtube-thumbnail";
 
 const MAX_AREA_BADGES = 3;
 
-async function Meta({ exercise, archived }: { exercise: ExerciseSummary; archived: boolean }) {
-  const t = await getTranslations("Library");
+function Meta({ exercise, archived }: { exercise: ExerciseSummary; archived: boolean }) {
+  const t = useTranslations("Library");
   const shown = exercise.bodyAreas.slice(0, MAX_AREA_BADGES);
   const more = exercise.bodyAreas.length - shown.length;
   return (

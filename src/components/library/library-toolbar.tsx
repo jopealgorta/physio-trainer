@@ -99,24 +99,34 @@ export function LibraryToolbar({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const navigate = (changes: Partial<LibraryFilters>) =>
-    router.replace(libraryHref(filters, changes), { scroll: false });
+  const latest = useRef(filters);
+  useEffect(() => {
+    latest.current = filters;
+  });
 
   const cancelTimer = () => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
   };
+  // Reads the newest filters (not the render that scheduled us) and folds in a pending search.
+  const navigate = (changes: Partial<LibraryFilters>, flushSearch = false) => {
+    const pending = (flushSearch || timer.current !== null) && searchRef.current;
+    const q = pending ? searchRef.current!.value.trim() : latest.current.q;
+    cancelTimer();
+    router.replace(libraryHref({ ...latest.current, q }, changes), { scroll: false });
+  };
   useEffect(() => cancelTimer, []);
-  // Keep the box in step when the URL changes elsewhere (e.g. "Clear filters").
+  // Keep the box in step when the URL changes elsewhere (e.g. "Clear filters"), but never
+  // while the user is typing in it: a stale URL update must not eat newer keystrokes.
   useEffect(() => {
-    if (searchRef.current && searchRef.current.value.trim() !== filters.q) {
-      searchRef.current.value = filters.q;
-    }
+    const input = searchRef.current;
+    if (!input || document.activeElement === input || input.value.trim() === filters.q) return;
+    input.value = filters.q;
   }, [filters.q]);
 
-  const onSearchChange = (value: string) => {
+  const onSearchChange = () => {
     cancelTimer();
-    timer.current = setTimeout(() => navigate({ q: value.trim() }), SEARCH_DEBOUNCE_MS);
+    timer.current = setTimeout(() => navigate({}, true), SEARCH_DEBOUNCE_MS);
   };
 
   const viewLink = (view: LibraryFilters["view"], label: string, icon: ReactNode) => {
@@ -154,17 +164,21 @@ export function LibraryToolbar({
           defaultValue={filters.q}
           maxLength={SEARCH_MAX_LENGTH}
           className="pl-7"
-          onChange={(event) => onSearchChange(event.target.value)}
+          onChange={(event) => onSearchChange()}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
             event.preventDefault();
-            cancelTimer();
-            navigate({ q: event.currentTarget.value.trim() });
+            navigate({}, true);
           }}
         />
       </div>
       <div className="hidden items-end gap-3 md:flex">
-        <FilterSelects filters={filters} tags={tags} idPrefix="desktop" onChange={navigate} />
+        <FilterSelects
+          filters={filters}
+          tags={tags}
+          idPrefix="desktop"
+          onChange={(changes) => navigate(changes)}
+        />
       </div>
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger asChild>
@@ -184,7 +198,12 @@ export function LibraryToolbar({
               if ((event.target as HTMLElement).closest("a")) setSheetOpen(false);
             }}
           >
-            <FilterSelects filters={filters} tags={tags} idPrefix="mobile" onChange={navigate} />
+            <FilterSelects
+              filters={filters}
+              tags={tags}
+              idPrefix="mobile"
+              onChange={(changes) => navigate(changes)}
+            />
             {children}
           </div>
         </SheetContent>

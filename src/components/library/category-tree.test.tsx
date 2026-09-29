@@ -21,12 +21,15 @@ const tree: CategoryNode[] = [
   { ...leaf("c3", "Upper limb", 1), children: [] },
 ];
 
-function setup(filters: Partial<LibraryFilters> = {}) {
-  render(
+function ui(filters: Partial<LibraryFilters> = {}) {
+  return (
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
       <CategoryTree tree={tree} filters={{ ...DEFAULT_LIBRARY_FILTERS, ...filters }} />
-    </NextIntlClientProvider>,
+    </NextIntlClientProvider>
   );
+}
+function setup(filters: Partial<LibraryFilters> = {}) {
+  return render(ui(filters));
 }
 
 describe("CategoryTree", () => {
@@ -88,5 +91,12 @@ describe("CategoryTree", () => {
       "aria-expanded",
       "true",
     );
+  });
+
+  it("expands the branch when the URL later points at a sub-category", () => {
+    const { rerender } = setup();
+    expect(screen.queryByRole("link", { name: /Glutes/ })).not.toBeInTheDocument();
+    rerender(ui({ category: { kind: "category", id: "c2" } }));
+    expect(screen.getByRole("link", { name: /Glutes/ })).toHaveAttribute("aria-current", "page");
   });
 });
