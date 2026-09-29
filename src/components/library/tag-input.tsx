@@ -53,7 +53,7 @@ export function TagInput({
               type="button"
               aria-label={t("remove", { tag })}
               onClick={() => setTags(tags.filter((other) => other !== tag))}
-              className="hover:text-foreground rounded-full outline-none"
+              className="hover:text-foreground focus-visible:ring-ring/50 rounded-sm outline-none focus-visible:ring-[3px]"
             >
               <XIcon aria-hidden />
             </button>

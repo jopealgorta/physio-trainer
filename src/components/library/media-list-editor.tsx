@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MAX_MEDIA } from "@/server/library/schemas";
+import { MAX_MEDIA } from "@/lib/library-limits";
 import { cn } from "@/lib/utils";
 import { parseYouTubeUrl } from "@/lib/youtube";
 
@@ -121,7 +121,7 @@ export function MediaListEditor({
                   <button
                     type="button"
                     onClick={() => setPreviewKey(previewKey === item.key ? null : item.key)}
-                    aria-label={t("play", { title })}
+                    aria-label={t("preview", { position })}
                     aria-expanded={previewKey === item.key}
                     className={cn(
                       "focus-visible:ring-ring/50 w-24 shrink-0 overflow-hidden rounded-md outline-none focus-visible:ring-[3px]",

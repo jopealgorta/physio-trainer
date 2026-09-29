@@ -218,7 +218,8 @@
         "notYouTube": "Paste a YouTube link (youtube.com/watch, youtu.be or youtube.com/shorts).",
         "duplicate": "This video is already in the list.",
         "limit": "You can add up to {max, number} videos."
-      }
+      },
+      "preview": "Preview video {position, number}"
     },
     "tags": {
       "placeholder": "Add a tag and press Enter",

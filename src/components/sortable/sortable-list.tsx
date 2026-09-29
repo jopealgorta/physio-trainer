@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 export type SortableHandleProps = { ref: (node: HTMLElement | null) => void } & Record<
   string,
@@ -41,6 +41,7 @@ export function SortableList<T extends { key: string }>({
   className?: string;
 }) {
   const t = useTranslations("Sortable");
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -70,6 +71,7 @@ export function SortableList<T extends { key: string }>({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={onDragEnd}

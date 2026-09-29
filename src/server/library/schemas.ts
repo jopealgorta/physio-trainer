@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 import { BODY_AREAS } from "@/lib/body-areas";
+import {
+  CATEGORY_NAME_MAX_LENGTH,
+  EXERCISE_NAME_MAX_LENGTH,
+  INSTRUCTIONS_MAX_LENGTH,
+  MAX_MEDIA,
+} from "@/lib/library-limits";
 import { type Prescription, prescriptionShape, refinePrescription } from "@/lib/prescription";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@/lib/tags";
 import { parseYouTubeUrl, type YouTubeVideo } from "@/lib/youtube";
@@ -8,10 +14,7 @@ import { parseYouTubeUrl, type YouTubeVideo } from "@/lib/youtube";
 /** Mutation/action result. Errors are i18n keys. */
 export type Result<T, E extends string> = { ok: true; data: T } | { ok: false; error: E };
 
-export const EXERCISE_NAME_MAX_LENGTH = 120;
-export const INSTRUCTIONS_MAX_LENGTH = 5000;
-export const CATEGORY_NAME_MAX_LENGTH = 60;
-export const MAX_MEDIA = 10;
+export { CATEGORY_NAME_MAX_LENGTH, EXERCISE_NAME_MAX_LENGTH, INSTRUCTIONS_MAX_LENGTH, MAX_MEDIA };
 
 export const idSchema = z.uuid();
 

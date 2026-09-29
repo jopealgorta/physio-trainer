@@ -65,4 +65,12 @@ describe("MediaListEditor", () => {
     expect(media()).toEqual([url(ID(2))]);
     expect(screen.getByText("Cover")).toBeInTheDocument();
   });
+
+  it("gives each row a distinct preview toggle name", () => {
+    renderEditor([url(ID(1)), url(ID(2))]);
+    const first = screen.getByRole("button", { name: "Preview video 1" });
+    const second = screen.getByRole("button", { name: "Preview video 2" });
+    expect(first).toHaveAttribute("aria-expanded", "false");
+    expect(second).not.toBe(first);
+  });
 });

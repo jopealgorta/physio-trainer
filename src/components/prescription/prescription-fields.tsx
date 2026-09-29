@@ -103,6 +103,7 @@ export function PrescriptionFields({
           <Label htmlFor={`${id}-load`}>{t("load")}</Label>
           <Input
             {...field("load")}
+            maxLength={LOAD_MAX_LENGTH}
             placeholder={t("loadPlaceholder")}
             defaultValue={defaultValue.load ?? ""}
           />
@@ -127,7 +128,12 @@ export function PrescriptionFields({
       </div>
       <div className="grid gap-2">
         <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
-        <Textarea {...field("notes")} rows={2} defaultValue={defaultValue.notes ?? ""} />
+        <Textarea
+          {...field("notes")}
+          rows={2}
+          maxLength={PRESCRIPTION_NOTES_MAX_LENGTH}
+          defaultValue={defaultValue.notes ?? ""}
+        />
         {message("notes")}
       </div>
     </fieldset>

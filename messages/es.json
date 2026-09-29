@@ -218,7 +218,8 @@
         "notYouTube": "Pegá un link de YouTube (youtube.com/watch, youtu.be o youtube.com/shorts).",
         "duplicate": "Este video ya está en la lista.",
         "limit": "Podés agregar hasta {max, number} videos."
-      }
+      },
+      "preview": "Ver video {position, number}"
     },
     "tags": {
       "placeholder": "Escribí una etiqueta y presioná Enter",

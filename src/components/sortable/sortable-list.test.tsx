@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
@@ -49,23 +48,5 @@ describe("SortableList", () => {
     const handle = screen.getByRole("button", { name: "Reorder Alpha" });
     const described = document.getElementById(handle.getAttribute("aria-describedby") ?? "");
     expect(described).toHaveTextContent(messages.Sortable.instructions);
-  });
-
-  it("reorders with the keyboard when layout is available", async () => {
-    const user = userEvent.setup();
-    const onReorder = renderList();
-    screen.getByRole("button", { name: "Reorder Alpha" }).focus();
-    await user.keyboard("{ }");
-    await user.keyboard("{ArrowDown}");
-    await user.keyboard("{ }");
-    // jsdom has no layout, so dnd-kit may not find a drop target; either way the handle
-    // must not throw. Reordering itself is covered end to end in e2e.
-    if (onReorder.mock.calls.length > 0) {
-      expect(onReorder.mock.calls[0][0].map((i: { key: string }) => i.key)).toEqual([
-        "b",
-        "a",
-        "c",
-      ]);
-    }
   });
 });
