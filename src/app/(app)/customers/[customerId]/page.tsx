@@ -9,7 +9,7 @@ import { CustomerOverview } from "@/components/customers/customer-overview";
 import { CustomerTabs } from "@/components/customers/customer-tabs";
 import { TabEmpty } from "@/components/customers/tab-empty";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ageInYears } from "@/lib/calendar-date";
+import { ageInYears, todayIn } from "@/lib/calendar-date";
 import { parseCustomerTab } from "@/lib/customers";
 import { firstParam } from "@/lib/search-params";
 import { customerDisplayName, loadCustomer } from "@/server/customers/load";
@@ -53,7 +53,11 @@ export default async function CustomerPage({
         </Alert>
       ) : null}
       <CustomerTabs customerId={customer.id} active={tab} />
-      {tab === "overview" ? <CustomerOverview customer={customer} /> : <TabEmpty tab={tab} />}
+      {tab === "overview" ? (
+        <CustomerOverview customer={customer} today={todayIn(timezone)} />
+      ) : (
+        <TabEmpty tab={tab} />
+      )}
     </div>
   );
 }

@@ -552,6 +552,7 @@
     "notes": "Notas",
     "openedOn": "Abierto el",
     "openedOnHint": "Dejalo vacío para usar hoy.",
+    "openedOnDate": "Abierto el {date}",
     "painValue": "Dolor inicial: {value, number}/10",
     "noBodyArea": "Sin zona del cuerpo",
     "status": {

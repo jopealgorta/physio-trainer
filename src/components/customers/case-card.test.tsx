@@ -1,10 +1,19 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { Case } from "@/db/schema";
 
 import messages from "../../../messages/en.json";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/server/customers/actions", () => ({
+  saveCaseAction: vi.fn(),
+  closeCaseAction: vi.fn(),
+  reopenCaseAction: vi.fn(),
+}));
+
 import { CaseCard } from "./case-card";
 
 const baseCase: Case = {
@@ -31,7 +40,7 @@ const baseCase: Case = {
 function setup(overrides: Partial<Case> = {}) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CaseCard case={{ ...baseCase, ...overrides }} customerName="Ana Pérez" />
+      <CaseCard case={{ ...baseCase, ...overrides }} customerName="Ana Pérez" today="2026-05-20" />
     </NextIntlClientProvider>,
   );
 }
@@ -41,7 +50,7 @@ describe("CaseCard", () => {
     setup();
     expect(screen.getByRole("heading", { name: "ACL rehab" })).toBeInTheDocument();
     expect(screen.getByText("Open")).toBeInTheDocument();
-    expect(screen.getByText(/Opened on/)).toHaveTextContent("Mar 1, 2026");
+    expect(screen.getByText("Opened on Mar 1, 2026")).toBeInTheDocument();
   });
 
   it("shows the body area badge only when set", () => {
@@ -77,5 +86,29 @@ describe("CaseCard", () => {
     setup({ status: "closed", closedOn: "2026-04-15" });
     expect(screen.getByText("Closed")).toBeInTheDocument();
     expect(screen.getByText("Closed on Apr 15, 2026")).toBeInTheDocument();
+  });
+
+  it("offers Edit and Close on an open case", () => {
+    setup();
+    expect(screen.getByRole("button", { name: "Edit case" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close case" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reopen case" })).not.toBeInTheDocument();
+  });
+
+  it("offers Edit and Reopen on a closed case", () => {
+    setup({ status: "closed", closedOn: "2026-04-15" });
+    expect(screen.getByRole("button", { name: "Edit case" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reopen case" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close case" })).not.toBeInTheDocument();
+  });
+
+  it("opens the edit sheet prefilled with the case's fields", async () => {
+    const user = userEvent.setup();
+    setup({ diagnosis: "Tear", bodyArea: "knee", side: "left", initialPain: 3 });
+    await user.click(screen.getByRole("button", { name: "Edit case" }));
+    expect(await screen.findByLabelText("Title")).toHaveValue("ACL rehab");
+    expect(screen.getByLabelText("Diagnosis")).toHaveValue("Tear");
+    expect(screen.getByLabelText("Initial pain (0–10)")).toHaveValue("3");
+    expect(screen.getByLabelText("Opened on")).toHaveValue("2026-03-01");
   });
 });

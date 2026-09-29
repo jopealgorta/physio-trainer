@@ -7,6 +7,7 @@ import { languageOptions } from "@/i18n/config";
 import type { CustomerDetail } from "@/server/customers/queries";
 
 import { CaseCard } from "./case-card";
+import { CaseSheet } from "./case-sheet";
 
 function Field({ label, value, notSet }: { label: string; value: string | null; notSet: string }) {
   return (
@@ -20,7 +21,14 @@ function Field({ label, value, notSet }: { label: string; value: string | null; 
 }
 
 /** Overview tab: precautions first, then basic info, medical history and the customer's cases. */
-export function CustomerOverview({ customer }: { customer: CustomerDetail }) {
+export function CustomerOverview({
+  customer,
+  today,
+}: {
+  customer: CustomerDetail;
+  /** The physio's calendar day (`YYYY-MM-DD`), used as the default closing date. */
+  today: string;
+}) {
   const t = useTranslations("Customers");
   const tCases = useTranslations("Cases");
   const format = useFormatter();
@@ -86,14 +94,17 @@ export function CustomerOverview({ customer }: { customer: CustomerDetail }) {
       ) : null}
 
       <section aria-labelledby="open-cases" className="grid gap-3">
-        <h2 id="open-cases" className="text-base font-semibold">
-          {t("overview.openCases")}
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="open-cases" className="text-base font-semibold">
+            {t("overview.openCases")}
+          </h2>
+          <CaseSheet customerId={customer.id} customerName={name} />
+        </div>
         {openCases.length > 0 ? (
           <ul className="grid gap-3">
             {openCases.map((item) => (
               <li key={item.id}>
-                <CaseCard case={item} customerName={name} />
+                <CaseCard case={item} customerName={name} today={today} />
               </li>
             ))}
           </ul>
@@ -115,7 +126,7 @@ export function CustomerOverview({ customer }: { customer: CustomerDetail }) {
           <ul className="mt-3 grid gap-3">
             {closedCases.map((item) => (
               <li key={item.id}>
-                <CaseCard case={item} customerName={name} />
+                <CaseCard case={item} customerName={name} today={today} />
               </li>
             ))}
           </ul>

@@ -8,6 +8,11 @@ import type { CustomerDetail } from "@/server/customers/queries";
 import messages from "../../../messages/en.json";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/server/customers/actions", () => ({
+  saveCaseAction: vi.fn(),
+  closeCaseAction: vi.fn(),
+  reopenCaseAction: vi.fn(),
+}));
 
 import { CustomerOverview } from "./customer-overview";
 
@@ -54,7 +59,7 @@ const baseCase: Case = {
 function setup(overrides: Partial<CustomerDetail> = {}) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CustomerOverview customer={{ ...customer, ...overrides }} />
+      <CustomerOverview customer={{ ...customer, ...overrides }} today="2026-05-20" />
     </NextIntlClientProvider>,
   );
 }
@@ -168,6 +173,29 @@ describe("CustomerOverview", () => {
       expect(details.open).toBe(false);
       expect(within(details).getByText("Old shoulder")).toBeInTheDocument();
       expect(within(details).queryByText("ACL rehab")).not.toBeInTheDocument();
+    });
+
+    it("offers New case beside the heading, including when there are no cases", () => {
+      setup();
+      expect(screen.getByRole("button", { name: "New case" })).toBeInTheDocument();
+    });
+
+    it("gives every open case Close and every closed case Reopen", () => {
+      setup({
+        cases: [
+          { ...baseCase, id: "k1", title: "ACL rehab" },
+          {
+            ...baseCase,
+            id: "k2",
+            title: "Old shoulder",
+            status: "closed",
+            closedOn: "2026-04-01",
+          },
+        ],
+      });
+      expect(screen.getAllByRole("button", { name: "Close case" })).toHaveLength(1);
+      expect(screen.getAllByRole("button", { name: "Reopen case" })).toHaveLength(1);
+      expect(screen.getAllByRole("button", { name: "Edit case" })).toHaveLength(2);
     });
 
     it("keeps the closed section but shows the no-open-cases hint when only closed cases exist", () => {
