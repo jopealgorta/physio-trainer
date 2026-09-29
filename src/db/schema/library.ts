@@ -129,7 +129,7 @@ export const exerciseMedia = pgTable(
       columns: [t.physioId, t.exerciseId],
       foreignColumns: [exercises.physioId, exercises.id],
     }).onDelete("cascade"),
-    unique("exercise_media_position_unique").on(t.exerciseId, t.position),
+    unique("exercise_media_position_unique").on(t.physioId, t.exerciseId, t.position),
     index("exercise_media_physio_exercise_idx").on(t.physioId, t.exerciseId),
     check("exercise_media_position", sql`${t.position} between 0 and 9`),
     check(

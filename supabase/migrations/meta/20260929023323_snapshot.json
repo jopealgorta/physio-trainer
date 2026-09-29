@@ -1,6 +1,6 @@
 {
-  "id": "b62e5ef8-7f0b-4e6b-8620-0aa012ac1323",
-  "prevId": "9dddd8fa-ce16-4b89-943b-a57987396f9f",
+  "id": "6acfe4d6-57eb-42e0-b168-829d8a8b00bf",
+  "prevId": "645310fd-5cbc-4244-843d-d77bb8b1ee85",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -417,6 +417,7 @@
         "exercise_media_position_unique": {
           "name": "exercise_media_position_unique",
           "columns": [
+            "physio_id",
             "exercise_id",
             "position"
           ],

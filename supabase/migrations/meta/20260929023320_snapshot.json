@@ -1,0 +1,803 @@
+{
+  "id": "645310fd-5cbc-4244-843d-d77bb8b1ee85",
+  "prevId": "fc781e5f-fa4b-4198-a860-7d7ee54b0611",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.physios": {
+      "name": "physios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "handle": {
+          "name": "handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UTC'"
+        },
+        "onboarded_at": {
+          "name": "onboarded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "physios_id_users_id_fk": {
+          "name": "physios_id_users_id_fk",
+          "tableFrom": "physios",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "physios_handle_unique": {
+          "name": "physios_handle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "handle"
+          ]
+        }
+      },
+      "policies": {
+        "physios_select_own": {
+          "name": "physios_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"physios\".\"id\" = (select auth.uid())"
+        },
+        "physios_update_own": {
+          "name": "physios_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"physios\".\"id\" = (select auth.uid())",
+          "withCheck": "\"physios\".\"id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {
+        "physios_handle_format": {
+          "name": "physios_handle_format",
+          "value": "\"physios\".\"handle\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(\"physios\".\"handle\") between 3 and 30"
+        },
+        "physios_display_name_length": {
+          "name": "physios_display_name_length",
+          "value": "char_length(\"physios\".\"display_name\") between 1 and 80"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.exercise_categories": {
+      "name": "exercise_categories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "physio_id": {
+          "name": "physio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "exercise_categories_name_unique": {
+          "name": "exercise_categories_name_unique",
+          "columns": [
+            {
+              "expression": "physio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "coalesce(\"parent_id\", '00000000-0000-0000-0000-000000000000'::uuid)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(\"name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "exercise_categories_parent_id_idx": {
+          "name": "exercise_categories_parent_id_idx",
+          "columns": [
+            {
+              "expression": "physio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "exercise_categories_physio_id_physios_id_fk": {
+          "name": "exercise_categories_physio_id_physios_id_fk",
+          "tableFrom": "exercise_categories",
+          "tableTo": "physios",
+          "columnsFrom": [
+            "physio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "exercise_categories_parent_fk": {
+          "name": "exercise_categories_parent_fk",
+          "tableFrom": "exercise_categories",
+          "tableTo": "exercise_categories",
+          "columnsFrom": [
+            "physio_id",
+            "parent_id"
+          ],
+          "columnsTo": [
+            "physio_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "exercise_categories_physio_id_id_unique": {
+          "name": "exercise_categories_physio_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "physio_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "exercise_categories_own": {
+          "name": "exercise_categories_own",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"exercise_categories\".\"physio_id\" = (select auth.uid())",
+          "withCheck": "\"exercise_categories\".\"physio_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {
+        "exercise_categories_name_length": {
+          "name": "exercise_categories_name_length",
+          "value": "char_length(\"exercise_categories\".\"name\") between 1 and 60"
+        },
+        "exercise_categories_not_own_parent": {
+          "name": "exercise_categories_not_own_parent",
+          "value": "\"exercise_categories\".\"parent_id\" <> \"exercise_categories\".\"id\""
+        },
+        "exercise_categories_position": {
+          "name": "exercise_categories_position",
+          "value": "\"exercise_categories\".\"position\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.exercise_media": {
+      "name": "exercise_media",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "physio_id": {
+          "name": "physio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "exercise_id": {
+          "name": "exercise_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "exercise_media_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_url": {
+          "name": "external_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "exercise_media_physio_exercise_idx": {
+          "name": "exercise_media_physio_exercise_idx",
+          "columns": [
+            {
+              "expression": "physio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "exercise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "exercise_media_physio_id_physios_id_fk": {
+          "name": "exercise_media_physio_id_physios_id_fk",
+          "tableFrom": "exercise_media",
+          "tableTo": "physios",
+          "columnsFrom": [
+            "physio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "exercise_media_exercise_fk": {
+          "name": "exercise_media_exercise_fk",
+          "tableFrom": "exercise_media",
+          "tableTo": "exercises",
+          "columnsFrom": [
+            "physio_id",
+            "exercise_id"
+          ],
+          "columnsTo": [
+            "physio_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "exercise_media_position_unique": {
+          "name": "exercise_media_position_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "physio_id",
+            "exercise_id",
+            "position"
+          ]
+        }
+      },
+      "policies": {
+        "exercise_media_own": {
+          "name": "exercise_media_own",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"exercise_media\".\"physio_id\" = (select auth.uid())",
+          "withCheck": "\"exercise_media\".\"physio_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {
+        "exercise_media_position": {
+          "name": "exercise_media_position",
+          "value": "\"exercise_media\".\"position\" between 0 and 9"
+        },
+        "exercise_media_youtube_id": {
+          "name": "exercise_media_youtube_id",
+          "value": "\"exercise_media\".\"kind\" <> 'youtube' or \"exercise_media\".\"external_id\" ~ '^[A-Za-z0-9_-]{11}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.exercises": {
+      "name": "exercises",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "physio_id": {
+          "name": "physio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instructions": {
+          "name": "instructions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "body_areas": {
+          "name": "body_areas",
+          "type": "body_area[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "sets": {
+          "name": "sets",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reps": {
+          "name": "reps",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reps_max": {
+          "name": "reps_max",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hold_seconds": {
+          "name": "hold_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rest_seconds": {
+          "name": "rest_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "load": {
+          "name": "load",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "side": {
+          "name": "side",
+          "type": "prescription_side",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "exercises_physio_id_archived_at_idx": {
+          "name": "exercises_physio_id_archived_at_idx",
+          "columns": [
+            {
+              "expression": "physio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "archived_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "exercises_category_id_idx": {
+          "name": "exercises_category_id_idx",
+          "columns": [
+            {
+              "expression": "physio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "exercises_body_areas_idx": {
+          "name": "exercises_body_areas_idx",
+          "columns": [
+            {
+              "expression": "body_areas",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "exercises_tags_idx": {
+          "name": "exercises_tags_idx",
+          "columns": [
+            {
+              "expression": "tags",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "exercises_physio_id_physios_id_fk": {
+          "name": "exercises_physio_id_physios_id_fk",
+          "tableFrom": "exercises",
+          "tableTo": "physios",
+          "columnsFrom": [
+            "physio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "exercises_physio_id_id_unique": {
+          "name": "exercises_physio_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "physio_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "exercises_own": {
+          "name": "exercises_own",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"exercises\".\"physio_id\" = (select auth.uid())",
+          "withCheck": "\"exercises\".\"physio_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {
+        "exercises_name_length": {
+          "name": "exercises_name_length",
+          "value": "char_length(\"exercises\".\"name\") between 1 and 120"
+        },
+        "exercises_instructions_length": {
+          "name": "exercises_instructions_length",
+          "value": "char_length(\"exercises\".\"instructions\") <= 5000"
+        },
+        "exercises_tags_count": {
+          "name": "exercises_tags_count",
+          "value": "cardinality(\"exercises\".\"tags\") <= 20"
+        },
+        "exercises_sets_range": {
+          "name": "exercises_sets_range",
+          "value": "\"exercises\".\"sets\" between 1 and 99"
+        },
+        "exercises_reps_range": {
+          "name": "exercises_reps_range",
+          "value": "\"exercises\".\"reps\" between 1 and 999"
+        },
+        "exercises_reps_max_range": {
+          "name": "exercises_reps_max_range",
+          "value": "\"exercises\".\"reps_max\" between 1 and 999"
+        },
+        "exercises_duration_seconds_range": {
+          "name": "exercises_duration_seconds_range",
+          "value": "\"exercises\".\"duration_seconds\" between 1 and 7200"
+        },
+        "exercises_hold_seconds_range": {
+          "name": "exercises_hold_seconds_range",
+          "value": "\"exercises\".\"hold_seconds\" between 1 and 3600"
+        },
+        "exercises_rest_seconds_range": {
+          "name": "exercises_rest_seconds_range",
+          "value": "\"exercises\".\"rest_seconds\" between 1 and 3600"
+        },
+        "exercises_reps_range_order": {
+          "name": "exercises_reps_range_order",
+          "value": "\"exercises\".\"reps_max\" is null or (\"exercises\".\"reps\" is not null and \"exercises\".\"reps_max\" > \"exercises\".\"reps\")"
+        },
+        "exercises_load_length": {
+          "name": "exercises_load_length",
+          "value": "char_length(\"exercises\".\"load\") <= 40"
+        },
+        "exercises_notes_length": {
+          "name": "exercises_notes_length",
+          "value": "char_length(\"exercises\".\"notes\") <= 500"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.body_area": {
+      "name": "body_area",
+      "schema": "public",
+      "values": [
+        "head_jaw",
+        "neck",
+        "shoulder",
+        "upper_back",
+        "chest",
+        "upper_arm",
+        "elbow",
+        "forearm_wrist_hand",
+        "lower_back",
+        "abdomen_core",
+        "hip_groin",
+        "glute",
+        "thigh",
+        "knee",
+        "lower_leg",
+        "ankle_foot",
+        "full_body"
+      ]
+    },
+    "public.body_side": {
+      "name": "body_side",
+      "schema": "public",
+      "values": [
+        "left",
+        "right",
+        "both"
+      ]
+    },
+    "public.exercise_media_kind": {
+      "name": "exercise_media_kind",
+      "schema": "public",
+      "values": [
+        "youtube"
+      ]
+    },
+    "public.prescription_side": {
+      "name": "prescription_side",
+      "schema": "public",
+      "values": [
+        "left",
+        "right",
+        "both",
+        "alternating"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -25,7 +25,7 @@ CREATE TABLE "exercise_media" (
 	"position" integer NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "exercise_media_position_unique" UNIQUE("exercise_id","position"),
+	CONSTRAINT "exercise_media_position_unique" UNIQUE("physio_id","exercise_id","position"),
 	CONSTRAINT "exercise_media_position" CHECK ("exercise_media"."position" between 0 and 9),
 	CONSTRAINT "exercise_media_youtube_id" CHECK ("exercise_media"."kind" <> 'youtube' or "exercise_media"."external_id" ~ '^[A-Za-z0-9_-]{11}$')
 );

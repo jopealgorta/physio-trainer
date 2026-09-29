@@ -97,7 +97,7 @@ describe("exercise library tables", () => {
           physioId,
           exerciseId: aExercise,
           kind: "youtube",
-          position: 5, // unused position: a taken one would trip the unique index first
+          position: 0, // occupied by A's media: proves uniqueness can't leak existence
           externalId: VIDEO,
           externalUrl: `https://www.youtube.com/watch?v=${VIDEO}`,
         }),
