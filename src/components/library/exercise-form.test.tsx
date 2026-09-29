@@ -143,4 +143,24 @@ describe("ExerciseForm", () => {
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("This exercise no longer exists.");
   });
+
+  it("keeps the saved state when refreshed defaults arrive", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn(async (): Promise<ExerciseFormState> => ({ status: "saved" }));
+    const ui = (name: string) => (
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <ExerciseForm
+          action={action}
+          defaults={{ ...defaults, id: "abc", name }}
+          categories={categories}
+          tagSuggestions={[]}
+        />
+      </NextIntlClientProvider>
+    );
+    const { rerender } = render(ui("Bridge"));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Saved");
+    rerender(ui("Bridge"));
+    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+  });
 });

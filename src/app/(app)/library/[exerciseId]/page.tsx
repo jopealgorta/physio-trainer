@@ -73,7 +73,6 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
         </Alert>
       ) : null}
       <ExerciseForm
-        key={exercise.updatedAt.toISOString()}
         action={saveExerciseAction}
         categories={categories}
         tagSuggestions={tags}
