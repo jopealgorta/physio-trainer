@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { CategoryManager } from "@/components/library/category-manager";
 import { CategoryTree } from "@/components/library/category-tree";
 import { EmptyLibrary } from "@/components/library/empty-library";
 import { ExerciseResults, NoResults } from "@/components/library/exercise-results";
@@ -41,6 +42,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
         description={t("description")}
         actions={
           <>
+            <CategoryManager tree={tree} />
             <Button asChild>
               <Link href="/library/new">
                 <PlusIcon aria-hidden /> {t("newExercise")}

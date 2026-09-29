@@ -308,6 +308,33 @@
       "view": "View",
       "grid": "Grid view",
       "list": "List view"
+    },
+    "categories": {
+      "title": "Categories",
+      "description": "Two levels: a category and its sub-categories. Drag to reorder.",
+      "nameLabel": "Category name",
+      "add": "Add category",
+      "addPlaceholder": "New category, e.g. Lower limb",
+      "addSub": "Add sub-category to {name}",
+      "subPlaceholder": "New sub-category",
+      "rename": "Rename {name}",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete {name}",
+      "deleteTitle": "Delete “{name}”?",
+      "deleteSubcategories": "{count, plural, =0 {No sub-categories.} one {Its sub-category will be deleted too.} other {Its # sub-categories will be deleted too.}}",
+      "deleteExercises": "{count, plural, =0 {No exercises are affected.} one {# exercise will move to Uncategorised.} other {# exercises will move to Uncategorised.}}",
+      "confirmDelete": "Delete category",
+      "empty": "No categories yet.",
+      "done": "Done",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "nameTaken": "There's already a category with this name here.",
+        "notFound": "This category no longer exists.",
+        "tooDeep": "Sub-categories can't have sub-categories.",
+        "unknown": "Something went wrong. Try again."
+      }
     }
   }
 }
