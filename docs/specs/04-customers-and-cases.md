@@ -1,6 +1,6 @@
 # 04 · Customers and cases
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** Core
 - **Depends on:** 01, 02
 
@@ -119,8 +119,48 @@ Namespaces `Customers`, `Cases`. Dates formatted with the physio's locale.
 ## Open questions
 
 1. Any other customer fields you always record (e.g. referring doctor, insurance, ID number)?
+   **Answer:** none; ship the columns above only.
 2. Should customers get a colour/avatar, or keep it minimal with initials?
+   **Answer:** minimal: initials in a neutral circle, no stored colour.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **No extra customer fields, neutral avatar** (answers to the open questions): the columns above
+  are the whole model; the avatar is initials in a `bg-muted` circle with no stored colour.
+- **Composite FKs**: `cases (physio_id, customer_id)` references `customers (physio_id, id)` on
+  delete cascade, so a case can never point at another physio's customer. Check constraints back
+  the rules: `initial_pain` 0–10, `body_area <> 'full_body'`, a side needs an area, `closed_on` is
+  set exactly when `status = 'closed'`, and `closed_on >= opened_on`.
+- **Search**: accent-insensitive partial match on `first_name || ' ' || last_name` only (email and
+  phone are not searched), using a trigram index on `f_unaccent(lower(...))`; LIKE wildcards are
+  escaped. URL params: `?q=&archived=1&sort=recent` (sort defaults to name); results are capped at
+  500 with a "refine your search" hint. Each row shows the most recent open case.
+- **Tabs** are `?tab=overview|routines|plans|activity|notes` rendered as links (overview has no
+  param); an unknown value falls back to overview. Tabs not built yet show an empty state.
+- **Contact quick actions**: `tel:` only for phone-like text (digits, spaces, `+().-`); WhatsApp
+  only for international numbers (`+…` or `00…`, 7–15 digits), since `wa.me` needs a country code.
+  The phone field hints at this.
+- **Archive**: archived customers stay viewable and editable, with a banner and Restore; restoring
+  does not re-enable share links. `onCustomerArchived` (src/server/customers/hooks.ts) is a
+  no-op TODO hook for spec 10. Re-archiving an archived customer resets `archived_at` and calls the
+  hook again (harmless today).
+- **Cases**: several open cases per customer are allowed. Closing sets `closed_on` from an
+  editable date that defaults to today in the **physio's timezone** (computed server-side and
+  passed to the dialog). Close and reopen are single guarded UPDATEs, so two concurrent closes
+  give exactly one success and one `notOpen`.
+- **Malformed ids**: queries and mutations short-circuit non-UUID ids to not-found (Postgres
+  would otherwise raise 22P02 and abort the transaction); actions and pages validate ids first too.
+- **Editing keeps required values**: a blank locale on customer update, or a blank `opened_on` on
+  case update, keeps the stored value (both columns are NOT NULL).
+- **Dates**: calendar dates (DOB, case dates) are formatted in UTC from their `YYYY-MM-DD` value so
+  they never shift a day; age uses the physio's timezone. Ages use an ICU plural.
+- **Layout fixes found by e2e**: long unbroken names and case text used to widen the page on
+  mobile (`break-words` does not lower min-content in a grid); they now use `wrap-anywhere`. When
+  the only customers are archived and no filter is active, the list shows an "all archived"
+  message instead of a dead "Clear filters" link.
+- **Precautions**: open cases' precautions are highlighted in an alert at the top of the overview;
+  a closed case's card shows its own precautions (the alert lists open cases only), so nothing
+  is hidden behind "Edit case".
+- **Not done / deferred**: hard delete (archive only, by spec); last-activity column is a
+  placeholder dash until spec 13; the Routines/Plans/Activity/Notes tabs are empty states until
+  specs 05, 06, 13 and 16.

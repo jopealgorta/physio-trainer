@@ -50,6 +50,20 @@
       "when": 1790683036028,
       "tag": "20260929115716_exercise-library-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790684802619,
+      "tag": "20260929122642_customers-and-cases",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790684803317,
+      "tag": "20260929122643_customers-extras",
+      "breakpoints": true
     }
   ]
 }

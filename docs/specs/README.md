@@ -14,7 +14,7 @@ feature list agreed in the initial brainstorm.
 | 01  | [Auth and physio profile](./01-auth-and-physio-profile.md)             | Core    | Scaffold         | Done        |
 | 02  | [Body areas](./02-body-areas.md)                                       | H       | 01               | Done        |
 | 03  | [Exercise library](./03-exercise-library.md)                           | Core    | 01, 02           | Done        |
-| 04  | [Customers and cases](./04-customers-and-cases.md)                     | Core    | 01, 02           | Not started |
+| 04  | [Customers and cases](./04-customers-and-cases.md)                     | Core    | 01, 02           | Done        |
 | 05  | [Routines](./05-routines.md)                                           | Core    | 03, 04           | Not started |
 | 06  | [Weekly plans](./06-weekly-plans.md)                                   | Core    | 05               | Not started |
 | 07  | [Templates](./07-templates.md)                                         | A       | 05, 06           | Not started |

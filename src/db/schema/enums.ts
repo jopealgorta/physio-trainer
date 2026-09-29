@@ -2,6 +2,7 @@ import { pgEnum } from "drizzle-orm/pg-core";
 
 // Relative import: drizzle-kit loads the schema without the "@/" alias.
 import { BODY_AREAS, BODY_SIDES } from "../../lib/body-areas";
+import { CASE_STATUSES, CUSTOMER_SEXES } from "../../lib/customers";
 import { PRESCRIPTION_SIDES } from "../../lib/prescription";
 
 /** Body areas and sides (spec 02). Values come from src/lib/body-areas.ts. */
@@ -14,3 +15,7 @@ export const prescriptionSideEnum = pgEnum("prescription_side", PRESCRIPTION_SID
 /** Exercise media kinds. Append-only: uploads/Vimeo add values in a later spec. */
 export const EXERCISE_MEDIA_KINDS = ["youtube"] as const;
 export const exerciseMediaKindEnum = pgEnum("exercise_media_kind", EXERCISE_MEDIA_KINDS);
+
+/** Customer sex and case status (spec 04). Values come from src/lib/customers.ts. */
+export const customerSexEnum = pgEnum("customer_sex", CUSTOMER_SEXES);
+export const caseStatusEnum = pgEnum("case_status", CASE_STATUSES);
