@@ -1,13 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { startTransition, useActionState, useId, type FormEvent } from "react";
+import { startTransition, useActionState, useId, useState, type FormEvent } from "react";
 
-import { selectClassName } from "@/components/prescription/prescription-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ACTIVITY_MAX,
@@ -21,6 +27,7 @@ import {
   type CustomerSex,
 } from "@/lib/customers";
 import { languageOptions, type Locale } from "@/i18n/config";
+import { fromSelectValue, toSelectValue } from "@/lib/select-value";
 import type {
   CustomerField,
   CustomerFieldErrors,
@@ -92,6 +99,9 @@ export function CustomerForm({
   const [state, formAction, pending] = useActionState(action, initialState);
   const id = useId();
   const editing = defaults.id !== undefined;
+  const [sex, setSex] = useState<CustomerSex | "">(defaults.sex ?? "");
+  const [locale, setLocale] = useState<Locale>(defaults.locale);
+  const languages = languageOptions();
 
   const errors: CustomerFieldErrors = state.status === "error" ? state.fieldErrors : {};
 
@@ -215,21 +225,33 @@ export function CustomerForm({
 
           <div className="grid gap-2">
             <Label htmlFor={`${id}-sex`}>{t("sex")}</Label>
-            <select
-              id={`${id}-sex`}
-              name="sex"
-              defaultValue={defaults.sex ?? ""}
-              className={selectClassName}
-              aria-invalid={invalid("sex")}
-              aria-describedby={describedBy("sex")}
+            <input type="hidden" name="sex" value={sex} />
+            <Select
+              value={toSelectValue(sex)}
+              onValueChange={(next) => {
+                // "" only comes from Radix's internal <select>, never from a choice.
+                if (next === "") return;
+                const value = fromSelectValue(next);
+                setSex(CUSTOMER_SEXES.find((candidate) => candidate === value) ?? "");
+              }}
             >
-              <option value="">{t("sexNone")}</option>
-              {CUSTOMER_SEXES.map((sex) => (
-                <option key={sex} value={sex}>
-                  {t(`sexes.${sex}`)}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id={`${id}-sex`}
+                aria-invalid={invalid("sex")}
+                aria-describedby={describedBy("sex")}
+                className="w-full"
+              >
+                <SelectValue>{sex ? t(`sexes.${sex}`) : t("sexNone")}</SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value={toSelectValue("")}>{t("sexNone")}</SelectItem>
+                {CUSTOMER_SEXES.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {t(`sexes.${option}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errorText("sex")}
           </div>
 
@@ -278,20 +300,32 @@ export function CustomerForm({
 
           <div className="grid gap-2">
             <Label htmlFor={`${id}-locale`}>{t("locale")}</Label>
-            <select
-              id={`${id}-locale`}
-              name="locale"
-              defaultValue={defaults.locale}
-              className={selectClassName}
-              aria-invalid={invalid("locale")}
-              aria-describedby={describedBy("locale")}
+            <input type="hidden" name="locale" value={locale} />
+            <Select
+              value={locale}
+              onValueChange={(next) => {
+                const option = languages.find((language) => language.value === next);
+                if (option) setLocale(option.value);
+              }}
             >
-              {languageOptions().map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id={`${id}-locale`}
+                aria-invalid={invalid("locale")}
+                aria-describedby={describedBy("locale")}
+                className="w-full"
+              >
+                <SelectValue>
+                  {languages.find((language) => language.value === locale)?.label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {languages.map((language) => (
+                  <SelectItem key={language.value} value={language.value}>
+                    {language.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errorText("locale")}
           </div>
         </div>

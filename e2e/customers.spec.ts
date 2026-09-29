@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { createPhysio, deletePhysio, expect, signIn, test } from "./helpers/auth";
+import { chooseOption } from "./helpers/select";
 
 const CUSTOMER_URL = /\/customers\/[0-9a-f-]{36}$/;
 
@@ -33,6 +34,8 @@ test("a physio creates a customer and a case, and sees the precautions first", a
   await page.getByLabel("Phone").fill("+598 99 123 456");
   await page.getByText("More details").click();
   await page.getByLabel("Occupation").fill("Carpenter");
+  await chooseOption(page, page.getByLabel("Sex"), /^Male$/);
+  await chooseOption(page, page.getByLabel("Patient language"), "Español");
   await page.getByRole("button", { name: "Create customer" }).click();
 
   await expect(page).toHaveURL(CUSTOMER_URL);
@@ -42,6 +45,8 @@ test("a physio creates a customer and a case, and sees the precautions first", a
     "https://wa.me/59899123456",
   );
   await expect(page.getByText("Carpenter")).toBeVisible();
+  await expect(page.getByText("Male", { exact: true })).toBeVisible();
+  await expect(page.getByText("Español", { exact: true })).toBeVisible();
   await expect(page.getByText("No open cases")).toBeVisible();
 
   await page.getByRole("button", { name: "New case" }).click();

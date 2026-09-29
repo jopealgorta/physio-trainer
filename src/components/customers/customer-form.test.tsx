@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
+import { CUSTOMER_SEXES } from "@/lib/customers";
 import type { CustomerFormState } from "@/server/customers/schemas";
+import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
 
@@ -33,6 +35,8 @@ function setup(
   );
 }
 
+const formValue = (name: string) =>
+  (document.querySelector(`input[name="${name}"]`) as HTMLInputElement).value;
 const idleAction = () => vi.fn(async (): Promise<CustomerFormState> => ({ status: "idle" }));
 const detailsOf = () => screen.getByText("More details").closest("details") as HTMLDetailsElement;
 
@@ -97,15 +101,73 @@ describe("CustomerForm", () => {
 
   it("defaults the locale select to the given locale", () => {
     setup(idleAction(), { locale: "es" });
-    expect(screen.getByLabelText("Patient language")).toHaveValue("es");
+    expect(screen.getByLabelText("Patient language")).toHaveTextContent("Español");
+    expect(formValue("locale")).toBe("es");
   });
 
-  it("offers a Not set option and every sex", () => {
+  it("offers a Not set option and every sex", async () => {
+    const user = userEvent.setup();
     setup(idleAction());
     const select = screen.getByLabelText("Sex");
-    expect(select).toHaveValue("");
-    expect(screen.getByRole("option", { name: "Not set" })).toBeInTheDocument();
+    expect(select).toHaveTextContent("Not set");
+    expect(formValue("sex")).toBe("");
+    await user.click(select);
+    expect(await screen.findByRole("option", { name: "Not set" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Prefer not to say" })).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(1 + CUSTOMER_SEXES.length);
+  });
+
+  it("shows the given sex", () => {
+    setup(idleAction(), { sex: "female" });
+    expect(screen.getByLabelText("Sex")).toHaveTextContent("Female");
+    expect(formValue("sex")).toBe("female");
+  });
+
+  it("submits the chosen sex and locale, and an empty sex when Not set", async () => {
+    const user = userEvent.setup();
+    const action = idleAction();
+    setup(action);
+    await user.type(screen.getByLabelText("First name"), "Ana");
+    await user.click(screen.getByText("More details"));
+    await chooseOption(user, screen.getByLabelText("Patient language"), "Español");
+    await user.click(screen.getByRole("button", { name: "Create customer" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    const first = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
+    expect(first.get("sex")).toBe("");
+    expect(first.get("locale")).toBe("es");
+
+    await chooseOption(user, screen.getByLabelText("Sex"), "Female");
+    expect(screen.getByLabelText("Sex")).toHaveTextContent("Female");
+    await user.click(screen.getByRole("button", { name: "Create customer" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    const second = (action.mock.calls[1] as unknown as [unknown, FormData])[1];
+    expect(second.get("sex")).toBe("female");
+    expect(second.get("locale")).toBe("es");
+  });
+
+  it("can go back to Not set", async () => {
+    const user = userEvent.setup();
+    setup(idleAction(), { sex: "male" });
+    await chooseOption(user, screen.getByLabelText("Sex"), "Not set");
+    expect(screen.getByLabelText("Sex")).toHaveTextContent("Not set");
+    expect(formValue("sex")).toBe("");
+  });
+
+  it("marks the sex and locale selects invalid and describes them by their errors", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn(async (): Promise<CustomerFormState> => ({
+      status: "error",
+      fieldErrors: { sex: "sexInvalid", locale: "localeInvalid" },
+    }));
+    setup(action);
+    await user.type(screen.getByLabelText("First name"), "Ana");
+    await user.click(screen.getByRole("button", { name: "Create customer" }));
+    await screen.findAllByText(/./, { selector: "p.text-destructive" });
+    for (const label of ["Sex", "Patient language"]) {
+      const trigger = screen.getByLabelText(label);
+      expect(trigger).toHaveAttribute("aria-invalid", "true");
+      expect(trigger).toHaveAccessibleDescription(/\S/);
+    }
   });
 
   it("submits the form data to the action", async () => {

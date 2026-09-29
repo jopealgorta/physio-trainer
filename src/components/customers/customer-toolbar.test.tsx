@@ -1,8 +1,10 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_CUSTOMER_FILTERS, type CustomerFilters } from "@/lib/customer-params";
+import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
 import { CustomerToolbar } from "./customer-toolbar";
@@ -18,10 +20,12 @@ function ui(filters: Partial<CustomerFilters> = {}) {
   );
 }
 const setup = (filters: Partial<CustomerFilters> = {}) => render(ui(filters));
+const fakeTimerUser = () => userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 const searchbox = () => screen.getByRole("searchbox", { name: "Search customers" });
 
 beforeEach(() => {
-  vi.useFakeTimers();
+  // shouldAdvanceTime lets waitFor poll while the Select popover opens.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   replace.mockClear();
 });
 afterEach(() => vi.useRealTimers());
@@ -66,20 +70,25 @@ describe("CustomerToolbar", () => {
     expect(replace).toHaveBeenCalledWith("/customers", { scroll: false });
   });
 
-  it("changes the sort", () => {
+  it("changes the sort", async () => {
+    const user = fakeTimerUser();
     setup();
     const select = screen.getByRole("combobox", { name: "Sort by" });
-    expect(select).toHaveValue("name");
-    fireEvent.change(select, { target: { value: "recent" } });
+    expect(select).toHaveTextContent("Name");
+    await chooseOption(user, select, "Recently added");
     expect(replace).toHaveBeenCalledWith("/customers?sort=recent", { scroll: false });
   });
 
-  it("keeps a pending search when another filter changes", () => {
+  it("shows the current sort", () => {
+    setup({ sort: "recent" });
+    expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveTextContent("Recently added");
+  });
+
+  it("keeps a pending search when another filter changes", async () => {
+    const user = fakeTimerUser();
     setup();
     fireEvent.change(searchbox(), { target: { value: "hip" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Sort by" }), {
-      target: { value: "recent" },
-    });
+    await chooseOption(user, screen.getByRole("combobox", { name: "Sort by" }), "Recently added");
     expect(replace).toHaveBeenCalledWith("/customers?q=hip&sort=recent", { scroll: false });
     act(() => void vi.advanceTimersByTime(500));
     expect(replace).toHaveBeenCalledTimes(1);

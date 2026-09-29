@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
-import { selectClassName } from "@/components/prescription/prescription-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   CUSTOMER_SEARCH_MAX_LENGTH,
   customersHref,
@@ -78,22 +84,25 @@ export function CustomerToolbar({ filters }: { filters: CustomerFilters }) {
         />
       </div>
       <div className="grid gap-1 md:w-44">
-        <label htmlFor="customer-sort" className="text-muted-foreground text-xs">
+        <Label htmlFor="customer-sort" className="text-muted-foreground">
           {t("sortLabel")}
-        </label>
-        <select
-          id="customer-sort"
-          className={selectClassName}
+        </Label>
+        <Select
           value={filters.sort}
-          onChange={(event) =>
-            navigate({
-              sort: (event.target.value === "recent" ? "recent" : "name") as CustomerSort,
-            })
-          }
+          onValueChange={(sort) => {
+            // "" only comes from Radix's internal <select>, never from a choice (see select-value).
+            if (sort !== "name" && sort !== "recent") return;
+            navigate({ sort: sort satisfies CustomerSort });
+          }}
         >
-          <option value="name">{t("sortName")}</option>
-          <option value="recent">{t("sortRecent")}</option>
-        </select>
+          <SelectTrigger id="customer-sort" className="w-full">
+            <SelectValue>{filters.sort === "recent" ? t("sortRecent") : t("sortName")}</SelectValue>
+          </SelectTrigger>
+          <SelectContent position="popper">
+            <SelectItem value="name">{t("sortName")}</SelectItem>
+            <SelectItem value="recent">{t("sortRecent")}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex h-7 items-center gap-2">
         <Checkbox
