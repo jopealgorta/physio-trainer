@@ -53,9 +53,15 @@ redeploy after changing one.
 Local config lives in `supabase/config.toml`; a hosted project needs the same settings in the
 dashboard:
 
-1. **Migrations**: apply them to the hosted project with
-   `pnpm exec supabase link --project-ref <ref>`, then `pnpm exec supabase db push`. This also
-   creates the `auth.users` trigger that gives every new user a `physios` row.
+1. **Migrations**: the `migrate` job in `.github/workflows/ci.yml` applies pending migrations on
+   every push to `main`, after all checks pass (it does nothing when none are pending). One-time
+   setup: create a GitHub environment named `production` and add a `SUPABASE_DB_URL` secret to
+   it, using the **session pooler** connection string (Project Settings → Database → Connection
+   string, port 5432, user `postgres.<ref>`, password percent-encoded). The direct host is
+   IPv6-only and the transaction pooler (6543) can't run migrations. The first run also creates
+   the `auth.users` trigger that gives every new user a `physios` row. To apply by hand:
+   `pnpm exec supabase db push --db-url "<session pooler url>"`. Vercel deploys `main` in parallel,
+   so keep migrations additive (see `docs/architecture.md`).
 2. **Data API**: disable it (Project Settings → Data API). The app only talks to Postgres
    through Drizzle on the server.
 3. **Auth → URL configuration**: Site URL = the app URL; add `<app URL>/auth/**` to the
