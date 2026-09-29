@@ -40,34 +40,36 @@ Inputs the spec implies but that need explicit tests (each is pinned in the owni
 
 ## File Structure
 
-| File                                                                | Responsibility                                                     |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `src/lib/customers.ts`                                              | Constants (sexes, case statuses, tabs, limits) shared by DB/zod/UI |
-| `src/lib/calendar-date.ts`                                          | `todayIn`, `isCalendarDate`, `ageInYears`                          |
-| `src/lib/phone.ts`                                                  | `telHref`, `whatsappHref`                                          |
-| `src/lib/initials.ts`                                               | `initials(first, last)`                                            |
-| `src/lib/customer-params.ts`                                        | `/customers` URL filters + `customersHref`, tab parsing            |
-| `src/db/schema/customers.ts` (+ `enums.ts`, `index.ts`)             | `customers`, `cases` tables and enums                              |
-| `supabase/migrations/*_customers*.sql`                              | Generated migration + custom extras (trigram index, triggers)      |
-| `src/server/customers/schemas.ts`                                   | zod schemas, form parsing, field-error mapping, `Result`           |
-| `src/server/customers/hooks.ts`                                     | `onCustomerArchived` (spec 10 will revoke links here)              |
-| `src/server/customers/queries.ts`                                   | list/get/hasAny                                                    |
-| `src/server/customers/mutations.ts`                                 | customer + case mutations                                          |
-| `src/server/customers/actions.ts`                                   | Server Actions                                                     |
-| `src/components/customers/*`                                        | Avatar, toolbar, results, forms, header, tabs, overview, case UI   |
-| `src/app/(app)/customers/{page,new/page,[customerId]/{page,edit/page}}.tsx` | Routes                                                     |
-| `messages/{en,es}.json`                                             | `Customers`, `Cases` namespaces                                    |
-| `e2e/customers.spec.ts`                                             | Critical flow                                                      |
+| File                                                                        | Responsibility                                                     |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `src/lib/customers.ts`                                                      | Constants (sexes, case statuses, tabs, limits) shared by DB/zod/UI |
+| `src/lib/calendar-date.ts`                                                  | `todayIn`, `isCalendarDate`, `ageInYears`                          |
+| `src/lib/phone.ts`                                                          | `telHref`, `whatsappHref`                                          |
+| `src/lib/initials.ts`                                                       | `initials(first, last)`                                            |
+| `src/lib/customer-params.ts`                                                | `/customers` URL filters + `customersHref`, tab parsing            |
+| `src/db/schema/customers.ts` (+ `enums.ts`, `index.ts`)                     | `customers`, `cases` tables and enums                              |
+| `supabase/migrations/*_customers*.sql`                                      | Generated migration + custom extras (trigram index, triggers)      |
+| `src/server/customers/schemas.ts`                                           | zod schemas, form parsing, field-error mapping, `Result`           |
+| `src/server/customers/hooks.ts`                                             | `onCustomerArchived` (spec 10 will revoke links here)              |
+| `src/server/customers/queries.ts`                                           | list/get/hasAny                                                    |
+| `src/server/customers/mutations.ts`                                         | customer + case mutations                                          |
+| `src/server/customers/actions.ts`                                           | Server Actions                                                     |
+| `src/components/customers/*`                                                | Avatar, toolbar, results, forms, header, tabs, overview, case UI   |
+| `src/app/(app)/customers/{page,new/page,[customerId]/{page,edit/page}}.tsx` | Routes                                                             |
+| `messages/{en,es}.json`                                                     | `Customers`, `Cases` namespaces                                    |
+| `e2e/customers.spec.ts`                                                     | Critical flow                                                      |
 
 ---
 
 ### Task 1: Pure helpers and constants
 
 **Files:**
+
 - Create: `src/lib/customers.ts`, `src/lib/calendar-date.ts`, `src/lib/phone.ts`, `src/lib/initials.ts`, `src/lib/customer-params.ts`
 - Test: `src/lib/calendar-date.test.ts`, `src/lib/phone.test.ts`, `src/lib/initials.test.ts`, `src/lib/customer-params.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `customers.ts`: `CUSTOMER_SEXES = ["female","male","other","undisclosed"] as const`, `type CustomerSex`, `CASE_STATUSES = ["open","closed"] as const`, `type CaseStatus`, `CUSTOMER_TABS = ["overview","routines","plans","activity","notes"] as const`, `type CustomerTab`, `parseCustomerTab(value: string | undefined): CustomerTab` (invalid → `"overview"`), limits: `FIRST_NAME_MAX=60, LAST_NAME_MAX=60, EMAIL_MAX=254, PHONE_MAX=30, OCCUPATION_MAX=100, ACTIVITY_MAX=200, MEDICAL_HISTORY_MAX=5000, CASE_TITLE_MAX=120, DIAGNOSIS_MAX=500, PRECAUTIONS_MAX=2000, GOALS_MAX=2000, CASE_NOTES_MAX=5000`.
   - `calendar-date.ts`: `todayIn(timeZone: string, now?: Date): string` (`YYYY-MM-DD`), `isCalendarDate(value: string): boolean` (strict, real calendar day, year ≥ 1900), `ageInYears(dob: string, timeZone: string, now?: Date): number | null` (null when invalid or in the future).
@@ -97,10 +99,17 @@ describe("isCalendarDate", () => {
   it.each(["2000-02-29", "1990-12-31", "1900-01-01"])("accepts %s", (v) =>
     expect(isCalendarDate(v)).toBe(true),
   );
-  it.each(["2001-02-29", "2026-13-01", "2026-00-10", "2026-04-31", "1899-12-31", "26-01-01", "", "2026-1-1", "abc"])(
-    "rejects %s",
-    (v) => expect(isCalendarDate(v)).toBe(false),
-  );
+  it.each([
+    "2001-02-29",
+    "2026-13-01",
+    "2026-00-10",
+    "2026-04-31",
+    "1899-12-31",
+    "26-01-01",
+    "",
+    "2026-1-1",
+    "abc",
+  ])("rejects %s", (v) => expect(isCalendarDate(v)).toBe(false));
 });
 
 describe("ageInYears", () => {
@@ -192,7 +201,12 @@ describe("initials", () => {
 ```ts
 import { describe, expect, it } from "vitest";
 
-import { customersHref, DEFAULT_CUSTOMER_FILTERS, hasActiveCustomerFilters, parseCustomerParams } from "./customer-params";
+import {
+  customersHref,
+  DEFAULT_CUSTOMER_FILTERS,
+  hasActiveCustomerFilters,
+  parseCustomerParams,
+} from "./customer-params";
 import { parseCustomerTab } from "./customers";
 
 describe("parseCustomerParams", () => {
@@ -205,7 +219,9 @@ describe("parseCustomerParams", () => {
       archived: true,
       sort: "recent",
     });
-    expect(parseCustomerParams({ archived: "yes", sort: "bogus" })).toEqual(DEFAULT_CUSTOMER_FILTERS);
+    expect(parseCustomerParams({ archived: "yes", sort: "bogus" })).toEqual(
+      DEFAULT_CUSTOMER_FILTERS,
+    );
     expect(parseCustomerParams({ q: ["a", "b"] }).q).toBe("a");
     expect(parseCustomerParams({ q: "x".repeat(300) }).q).toHaveLength(100);
   });
@@ -214,9 +230,9 @@ describe("parseCustomerParams", () => {
 describe("customersHref / hasActiveCustomerFilters", () => {
   it("omits defaults", () => {
     expect(customersHref(DEFAULT_CUSTOMER_FILTERS)).toBe("/customers");
-    expect(customersHref(DEFAULT_CUSTOMER_FILTERS, { q: "ana", archived: true, sort: "recent" })).toBe(
-      "/customers?q=ana&archived=1&sort=recent",
-    );
+    expect(
+      customersHref(DEFAULT_CUSTOMER_FILTERS, { q: "ana", archived: true, sort: "recent" }),
+    ).toBe("/customers?q=ana&archived=1&sort=recent");
   });
   it("flags active filters", () => {
     expect(hasActiveCustomerFilters(DEFAULT_CUSTOMER_FILTERS)).toBe(false);
@@ -408,11 +424,13 @@ git add src/lib && git commit -m "feat(customers): pure helpers for dates, phone
 ### Task 2: Schema, migrations, RLS
 
 **Files:**
+
 - Create: `src/db/schema/customers.ts`, custom migration, `src/db/customers.int.test.ts`
 - Modify: `src/db/schema/enums.ts`, `src/db/schema/index.ts`
 - Generated: `supabase/migrations/*`
 
 **Interfaces:**
+
 - Consumes: `CUSTOMER_SEXES`, `CASE_STATUSES` and limits (Task 1); `bodyAreaEnum`, `bodySideEnum`, `timestamps`, `physios`.
 - Produces: tables `customers`, `cases`; types `Customer`, `NewCustomer`, `Case`, `NewCase`; enums `customerSexEnum`, `caseStatusEnum`. SQL index `customers_name_search_idx` on `public.f_unaccent(lower(first_name || ' ' || coalesce(last_name, '')))`.
 
@@ -449,13 +467,28 @@ export const customers = pgTable(
   (t) => [
     unique("customers_physio_id_id_unique").on(t.physioId, t.id),
     index("customers_physio_id_archived_at_idx").on(t.physioId, t.archivedAt),
-    check("customers_first_name_length", sql`char_length(${t.firstName}) between 1 and ${sql.raw(String(FIRST_NAME_MAX))}`),
-    check("customers_last_name_length", sql`char_length(${t.lastName}) <= ${sql.raw(String(LAST_NAME_MAX))}`),
+    check(
+      "customers_first_name_length",
+      sql`char_length(${t.firstName}) between 1 and ${sql.raw(String(FIRST_NAME_MAX))}`,
+    ),
+    check(
+      "customers_last_name_length",
+      sql`char_length(${t.lastName}) <= ${sql.raw(String(LAST_NAME_MAX))}`,
+    ),
     check("customers_email_length", sql`char_length(${t.email}) <= ${sql.raw(String(EMAIL_MAX))}`),
     check("customers_phone_length", sql`char_length(${t.phone}) <= ${sql.raw(String(PHONE_MAX))}`),
-    check("customers_occupation_length", sql`char_length(${t.occupation}) <= ${sql.raw(String(OCCUPATION_MAX))}`),
-    check("customers_activity_length", sql`char_length(${t.activity}) <= ${sql.raw(String(ACTIVITY_MAX))}`),
-    check("customers_medical_history_length", sql`char_length(${t.medicalHistory}) <= ${sql.raw(String(MEDICAL_HISTORY_MAX))}`),
+    check(
+      "customers_occupation_length",
+      sql`char_length(${t.occupation}) <= ${sql.raw(String(OCCUPATION_MAX))}`,
+    ),
+    check(
+      "customers_activity_length",
+      sql`char_length(${t.activity}) <= ${sql.raw(String(ACTIVITY_MAX))}`,
+    ),
+    check(
+      "customers_medical_history_length",
+      sql`char_length(${t.medicalHistory}) <= ${sql.raw(String(MEDICAL_HISTORY_MAX))}`,
+    ),
     ownRows("customers_own", t.physioId),
   ],
 );
@@ -477,7 +510,9 @@ export const cases = pgTable(
     initialPain: smallint(),
     notes: text(),
     status: caseStatusEnum().notNull().default("open"),
-    openedOn: date({ mode: "string" }).notNull().default(sql`current_date`),
+    openedOn: date({ mode: "string" })
+      .notNull()
+      .default(sql`current_date`),
     closedOn: date({ mode: "string" }),
     ...timestamps,
   },
@@ -488,15 +523,27 @@ export const cases = pgTable(
       foreignColumns: [customers.physioId, customers.id],
     }).onDelete("cascade"),
     index("cases_customer_id_idx").on(t.physioId, t.customerId, t.status),
-    check("cases_title_length", sql`char_length(${t.title}) between 1 and ${sql.raw(String(CASE_TITLE_MAX))}`),
-    check("cases_diagnosis_length", sql`char_length(${t.diagnosis}) <= ${sql.raw(String(DIAGNOSIS_MAX))}`),
-    check("cases_precautions_length", sql`char_length(${t.precautions}) <= ${sql.raw(String(PRECAUTIONS_MAX))}`),
+    check(
+      "cases_title_length",
+      sql`char_length(${t.title}) between 1 and ${sql.raw(String(CASE_TITLE_MAX))}`,
+    ),
+    check(
+      "cases_diagnosis_length",
+      sql`char_length(${t.diagnosis}) <= ${sql.raw(String(DIAGNOSIS_MAX))}`,
+    ),
+    check(
+      "cases_precautions_length",
+      sql`char_length(${t.precautions}) <= ${sql.raw(String(PRECAUTIONS_MAX))}`,
+    ),
     check("cases_goals_length", sql`char_length(${t.goals}) <= ${sql.raw(String(GOALS_MAX))}`),
     check("cases_notes_length", sql`char_length(${t.notes}) <= ${sql.raw(String(CASE_NOTES_MAX))}`),
     check("cases_initial_pain_range", sql`${t.initialPain} between 0 and 10`),
     check("cases_area_not_full_body", sql`${t.bodyArea} <> 'full_body'`),
     check("cases_side_needs_area", sql`${t.side} is null or ${t.bodyArea} is not null`),
-    check("cases_closed_on_matches_status", sql`(${t.status} = 'closed') = (${t.closedOn} is not null)`),
+    check(
+      "cases_closed_on_matches_status",
+      sql`(${t.status} = 'closed') = (${t.closedOn} is not null)`,
+    ),
     check("cases_closed_not_before_opened", sql`${t.closedOn} >= ${t.openedOn}`),
     ownRows("cases_own", t.physioId),
   ],
@@ -543,7 +590,7 @@ Inspect the generated SQL: enums, composite FK `on delete cascade`, RLS enabled,
   - Deleting a customer cascades its cases.
   - Check constraints: `initialPain` 11 → `cases_initial_pain_range`; `bodyArea: "full_body"` → `cases_area_not_full_body`; `status: "closed"` without `closedOn` → `cases_closed_on_matches_status`; `closedOn` earlier than `openedOn` → `cases_closed_not_before_opened`; `side: "left"` without area → `cases_side_needs_area`; empty `firstName` → `customers_first_name_length`.
   - `updated_at` advances on update (trigger) for both tables (insert, wait 5 ms via `await new Promise(r => setTimeout(r, 5))`, update, compare).
-  Use `isCheckViolation(error, "<constraint>")` from `@/db/errors`, wrapping failing statements in `tx.transaction(...)` savepoints as `library.int.test.ts`/`mutations.ts` do.
+    Use `isCheckViolation(error, "<constraint>")` from `@/db/errors`, wrapping failing statements in `tx.transaction(...)` savepoints as `library.int.test.ts`/`mutations.ts` do.
 
 - [ ] **Step 5: Run.** `pnpm db:reset` then `pnpm test:int` (with the env from Task 0). Expected: new tests pass, `schema-conventions` still passes.
 
@@ -558,10 +605,12 @@ git add src/db supabase && git commit -m "feat(customers): customers and cases t
 ### Task 3: Server schemas, queries, mutations
 
 **Files:**
+
 - Create: `src/server/customers/schemas.ts`, `hooks.ts`, `queries.ts`, `mutations.ts`
 - Test: `src/server/customers/schemas.test.ts` (unit), `src/server/customers/customers.int.test.ts` (int), `src/server/customers/hooks.int.test.ts` (int)
 
 **Interfaces:**
+
 - Consumes: Task 1 helpers, Task 2 tables, `Tx`, `escapeLike`, `caseBodyAreaSchema`/`bodySideSchema` from `@/lib/body-areas`, `locales`/`isLocale` from `@/i18n/config`.
 - Produces (exact signatures later tasks use):
 
@@ -633,7 +682,7 @@ Schema notes: all optional text fields use a shared helper `optionalText(max, co
   - `updateCase` cannot change status/closedOn; another physio's case → `notFound`; changing `openedOn` to after an existing `closedOn` → `openedAfterClosed`.
   - `closeCase`: sets `status closed`, `closedOn`; `closedOn` before `openedOn` → `closedBeforeOpened` and nothing changed; already closed → `notOpen`; other physio → `notFound`. `reopenCase`: clears `closedOn`, status `open`; on open case → `notClosed`.
   - Two concurrent `closeCase` on the same case: exactly one `ok`, the other `notOpen` (mutation must use `update … where status = 'open'` and inspect the returned rows, not read-then-write).
-  `hooks.int.test.ts`: `vi.mock("./hooks", () => ({ onCustomerArchived: vi.fn(async () => {}) }))`; assert archive calls it once with `(tx, physioId, customerId)`, restore and failed archive (`notFound`) do not.
+    `hooks.int.test.ts`: `vi.mock("./hooks", () => ({ onCustomerArchived: vi.fn(async () => {}) }))`; assert archive calls it once with `(tx, physioId, customerId)`, restore and failed archive (`notFound`) do not.
 
 - [ ] **Step 4: Implement `hooks.ts`, `queries.ts`, `mutations.ts`.**
 
@@ -661,7 +710,7 @@ export async function onCustomerArchived(
 
 ```ts
 const fullName = sql`(${customers.firstName} || ' ' || coalesce(${customers.lastName}, ''))`;
-const searchKey = sql`public.f_unaccent(lower(${fullName}))`;   // must equal the index expression
+const searchKey = sql`public.f_unaccent(lower(${fullName}))`; // must equal the index expression
 // where: eq(customers.physioId, physioId); archived ? isNotNull(archivedAt) : isNull(archivedAt);
 // q: sql`${searchKey} like public.f_unaccent(lower(${`%${escapeLike(q)}%`}))`
 // order: sort === "recent" ? [desc(customers.createdAt), asc(customers.id)]
@@ -675,6 +724,7 @@ const searchKey = sql`public.f_unaccent(lower(${fullName}))`;   // must equal th
 Match `f_unaccent(lower(first_name || ' ' || coalesce(last_name, '')))` exactly as in the migration so the trigram index is usable. `getCustomer`: select customer (physio + id), then cases ordered `case when status = 'open' then 0 else 1 end, opened_on desc / closed_on desc nulls last, created_at desc`.
 
 `mutations.ts` follow `src/server/library/mutations.ts` style (`ok`/`fail` helpers, savepoints via `tx.transaction` around statements that can raise a constraint violation):
+
 - `createCustomer`: `locale = input.locale ?? (select physios.locale)`; insert with `physioId` and returning id.
 - `updateCustomer`/`setCustomerArchived`: `update … where physio_id = $1 and id = $2 returning id`; `[]` → `notFound`. Archive: `archivedAt = new Date()`, then `await onCustomerArchived(tx, physioId, id)` only when `archived === true` and a row was updated. Restore: `archivedAt = null`.
 - `createCase`: `openedOn = input.openedOn ?? today`; wrap insert in savepoint; `isForeignKeyViolation(e, "cases_customer_fk")` → `customerNotFound`. Verify the customer first with a select (RLS + explicit filter) and return `customerNotFound` before inserting.
@@ -695,19 +745,33 @@ git add src/server/customers && git commit -m "feat(customers): server schemas, 
 ### Task 4: Server Actions
 
 **Files:**
+
 - Create: `src/server/customers/actions.ts`, `src/server/customers/actions.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 3 exports, `withPhysio`, `getProfile` (`@/server/physios/queries`), `todayIn`.
 - Produces:
 
 ```ts
-export async function saveCustomerAction(state: CustomerFormState, formData: FormData): Promise<CustomerFormState>;
-  // formData "id" present → update, else create then redirect(`/customers/${id}`)
-export async function setCustomerArchivedAction(id: string, archived: boolean): Promise<Result<null, "notFound">>;
-export async function saveCaseAction(state: CaseFormState, formData: FormData): Promise<CaseFormState>;
-  // "customerId" (create) or "id" (update) in formData; never redirects; revalidates
-export async function closeCaseAction(id: string, closedOn: string | null): Promise<Result<null, "notFound" | "notOpen" | "closedBeforeOpened" | "dateInvalid">>;
+export async function saveCustomerAction(
+  state: CustomerFormState,
+  formData: FormData,
+): Promise<CustomerFormState>;
+// formData "id" present → update, else create then redirect(`/customers/${id}`)
+export async function setCustomerArchivedAction(
+  id: string,
+  archived: boolean,
+): Promise<Result<null, "notFound">>;
+export async function saveCaseAction(
+  state: CaseFormState,
+  formData: FormData,
+): Promise<CaseFormState>;
+// "customerId" (create) or "id" (update) in formData; never redirects; revalidates
+export async function closeCaseAction(
+  id: string,
+  closedOn: string | null,
+): Promise<Result<null, "notFound" | "notOpen" | "closedBeforeOpened" | "dateInvalid">>;
 export async function reopenCaseAction(id: string): Promise<Result<null, "notFound" | "notClosed">>;
 ```
 
@@ -722,10 +786,12 @@ Behaviour: validate ids with `idSchema` (malformed → `notFound`); parse with t
 ### Task 5: i18n messages and shared presentational bits
 
 **Files:**
+
 - Modify: `messages/en.json`, `messages/es.json`
 - Create: `src/components/customers/customer-avatar.tsx`, `customer-avatar.test.tsx`
 
 **Interfaces:**
+
 - Produces: message namespaces used by Tasks 6–9. Define the full key tree now so later tasks only consume it; if a later task needs a key, it adds it to **both** files.
 - `CustomerAvatar({ firstName, lastName, size?: "sm" | "md" | "lg" })` renders `<span aria-hidden>` initials in `bg-muted text-muted-foreground` circle (server-safe, no hooks).
 
@@ -783,14 +849,17 @@ Errors under `Cases.errors` must cover every code emitted by the case schema/act
 ### Task 6: Customers list page
 
 **Files:**
+
 - Create: `src/components/customers/customer-toolbar.tsx`, `customer-results.tsx`, `empty-customers.tsx` (+ `.test.tsx` for toolbar and results)
 - Modify: `src/app/(app)/customers/page.tsx`
 
 **Interfaces:**
+
 - Consumes: `listCustomers`, `hasAnyCustomers`, `parseCustomerParams`, `customersHref`, `CustomerSummary`, `CustomerAvatar`, `BodyAreaBadge` (check its props in `src/components/body-areas/body-area-badge.tsx`).
 - Produces: page at `/customers`.
 
 Behaviour:
+
 - `CustomerToolbar` (client; pattern `LibraryToolbar`): search input (debounced 300 ms, `router.replace(customersHref(filters, {q}))`, `aria-label` = `Customers.searchLabel`), "Show archived" checkbox (link/`router.replace`), sort `<select>` (`selectClassName` from prescription-fields). Props: `filters: CustomerFilters`. Search text is kept in local state and re-synced when `filters.q` changes.
 - `CustomerResults` (server-safe): desktop `<table>` (`hidden md:table`): avatar+name link to `/customers/{id}`, open case title with `BodyAreaBadge` when set (else muted "No open case"), last activity "—"; mobile cards (`md:hidden`) with the same info. Archived rows show an "Archived" `Badge variant="secondary"`. Names wrap/truncate (`min-w-0`, `truncate`) so long names cause no horizontal overflow. Truncated hint from `Customers.truncated`.
 - `EmptyCustomers`: shown only when `!anyCustomers && !filtersActive` (full-page empty state with New customer CTA). Otherwise, no rows → "No customers match" with a clear-filters link.
@@ -805,9 +874,11 @@ Behaviour:
 ### Task 7: Customer forms (new and edit)
 
 **Files:**
+
 - Create: `src/components/customers/customer-form.tsx`, `customer-form.test.tsx`, `src/app/(app)/customers/new/page.tsx`, `src/app/(app)/customers/[customerId]/edit/page.tsx`
 
 **Interfaces:**
+
 - Consumes: `saveCustomerAction`, `CustomerFormState`, `CustomerFieldErrors`, `languageOptions` (`@/i18n/config`), `selectClassName`, limits from `@/lib/customers`.
 - Produces: `CustomerForm({ action, defaults }: { action: (s: CustomerFormState, f: FormData) => Promise<CustomerFormState>; defaults: CustomerFormValues })` with `CustomerFormValues = { id?: string; firstName: string; lastName: string | null; email: string | null; phone: string | null; dateOfBirth: string | null; sex: CustomerSex | null; occupation: string | null; activity: string | null; medicalHistory: string | null; locale: Locale }`.
 
@@ -822,14 +893,17 @@ Behaviour: mirror `ExerciseForm` exactly for structure: `useActionState`, `onSub
 ### Task 8: Customer detail hub (header, tabs, overview, archive)
 
 **Files:**
+
 - Create: `src/components/customers/customer-header.tsx`, `customer-tabs.tsx`, `customer-overview.tsx`, `customer-archive-button.tsx`, `case-card.tsx`, `tab-empty.tsx` (+ tests for header, tabs, overview, archive)
 - Create: `src/app/(app)/customers/[customerId]/page.tsx`
 
 **Interfaces:**
+
 - Consumes: `getCustomer`, `CustomerDetail`, `ageInYears`, `telHref`, `whatsappHref`, `parseCustomerTab`, `CUSTOMER_TABS`, `setCustomerArchivedAction`, `CustomerAvatar`, `BodyAreaBadge`, `Alert`.
 - Produces: `CaseCard({ case: Case; customerName: string })` (server-safe display; Task 9 wraps it with actions), page at `/customers/[customerId]`.
 
 Behaviour:
+
 - Page: async `params` + `searchParams`; `idSchema` → `notFound()`; `getCustomer` null → `notFound()`; `tab = parseCustomerTab(firstParam(sp.tab))`; physio timezone from `getProfile` for age; breadcrumb link back to `/customers`; `generateMetadata` uses the customer's name.
 - `CustomerHeader`: avatar (lg), full name (`h1`), age (`Customers.detail.age`, hidden when null) and contact quick actions: Call (`telHref`), Email (`mailto:` only when present, `encodeURIComponent` not needed for plain addresses but never build from unvalidated text — email is zod-validated), WhatsApp (`whatsappHref`; `target="_blank" rel="noopener noreferrer"`). Buttons omitted when the value is missing/unsupported. Edit link → `/customers/{id}/edit`. Archive/Restore button.
 - `CustomerTabs`: `<nav aria-label>` with links `?tab=<t>` (overview → `/customers/{id}` without param), `aria-current="page"` on the active one; horizontally scrollable on mobile (`overflow-x-auto`).
@@ -847,14 +921,17 @@ Behaviour:
 ### Task 9: Case create/edit sheet, close and reopen
 
 **Files:**
+
 - Create: `src/components/customers/case-form.tsx`, `case-sheet.tsx`, `close-case-dialog.tsx`, `case-actions.tsx` (+ tests for case-form, case-sheet, close-case-dialog)
 - Modify: `src/components/customers/customer-overview.tsx`, `case-card.tsx`, page from Task 8 (add "New case" button)
 
 **Interfaces:**
+
 - Consumes: `saveCaseAction`, `closeCaseAction`, `reopenCaseAction`, `CaseFormState`, `BodyAreaPicker` (`mode="single"`, `withSide`, `name="bodyArea"`, `sideName="side"`; the picker already excludes `full_body` in single mode — verify in `body-area-picker.tsx` and its test), `Sheet*` components, `AlertDialog`/`Dialog`, `Input type="date"`.
 - Produces: `CaseSheet({ customerId, customerName, case? })` — trigger button ("New case" or "Edit"), sheet with `CaseForm`, closes itself and calls `router.refresh()` when the action returns `saved`. `CaseActions({ caseId, status })` — Close (opens `CloseCaseDialog`) or Reopen.
 
 Behaviour:
+
 - `CaseForm` mirrors `CustomerForm` (onSubmit dispatch, error ids). Fields: title (required), diagnosis, `BodyAreaPicker` single with side, injury date, surgery date, precautions (textarea, hint that it is shown prominently), goals, initial pain (`inputMode="numeric"`), opened on (edit only shows existing; create defaults empty → server uses today), notes. Hidden `customerId` (create) or `id` (edit). Precautions label uses `Cases.precautions`.
 - `CloseCaseDialog`: date input defaulting to the physio's today — pass `today: string` from the page (computed server-side with `todayIn(profile.timezone)`) as a prop so the client never guesses the timezone; submitting calls `closeCaseAction(id, closedOn)`; error codes mapped to `Cases.errors.*`.
 - Reopen: immediate action, `router.refresh()`.
@@ -869,6 +946,7 @@ Behaviour:
 ### Task 10: End-to-end test
 
 **Files:**
+
 - Create: `e2e/customers.spec.ts`
 
 Uses `import { expect, test } from "./helpers/auth"` (`physioPage`, `isMobile`).
