@@ -1,14 +1,57 @@
+import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
-import { SpecPlaceholder } from "@/components/spec-placeholder";
+import { CustomerResults } from "@/components/customers/customer-results";
+import { CustomerToolbar } from "@/components/customers/customer-toolbar";
+import { EmptyCustomers, NoCustomerResults } from "@/components/customers/empty-customers";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { hasActiveCustomerFilters, parseCustomerParams } from "@/lib/customer-params";
+import { withPhysio } from "@/server/auth/session";
+import { hasAnyCustomers, listCustomers } from "@/server/customers/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("Nav");
-  return { title: t("customers") };
+  const t = await getTranslations("Customers");
+  return { title: t("title") };
 }
 
-export default async function Page() {
-  const t = await getTranslations("Nav");
-  return <SpecPlaceholder title={t("customers")} spec="docs/specs/04-customers-and-cases.md" />;
+export default async function CustomersPage({ searchParams }: PageProps<"/customers">) {
+  const filters = parseCustomerParams(await searchParams);
+  const t = await getTranslations("Customers");
+  const { list, anyCustomers } = await withPhysio(async (tx, physioId) => ({
+    list: await listCustomers(tx, physioId, filters),
+    anyCustomers: await hasAnyCustomers(tx, physioId),
+  }));
+  const { customers, truncated } = list;
+  const showEmptyPage = !anyCustomers && !hasActiveCustomerFilters(filters);
+
+  return (
+    <div className="grid gap-8">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={
+          <Button asChild>
+            <Link href="/customers/new">
+              <PlusIcon aria-hidden /> {t("new")}
+            </Link>
+          </Button>
+        }
+      />
+      {showEmptyPage ? (
+        <EmptyCustomers />
+      ) : (
+        <div className="grid content-start gap-6">
+          <CustomerToolbar filters={filters} />
+          {customers.length > 0 ? (
+            <CustomerResults customers={customers} truncated={truncated} />
+          ) : (
+            <NoCustomerResults />
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
