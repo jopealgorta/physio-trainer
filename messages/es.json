@@ -132,7 +132,11 @@
       "ankle_foot": "Tobillo y pie",
       "full_body": "Cuerpo completo"
     },
-    "sides": { "left": "Izquierdo", "right": "Derecho", "both": "Ambos" },
+    "sides": {
+      "left": "Izquierdo",
+      "right": "Derecho",
+      "both": "Ambos"
+    },
     "withSide": "{area} · {side, select, left {lado izquierdo} right {lado derecho} other {ambos lados}}",
     "picker": {
       "areaLabel": "Zona del cuerpo",
@@ -158,5 +162,69 @@
     "title": "Estás sin conexión",
     "description": "Revisá tu conexión y probá de nuevo.",
     "retry": "Reintentar"
+  },
+  "Sortable": {
+    "instructions": "Para agarrar un elemento, presioná espacio o enter. Movelo con las flechas y presioná espacio o enter para soltarlo, o escape para cancelar.",
+    "picked": "Agarraste {item}.",
+    "moved": "{item} se movió a la posición {position} de {total}.",
+    "dropped": "{item} quedó en la posición {position} de {total}.",
+    "cancelled": "Se canceló el movimiento de {item}.",
+    "handle": "Reordenar {item}"
+  },
+  "Prescription": {
+    "legend": "Prescripción por defecto",
+    "hint": "Se copia en las rutinas cuando agregás este ejercicio. Dejá en blanco lo que no aplique.",
+    "sets": "Series",
+    "reps": "Repeticiones",
+    "repsMax": "Repeticiones (máx.)",
+    "repsMaxHint": "Para un rango, p. ej. 8–12",
+    "durationSeconds": "Duración (s)",
+    "holdSeconds": "Sostener (s)",
+    "restSeconds": "Descanso (s)",
+    "load": "Carga",
+    "loadPlaceholder": "p. ej. 5 kg, banda roja",
+    "side": "Lado",
+    "sideNone": "Sin definir",
+    "sides": {
+      "left": "Izquierdo",
+      "right": "Derecho",
+      "both": "Ambos lados",
+      "alternating": "Alternado"
+    },
+    "notes": "Notas",
+    "errors": {
+      "notAWholeNumber": "Ingresá un número entero.",
+      "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
+      "tooLong": "Usá como máximo {max, number} caracteres.",
+      "invalidSide": "Elegí un lado de la lista.",
+      "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
+      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
+      "invalid": "Revisá este campo."
+    }
+  },
+  "Library": {
+    "media": {
+      "label": "Link de YouTube",
+      "placeholder": "https://youtube.com/shorts/…",
+      "add": "Agregar video",
+      "hint": "Pegá un video o un Short de YouTube. El primer video es la portada; arrastrá para reordenar.",
+      "cover": "Portada",
+      "remove": "Quitar video {position, number}",
+      "itemLabel": "Video {position, number}",
+      "play": "Reproducir video: {title}",
+      "embedTitle": "Video: {title}",
+      "empty": "Todavía no hay videos.",
+      "errors": {
+        "notYouTube": "Pegá un link de YouTube (youtube.com/watch, youtu.be o youtube.com/shorts).",
+        "duplicate": "Este video ya está en la lista.",
+        "limit": "Podés agregar hasta {max, number} videos."
+      }
+    },
+    "tags": {
+      "placeholder": "Escribí una etiqueta y presioná Enter",
+      "remove": "Quitar etiqueta {tag}",
+      "suggestions": "Etiquetas existentes",
+      "limit": "Hasta {max, number} etiquetas."
+    }
   }
 }

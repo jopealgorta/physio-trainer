@@ -132,7 +132,11 @@
       "ankle_foot": "Ankle and foot",
       "full_body": "Full body"
     },
-    "sides": { "left": "Left", "right": "Right", "both": "Both" },
+    "sides": {
+      "left": "Left",
+      "right": "Right",
+      "both": "Both"
+    },
     "withSide": "{area} · {side, select, left {Left} right {Right} other {Both}}",
     "picker": {
       "areaLabel": "Body area",
@@ -158,5 +162,69 @@
     "title": "You're offline",
     "description": "Check your connection and try again.",
     "retry": "Try again"
+  },
+  "Sortable": {
+    "instructions": "To pick up an item, press space or enter. Use the arrow keys to move it, then press space or enter to drop it, or escape to cancel.",
+    "picked": "Picked up {item}.",
+    "moved": "{item} moved to position {position} of {total}.",
+    "dropped": "{item} dropped at position {position} of {total}.",
+    "cancelled": "Moving {item} was cancelled.",
+    "handle": "Reorder {item}"
+  },
+  "Prescription": {
+    "legend": "Default prescription",
+    "hint": "Copied into routines when you add this exercise. Leave blank anything that doesn't apply.",
+    "sets": "Sets",
+    "reps": "Reps",
+    "repsMax": "Reps (max)",
+    "repsMaxHint": "For a range, e.g. 8–12",
+    "durationSeconds": "Duration (s)",
+    "holdSeconds": "Hold (s)",
+    "restSeconds": "Rest (s)",
+    "load": "Load",
+    "loadPlaceholder": "e.g. 5 kg, red band",
+    "side": "Side",
+    "sideNone": "Not set",
+    "sides": {
+      "left": "Left",
+      "right": "Right",
+      "both": "Both sides",
+      "alternating": "Alternating"
+    },
+    "notes": "Notes",
+    "errors": {
+      "notAWholeNumber": "Enter a whole number.",
+      "outOfRange": "Enter a number from {min, number} to {max, number}.",
+      "tooLong": "Use at most {max, number} characters.",
+      "invalidSide": "Choose a side from the list.",
+      "repsMaxWithoutReps": "Enter reps first.",
+      "repsMaxNotAboveReps": "Must be more than reps.",
+      "invalid": "Check this field."
+    }
+  },
+  "Library": {
+    "media": {
+      "label": "YouTube link",
+      "placeholder": "https://youtube.com/shorts/…",
+      "add": "Add video",
+      "hint": "Paste a YouTube video or Short. The first video is the cover; drag to reorder.",
+      "cover": "Cover",
+      "remove": "Remove video {position, number}",
+      "itemLabel": "Video {position, number}",
+      "play": "Play video: {title}",
+      "embedTitle": "Video: {title}",
+      "empty": "No videos yet.",
+      "errors": {
+        "notYouTube": "Paste a YouTube link (youtube.com/watch, youtu.be or youtube.com/shorts).",
+        "duplicate": "This video is already in the list.",
+        "limit": "You can add up to {max, number} videos."
+      }
+    },
+    "tags": {
+      "placeholder": "Add a tag and press Enter",
+      "remove": "Remove tag {tag}",
+      "suggestions": "Existing tags",
+      "limit": "Up to {max, number} tags."
+    }
   }
 }
