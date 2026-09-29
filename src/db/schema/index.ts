@@ -5,3 +5,4 @@
 export * from "./enums";
 export * from "./physios";
 export * from "./library";
+export * from "./customers";
