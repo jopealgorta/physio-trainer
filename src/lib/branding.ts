@@ -91,7 +91,10 @@ export function normalizeWebsite(
   }
   // Credentials in the URL can spoof the visible host ("kine.com@evil.com") or leak a secret.
   if (url.username || url.password) return { ok: false, error: "websiteInvalid" };
-  return { ok: true, url: url.toString() };
+  // Punycode and percent-encoding can grow the string past what the DB check accepts.
+  const normalized = url.toString();
+  if (normalized.length > WEBSITE_MAX_LENGTH) return { ok: false, error: "websiteInvalid" };
+  return { ok: true, url: normalized };
 }
 
 export function logoPublicUrl(supabaseUrl: string, path: string): string {

@@ -81,6 +81,12 @@ describe("normalizeWebsite", () => {
     "https://kine.com@evil.com",
     "x".repeat(2100),
   ])("rejects %j", (input) => expect(normalizeWebsite(input)).toMatchObject({ ok: false }));
+
+  it("rejects a URL that grows past the limit once percent-encoded", () => {
+    const input = "https://kine.com/" + "é".repeat(1000);
+    expect(input.length).toBeLessThan(2048);
+    expect(normalizeWebsite(input)).toEqual({ ok: false, error: "websiteInvalid" });
+  });
 });
 
 describe("logoPublicUrl", () => {
