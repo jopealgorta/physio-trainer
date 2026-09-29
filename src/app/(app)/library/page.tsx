@@ -13,7 +13,12 @@ import { Button } from "@/components/ui/button";
 import { libraryLayoutState } from "@/lib/library-layout";
 import { hasActiveFilters, parseLibraryParams } from "@/lib/library-params";
 import { withPhysio } from "@/server/auth/session";
-import { listCategoryTree, listExercises, listTags } from "@/server/library/queries";
+import {
+  hasAnyExercises,
+  listCategoryTree,
+  listExercises,
+  listTags,
+} from "@/server/library/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Library");
@@ -23,14 +28,17 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LibraryPage({ searchParams }: PageProps<"/library">) {
   const filters = parseLibraryParams(await searchParams);
   const t = await getTranslations("Library");
-  const { tree, exercises, tags } = await withPhysio(async (tx, physioId) => ({
+  const { tree, list, tags, anyExercises } = await withPhysio(async (tx, physioId) => ({
     tree: await listCategoryTree(tx, physioId),
-    exercises: await listExercises(tx, physioId, filters),
+    list: await listExercises(tx, physioId, filters),
     tags: await listTags(tx, physioId),
+    anyExercises: await hasAnyExercises(tx, physioId),
   }));
+  const { exercises, truncated } = list;
   const layout = libraryLayoutState({
     hasCategories: tree.length > 0,
     hasExercises: exercises.length > 0,
+    hasAnyExercises: anyExercises,
     filtersActive: hasActiveFilters(filters),
   });
   const categoryTree = <CategoryTree tree={tree} filters={filters} />;
@@ -63,6 +71,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
             {layout === "results" ? (
               <ExerciseResults
                 exercises={exercises}
+                truncated={truncated}
                 view={filters.view}
                 archived={filters.category.kind === "archived"}
               />

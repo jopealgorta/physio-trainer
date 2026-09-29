@@ -135,10 +135,11 @@ test("reordering categories with the keyboard persists", async ({ physioPage: pa
 test("reordering videos changes the cover", async ({ physioPage: page }) => {
   await page.goto("/library/new");
   await page.getByLabel("Name").fill("Two videos");
-  for (const url of [VIDEO_A, VIDEO_B]) {
-    await page.getByLabel("YouTube link").fill(url);
-    await page.getByRole("button", { name: "Add video" }).click();
-  }
+  await page.getByLabel("YouTube link").fill(VIDEO_A);
+  await page.getByRole("button", { name: "Add video" }).click();
+  // The second link is pasted but never added: leaving the box (blur) must keep it.
+  await page.getByLabel("YouTube link").fill(VIDEO_B);
+  await page.getByLabel("Name").focus();
   // Long video URLs must not widen the page (mobile).
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

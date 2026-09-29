@@ -62,6 +62,19 @@ describe("ExerciseResults", () => {
   });
 });
 
+describe("ExerciseResults truncation", () => {
+  it("shows the refine hint only when truncated", async () => {
+    await renderAsync(
+      ExerciseResults({ exercises, view: "grid", archived: false, truncated: true }),
+    );
+    expect(screen.getByText(/Showing the first 2 exercises/)).toBeInTheDocument();
+  });
+  it("omits the hint otherwise", async () => {
+    await renderAsync(ExerciseResults({ exercises, view: "grid", archived: false }));
+    expect(screen.queryByText(/Showing the first/)).not.toBeInTheDocument();
+  });
+});
+
 describe("NoResults", () => {
   it("clears filters but keeps the view", async () => {
     await renderAsync(NoResults({ view: "list" }));

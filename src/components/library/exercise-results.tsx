@@ -53,10 +53,13 @@ export async function ExerciseResults({
   exercises,
   view,
   archived,
+  truncated = false,
 }: {
   exercises: ExerciseSummary[];
   view: LibraryView;
   archived: boolean;
+  /** More rows matched than the list cap. */
+  truncated?: boolean;
 }) {
   const t = await getTranslations("Library");
   return (
@@ -64,6 +67,11 @@ export async function ExerciseResults({
       <p role="status" className="text-muted-foreground text-sm">
         {t("results", { count: exercises.length })}
       </p>
+      {truncated ? (
+        <p className="text-muted-foreground text-sm">
+          {t("truncated", { count: exercises.length })}
+        </p>
+      ) : null}
       {view === "list" ? (
         <ul className="divide-y rounded-lg border">
           {exercises.map((exercise) => (

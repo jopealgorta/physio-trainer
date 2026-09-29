@@ -115,4 +115,3 @@ describe("MediaListEditor", () => {
     expect(screen.getByTitle("Video: Videos")).toBeInTheDocument();
   });
 });
-

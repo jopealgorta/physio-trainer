@@ -49,7 +49,8 @@ export async function listExercises(
   tx: Tx,
   physioId: string,
   filters: LibraryFilters,
-): Promise<ExerciseSummary[]> {
+  limit = LIST_LIMIT,
+): Promise<{ exercises: ExerciseSummary[]; truncated: boolean }> {
   const conditions: SQL[] = [eq(exercises.physioId, physioId)];
   const { category } = filters;
   conditions.push(
@@ -66,12 +67,12 @@ export async function listExercises(
     conditions.push(sql`${exercises.bodyAreas} @> array[${filters.area}]::public.body_area[]`);
   if (filters.tag) conditions.push(sql`${exercises.tags} @> array[${filters.tag}]::text[]`);
   if (filters.q) {
-    const term = escapeLike(filters.q.toLowerCase());
+    const term = escapeLike(filters.q);
     conditions.push(sql`(
-      public.f_unaccent(lower(${exercises.name})) like public.f_unaccent(${`%${term}%`})
+      public.f_unaccent(lower(${exercises.name})) like public.f_unaccent(lower(${`%${term}%`}))
       or exists (
         select 1 from unnest(${exercises.tags}) as tag
-        where public.f_unaccent(tag) like public.f_unaccent(${`${term}%`})))`);
+        where public.f_unaccent(tag) like public.f_unaccent(lower(${`${term}%`}))))`);
   }
 
   const rows = await tx
@@ -92,20 +93,28 @@ export async function listExercises(
     .from(exercises)
     .where(and(...conditions))
     .orderBy(sql`lower(${exercises.name})`, asc(exercises.id))
-    .limit(LIST_LIMIT);
+    .limit(limit + 1);
 
-  return rows.map(({ coverUrl, ...row }) => {
+  const exercisesPage = rows.slice(0, limit).map(({ coverUrl, ...row }) => {
     const video = coverUrl ? parseYouTubeUrl(coverUrl) : null;
     return { ...row, cover: video ? { videoId: video.videoId, isShort: video.isShort } : null };
   });
+  return { exercises: exercisesPage, truncated: rows.length > limit };
 }
 
 export async function listTags(tx: Tx, physioId: string): Promise<string[]> {
   const rows = await tx.execute<{ tag: string }>(sql`
     select distinct unnest(${exercises.tags}) as tag from ${exercises}
-    where ${exercises.physioId} = ${physioId}
+    where ${exercises.physioId} = ${physioId} and ${exercises.archivedAt} is null
     order by tag`);
   return rows.map((row) => row.tag);
+}
+
+/** Whether the physio owns any exercise at all, archived included. */
+export async function hasAnyExercises(tx: Tx, physioId: string): Promise<boolean> {
+  const rows = await tx.execute<{ found: boolean }>(sql`
+    select exists(select 1 from ${exercises} where ${exercises.physioId} = ${physioId}) as found`);
+  return rows[0]?.found === true;
 }
 
 export type ExerciseDetail = Exercise & {

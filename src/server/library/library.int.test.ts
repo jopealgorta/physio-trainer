@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
-import { runAsPhysio } from "@/db/rls";
+import { runAsPhysio, type Tx } from "@/db/rls";
 import { exerciseCategories, exerciseMedia, exercises } from "@/db/schema";
 import { DEFAULT_LIBRARY_FILTERS, type LibraryFilters } from "@/lib/library-params";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
@@ -17,7 +17,7 @@ import {
   setExerciseArchived,
   updateExercise,
 } from "./mutations";
-import { getExercise, listCategoryTree, listExercises, listTags } from "./queries";
+import { getExercise, hasAnyExercises, listCategoryTree, listExercises, listTags } from "./queries";
 import {
   createCategorySchema,
   exerciseSchema,
@@ -395,10 +395,15 @@ describe("library server layer", () => {
     it("archives, restores and deletes (with media)", async () => {
       const id = await exercise(a, exerciseInput({ name: "Archivable zzz", media: [WATCH(V1)] }));
       const only = (name: string) => filters({ q: name });
-      const active = () => asA((tx, p) => listExercises(tx, p, only("archivable zzz")));
+      const active = () =>
+        asA((tx, p) => listExercises(tx, p, only("archivable zzz")).then((r) => r.exercises));
       const archived = () =>
         asA((tx, p) =>
-          listExercises(tx, p, filters({ q: "archivable zzz", category: { kind: "archived" } })),
+          listExercises(
+            tx,
+            p,
+            filters({ q: "archivable zzz", category: { kind: "archived" } }),
+          ).then((r) => r.exercises),
         );
 
       expect(names(await active())).toEqual(["Archivable zzz"]);
@@ -442,7 +447,9 @@ describe("library server layer", () => {
     let top: string;
     let sub: string;
     const list = (overrides: Partial<LibraryFilters> = {}) =>
-      runAsPhysio(d.claims, (tx, id) => listExercises(tx, id, filters(overrides)));
+      runAsPhysio(d.claims, (tx, id) =>
+        listExercises(tx, id, filters(overrides)).then((r) => r.exercises),
+      );
 
     beforeAll(async () => {
       [d, e] = await Promise.all([
@@ -538,7 +545,9 @@ describe("library server layer", () => {
       expect(all).toHaveLength(8);
       expect(names(all).filter((name) => name === "Single-leg Bridge")).toHaveLength(1);
       // explicit physio filter holds even without RLS-relevant claims of the owner
-      const asE = await runAsPhysio(e.claims, (tx, id) => listExercises(tx, id, filters()));
+      const asE = await runAsPhysio(e.claims, (tx, id) =>
+        listExercises(tx, id, filters()).then((r) => r.exercises),
+      );
       expect(asE).toHaveLength(1);
     });
 
@@ -553,13 +562,15 @@ describe("library server layer", () => {
   });
 
   describe("listTags", () => {
-    it("returns distinct sorted tags of the physio's own exercises", async () => {
+    it("returns distinct sorted tags of the physio's own active exercises", async () => {
       const f = await createTestPhysio({ onboarded: true });
       const g = await createTestPhysio({ onboarded: true });
       try {
         await exercise(f, exerciseInput({ name: "t1", tags: ["zeta", "band"] }));
         await exercise(f, exerciseInput({ name: "t2", tags: ["band", "alpha"] }));
         await exercise(g, exerciseInput({ name: "t3", tags: ["secret"] }));
+        const hidden = await exercise(f, exerciseInput({ name: "t4", tags: ["archived-only"] }));
+        await runAsPhysio(f.claims, (tx, id) => setExerciseArchived(tx, id, hidden, true));
         expect(await runAsPhysio(f.claims, (tx, id) => listTags(tx, id))).toEqual([
           "alpha",
           "band",
@@ -567,6 +578,38 @@ describe("library server layer", () => {
         ]);
       } finally {
         await deleteTestPhysios(f, g);
+      }
+    });
+  });
+
+  describe("hasAnyExercises and the result cap", () => {
+    it("counts archived exercises and only the physio's own", async () => {
+      const f = await createTestPhysio({ onboarded: true });
+      const g = await createTestPhysio({ onboarded: true });
+      try {
+        const asF = <T>(fn: (tx: Tx, id: string) => Promise<T>) => runAsPhysio(f.claims, fn);
+        expect(await asF((tx, id) => hasAnyExercises(tx, id))).toBe(false);
+        await exercise(g, exerciseInput({ name: "other" }));
+        expect(await asF((tx, id) => hasAnyExercises(tx, id))).toBe(false);
+        const only = await exercise(f, exerciseInput({ name: "mine" }));
+        await asF((tx, id) => setExerciseArchived(tx, id, only, true));
+        expect(await asF((tx, id) => hasAnyExercises(tx, id))).toBe(true);
+      } finally {
+        await deleteTestPhysios(f, g);
+      }
+    });
+
+    it("flags truncation when more rows match than the limit", async () => {
+      const f = await createTestPhysio({ onboarded: true });
+      try {
+        for (const name of ["cap a", "cap b", "cap c"]) await exercise(f, exerciseInput({ name }));
+        const run = (limit: number) =>
+          runAsPhysio(f.claims, (tx, id) => listExercises(tx, id, filters(), limit));
+        expect(await run(2)).toMatchObject({ truncated: true });
+        expect((await run(2)).exercises).toHaveLength(2);
+        expect(await run(3)).toMatchObject({ truncated: false });
+      } finally {
+        await deleteTestPhysios(f);
       }
     });
   });

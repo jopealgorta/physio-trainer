@@ -287,6 +287,7 @@
       "clear": "Quitar filtros"
     },
     "results": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+    "truncated": "Se muestran los primeros {count, number} ejercicios. Afiná la búsqueda o los filtros para ver el resto.",
     "archivedBadge": "Archivado",
     "moreAreas": "+{count, number}",
     "tree": {
