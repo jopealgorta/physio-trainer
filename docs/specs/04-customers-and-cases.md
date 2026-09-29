@@ -158,6 +158,9 @@ Namespaces `Customers`, `Cases`. Dates formatted with the physio's locale.
   mobile (`break-words` does not lower min-content in a grid); they now use `wrap-anywhere`. When
   the only customers are archived and no filter is active, the list shows an "all archived"
   message instead of a dead "Clear filters" link.
+- **Precautions**: open cases' precautions are highlighted in an alert at the top of the overview;
+  a closed case's card shows its own precautions (the alert lists open cases only), so nothing
+  is hidden behind "Edit case".
 - **Not done / deferred**: hard delete (archive only, by spec); last-activity column is a
   placeholder dash until spec 13; the Routines/Plans/Activity/Notes tabs are empty states until
   specs 05, 06, 13 and 16.
