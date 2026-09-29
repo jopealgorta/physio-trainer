@@ -70,6 +70,16 @@
   },
   "Settings": {
     "title": "Settings",
+    "profile": {
+      "title": "Profile",
+      "description": "Your name, handle, language and timezone."
+    },
+    "account": {
+      "title": "Account",
+      "description": "You sign in with this email.",
+      "email": "Email",
+      "signOut": "Sign out"
+    },
     "tabs": {
       "label": "Settings sections",
       "profile": "Profile",
@@ -143,16 +153,6 @@
         "uploadFailed": "The logo could not be uploaded. Try again.",
         "unknown": "Something went wrong. Try again."
       }
-    },
-    "profile": {
-      "title": "Profile",
-      "description": "Your name, handle, language and timezone."
-    },
-    "account": {
-      "title": "Account",
-      "description": "You sign in with this email.",
-      "email": "Email",
-      "signOut": "Sign out"
     }
   },
   "UserMenu": {
@@ -236,6 +236,181 @@
     "title": "You're offline",
     "description": "Check your connection and try again.",
     "retry": "Try again"
+  },
+  "Sortable": {
+    "instructions": "To pick up an item, press space or enter. Use the arrow keys to move it, then press space or enter to drop it, or escape to cancel.",
+    "picked": "Picked up {item}.",
+    "moved": "{item} moved to position {position} of {total}.",
+    "dropped": "{item} dropped at position {position} of {total}.",
+    "cancelled": "Moving {item} was cancelled.",
+    "handle": "Reorder {item}"
+  },
+  "Prescription": {
+    "legend": "Default prescription",
+    "hint": "Copied into routines when you add this exercise. Leave blank anything that doesn't apply.",
+    "sets": "Sets",
+    "reps": "Reps",
+    "repsMax": "Reps (max)",
+    "repsMaxHint": "For a range, e.g. 8–12",
+    "durationSeconds": "Duration (s)",
+    "holdSeconds": "Hold (s)",
+    "restSeconds": "Rest (s)",
+    "load": "Load",
+    "loadPlaceholder": "e.g. 5 kg, red band",
+    "side": "Side",
+    "sideNone": "Not set",
+    "sides": {
+      "left": "Left",
+      "right": "Right",
+      "both": "Both sides",
+      "alternating": "Alternating"
+    },
+    "notes": "Notes",
+    "errors": {
+      "notAWholeNumber": "Enter a whole number.",
+      "outOfRange": "Enter a number from {min, number} to {max, number}.",
+      "tooLong": "Use at most {max, number} characters.",
+      "invalidSide": "Choose a side from the list.",
+      "repsMaxWithoutReps": "Enter reps first.",
+      "repsMaxNotAboveReps": "Must be more than reps.",
+      "invalid": "Check this field."
+    }
+  },
+  "Library": {
+    "title": "Exercise library",
+    "form": {
+      "newTitle": "New exercise",
+      "name": "Name",
+      "category": "Category",
+      "uncategorised": "Uncategorised",
+      "subcategoryOption": "{parent} › {name}",
+      "instructions": "Instructions",
+      "instructionsHint": "Cues and steps. Line breaks are kept.",
+      "bodyAreas": "Body areas",
+      "tags": "Tags",
+      "media": "Videos",
+      "create": "Create exercise",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "back": "Back to library",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "categoryInvalid": "That category no longer exists. Choose another one.",
+        "instructionsTooLong": "Use at most {max, number} characters.",
+        "bodyAreasInvalid": "Choose body areas from the list.",
+        "tagTooLong": "Tags can have at most {max, number} characters.",
+        "tooManyTags": "Use at most {max, number} tags.",
+        "tooManyMedia": "Add at most {max, number} videos.",
+        "mediaInvalid": "Each video must be a different YouTube link.",
+        "invalid": "Check this field.",
+        "notFound": "This exercise no longer exists.",
+        "unknown": "Something went wrong. Try again."
+      }
+    },
+    "detail": {
+      "archive": "Archive",
+      "restore": "Restore",
+      "delete": "Delete",
+      "archivedNotice": "This exercise is archived: it's hidden from the library and from pickers, but routines that use it keep working.",
+      "deleteTitle": "Delete this exercise?",
+      "deleteBody": "“{name}” and its videos will be removed. This can't be undone.",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete exercise",
+      "errors": {
+        "notFound": "This exercise no longer exists.",
+        "unknown": "Something went wrong. Try again."
+      }
+    },
+    "media": {
+      "label": "YouTube link",
+      "placeholder": "https://youtube.com/shorts/…",
+      "add": "Add video",
+      "hint": "Paste a YouTube video or Short. The first video is the cover; drag to reorder.",
+      "cover": "Cover",
+      "remove": "Remove video {position, number}",
+      "itemLabel": "Video {position, number}",
+      "play": "Play video: {title}",
+      "embedTitle": "Video: {title}",
+      "empty": "No videos yet.",
+      "errors": {
+        "notYouTube": "Paste a YouTube link (youtube.com/watch, youtu.be or youtube.com/shorts).",
+        "duplicate": "This video is already in the list.",
+        "limit": "You can add up to {max, number} videos."
+      },
+      "preview": "Preview video {position, number}"
+    },
+    "tags": {
+      "placeholder": "Add a tag and press Enter",
+      "remove": "Remove tag {tag}",
+      "suggestions": "Existing tags",
+      "limit": "Up to {max, number} tags."
+    },
+    "description": "Your private exercises, organised in categories.",
+    "newExercise": "New exercise",
+    "manageCategories": "Manage categories",
+    "empty": {
+      "title": "Build your exercise library",
+      "body": "Add exercises with instructions, YouTube videos and default sets and reps. Group them in categories (for example Lower limb → Glutes) and tag them to find them fast.",
+      "cta": "Create your first exercise"
+    },
+    "noResults": {
+      "title": "No exercises match",
+      "body": "Try another search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "results": "{count, plural, one {# exercise} other {# exercises}}",
+    "truncated": "Showing the first {count, number} exercises. Refine your search or filters to see the rest.",
+    "archivedBadge": "Archived",
+    "moreAreas": "+{count, number}",
+    "tree": {
+      "label": "Categories",
+      "all": "All exercises",
+      "uncategorised": "Uncategorised",
+      "archived": "Archived",
+      "toggle": "Sub-categories of {name}"
+    },
+    "filters": {
+      "search": "Search exercises",
+      "searchPlaceholder": "Search by name or tag",
+      "area": "Body area",
+      "allAreas": "All body areas",
+      "tag": "Tag",
+      "allTags": "All tags",
+      "open": "Filters",
+      "sheetDescription": "Narrow the library by category, body area or tag.",
+      "view": "View",
+      "grid": "Grid view",
+      "list": "List view"
+    },
+    "categories": {
+      "title": "Categories",
+      "description": "Two levels: a category and its sub-categories. Drag to reorder.",
+      "nameLabel": "Category name",
+      "add": "Add category",
+      "addPlaceholder": "New category, e.g. Lower limb",
+      "addSub": "Add sub-category to {name}",
+      "subPlaceholder": "New sub-category",
+      "rename": "Rename {name}",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete {name}",
+      "deleteTitle": "Delete “{name}”?",
+      "deleteSubcategories": "{count, plural, =0 {No sub-categories.} one {Its sub-category will be deleted too.} other {Its # sub-categories will be deleted too.}}",
+      "deleteExercises": "{count, plural, =0 {No exercises are affected.} one {# exercise will move to Uncategorised.} other {# exercises will move to Uncategorised.}}",
+      "confirmDelete": "Delete category",
+      "empty": "No categories yet.",
+      "done": "Done",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "nameTaken": "There's already a category with this name here.",
+        "notFound": "This category no longer exists.",
+        "tooDeep": "Sub-categories can't have sub-categories.",
+        "unknown": "Something went wrong. Try again."
+      }
+    }
   },
   "Branding": {
     "poweredBy": "Powered by Physio Trainer"

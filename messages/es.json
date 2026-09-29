@@ -70,6 +70,16 @@
   },
   "Settings": {
     "title": "Configuración",
+    "profile": {
+      "title": "Perfil",
+      "description": "Tu nombre, usuario, idioma y zona horaria."
+    },
+    "account": {
+      "title": "Cuenta",
+      "description": "Ingresás con este email.",
+      "email": "Email",
+      "signOut": "Cerrar sesión"
+    },
     "tabs": {
       "label": "Secciones de configuración",
       "profile": "Perfil",
@@ -143,16 +153,6 @@
         "uploadFailed": "No pudimos subir el logo. Probá de nuevo.",
         "unknown": "Algo salió mal. Probá de nuevo."
       }
-    },
-    "profile": {
-      "title": "Perfil",
-      "description": "Tu nombre, usuario, idioma y zona horaria."
-    },
-    "account": {
-      "title": "Cuenta",
-      "description": "Ingresás con este email.",
-      "email": "Email",
-      "signOut": "Cerrar sesión"
     }
   },
   "UserMenu": {
@@ -236,6 +236,181 @@
     "title": "Estás sin conexión",
     "description": "Revisá tu conexión y probá de nuevo.",
     "retry": "Reintentar"
+  },
+  "Sortable": {
+    "instructions": "Para agarrar un elemento, presioná espacio o enter. Movelo con las flechas y presioná espacio o enter para soltarlo, o escape para cancelar.",
+    "picked": "Agarraste {item}.",
+    "moved": "{item} se movió a la posición {position} de {total}.",
+    "dropped": "{item} quedó en la posición {position} de {total}.",
+    "cancelled": "Se canceló el movimiento de {item}.",
+    "handle": "Reordenar {item}"
+  },
+  "Prescription": {
+    "legend": "Prescripción por defecto",
+    "hint": "Se copia en las rutinas cuando agregás este ejercicio. Dejá en blanco lo que no aplique.",
+    "sets": "Series",
+    "reps": "Repeticiones",
+    "repsMax": "Repeticiones (máx.)",
+    "repsMaxHint": "Para un rango, p. ej. 8–12",
+    "durationSeconds": "Duración (s)",
+    "holdSeconds": "Sostener (s)",
+    "restSeconds": "Descanso (s)",
+    "load": "Carga",
+    "loadPlaceholder": "p. ej. 5 kg, banda roja",
+    "side": "Lado",
+    "sideNone": "Sin definir",
+    "sides": {
+      "left": "Izquierdo",
+      "right": "Derecho",
+      "both": "Ambos lados",
+      "alternating": "Alternado"
+    },
+    "notes": "Notas",
+    "errors": {
+      "notAWholeNumber": "Ingresá un número entero.",
+      "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
+      "tooLong": "Usá como máximo {max, number} caracteres.",
+      "invalidSide": "Elegí un lado de la lista.",
+      "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
+      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
+      "invalid": "Revisá este campo."
+    }
+  },
+  "Library": {
+    "title": "Biblioteca de ejercicios",
+    "form": {
+      "newTitle": "Nuevo ejercicio",
+      "name": "Nombre",
+      "category": "Categoría",
+      "uncategorised": "Sin categoría",
+      "subcategoryOption": "{parent} › {name}",
+      "instructions": "Instrucciones",
+      "instructionsHint": "Indicaciones y pasos. Se respetan los saltos de línea.",
+      "bodyAreas": "Zonas del cuerpo",
+      "tags": "Etiquetas",
+      "media": "Videos",
+      "create": "Crear ejercicio",
+      "save": "Guardar cambios",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "back": "Volver a la biblioteca",
+      "errors": {
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "categoryInvalid": "Esa categoría ya no existe. Elegí otra.",
+        "instructionsTooLong": "Usá como máximo {max, number} caracteres.",
+        "bodyAreasInvalid": "Elegí zonas de la lista.",
+        "tagTooLong": "Las etiquetas pueden tener hasta {max, number} caracteres.",
+        "tooManyTags": "Usá como máximo {max, number} etiquetas.",
+        "tooManyMedia": "Agregá como máximo {max, number} videos.",
+        "mediaInvalid": "Cada video tiene que ser un link de YouTube distinto.",
+        "invalid": "Revisá este campo.",
+        "notFound": "Este ejercicio ya no existe.",
+        "unknown": "Algo salió mal. Probá de nuevo."
+      }
+    },
+    "detail": {
+      "archive": "Archivar",
+      "restore": "Restaurar",
+      "delete": "Eliminar",
+      "archivedNotice": "Este ejercicio está archivado: no aparece en la biblioteca ni en los selectores, pero las rutinas que lo usan siguen funcionando.",
+      "deleteTitle": "¿Eliminar este ejercicio?",
+      "deleteBody": "Se van a borrar “{name}” y sus videos. No se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirmDelete": "Eliminar ejercicio",
+      "errors": {
+        "notFound": "Este ejercicio ya no existe.",
+        "unknown": "Algo salió mal. Probá de nuevo."
+      }
+    },
+    "media": {
+      "label": "Link de YouTube",
+      "placeholder": "https://youtube.com/shorts/…",
+      "add": "Agregar video",
+      "hint": "Pegá un video o un Short de YouTube. El primer video es la portada; arrastrá para reordenar.",
+      "cover": "Portada",
+      "remove": "Quitar video {position, number}",
+      "itemLabel": "Video {position, number}",
+      "play": "Reproducir video: {title}",
+      "embedTitle": "Video: {title}",
+      "empty": "Todavía no hay videos.",
+      "errors": {
+        "notYouTube": "Pegá un link de YouTube (youtube.com/watch, youtu.be o youtube.com/shorts).",
+        "duplicate": "Este video ya está en la lista.",
+        "limit": "Podés agregar hasta {max, number} videos."
+      },
+      "preview": "Ver video {position, number}"
+    },
+    "tags": {
+      "placeholder": "Escribí una etiqueta y presioná Enter",
+      "remove": "Quitar etiqueta {tag}",
+      "suggestions": "Etiquetas existentes",
+      "limit": "Hasta {max, number} etiquetas."
+    },
+    "description": "Tus ejercicios privados, organizados en categorías.",
+    "newExercise": "Nuevo ejercicio",
+    "manageCategories": "Administrar categorías",
+    "empty": {
+      "title": "Armá tu biblioteca de ejercicios",
+      "body": "Agregá ejercicios con instrucciones, videos de YouTube y series y repeticiones por defecto. Agrupalos en categorías (por ejemplo Miembro inferior → Glúteos) y etiquetalos para encontrarlos rápido.",
+      "cta": "Creá tu primer ejercicio"
+    },
+    "noResults": {
+      "title": "Ningún ejercicio coincide",
+      "body": "Probá con otra búsqueda o quitá los filtros.",
+      "clear": "Quitar filtros"
+    },
+    "results": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+    "truncated": "Se muestran los primeros {count, number} ejercicios. Afiná la búsqueda o los filtros para ver el resto.",
+    "archivedBadge": "Archivado",
+    "moreAreas": "+{count, number}",
+    "tree": {
+      "label": "Categorías",
+      "all": "Todos los ejercicios",
+      "uncategorised": "Sin categoría",
+      "archived": "Archivados",
+      "toggle": "Subcategorías de {name}"
+    },
+    "filters": {
+      "search": "Buscar ejercicios",
+      "searchPlaceholder": "Buscá por nombre o etiqueta",
+      "area": "Zona del cuerpo",
+      "allAreas": "Todas las zonas",
+      "tag": "Etiqueta",
+      "allTags": "Todas las etiquetas",
+      "open": "Filtros",
+      "sheetDescription": "Filtrá la biblioteca por categoría, zona del cuerpo o etiqueta.",
+      "view": "Vista",
+      "grid": "Vista de cuadrícula",
+      "list": "Vista de lista"
+    },
+    "categories": {
+      "title": "Categorías",
+      "description": "Dos niveles: una categoría y sus subcategorías. Arrastrá para reordenar.",
+      "nameLabel": "Nombre de la categoría",
+      "add": "Agregar categoría",
+      "addPlaceholder": "Nueva categoría, p. ej. Miembro inferior",
+      "addSub": "Agregar subcategoría a {name}",
+      "subPlaceholder": "Nueva subcategoría",
+      "rename": "Renombrar {name}",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar {name}",
+      "deleteTitle": "¿Eliminar “{name}”?",
+      "deleteSubcategories": "{count, plural, =0 {No tiene subcategorías.} one {También se va a eliminar su subcategoría.} other {También se van a eliminar sus # subcategorías.}}",
+      "deleteExercises": "{count, plural, =0 {No afecta a ningún ejercicio.} one {# ejercicio va a pasar a Sin categoría.} other {# ejercicios van a pasar a Sin categoría.}}",
+      "confirmDelete": "Eliminar categoría",
+      "empty": "Todavía no hay categorías.",
+      "done": "Listo",
+      "errors": {
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "nameTaken": "Ya hay una categoría con este nombre acá.",
+        "notFound": "Esta categoría ya no existe.",
+        "tooDeep": "Las subcategorías no pueden tener subcategorías.",
+        "unknown": "Algo salió mal. Probá de nuevo."
+      }
+    }
   },
   "Branding": {
     "poweredBy": "Hecho con Physio Trainer"

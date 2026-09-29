@@ -13,7 +13,7 @@ feature list agreed in the initial brainstorm.
 | --- | ---------------------------------------------------------------------- | ------- | ---------------- | ----------- |
 | 01  | [Auth and physio profile](./01-auth-and-physio-profile.md)             | Core    | Scaffold         | Done        |
 | 02  | [Body areas](./02-body-areas.md)                                       | H       | 01               | Done        |
-| 03  | [Exercise library](./03-exercise-library.md)                           | Core    | 01, 02           | Not started |
+| 03  | [Exercise library](./03-exercise-library.md)                           | Core    | 01, 02           | Done        |
 | 04  | [Customers and cases](./04-customers-and-cases.md)                     | Core    | 01, 02           | Not started |
 | 05  | [Routines](./05-routines.md)                                           | Core    | 03, 04           | Not started |
 | 06  | [Weekly plans](./06-weekly-plans.md)                                   | Core    | 05               | Not started |
@@ -47,8 +47,9 @@ done.
 
 ## Deferred (agreed "later")
 
-Seed exercise library / CSV import (G), outcome measures (K), offline patient page (L), AI
-assist (M), GDPR tooling (N), patient reminders (O), clinics/teams, billing. Write a spec with
+Seed exercise library / CSV import (G), uploaded exercise media (videos/images, Vimeo; spec 03
+ships YouTube links only), outcome measures (K), offline patient page (L), AI assist (M), GDPR
+tooling (N), patient reminders (O), clinics/teams, billing. Write a spec with
 [`_template.md`](./_template.md) when one is picked up.
 
 ## Working on a spec
