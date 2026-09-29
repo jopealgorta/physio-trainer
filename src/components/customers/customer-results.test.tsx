@@ -33,6 +33,11 @@ describe("CustomerResults", () => {
     expect(screen.getAllByRole("link", { name: "Bo" })[0]).toHaveAttribute("href", "/customers/c2");
   });
 
+  it("names the table", () => {
+    setup([base]);
+    expect(screen.getByRole("table", { name: "Customers" })).toBeInTheDocument();
+  });
+
   it("shows the open case title with its body area", () => {
     setup([
       {

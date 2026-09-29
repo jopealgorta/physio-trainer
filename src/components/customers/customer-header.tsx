@@ -41,19 +41,14 @@ export function CustomerHeader({
             ) : null}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <CustomerArchiveButton id={customer.id} name={name} archived={customer.archivedAt !== null}>
           <Button asChild variant="outline">
             <Link href={`/customers/${customer.id}/edit`}>
               <PencilIcon aria-hidden />
               {t("edit")}
             </Link>
           </Button>
-          <CustomerArchiveButton
-            id={customer.id}
-            name={name}
-            archived={customer.archivedAt !== null}
-          />
-        </div>
+        </CustomerArchiveButton>
       </div>
       {tel || customer.email || whatsapp ? (
         <div role="group" aria-label={t("contactLabel")} className="flex flex-wrap gap-2">

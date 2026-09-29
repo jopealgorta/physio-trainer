@@ -193,9 +193,11 @@ describe("CustomerOverview", () => {
           },
         ],
       });
-      expect(screen.getAllByRole("button", { name: "Close case" })).toHaveLength(1);
-      expect(screen.getAllByRole("button", { name: "Reopen case" })).toHaveLength(1);
-      expect(screen.getAllByRole("button", { name: "Edit case" })).toHaveLength(2);
+      expect(screen.getByRole("button", { name: "Close case ACL rehab" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Reopen case Old shoulder" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit case ACL rehab" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit case Old shoulder" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Close case" })).not.toBeInTheDocument();
     });
 
     it("keeps the closed section but shows the no-open-cases hint when only closed cases exist", () => {

@@ -62,7 +62,7 @@ describe("CaseSheet", () => {
   it("edits an existing case", async () => {
     const user = userEvent.setup();
     setup({ case: existing });
-    await user.click(screen.getByRole("button", { name: "Edit case" }));
+    await user.click(screen.getByRole("button", { name: "Edit case ACL rehab" }));
     expect(await screen.findByLabelText("Title")).toHaveValue("ACL rehab");
     expect(document.querySelector('input[name="id"]')).toHaveValue("case-9");
     expect(document.querySelector('input[name="customerId"]')).toBeNull();

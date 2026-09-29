@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { type ReactNode, useState, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -19,15 +19,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { setCustomerArchivedAction } from "@/server/customers/actions";
 
-/** Archiving asks for confirmation (share links stop working); restoring is immediate. */
+/**
+ * Archiving asks for confirmation (share links stop working); restoring is immediate.
+ * `children` (sibling controls, e.g. Edit) share the button row; an error renders after the
+ * row, as its own full-width line of the parent's flex-wrap layout.
+ */
 export function CustomerArchiveButton({
   id,
   name,
   archived,
+  children,
 }: {
   id: string;
   name: string;
   archived: boolean;
+  children?: ReactNode;
 }) {
   const t = useTranslations("Customers.detail");
   const router = useRouter();
@@ -49,36 +55,39 @@ export function CustomerArchiveButton({
 
   return (
     <>
-      {archived ? (
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending}
-          onClick={() => setArchived(false)}
-        >
-          {t("restore")}
-        </Button>
-      ) : (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button type="button" variant="outline" disabled={pending}>
-              {t("archive")}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("archiveTitle", { name })}</AlertDialogTitle>
-              <AlertDialogDescription>{t("archiveBody")}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => setArchived(true)}>
-                {t("archiveConfirm")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {children}
+        {archived ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => setArchived(false)}
+          >
+            {t("restore")}
+          </Button>
+        ) : (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="outline" disabled={pending}>
+                {t("archive")}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("archiveTitle", { name })}</AlertDialogTitle>
+                <AlertDialogDescription>{t("archiveBody")}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => setArchived(true)}>
+                  {t("archiveConfirm")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
       {error ? (
         <Alert variant="destructive" className="basis-full">
           <AlertDescription>{t(`errors.${error}`)}</AlertDescription>

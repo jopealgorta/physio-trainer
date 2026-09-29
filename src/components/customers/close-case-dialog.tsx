@@ -26,7 +26,16 @@ type CloseError = "notFound" | "notOpen" | "closedBeforeOpened" | "dateInvalid" 
  * Close-case button and confirmation dialog. `today` is the physio's calendar day, computed on
  * the server in their time zone; the client never guesses it.
  */
-export function CloseCaseDialog({ caseId, today }: { caseId: string; today: string }) {
+export function CloseCaseDialog({
+  caseId,
+  title,
+  today,
+}: {
+  caseId: string;
+  /** The case title, so the trigger's accessible name tells cards apart. */
+  title: string;
+  today: string;
+}) {
   const t = useTranslations("Cases");
   const router = useRouter();
   const id = useId();
@@ -65,7 +74,7 @@ export function CloseCaseDialog({ caseId, today }: { caseId: string; today: stri
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline">
+        <Button type="button" variant="outline" aria-label={t("closeFor", { title })}>
           {t("close")}
         </Button>
       </DialogTrigger>

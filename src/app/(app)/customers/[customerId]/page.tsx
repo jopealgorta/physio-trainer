@@ -50,7 +50,7 @@ export default async function CustomerPage({
         <CustomerHeader customer={customer} age={age} />
       </div>
       {customer.archivedAt ? (
-        <Alert>
+        <Alert role="status">
           <AlertDescription>{t("detail.archivedNotice")}</AlertDescription>
         </Alert>
       ) : null}

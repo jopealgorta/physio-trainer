@@ -52,7 +52,7 @@ export function CustomerResults({
           {t("truncated", { count: customers.length })}
         </p>
       ) : null}
-      <table className="hidden w-full table-fixed text-sm md:table">
+      <table aria-label={t("title")} className="hidden w-full table-fixed text-sm md:table">
         <thead>
           <tr className="text-muted-foreground border-b text-left text-xs">
             <th scope="col" className="w-2/5 py-2 pr-3 font-medium">

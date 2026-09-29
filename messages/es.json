@@ -462,7 +462,6 @@
       "saving": "Guardando…",
       "saved": "Guardado",
       "back": "Volver a clientes",
-      "cancel": "Cancelar",
       "sexes": {
         "female": "Femenino",
         "male": "Masculino",
@@ -537,6 +536,7 @@
   "Cases": {
     "new": "Nuevo caso",
     "edit": "Editar caso",
+    "editFor": "Editar caso {title}",
     "sheetDescription": "Episodio de lesión de {name}.",
     "precautions": "Precauciones",
     "precautionsHeading": "Precauciones",
@@ -555,19 +555,20 @@
     "openedOnHint": "Dejalo vacío para usar hoy.",
     "openedOnDate": "Abierto el {date}",
     "painValue": "Dolor inicial: {value, number}/10",
-    "noBodyArea": "Sin zona del cuerpo",
     "status": {
       "open": "Abierto",
       "closed": "Cerrado"
     },
     "closedOn": "Cerrado el {date}",
     "close": "Cerrar caso",
+    "closeFor": "Cerrar caso {title}",
     "closeTitle": "¿Cerrar este caso?",
     "closeBody": "Las rutinas vinculadas quedan como están.",
     "closedOnLabel": "Fecha de cierre",
     "closeConfirm": "Cerrar caso",
     "closing": "Cerrando…",
     "reopen": "Reabrir caso",
+    "reopenFor": "Reabrir caso {title}",
     "reopening": "Reabriendo…",
     "create": "Crear caso",
     "save": "Guardar caso",

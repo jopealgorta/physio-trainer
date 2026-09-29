@@ -462,7 +462,6 @@
       "saving": "Saving…",
       "saved": "Saved",
       "back": "Back to customers",
-      "cancel": "Cancel",
       "sexes": {
         "female": "Female",
         "male": "Male",
@@ -537,6 +536,7 @@
   "Cases": {
     "new": "New case",
     "edit": "Edit case",
+    "editFor": "Edit case {title}",
     "sheetDescription": "Injury episode for {name}.",
     "precautions": "Precautions",
     "precautionsHeading": "Precautions",
@@ -555,19 +555,20 @@
     "openedOnHint": "Leave empty to use today.",
     "openedOnDate": "Opened on {date}",
     "painValue": "Initial pain: {value, number}/10",
-    "noBodyArea": "No body area",
     "status": {
       "open": "Open",
       "closed": "Closed"
     },
     "closedOn": "Closed on {date}",
     "close": "Close case",
+    "closeFor": "Close case {title}",
     "closeTitle": "Close this case?",
     "closeBody": "Routines linked to it stay as they are.",
     "closedOnLabel": "Closing date",
     "closeConfirm": "Close case",
     "closing": "Closing…",
     "reopen": "Reopen case",
+    "reopenFor": "Reopen case {title}",
     "reopening": "Reopening…",
     "create": "Create case",
     "save": "Save case",

@@ -20,7 +20,7 @@ import { CaseActions } from "./case-actions";
 function setup(status: "open" | "closed") {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CaseActions caseId="case-1" status={status} today="2026-05-20">
+      <CaseActions caseId="case-1" title="ACL rehab" status={status} today="2026-05-20">
         <button type="button">Edit</button>
       </CaseActions>
     </NextIntlClientProvider>,
@@ -38,8 +38,8 @@ describe("CaseActions", () => {
     const user = userEvent.setup();
     setup("open");
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Reopen case" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Close case" }));
+    expect(screen.queryByRole("button", { name: "Reopen case ACL rehab" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Close case ACL rehab" }));
     expect(await screen.findByLabelText("Closing date")).toHaveValue("2026-05-20");
   });
 
@@ -47,8 +47,8 @@ describe("CaseActions", () => {
     const user = userEvent.setup();
     reopenCase.mockResolvedValue({ ok: true, data: null });
     setup("closed");
-    expect(screen.queryByRole("button", { name: "Close case" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Reopen case" }));
+    expect(screen.queryByRole("button", { name: "Close case ACL rehab" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reopen case ACL rehab" }));
     await waitFor(() => expect(reopenCase).toHaveBeenCalledWith("case-1"));
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -58,7 +58,7 @@ describe("CaseActions", () => {
     const user = userEvent.setup();
     reopenCase.mockResolvedValue({ ok: false, error: "notClosed" });
     setup("closed");
-    await user.click(screen.getByRole("button", { name: "Reopen case" }));
+    await user.click(screen.getByRole("button", { name: "Reopen case ACL rehab" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("This case is already open.");
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -67,7 +67,7 @@ describe("CaseActions", () => {
     const user = userEvent.setup();
     reopenCase.mockRejectedValue(new Error("boom"));
     setup("closed");
-    await user.click(screen.getByRole("button", { name: "Reopen case" }));
+    await user.click(screen.getByRole("button", { name: "Reopen case ACL rehab" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
   });
 });

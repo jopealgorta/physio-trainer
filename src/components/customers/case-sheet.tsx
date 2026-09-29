@@ -51,7 +51,11 @@ export function CaseSheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button type="button" variant={editing ? "outline" : "default"}>
+        <Button
+          type="button"
+          variant={editing ? "outline" : "default"}
+          aria-label={editing ? t("editFor", { title: existing.title }) : undefined}
+        >
           {editing ? <PencilIcon aria-hidden /> : <PlusIcon aria-hidden />}
           {t(editing ? "edit" : "new")}
         </Button>

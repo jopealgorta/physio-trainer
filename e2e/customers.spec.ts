@@ -107,9 +107,9 @@ test("closing a case hides its precautions and reopening brings them back", asyn
   const precautions = page.getByRole("alert").filter({ hasText: "Precautions" });
   await expect(precautions).toContainText("Avoid overhead loading");
 
-  await page.getByRole("button", { name: "Close case" }).click();
+  await page.getByRole("button", { name: "Close case Shoulder impingement" }).click();
   const dialog = page.getByRole("dialog", { name: "Close this case?" });
-  await dialog.getByRole("button", { name: "Close case" }).click();
+  await dialog.getByRole("button", { name: "Close case", exact: true }).click();
   await expect(dialog).toBeHidden();
 
   await expect(precautions).toHaveCount(0);
@@ -119,8 +119,11 @@ test("closing a case hides its precautions and reopening brings them back", asyn
   const card = closed.getByRole("article").filter({ hasText: "Shoulder impingement" });
   await expect(card).toBeVisible();
   await expect(card.getByText("Closed", { exact: true })).toBeVisible();
+  // The alert is gone, so the closed case's card is where its precautions stay readable.
+  await expect(card).toContainText("Precautions");
+  await expect(card).toContainText("Avoid overhead loading");
 
-  await card.getByRole("button", { name: "Reopen case" }).click();
+  await card.getByRole("button", { name: "Reopen case Shoulder impingement" }).click();
   await expect(precautions).toContainText("Avoid overhead loading");
   await expect(page.locator("details").filter({ hasText: "Closed cases" })).toHaveCount(0);
   await expect(
@@ -173,7 +176,9 @@ test("archiving a customer hides them until restored", async ({ physioPage: page
   await page.getByRole("button", { name: "Archive" }).click();
   const confirm = page.getByRole("alertdialog", { name: "Archive José García?" });
   await confirm.getByRole("button", { name: "Archive" }).click();
-  await expect(page.getByText(/This customer is archived/)).toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "This customer is archived" }),
+  ).toBeVisible();
   const archivedPath = new URL(page.url()).pathname;
   expect(archivedPath).not.toBe(other);
 
@@ -221,7 +226,7 @@ test("customer pages do not overflow horizontally with a very long name", async 
   expect(longName).toHaveLength(60);
   await createCustomer(page, longName, longName);
 
-  expect(await hasNoHorizontalOverflow(page)).toBe(true);
+  await expect.poll(() => hasNoHorizontalOverflow(page)).toBe(true);
   await page.getByRole("button", { name: "New case" }).click();
   const sheet = page.getByRole("dialog", { name: "New case" });
   await sheet.getByLabel("Title").fill("T".repeat(120));
@@ -229,11 +234,11 @@ test("customer pages do not overflow horizontally with a very long name", async 
   await sheet.getByRole("button", { name: "Create case" }).click();
   await expect(sheet).toBeHidden();
   await expect(page.getByRole("article")).toBeVisible();
-  expect(await hasNoHorizontalOverflow(page)).toBe(true);
+  await expect.poll(() => hasNoHorizontalOverflow(page)).toBe(true);
 
   await page.goto("/customers");
   await expect(page.getByRole("link", { name: /Wolfeschlegel/ }).first()).toBeVisible();
-  expect(await hasNoHorizontalOverflow(page)).toBe(true);
+  await expect.poll(() => hasNoHorizontalOverflow(page)).toBe(true);
 });
 
 test("a physio cannot see another physio's customers", async ({ physioPage: page, browser }) => {

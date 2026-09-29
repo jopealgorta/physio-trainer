@@ -18,7 +18,9 @@ import { CustomerArchiveButton } from "./customer-archive-button";
 function setup(archived = false) {
   render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CustomerArchiveButton id="c1" name="Ana Pérez" archived={archived} />
+      <CustomerArchiveButton id="c1" name="Ana Pérez" archived={archived}>
+        <button type="button">Edit</button>
+      </CustomerArchiveButton>
     </NextIntlClientProvider>,
   );
 }
@@ -73,6 +75,18 @@ describe("CustomerArchiveButton", () => {
     await user.click(screen.getByRole("button", { name: "Restore" }));
     expect(await screen.findByText("This customer no longer exists.")).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("renders the error outside the button group, at full width", async () => {
+    const user = userEvent.setup();
+    setArchived.mockResolvedValue({ ok: false, error: "notFound" });
+    setup(true);
+    await user.click(screen.getByRole("button", { name: "Restore" }));
+    const alert = await screen.findByRole("alert");
+    const group = screen.getByRole("button", { name: "Restore" }).parentElement;
+    expect(group).toContainElement(screen.getByRole("button", { name: "Edit" }));
+    expect(group).not.toContainElement(alert);
+    expect(alert).toHaveClass("basis-full");
   });
 
   it("shows a generic error when the action throws", async () => {

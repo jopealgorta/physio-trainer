@@ -18,13 +18,13 @@ import { CloseCaseDialog } from "./close-case-dialog";
 function setup() {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CloseCaseDialog caseId="case-1" today="2026-05-20" />
+      <CloseCaseDialog caseId="case-1" title="ACL rehab" today="2026-05-20" />
     </NextIntlClientProvider>,
   );
 }
 
 async function open(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "Close case" }));
+  await user.click(screen.getByRole("button", { name: "Close case ACL rehab" }));
   return screen.findByRole("dialog");
 }
 

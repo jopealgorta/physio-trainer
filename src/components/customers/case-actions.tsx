@@ -18,11 +18,14 @@ type ReopenError = "notFound" | "notClosed" | "unknown";
  */
 export function CaseActions({
   caseId,
+  title,
   status,
   today,
   children,
 }: {
   caseId: string;
+  /** The case title, so each button's accessible name tells cards apart. */
+  title: string;
   status: "open" | "closed";
   today: string;
   children?: ReactNode;
@@ -50,9 +53,15 @@ export function CaseActions({
       <div className="flex flex-wrap gap-2">
         {children}
         {status === "open" ? (
-          <CloseCaseDialog caseId={caseId} today={today} />
+          <CloseCaseDialog caseId={caseId} title={title} today={today} />
         ) : (
-          <Button type="button" variant="outline" disabled={pending} onClick={reopen}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            aria-label={pending ? undefined : t("reopenFor", { title })}
+            onClick={reopen}
+          >
             {pending ? t("reopening") : t("reopen")}
           </Button>
         )}
