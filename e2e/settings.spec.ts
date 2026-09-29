@@ -1,4 +1,5 @@
 import { expect, test } from "./helpers/auth";
+import { chooseOption } from "./helpers/select";
 
 test("a physio updates their profile", async ({ physioPage: page, physio }) => {
   await page.goto("/settings");
@@ -9,16 +10,16 @@ test("a physio updates their profile", async ({ physioPage: page, physio }) => {
     page.getByText("Links you already shared keep working and will show your new handle."),
   ).toBeVisible();
   await expect(page.getByText("Available", { exact: true })).toBeVisible();
-  await page.getByLabel("Timezone").selectOption("Europe/Madrid");
+  await chooseOption(page, page.getByLabel("Timezone"), /^Europe\/Madrid/);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
   // React resets a form after its action; the chosen zone must survive that, not snap back.
-  await expect(page.getByLabel("Timezone")).toHaveValue("Europe/Madrid");
+  await expect(page.getByLabel("Timezone")).toHaveText(/^Europe\/Madrid/);
 
   await page.reload();
   await expect(page.getByLabel("Display name")).toHaveValue("Renamed Physio");
   await expect(page.getByLabel("Handle")).toHaveValue(newHandle);
-  await expect(page.getByLabel("Timezone")).toHaveValue("Europe/Madrid");
+  await expect(page.getByLabel("Timezone")).toHaveText(/^Europe\/Madrid/);
   await page.goto("/settings?section=account");
   await expect(page.getByRole("main").getByText(physio.email)).toBeVisible();
 });

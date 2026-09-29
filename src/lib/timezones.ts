@@ -17,7 +17,7 @@ export function isValidTimeZone(value: string): boolean {
 
 export type TimeZoneOption = { value: string; label: string };
 
-/** Options for a timezone <select>: UTC first, then every zone, labelled "Europe/Madrid (GMT+1)". */
+/** Options for the timezone picker: UTC first, then every zone, labelled "Europe/Madrid (GMT+1)". */
 export function timeZoneOptions(now: Date = new Date()): TimeZoneOption[] {
   const zones = ["UTC", ...Intl.supportedValuesOf("timeZone").filter((zone) => zone !== "UTC")];
   return zones.map((zone) => ({
