@@ -203,6 +203,52 @@
     }
   },
   "Library": {
+    "title": "Biblioteca de ejercicios",
+    "form": {
+      "newTitle": "Nuevo ejercicio",
+      "name": "Nombre",
+      "category": "Categoría",
+      "uncategorised": "Sin categoría",
+      "subcategoryOption": "{parent} › {name}",
+      "instructions": "Instrucciones",
+      "instructionsHint": "Indicaciones y pasos. Se respetan los saltos de línea.",
+      "bodyAreas": "Zonas del cuerpo",
+      "tags": "Etiquetas",
+      "media": "Videos",
+      "create": "Crear ejercicio",
+      "save": "Guardar cambios",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "back": "Volver a la biblioteca",
+      "errors": {
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "categoryInvalid": "Esa categoría ya no existe. Elegí otra.",
+        "instructionsTooLong": "Usá como máximo {max, number} caracteres.",
+        "bodyAreasInvalid": "Elegí zonas de la lista.",
+        "tagTooLong": "Las etiquetas pueden tener hasta {max, number} caracteres.",
+        "tooManyTags": "Usá como máximo {max, number} etiquetas.",
+        "tooManyMedia": "Agregá como máximo {max, number} videos.",
+        "mediaInvalid": "Cada video tiene que ser un link de YouTube distinto.",
+        "invalid": "Revisá este campo.",
+        "notFound": "Este ejercicio ya no existe.",
+        "unknown": "Algo salió mal. Probá de nuevo."
+      }
+    },
+    "detail": {
+      "archive": "Archivar",
+      "restore": "Restaurar",
+      "delete": "Eliminar",
+      "archivedNotice": "Este ejercicio está archivado: no aparece en la biblioteca ni en los selectores, pero las rutinas que lo usan siguen funcionando.",
+      "deleteTitle": "¿Eliminar este ejercicio?",
+      "deleteBody": "Se van a borrar “{name}” y sus videos. No se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirmDelete": "Eliminar ejercicio",
+      "errors": {
+        "notFound": "Este ejercicio ya no existe.",
+        "unknown": "Algo salió mal. Probá de nuevo."
+      }
+    },
     "media": {
       "label": "Link de YouTube",
       "placeholder": "https://youtube.com/shorts/…",

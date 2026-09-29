@@ -203,6 +203,52 @@
     }
   },
   "Library": {
+    "title": "Exercise library",
+    "form": {
+      "newTitle": "New exercise",
+      "name": "Name",
+      "category": "Category",
+      "uncategorised": "Uncategorised",
+      "subcategoryOption": "{parent} › {name}",
+      "instructions": "Instructions",
+      "instructionsHint": "Cues and steps. Line breaks are kept.",
+      "bodyAreas": "Body areas",
+      "tags": "Tags",
+      "media": "Videos",
+      "create": "Create exercise",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "back": "Back to library",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "categoryInvalid": "That category no longer exists. Choose another one.",
+        "instructionsTooLong": "Use at most {max, number} characters.",
+        "bodyAreasInvalid": "Choose body areas from the list.",
+        "tagTooLong": "Tags can have at most {max, number} characters.",
+        "tooManyTags": "Use at most {max, number} tags.",
+        "tooManyMedia": "Add at most {max, number} videos.",
+        "mediaInvalid": "Each video must be a different YouTube link.",
+        "invalid": "Check this field.",
+        "notFound": "This exercise no longer exists.",
+        "unknown": "Something went wrong. Try again."
+      }
+    },
+    "detail": {
+      "archive": "Archive",
+      "restore": "Restore",
+      "delete": "Delete",
+      "archivedNotice": "This exercise is archived: it's hidden from the library and from pickers, but routines that use it keep working.",
+      "deleteTitle": "Delete this exercise?",
+      "deleteBody": "“{name}” and its videos will be removed. This can't be undone.",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete exercise",
+      "errors": {
+        "notFound": "This exercise no longer exists.",
+        "unknown": "Something went wrong. Try again."
+      }
+    },
     "media": {
       "label": "YouTube link",
       "placeholder": "https://youtube.com/shorts/…",

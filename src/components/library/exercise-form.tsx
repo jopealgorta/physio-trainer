@@ -1,0 +1,207 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { startTransition, useActionState, useId, type FormEvent } from "react";
+
+import { BodyAreaPicker } from "@/components/body-areas/body-area-picker";
+import { PrescriptionFields } from "@/components/prescription/prescription-fields";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { BodyArea } from "@/lib/body-areas";
+import type { CategoryNode } from "@/lib/category-tree";
+import { EXERCISE_NAME_MAX_LENGTH, INSTRUCTIONS_MAX_LENGTH, MAX_MEDIA } from "@/lib/library-limits";
+import { PRESCRIPTION_FIELDS, type Prescription } from "@/lib/prescription";
+import { MAX_TAG_LENGTH, MAX_TAGS } from "@/lib/tags";
+import type { ExerciseFieldErrors, ExerciseFormState } from "@/server/library/schemas";
+
+import { CategorySelect } from "./category-select";
+import { MediaListEditor } from "./media-list-editor";
+import { TagInput } from "./tag-input";
+
+export type ExerciseFormValues = {
+  id?: string;
+  name: string;
+  categoryId: string | null;
+  instructions: string | null;
+  bodyAreas: BodyArea[];
+  tags: string[];
+  mediaUrls: string[];
+  prescription: Prescription;
+};
+
+const initialState: ExerciseFormState = { status: "idle" };
+
+const FORM_ERROR_CODES = [
+  "nameRequired",
+  "nameTooLong",
+  "categoryInvalid",
+  "instructionsTooLong",
+  "bodyAreasInvalid",
+  "tagTooLong",
+  "tooManyTags",
+  "tooManyMedia",
+  "mediaInvalid",
+  "invalid",
+] as const;
+
+type FieldWithMessage = "name" | "categoryId" | "instructions" | "bodyAreas" | "tags" | "media";
+
+const MAX_BY_FIELD: Record<FieldWithMessage, number> = {
+  categoryId: 0,
+  bodyAreas: 0,
+  name: EXERCISE_NAME_MAX_LENGTH,
+  instructions: INSTRUCTIONS_MAX_LENGTH,
+  tags: MAX_TAG_LENGTH,
+  media: MAX_MEDIA,
+};
+
+export function ExerciseForm({
+  action,
+  defaults,
+  categories,
+  tagSuggestions,
+}: {
+  action: (state: ExerciseFormState, formData: FormData) => Promise<ExerciseFormState>;
+  defaults: ExerciseFormValues;
+  categories: CategoryNode[];
+  tagSuggestions: string[];
+}) {
+  const t = useTranslations("Library.form");
+  const [state, formAction, pending] = useActionState(action, initialState);
+  const id = useId();
+  const editing = defaults.id !== undefined;
+
+  const errors: ExerciseFieldErrors = state.status === "error" ? state.fieldErrors : {};
+  const prescriptionErrors = Object.fromEntries(
+    PRESCRIPTION_FIELDS.flatMap((field) => (errors[field] ? [[field, errors[field]]] : [])),
+  ) as Partial<Record<keyof Prescription, string>>;
+
+  const message = (field: FieldWithMessage) => {
+    const code = errors[field];
+    if (!code) return null;
+    const known = FORM_ERROR_CODES.find((candidate) => candidate === code) ?? "invalid";
+    const max = field === "tags" && code === "tooManyTags" ? MAX_TAGS : MAX_BY_FIELD[field];
+    return t(`errors.${known}`, { max });
+  };
+  const errorId = (field: string) => `${id}-${field}-error`;
+  const errorText = (field: FieldWithMessage) => {
+    const text = message(field);
+    return text ? (
+      <p id={errorId(field)} className="text-destructive text-sm">
+        {text}
+      </p>
+    ) : null;
+  };
+
+  // React resets a form after its `action` resolves, wiping typed values. Dispatching from
+  // onSubmit skips that reset; `action` stays for submits before hydration.
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
+  return (
+    <form action={formAction} onSubmit={onSubmit} noValidate className="grid gap-8">
+      {editing ? <input type="hidden" name="id" value={defaults.id} /> : null}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid content-start gap-6">
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-name`}>{t("name")}</Label>
+            <Input
+              id={`${id}-name`}
+              name="name"
+              defaultValue={defaults.name}
+              maxLength={EXERCISE_NAME_MAX_LENGTH}
+              required
+              aria-invalid={errors.name !== undefined}
+              aria-describedby={errors.name ? errorId("name") : undefined}
+            />
+            {errorText("name")}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-category`}>{t("category")}</Label>
+            <CategorySelect
+              id={`${id}-category`}
+              name="categoryId"
+              categories={categories}
+              defaultValue={defaults.categoryId}
+              invalid={errors.categoryId !== undefined}
+              describedBy={errors.categoryId ? errorId("categoryId") : undefined}
+            />
+            {errorText("categoryId")}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-instructions`}>{t("instructions")}</Label>
+            <Textarea
+              id={`${id}-instructions`}
+              name="instructions"
+              rows={6}
+              defaultValue={defaults.instructions ?? ""}
+              maxLength={INSTRUCTIONS_MAX_LENGTH}
+              aria-invalid={errors.instructions !== undefined}
+              aria-describedby={`${id}-instructions-hint${errors.instructions ? ` ${errorId("instructions")}` : ""}`}
+            />
+            <p id={`${id}-instructions-hint`} className="text-muted-foreground text-sm">
+              {t("instructionsHint")}
+            </p>
+            {errorText("instructions")}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-tags`}>{t("tags")}</Label>
+            <TagInput
+              id={`${id}-tags`}
+              defaultValue={defaults.tags}
+              suggestions={tagSuggestions}
+              describedBy={errors.tags ? errorId("tags") : undefined}
+            />
+            {errorText("tags")}
+          </div>
+        </div>
+
+        <div className="grid content-start gap-2">
+          <div className="w-full max-w-80">
+            <BodyAreaPicker
+              mode="multi"
+              name="bodyAreas"
+              label={t("bodyAreas")}
+              defaultValue={defaults.bodyAreas}
+            />
+          </div>
+          {errorText("bodyAreas")}
+        </div>
+      </div>
+
+      <PrescriptionFields defaultValue={defaults.prescription} errors={prescriptionErrors} />
+
+      <section className="grid gap-3">
+        <h2 className="text-base font-medium">{t("media")}</h2>
+        <MediaListEditor defaultValue={defaults.mediaUrls} title={defaults.name || t("newTitle")} />
+        {errorText("media")}
+      </section>
+
+      {state.status === "error" && state.formError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{t(`errors.${state.formError}`)}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={pending}>
+          {pending ? t("saving") : t(editing ? "save" : "create")}
+        </Button>
+        {state.status === "saved" && !pending ? (
+          <p role="status" className="text-muted-foreground text-sm">
+            {t("saved")}
+          </p>
+        ) : null}
+      </div>
+    </form>
+  );
+}
