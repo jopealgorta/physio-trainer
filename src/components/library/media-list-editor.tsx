@@ -105,11 +105,11 @@ export function MediaListEditor({
           items={items}
           onReorder={setItems}
           label={(item) => t("itemLabel", { position: items.indexOf(item) + 1 })}
-          className="grid gap-2"
+          className="grid grid-cols-1 gap-2"
           renderItem={(item, handle) => {
             const position = items.indexOf(item) + 1;
             return (
-              <div className="bg-card grid gap-2 rounded-lg border p-2">
+              <div className="bg-card grid min-w-0 grid-cols-1 gap-2 rounded-lg border p-2">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
