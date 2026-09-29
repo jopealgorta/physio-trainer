@@ -119,7 +119,9 @@ Namespaces `Customers`, `Cases`. Dates formatted with the physio's locale.
 ## Open questions
 
 1. Any other customer fields you always record (e.g. referring doctor, insurance, ID number)?
+   **Answer:** none; ship the columns above only.
 2. Should customers get a colour/avatar, or keep it minimal with initials?
+   **Answer:** minimal: initials in a neutral circle, no stored colour.
 
 ## Decisions made during implementation
 
