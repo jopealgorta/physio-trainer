@@ -40,9 +40,11 @@ describe("customers and cases tables", () => {
   it.each([
     ["customers", customers],
     ["cases", cases],
-  ] as const)("RLS hides %s rows from other physios", async (_name, table) => {
+  ] as const)("RLS hides %s rows from other physios", async (name, table) => {
     expect(await runAsPhysio(b.claims, (tx) => tx.select().from(table))).toEqual([]);
-    expect((await runAsPhysio(a.claims, (tx) => tx.select().from(table))).length).toBe(1);
+    const seeded = { customers: aCustomer, cases: aCase }[name];
+    const visibleToA = await runAsPhysio(a.claims, (tx) => tx.select({ id: table.id }).from(table));
+    expect(visibleToA.map((row) => row.id)).toContain(seeded);
   });
 
   it("RLS blocks updates and deletes of another physio's rows", async () => {
@@ -71,6 +73,52 @@ describe("customers and cases tables", () => {
         tx.insert(customers).values({ physioId: a.id, firstName: "Intruder", locale: "en" }),
       ),
     ).rejects.toMatchObject(rejectsWith("42501"));
+  });
+
+  it("RLS blocks inserting a case owned by someone else", async () => {
+    // Physio B's own customer, but the case claims A as its owner.
+    const bCustomer = await runAsPhysio(b.claims, async (tx, physioId) => {
+      const [row] = await tx
+        .insert(customers)
+        .values({ physioId, firstName: "Bea", locale: "en" })
+        .returning({ id: customers.id });
+      return row.id;
+    });
+    for (const customerId of [bCustomer, aCustomer]) {
+      await expect(
+        runAsPhysio(b.claims, (tx) =>
+          tx.insert(cases).values({ physioId: a.id, customerId, title: "Planted" }),
+        ),
+      ).rejects.toMatchObject(rejectsWith("42501"));
+    }
+    expect(await db.select().from(cases).where(eq(cases.title, "Planted"))).toEqual([]);
+  });
+
+  it("RLS blocks reassigning your own rows to another physio", async () => {
+    const { customerId, caseId } = await runAsPhysio(b.claims, async (tx, physioId) => {
+      const [customer] = await tx
+        .insert(customers)
+        .values({ physioId, firstName: "Mine", locale: "en" })
+        .returning({ id: customers.id });
+      const [kase] = await tx
+        .insert(cases)
+        .values({ physioId, customerId: customer.id, title: "Mine" })
+        .returning({ id: cases.id });
+      return { customerId: customer.id, caseId: kase.id };
+    });
+    await expect(
+      runAsPhysio(b.claims, (tx) =>
+        tx.update(customers).set({ physioId: a.id }).where(eq(customers.id, customerId)),
+      ),
+    ).rejects.toMatchObject(rejectsWith("42501"));
+    await expect(
+      runAsPhysio(b.claims, (tx) =>
+        tx.update(cases).set({ physioId: a.id }).where(eq(cases.id, caseId)),
+      ),
+    ).rejects.toMatchObject(rejectsWith("42501"));
+    const [customer] = await db.select().from(customers).where(eq(customers.id, customerId));
+    const [kase] = await db.select().from(cases).where(eq(cases.id, caseId));
+    expect([customer.physioId, kase.physioId]).toEqual([b.id, b.id]);
   });
 
   it("rejects a case pointing at another physio's customer", async () => {

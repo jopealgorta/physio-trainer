@@ -185,9 +185,17 @@ describe("customers server layer", () => {
       const result = await as(b, (tx, id) => listCustomers(tx, id, filters()));
       expect(result.customers.map((row) => row.id)).not.toContain(ana);
       expect(result.customers.map((row) => row.id)).not.toContain(jose);
-      // Even with RLS bypassed, the explicit physio filter keeps the lists apart.
-      const other = await as(b, (tx) => listCustomers(tx, p.id, filters()));
-      expect(other.customers).toEqual([]);
+      // RLS hides p's rows from b even when b's session asks for p's id.
+      const hidden = await as(b, (tx) => listCustomers(tx, p.id, filters()));
+      expect(hidden.customers).toEqual([]);
+      // The plain `db` connection is the table owner, so RLS is bypassed: only the explicit
+      // physio_id filter keeps b's list free of p's customers.
+      const viaOwner = await db.transaction((tx) => listCustomers(tx, b.id, filters()));
+      expect(viaOwner.customers.map((row) => row.id)).not.toContain(ana);
+      expect(viaOwner.customers.map((row) => row.id)).not.toContain(jose);
+      expect(await db.transaction((tx) => listCustomers(tx, p.id, filters()))).toMatchObject({
+        customers: expect.arrayContaining([expect.objectContaining({ id: ana })]),
+      });
     });
 
     it("searches accent- and case-insensitively across the full name", async () => {
@@ -291,8 +299,11 @@ describe("customers server layer", () => {
       const id = await customer(a, { firstName: "Private" });
       expect(await as(b, (tx, physioId) => getCustomer(tx, physioId, id))).toBeNull();
       expect(await as(a, (tx, physioId) => getCustomer(tx, physioId, RANDOM_ID))).toBeNull();
-      // explicit physio filter, even when the caller passes another physio's id
+      // RLS hides the row from b even when b's session asks with a's id.
       expect(await as(b, (tx) => getCustomer(tx, a.id, id))).toBeNull();
+      // Through the owner connection (RLS bypassed) only the explicit physio_id filter applies.
+      expect(await db.transaction((tx) => getCustomer(tx, b.id, id))).toBeNull();
+      expect(await db.transaction((tx) => getCustomer(tx, a.id, id))).toMatchObject({ id });
     });
   });
 
