@@ -1,6 +1,6 @@
 {
-  "id": "645310fd-5cbc-4244-843d-d77bb8b1ee85",
-  "prevId": "fc781e5f-fa4b-4198-a860-7d7ee54b0611",
+  "id": "0fe0db3e-ab81-4bb9-a170-701ed67dd01c",
+  "prevId": "f32c0931-0785-4574-9881-a19c4f6e18d8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -51,6 +51,49 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "clinic_name": {
+          "name": "clinic_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo_path": {
+          "name": "logo_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accent_color": {
+          "name": "accent_color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_email": {
+          "name": "contact_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_phone": {
+          "name": "contact_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "show_contact_to_patients": {
+          "name": "show_contact_to_patients",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -123,6 +166,30 @@
         "physios_display_name_length": {
           "name": "physios_display_name_length",
           "value": "char_length(\"physios\".\"display_name\") between 1 and 80"
+        },
+        "physios_clinic_name_length": {
+          "name": "physios_clinic_name_length",
+          "value": "char_length(\"physios\".\"clinic_name\") between 1 and 80"
+        },
+        "physios_accent_color_format": {
+          "name": "physios_accent_color_format",
+          "value": "\"physios\".\"accent_color\" ~ '^#[0-9a-f]{6}$'"
+        },
+        "physios_logo_path_own": {
+          "name": "physios_logo_path_own",
+          "value": "\"physios\".\"logo_path\" ~ ('^' || \"physios\".\"id\"::text || '/logo-[0-9a-f-]{36}\\.(png|webp|jpg)$')"
+        },
+        "physios_contact_email_length": {
+          "name": "physios_contact_email_length",
+          "value": "char_length(\"physios\".\"contact_email\") between 3 and 254"
+        },
+        "physios_contact_phone_format": {
+          "name": "physios_contact_phone_format",
+          "value": "\"physios\".\"contact_phone\" ~ '^\\+[0-9]{7,15}$'"
+        },
+        "physios_website_format": {
+          "name": "physios_website_format",
+          "value": "\"physios\".\"website\" ~ '^https://' and char_length(\"physios\".\"website\") <= 2048"
         }
       },
       "isRLSEnabled": false

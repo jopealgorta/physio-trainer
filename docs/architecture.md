@@ -104,6 +104,8 @@ These rules are the security model. Every spec must follow them.
 4. **Storage**: private buckets. Object paths start with `{physio_id}/`. Storage RLS policies
    check the first path segment against `auth.uid()`. Patients get short-lived signed URLs
    generated server-side after link resolution.
+   Exception: the public `branding` bucket (spec 09) holds physio logos only (no patient data);
+   its write and delete policies still check the first path segment against `auth.uid()`.
 5. **Secrets**: `SUPABASE_SECRET_KEY` and `DATABASE_URL` are server-only (`src/env.ts`
    `server` block). Never import `@/db` or `@/lib/supabase/server` from a Client Component
    (both import `server-only`).

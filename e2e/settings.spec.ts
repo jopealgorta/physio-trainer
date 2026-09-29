@@ -19,6 +19,7 @@ test("a physio updates their profile", async ({ physioPage: page, physio }) => {
   await expect(page.getByLabel("Display name")).toHaveValue("Renamed Physio");
   await expect(page.getByLabel("Handle")).toHaveValue(newHandle);
   await expect(page.getByLabel("Timezone")).toHaveValue("Europe/Madrid");
+  await page.goto("/settings?section=account");
   await expect(page.getByRole("main").getByText(physio.email)).toBeVisible();
 });
 
@@ -31,11 +32,26 @@ test("a physio signs out from the account menu", async ({ physioPage: page }) =>
 });
 
 test("after signing out, protected pages send you to login", async ({ physioPage: page }) => {
-  await page.goto("/settings");
+  await page.goto("/settings?section=account");
   await page.getByRole("button", { name: "Sign out" }).click();
   await page.waitForURL((url) => url.pathname === "/");
   await page.goto("/settings");
   await expect(page).toHaveURL(/\/login\?next=%2Fsettings$/);
+});
+
+test("settings sections are tabs driven by the URL", async ({ physioPage: page }) => {
+  await page.goto("/settings");
+  const tabs = page.getByRole("navigation", { name: "Settings sections" });
+  await expect(tabs.getByRole("link", { name: "Profile" })).toHaveAttribute("aria-current", "page");
+  await tabs.getByRole("link", { name: "Branding" }).click();
+  await expect(page).toHaveURL(/\/settings\?section=branding$/);
+  await expect(tabs.getByRole("link", { name: "Branding" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(page.getByText("How your clinic looks to patients")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByLabel("Display name")).toBeVisible();
 });
 
 test("the landing page offers the dashboard to signed-in physios", async ({ physioPage: page }) => {
