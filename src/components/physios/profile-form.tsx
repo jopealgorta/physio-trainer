@@ -15,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   HANDLE_MAX_LENGTH,
   handleFromName,
   handleProblem,
@@ -36,9 +43,6 @@ type HandleMessage = HandleProblem | "taken" | "available" | "checking";
 const initialState: ProfileFormState = { status: "idle" };
 const CHECK_DELAY_MS = 400;
 const PREVIEW_SLUG = "ana-7k2m9qpx";
-
-const selectClassName =
-  "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-[3px] md:text-sm";
 
 // The browser's zone is only known on the client; the server snapshot is null.
 const subscribeNever = () => () => {};
@@ -125,8 +129,8 @@ export function ProfileForm({
     if (derived) setHandle(derived);
   }
 
-  // React resets a form after its `action` resolves, which snaps controlled <select>s back to
-  // their first-render option while state keeps the new value. Dispatching from onSubmit skips
+  // React resets a form after its `action` resolves, which can snap controlled fields back to
+  // their first-render value while state keeps the new one. Dispatching from onSubmit skips
   // that reset; `action` stays for submits before hydration.
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -203,19 +207,21 @@ export function ProfileForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="locale">{t("language")}</Label>
-          <select
-            id="locale"
-            name="locale"
-            value={locale}
-            onChange={(event) => setLocale(event.target.value)}
-            className={selectClassName}
-          >
-            {languages.map((language) => (
-              <option key={language.value} value={language.value}>
-                {language.label}
-              </option>
-            ))}
-          </select>
+          <input type="hidden" name="locale" value={locale} />
+          <Select value={locale} onValueChange={(next) => next && setLocale(next)}>
+            <SelectTrigger id="locale" className="w-full">
+              <SelectValue>
+                {languages.find((language) => language.value === locale)?.label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {languages.map((language) => (
+                <SelectItem key={language.value} value={language.value}>
+                  {language.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.locale ? (
             <p role="alert" className="text-destructive text-sm">
               {t(`errors.${errors.locale}`)}
@@ -224,19 +230,23 @@ export function ProfileForm({
         </div>
         <div className="grid gap-2">
           <Label htmlFor="timezone">{t("timezone")}</Label>
-          <select
-            id="timezone"
-            name="timezone"
-            value={effectiveTimezone}
-            onChange={(event) => setTimezone(event.target.value)}
-            className={selectClassName}
-          >
-            {timeZoneChoices.map((zone) => (
-              <option key={zone.value} value={zone.value}>
-                {zone.label}
-              </option>
-            ))}
-          </select>
+          <input type="hidden" name="timezone" value={effectiveTimezone} />
+          {/* When the browser's zone replaces the server default, its option and the value arrive in
+              one commit; Radix's internal <select> then briefly reports "". A zone is never empty. */}
+          <Select value={effectiveTimezone} onValueChange={(zone) => zone && setTimezone(zone)}>
+            <SelectTrigger id="timezone" className="w-full">
+              <SelectValue>
+                {timeZoneChoices.find((zone) => zone.value === effectiveTimezone)?.label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {timeZoneChoices.map((zone) => (
+                <SelectItem key={zone.value} value={zone.value}>
+                  {zone.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.timezone ? (
             <p role="alert" className="text-destructive text-sm">
               {t(`errors.${errors.timezone}`)}

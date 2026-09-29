@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { chooseOption } from "./helpers/select";
 
 const SHORT = "https://youtube.com/shorts/dQw4w9WgXcQ?si=e2e";
 const VIDEO_A = "https://www.youtube.com/watch?v=aaaaaaaaaaa";
@@ -60,7 +61,7 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   // Exercise with category, area, tags, prescription and a YouTube Short.
   await page.getByRole("link", { name: "New exercise" }).first().click();
   await page.getByLabel("Name").fill("Single-leg bridge");
-  await page.getByLabel("Category").selectOption({ label: "Lower limb › Glutes" });
+  await chooseOption(page, page.getByLabel("Category"), "Lower limb › Glutes");
   await page.getByLabel("Instructions").fill("Push through the heel.\nHold at the top.");
   await page.getByRole("checkbox", { name: "Glute", exact: true }).check();
   await page.getByLabel("Tags").fill("Bodyweight");
@@ -89,9 +90,13 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await page.goto("/library");
   await expect(page.getByRole("link", { name: /Single-leg bridge/ })).toBeVisible();
   await openFilters(page, isMobile);
-  await page.getByLabel("Body area").filter({ visible: true }).selectOption({ label: "Knee" });
+  await chooseOption(page, page.getByLabel("Body area").filter({ visible: true }), "Knee");
   await expect(page).toHaveURL(/area=knee/);
-  if (isMobile) await page.keyboard.press("Escape"); // close the filters sheet
+  if (isMobile) {
+    // Escape would go to the still-closing Select popover, not the sheet.
+    await expect(page.getByRole("listbox")).toBeHidden();
+    await page.keyboard.press("Escape"); // close the filters sheet
+  }
   await expect(page.getByRole("heading", { name: "No exercises match" })).toBeVisible();
   await page.goto("/library?area=glute&tag=beginner");
   await expect(page.getByRole("link", { name: /Single-leg bridge/ })).toBeVisible();

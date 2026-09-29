@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
+import { chooseOption } from "@/test/select";
+
 import messages from "../../messages/en.json";
 
 import { LocaleSwitcher } from "./locale-switcher";
@@ -22,17 +24,19 @@ function renderSwitcher(setLocale = vi.fn(async () => ({ ok: true }))) {
 }
 
 describe("LocaleSwitcher", () => {
-  it("shows every language with the current one selected", () => {
+  it("shows every language with the current one selected", async () => {
+    const user = userEvent.setup();
     renderSwitcher();
     const select = screen.getByRole("combobox", { name: "Language" });
-    expect(select).toHaveValue("en");
-    expect(screen.getByRole("option", { name: "Español" })).toBeInTheDocument();
+    expect(select).toHaveTextContent("English");
+    await user.click(select);
+    expect(await screen.findByRole("option", { name: "Español" })).toBeInTheDocument();
   });
 
   it("asks the server to switch when a language is picked", async () => {
     const user = userEvent.setup();
     const setLocale = renderSwitcher();
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es");
+    await chooseOption(user, screen.getByRole("combobox", { name: "Language" }), "Español");
     await waitFor(() => expect(setLocale).toHaveBeenCalledWith("es"));
   });
 
@@ -43,11 +47,11 @@ describe("LocaleSwitcher", () => {
     const setLocale = vi.fn(() => new Promise<{ ok: boolean }>((r) => (resolve = r)));
     renderSwitcher(setLocale);
     const select = screen.getByRole("combobox", { name: "Language" });
-    await user.selectOptions(select, "es");
+    await chooseOption(user, select, "Español");
     await waitFor(() => expect(select).toHaveAttribute("aria-busy", "true"));
     expect(select).toBeEnabled();
     expect(select).toHaveFocus();
-    await user.selectOptions(select, "en");
+    await chooseOption(user, select, "English");
     expect(setLocale).toHaveBeenCalledTimes(1);
     resolve({ ok: true });
     await waitFor(() => expect(select).toHaveAttribute("aria-busy", "false"));
@@ -60,16 +64,10 @@ describe("LocaleSwitcher", () => {
       throw new Error("offline");
     });
     renderSwitcher(setLocale);
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es");
+    await chooseOption(user, screen.getByRole("combobox", { name: "Language" }), "Español");
     await waitFor(() => expect(setLocale).toHaveBeenCalled());
     await waitFor(() =>
-      expect(screen.getByRole("combobox", { name: "Language" })).toHaveValue("en"),
+      expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent("English"),
     );
-  });
-
-  // iOS Safari zooms into inputs whose text is smaller than 16px.
-  it("uses 16px text on small screens", () => {
-    renderSwitcher();
-    expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("text-base");
   });
 });

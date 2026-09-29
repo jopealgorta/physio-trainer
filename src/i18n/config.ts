@@ -64,7 +64,7 @@ export function pickLocale(sources: {
   return fromCookie ?? negotiateLocale(sources.acceptLanguage);
 }
 
-/** Language <select> options, each named in its own language ("English", "Español"). */
+/** Language picker options, each named in its own language ("English", "Español"). */
 export function languageOptions(): { value: Locale; label: string }[] {
   return locales.map((value) => {
     const name = new Intl.DisplayNames([value], { type: "language" }).of(value) ?? value;

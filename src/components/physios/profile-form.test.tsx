@@ -4,6 +4,8 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { chooseOption } from "@/test/select";
+
 import messages from "../../../messages/en.json";
 
 import { ProfileForm } from "./profile-form";
@@ -138,13 +140,13 @@ describe("ProfileForm", () => {
     const language = screen.getByLabelText("Language");
     const save = screen.getByRole("button", { name: "Save changes" });
 
-    await user.selectOptions(timezone, "Europe/Madrid");
-    await user.selectOptions(language, "es");
+    await chooseOption(user, timezone, "Europe/Madrid (GMT+1)");
+    await chooseOption(user, language, "Español");
     await user.click(save);
     expect(await screen.findByText("Saved")).toBeInTheDocument();
     expect(action).toHaveBeenCalledTimes(1);
-    expect(timezone).toHaveValue("Europe/Madrid");
-    expect(language).toHaveValue("es");
+    expect(timezone).toHaveTextContent("Europe/Madrid (GMT+1)");
+    expect(language).toHaveTextContent("Español");
 
     await user.click(save);
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
@@ -164,8 +166,8 @@ describe("ProfileForm", () => {
         timezone: "Asia/Ho_Chi_Minh",
       },
     });
-    expect(screen.getByLabelText("Timezone")).toHaveValue("Asia/Ho_Chi_Minh");
-    expect(screen.getByRole("option", { name: "Asia/Ho Chi Minh" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Timezone")).toHaveTextContent("Asia/Ho Chi Minh");
+    expect(document.querySelector('input[name="timezone"]')).toHaveValue("Asia/Ho_Chi_Minh");
   });
 
   it("defaults onboarding to the browser's zone even when it is missing from the options", () => {
@@ -177,7 +179,7 @@ describe("ProfileForm", () => {
       });
     try {
       renderForm();
-      expect(screen.getByLabelText("Timezone")).toHaveValue("Asia/Ho_Chi_Minh");
+      expect(screen.getByLabelText("Timezone")).toHaveTextContent("Asia/Ho Chi Minh");
     } finally {
       spy.mockRestore();
     }

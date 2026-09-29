@@ -1,8 +1,17 @@
+"use client";
+
 import { useTranslations } from "next-intl";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   LOAD_MAX_LENGTH,
@@ -11,9 +20,7 @@ import {
   PRESCRIPTION_SIDES,
   type Prescription,
 } from "@/lib/prescription";
-
-export const selectClassName =
-  "border-input bg-input/20 dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:border-destructive h-7 w-full rounded-md border px-2 text-sm outline-none focus-visible:ring-2";
+import { fromSelectValue, toSelectValue } from "@/lib/select-value";
 
 type NumberField = keyof typeof PRESCRIPTION_LIMITS;
 const NUMBER_FIELDS: NumberField[] = [
@@ -41,6 +48,7 @@ export function PrescriptionFields({
 }) {
   const t = useTranslations("Prescription");
   const id = useId();
+  const [side, setSide] = useState(defaultValue.side ?? "");
 
   const errorText = (name: keyof Prescription): string | null => {
     const code = errors[name];
@@ -111,18 +119,32 @@ export function PrescriptionFields({
         </div>
         <div className="grid content-start gap-2">
           <Label htmlFor={`${id}-side`}>{t("side")}</Label>
-          <select
-            {...field("side")}
-            defaultValue={defaultValue.side ?? ""}
-            className={selectClassName}
+          <input type="hidden" name="side" value={side} />
+          <Select
+            value={toSelectValue(side)}
+            onValueChange={(next) => next && setSide(fromSelectValue(next))}
           >
-            <option value="">{t("sideNone")}</option>
-            {PRESCRIPTION_SIDES.map((side) => (
-              <option key={side} value={side}>
-                {t(`sides.${side}`)}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              id={`${id}-side`}
+              aria-invalid={errors.side !== undefined}
+              aria-describedby={errors.side ? `${id}-side-error` : undefined}
+              className="w-full"
+            >
+              <SelectValue>
+                {PRESCRIPTION_SIDES.find((option) => option === side)
+                  ? t(`sides.${side as (typeof PRESCRIPTION_SIDES)[number]}`)
+                  : t("sideNone")}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent position="popper">
+              <SelectItem value={toSelectValue("")}>{t("sideNone")}</SelectItem>
+              {PRESCRIPTION_SIDES.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t(`sides.${option}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {message("side")}
         </div>
       </div>
