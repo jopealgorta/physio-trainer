@@ -272,6 +272,42 @@
       "remove": "Remove tag {tag}",
       "suggestions": "Existing tags",
       "limit": "Up to {max, number} tags."
+    },
+    "description": "Your private exercises, organised in categories.",
+    "newExercise": "New exercise",
+    "manageCategories": "Manage categories",
+    "empty": {
+      "title": "Build your exercise library",
+      "body": "Add exercises with instructions, YouTube videos and default sets and reps. Group them in categories (for example Lower limb → Glutes) and tag them to find them fast.",
+      "cta": "Create your first exercise"
+    },
+    "noResults": {
+      "title": "No exercises match",
+      "body": "Try another search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "results": "{count, plural, one {# exercise} other {# exercises}}",
+    "archivedBadge": "Archived",
+    "moreAreas": "+{count, number}",
+    "tree": {
+      "label": "Categories",
+      "all": "All exercises",
+      "uncategorised": "Uncategorised",
+      "archived": "Archived",
+      "toggle": "Sub-categories of {name}"
+    },
+    "filters": {
+      "search": "Search exercises",
+      "searchPlaceholder": "Search by name or tag",
+      "area": "Body area",
+      "allAreas": "All body areas",
+      "tag": "Tag",
+      "allTags": "All tags",
+      "open": "Filters",
+      "sheetDescription": "Narrow the library by category, body area or tag.",
+      "view": "View",
+      "grid": "Grid view",
+      "list": "List view"
     }
   }
 }

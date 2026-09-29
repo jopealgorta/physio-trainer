@@ -272,6 +272,42 @@
       "remove": "Quitar etiqueta {tag}",
       "suggestions": "Etiquetas existentes",
       "limit": "Hasta {max, number} etiquetas."
+    },
+    "description": "Tus ejercicios privados, organizados en categorías.",
+    "newExercise": "Nuevo ejercicio",
+    "manageCategories": "Administrar categorías",
+    "empty": {
+      "title": "Armá tu biblioteca de ejercicios",
+      "body": "Agregá ejercicios con instrucciones, videos de YouTube y series y repeticiones por defecto. Agrupalos en categorías (por ejemplo Miembro inferior → Glúteos) y etiquetalos para encontrarlos rápido.",
+      "cta": "Creá tu primer ejercicio"
+    },
+    "noResults": {
+      "title": "Ningún ejercicio coincide",
+      "body": "Probá con otra búsqueda o quitá los filtros.",
+      "clear": "Quitar filtros"
+    },
+    "results": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+    "archivedBadge": "Archivado",
+    "moreAreas": "+{count, number}",
+    "tree": {
+      "label": "Categorías",
+      "all": "Todos los ejercicios",
+      "uncategorised": "Sin categoría",
+      "archived": "Archivados",
+      "toggle": "Subcategorías de {name}"
+    },
+    "filters": {
+      "search": "Buscar ejercicios",
+      "searchPlaceholder": "Buscá por nombre o etiqueta",
+      "area": "Zona del cuerpo",
+      "allAreas": "Todas las zonas",
+      "tag": "Etiqueta",
+      "allTags": "Todas las etiquetas",
+      "open": "Filtros",
+      "sheetDescription": "Filtrá la biblioteca por categoría, zona del cuerpo o etiqueta.",
+      "view": "Vista",
+      "grid": "Vista de cuadrícula",
+      "list": "Vista de lista"
     }
   }
 }
