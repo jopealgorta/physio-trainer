@@ -7,7 +7,8 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Only PR runs are superseded: cancelling a push run could kill a production migration midway.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Shared, non-secret local values. Jobs that need Supabase start it and export its keys.
@@ -85,3 +86,31 @@ jobs:
                      -e 's/^SECRET_KEY=/SUPABASE_SECRET_KEY=/p' \
             | tr -d '"' >> "$GITHUB_ENV"
       - run: pnpm test:int
+
+  migrate:
+    name: Apply migrations to production
+    if: github.event_name == 'push'
+    needs: [check, e2e, integration]
+    runs-on: ubuntu-latest
+    environment: production
+    # Never two migrations at once. `db push` applies every pending migration in the checkout,
+    # so a run dropped from the queue is covered by the next one.
+    concurrency:
+      group: migrate-production
+      cancel-in-progress: false
+    env:
+      # Session pooler URL (port 5432): GitHub runners have no IPv6 and the transaction pooler
+      # (6543) breaks migrations. Percent-encode the password.
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pending migrations
+        run: pnpm exec supabase db push --dry-run --skip-vault --db-url "$SUPABASE_DB_URL"
+      - name: Apply
+        run: pnpm exec supabase --yes db push --skip-vault --db-url "$SUPABASE_DB_URL"

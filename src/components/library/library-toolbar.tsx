@@ -6,9 +6,16 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { selectClassName } from "@/components/prescription/prescription-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -19,6 +26,7 @@ import {
 } from "@/components/ui/sheet";
 import { BODY_AREAS, bodyAreaSchema } from "@/lib/body-areas";
 import { libraryHref, SEARCH_MAX_LENGTH, type LibraryFilters } from "@/lib/library-params";
+import { fromSelectValue, toSelectValue } from "@/lib/select-value";
 import { cn } from "@/lib/utils";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -41,43 +49,56 @@ function FilterSelects({
   return (
     <>
       <div className="grid gap-1 md:w-44">
-        <label htmlFor={`${idPrefix}-area`} className="text-muted-foreground text-xs">
+        <Label htmlFor={`${idPrefix}-area`} className="text-muted-foreground">
           {t("area")}
-        </label>
-        <select
-          id={`${idPrefix}-area`}
-          className={selectClassName}
-          value={filters.area ?? ""}
-          onChange={(event) => {
-            const area = bodyAreaSchema.safeParse(event.target.value);
+        </Label>
+        <Select
+          value={toSelectValue(filters.area ?? "")}
+          onValueChange={(value) => {
+            // "" only comes from Radix's internal <select>, never from a choice (see select-value).
+            if (value === "") return;
+            const area = bodyAreaSchema.safeParse(fromSelectValue(value));
             onChange({ area: area.success ? area.data : null });
           }}
         >
-          <option value="">{t("allAreas")}</option>
-          {BODY_AREAS.map((area) => (
-            <option key={area} value={area}>
-              {tAreas(area)}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id={`${idPrefix}-area`} className="w-full">
+            <SelectValue>{filters.area ? tAreas(filters.area) : t("allAreas")}</SelectValue>
+          </SelectTrigger>
+          <SelectContent position="popper">
+            <SelectItem value={toSelectValue("")}>{t("allAreas")}</SelectItem>
+            {BODY_AREAS.map((area) => (
+              <SelectItem key={area} value={area}>
+                {tAreas(area)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-1 md:w-44">
-        <label htmlFor={`${idPrefix}-tag`} className="text-muted-foreground text-xs">
+        <Label htmlFor={`${idPrefix}-tag`} className="text-muted-foreground">
           {t("tag")}
-        </label>
-        <select
-          id={`${idPrefix}-tag`}
-          className={selectClassName}
-          value={filters.tag ?? ""}
-          onChange={(event) => onChange({ tag: event.target.value || null })}
+        </Label>
+        <Select
+          value={toSelectValue(filters.tag ?? "")}
+          onValueChange={(value) => {
+            // A tag from the URL that no exercise has is added to the options in the same commit
+            // as the value; Radix's internal <select> then briefly reports "".
+            if (value === "") return;
+            onChange({ tag: fromSelectValue(value) || null });
+          }}
         >
-          <option value="">{t("allTags")}</option>
-          {tagOptions.map((tag) => (
-            <option key={tag} value={tag}>
-              {tag}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id={`${idPrefix}-tag`} className="w-full">
+            <SelectValue>{filters.tag ?? t("allTags")}</SelectValue>
+          </SelectTrigger>
+          <SelectContent position="popper">
+            <SelectItem value={toSelectValue("")}>{t("allTags")}</SelectItem>
+            {tagOptions.map((tag) => (
+              <SelectItem key={tag} value={tag}>
+                {tag}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </>
   );

@@ -3,6 +3,13 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useOptimistic, useTransition } from "react";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /** Language picker for signed-out pages. Signed-in physios change language in Settings. */
@@ -21,14 +28,10 @@ export function LocaleSwitcher({
   const [pending, startTransition] = useTransition();
 
   return (
-    <select
-      aria-label={t("label")}
+    <Select
       value={shown}
-      // Busy, not disabled: disabling a focused control drops keyboard focus to <body>.
-      aria-busy={pending}
-      onChange={(event) => {
-        if (pending) return;
-        const next = event.target.value;
+      onValueChange={(next) => {
+        if (pending || !next) return;
         startTransition(async () => {
           setShown(next);
           try {
@@ -38,16 +41,22 @@ export function LocaleSwitcher({
           }
         });
       }}
-      className={cn(
-        "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 rounded-md border bg-transparent px-2 text-base outline-none focus-visible:ring-[3px] aria-busy:opacity-70 md:text-sm",
-        className,
-      )}
     >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+      {/* Busy, not disabled: disabling a focused control drops keyboard focus to <body>. */}
+      <SelectTrigger
+        aria-label={t("label")}
+        aria-busy={pending}
+        className={cn("aria-busy:opacity-70", className)}
+      >
+        <SelectValue>{options.find((option) => option.value === shown)?.label}</SelectValue>
+      </SelectTrigger>
+      <SelectContent position="popper">
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

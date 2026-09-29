@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CategoryNode } from "@/lib/category-tree";
 import { EMPTY_PRESCRIPTION } from "@/lib/prescription";
 import type { ExerciseFormState } from "@/server/library/schemas";
+import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
 
@@ -71,14 +72,17 @@ describe("ExerciseForm", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("Bridge");
   });
 
-  it("groups categories with their sub-categories", () => {
+  it("groups categories with their sub-categories", async () => {
+    const user = userEvent.setup();
     setup(idleAction());
     const select = screen.getByLabelText("Category");
-    const options = within(select).getAllByRole("option");
-    expect(options[0]).toHaveTextContent("Uncategorised");
-    expect(within(select).getByRole("group", { name: "Lower limb" })).toBeInTheDocument();
-    expect(within(select).getByRole("option", { name: "Lower limb › Glutes" })).toBeInTheDocument();
-    expect(within(select).getByRole("group", { name: "Upper limb" })).toBeInTheDocument();
+    expect(select).toHaveTextContent("Uncategorised");
+    await user.click(select);
+    const list = await screen.findByRole("listbox");
+    expect(within(list).getAllByRole("option")[0]).toHaveTextContent("Uncategorised");
+    expect(within(list).getByRole("group", { name: "Lower limb" })).toBeInTheDocument();
+    expect(within(list).getByRole("option", { name: "Lower limb › Glutes" })).toBeInTheDocument();
+    expect(within(list).getByRole("group", { name: "Upper limb" })).toBeInTheDocument();
   });
 
   it("submits the form data to the action", async () => {
@@ -86,7 +90,7 @@ describe("ExerciseForm", () => {
     const action = idleAction();
     setup(action, { bodyAreas: ["knee"] });
     await user.type(screen.getByLabelText("Name"), "Bridge");
-    await user.selectOptions(screen.getByLabelText("Category"), "c2");
+    await chooseOption(user, screen.getByLabelText("Category"), "Lower limb › Glutes");
     await user.type(screen.getByLabelText("Sets"), "3");
     await user.type(screen.getByLabelText("Tags"), "band{Enter}");
     await user.type(screen.getByLabelText("YouTube link"), "https://youtu.be/dQw4w9WgXcQ{Enter}");
@@ -101,6 +105,23 @@ describe("ExerciseForm", () => {
     expect(formData.get("sets")).toBe("3");
   });
 
+  it("submits an empty category for Uncategorised", async () => {
+    const user = userEvent.setup();
+    const action = idleAction();
+    setup(action);
+    await user.type(screen.getByLabelText("Name"), "Bridge");
+    await user.click(screen.getByRole("button", { name: "Create exercise" }));
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    const formData = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
+    expect(formData.get("categoryId")).toBe("");
+  });
+
+  it("shows Uncategorised when the saved category no longer exists", () => {
+    setup(idleAction(), { categoryId: "gone" });
+    expect(screen.getByLabelText("Category")).toHaveTextContent("Uncategorised");
+    expect(document.querySelector('input[name="categoryId"]')).toHaveValue("");
+  });
+
   it("shows field errors and keeps what was typed", async () => {
     const user = userEvent.setup();
     const action = vi.fn(async (): Promise<ExerciseFormState> => ({
@@ -109,7 +130,7 @@ describe("ExerciseForm", () => {
     }));
     setup(action);
     await user.type(screen.getByLabelText("Name"), "Bridge");
-    await user.selectOptions(screen.getByLabelText("Category"), "c3");
+    await chooseOption(user, screen.getByLabelText("Category"), "Upper limb");
     await user.type(screen.getByLabelText("Reps"), "5000");
     await user.click(screen.getByRole("button", { name: "Create exercise" }));
 
@@ -120,7 +141,7 @@ describe("ExerciseForm", () => {
     expect(screen.getByLabelText("Reps")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("Name")).toHaveValue("Bridge");
     expect(screen.getByLabelText("Reps")).toHaveValue("5000");
-    expect(screen.getByLabelText("Category")).toHaveValue("c3");
+    expect(screen.getByLabelText("Category")).toHaveTextContent("Upper limb");
   });
 
   it("announces a successful save", async () => {

@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_LIBRARY_FILTERS, type LibraryFilters } from "@/lib/library-params";
+import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
 import { LibraryToolbar } from "./library-toolbar";
@@ -20,12 +21,14 @@ function ui(filters: Partial<LibraryFilters> = {}) {
     </NextIntlClientProvider>
   );
 }
+const fakeTimerUser = () => userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 function setup(filters: Partial<LibraryFilters> = {}) {
   return render(ui(filters));
 }
 
 beforeEach(() => {
-  vi.useFakeTimers();
+  // shouldAdvanceTime lets waitFor poll while the Select popover opens.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   replace.mockClear();
 });
 afterEach(() => vi.useRealTimers());
@@ -62,18 +65,27 @@ describe("LibraryToolbar", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("filters by body area immediately", () => {
+  it("filters by body area immediately", async () => {
+    const user = fakeTimerUser();
     setup();
-    fireEvent.change(screen.getByRole("combobox", { name: "Body area" }), {
-      target: { value: "knee" },
-    });
+    await chooseOption(user, screen.getByRole("combobox", { name: "Body area" }), "Knee");
     expect(replace).toHaveBeenCalledWith("/library?area=knee", { scroll: false });
   });
 
-  it("clears the tag with All tags", () => {
+  it("clears the tag with All tags", async () => {
+    const user = fakeTimerUser();
     setup({ tag: "band" });
-    fireEvent.change(screen.getByRole("combobox", { name: "Tag" }), { target: { value: "" } });
+    await chooseOption(user, screen.getByRole("combobox", { name: "Tag" }), "All tags");
     expect(replace).toHaveBeenCalledWith("/library", { scroll: false });
+  });
+
+  // Radix's internal <select> reports "" when the value changes in the same commit as its option
+  // is added (a tag from the URL that no exercise has). That must not clear the filter.
+  it("keeps a tag from the URL that is not in the list when navigating back to it", () => {
+    const { rerender } = setup();
+    rerender(ui({ tag: "not-in-list" }));
+    expect(screen.getByRole("combobox", { name: "Tag" })).toHaveTextContent("not-in-list");
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("links the views and marks the active one", () => {
@@ -127,14 +139,17 @@ describe("LibraryToolbar", () => {
     expect(replace).toHaveBeenCalledWith("/library?q=hip&category=none", { scroll: false });
   });
 
-  it("a filter change during a pending search keeps the typed text", () => {
+  it("a filter change during a pending search keeps the typed text", async () => {
+    const user = fakeTimerUser();
     setup();
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search exercises" }), {
+    // Open the popover first so only a click sits inside the 300ms debounce window.
+    await user.click(screen.getByRole("combobox", { name: "Body area" }));
+    const knee = await screen.findByRole("option", { name: "Knee" });
+    // The open popover marks the rest of the page aria-hidden.
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search exercises", hidden: true }), {
       target: { value: "hip" },
     });
-    fireEvent.change(screen.getByRole("combobox", { name: "Body area" }), {
-      target: { value: "knee" },
-    });
+    await user.click(knee);
     expect(replace).toHaveBeenCalledWith("/library?q=hip&area=knee", { scroll: false });
     act(() => void vi.advanceTimersByTime(500));
     expect(replace).toHaveBeenCalledTimes(1);

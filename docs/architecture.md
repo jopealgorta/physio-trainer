@@ -172,6 +172,10 @@ erDiagram
 - Ordered children use `position integer not null`; reorders rewrite positions in one transaction.
 - Enums are Postgres enums defined in Drizzle (`pgEnum`) and mirrored as TS unions.
 - Drizzle `casing: "snake_case"`: write camelCase in TS, get snake_case in SQL.
+- Migrations reach production from CI on every push to `main` (the `migrate` job), while Vercel
+  deploys the same commit in parallel, so either can land first. Keep every migration
+  backwards-compatible with the previous app version (expand, then contract): add nullable
+  columns/new tables first, and drop or rename in a later PR once no deployed code uses them.
 
 ### Prescription fields (shared by `exercises` defaults and `routine_items`)
 
