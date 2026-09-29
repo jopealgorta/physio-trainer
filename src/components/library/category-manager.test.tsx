@@ -21,6 +21,31 @@ vi.mock("@/server/library/actions", () => ({
   deleteCategoryAction: (...args: unknown[]) => remove(...args),
 }));
 
+vi.mock("@/components/sortable/sortable-list", () => ({
+  SortableList: ({
+    items,
+    onReorder,
+    label,
+    renderItem,
+  }: {
+    items: { key: string }[];
+    onReorder: (items: { key: string }[]) => void;
+    label: (item: never) => string;
+    renderItem: (item: never, handle: object) => React.ReactNode;
+  }) => (
+    <div>
+      <button type="button" onClick={() => onReorder([...items].reverse())}>
+        {`reverse ${label(items[0] as never)}`}
+      </button>
+      <ul>
+        {items.map((item) => (
+          <li key={item.key}>{renderItem(item as never, {})}</li>
+        ))}
+      </ul>
+    </div>
+  ),
+}));
+
 import { CategoryManager } from "./category-manager";
 
 const tree: CategoryNode[] = [
@@ -131,5 +156,135 @@ describe("CategoryManager", () => {
       screen.queryByRole("button", { name: "Add sub-category to Glutes" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rename Glutes" })).toBeInTheDocument();
+  });
+
+  it("reorders top-level categories", async () => {
+    const two: CategoryNode[] = [
+      ...tree,
+      { id: "c9", name: "Upper limb", position: 1, activeCount: 0, totalCount: 0, children: [] },
+    ];
+    const user = await open(two);
+    await user.click(screen.getByRole("button", { name: "reverse Lower limb" }));
+    await waitFor(() =>
+      expect(reorder).toHaveBeenCalledWith({ parentId: null, orderedIds: ["c9", "c1"] }),
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+  });
+
+  it("reorders sub-categories within their parent", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "reverse Glutes" }));
+    await waitFor(() =>
+      expect(reorder).toHaveBeenCalledWith({ parentId: "c1", orderedIds: ["c3", "c2"] }),
+    );
+  });
+
+  it("restores the order and shows an error when reordering fails", async () => {
+    reorder.mockResolvedValue({ ok: false, error: "notFound" });
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "reverse Glutes" }));
+    expect(await screen.findByText("This category no longer exists.")).toBeInTheDocument();
+    const names = screen.getAllByText(/^(Glutes|Knee)$/).map((node) => node.textContent);
+    expect(names).toEqual(["Glutes", "Knee"]);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("shows an error when deleting fails", async () => {
+    remove.mockResolvedValue({ ok: false, error: "notFound" });
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Delete Lower limb" }));
+    await user.click(screen.getByRole("button", { name: "Delete category" }));
+    expect(await screen.findByText("This category no longer exists.")).toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("maps tooDeep and parentNotFound errors", async () => {
+    create.mockResolvedValue({ ok: false, error: "tooDeep" });
+    const user = await open([]);
+    await user.type(screen.getByRole("textbox", { name: "Category name" }), "x{Enter}");
+    expect(
+      await screen.findByText("Sub-categories can't have sub-categories."),
+    ).toBeInTheDocument();
+    create.mockResolvedValue({ ok: false, error: "parentNotFound" });
+    await user.type(screen.getByRole("textbox", { name: "Category name" }), "{Enter}");
+    expect(await screen.findByText("This category no longer exists.")).toBeInTheDocument();
+  });
+
+  it("shows the sub-category error next to its own input", async () => {
+    create.mockResolvedValue({ ok: false, error: "nameTaken" });
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Add sub-category to Lower limb" }));
+    await user.keyboard("Glutes{Enter}");
+    const alert = await screen.findByText("There's already a category with this name here.");
+    const form = alert.closest("form")!;
+    expect(within(form).getByRole("textbox", { name: "Category name" })).toHaveValue("Glutes");
+  });
+
+  it("returns focus to the Rename button after renaming or cancelling", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Rename Lower limb" }));
+    await user.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Rename Lower limb" })).toHaveFocus(),
+    );
+    await user.click(screen.getByRole("button", { name: "Rename Lower limb" }));
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Rename Lower limb" })).toHaveFocus(),
+    );
+  });
+
+  it("returns focus to the Add sub-category button after adding", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Add sub-category to Lower limb" }));
+    await user.keyboard("Hip{Enter}");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add sub-category to Lower limb" })).toHaveFocus(),
+    );
+  });
+
+  it("keeps focus inside the dialog after deleting", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Delete Lower limb" }));
+    await user.click(screen.getByRole("button", { name: "Delete category" }));
+    await waitFor(() => expect(remove).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole("dialog", { name: "Categories" })).toContainElement(
+        document.activeElement as HTMLElement,
+      ),
+    );
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it("Escape on the inline Save or Cancel button cancels only the inline edit", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Rename Lower limb" }));
+    screen.getByRole("button", { name: "Save" }).focus();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: "Categories" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rename Lower limb" })).toBeInTheDocument();
+    expect(rename).not.toHaveBeenCalled();
+  });
+
+  it("clears a stale notice after a successful action", async () => {
+    remove.mockResolvedValueOnce({ ok: false, error: "notFound" });
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Delete Lower limb" }));
+    await user.click(screen.getByRole("button", { name: "Delete category" }));
+    expect(await screen.findByText("This category no longer exists.")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "Category name" }), "Core{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByText("This category no longer exists.")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("resets inline edits and typed text when the dialog closes", async () => {
+    const user = await open();
+    await user.type(screen.getByRole("textbox", { name: "Category name" }), "draft");
+    await user.click(screen.getByRole("button", { name: "Rename Lower limb" }));
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    await user.click(screen.getByRole("button", { name: "Manage categories" }));
+    expect(screen.getByRole("textbox", { name: "Category name" })).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Rename Lower limb" })).toBeInTheDocument();
   });
 });

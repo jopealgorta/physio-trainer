@@ -164,7 +164,7 @@ export function LibraryToolbar({
           defaultValue={filters.q}
           maxLength={SEARCH_MAX_LENGTH}
           className="pl-7"
-          onChange={(event) => onSearchChange()}
+          onChange={() => onSearchChange()}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
             event.preventDefault();

@@ -3,7 +3,14 @@
 import { FolderTreeIcon, GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 
 import { SortableList } from "@/components/sortable/sortable-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -103,10 +110,15 @@ function NameForm({
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-1.5">
+    <form
+      {...(inline ? { [INLINE_EDIT]: "" } : {})}
+      onSubmit={submit}
+      onKeyDown={onKeyDown}
+      className="grid gap-1.5"
+    >
       <div className="flex gap-2">
         <Input
-          {...(inline ? { [INLINE_EDIT]: "" } : {})}
+          {...(inline ? {} : { "data-focus": "add" })}
           aria-label={t("nameLabel")}
           aria-invalid={error ? true : undefined}
           value={value}
@@ -114,7 +126,6 @@ function NameForm({
           maxLength={CATEGORY_NAME_MAX_LENGTH}
           autoFocus={inline}
           onChange={(event) => setValue(event.target.value)}
-          onKeyDown={onKeyDown}
         />
         <Button type="submit" size="sm" disabled={pending}>
           {inline ? null : <PlusIcon aria-hidden />}
@@ -147,6 +158,9 @@ type Ctx = {
   t: ReturnType<typeof useTranslations>;
   editing: Editing | null;
   setEditing: (editing: Editing | null) => void;
+  /** Ends the inline edit and returns focus to the control with this data-focus key. */
+  endEdit: (focusKey: string) => void;
+  focus: (focusKey: string) => void;
   run: (
     call: () => Promise<{ ok: true } | { ok: false; error: CategoryError }>,
   ) => Promise<ErrorKey | null>;
@@ -167,7 +181,7 @@ function Row({
   subCount: number | null;
   ctx: Ctx;
 }) {
-  const { t, editing, setEditing, run } = ctx;
+  const { t, editing, setEditing, endEdit, run } = ctx;
   const isRenaming = editing?.kind === "rename" && editing.id === node.id;
   return (
     <div className="flex items-start gap-2 py-1.5">
@@ -186,10 +200,10 @@ function Row({
             inline
             initial={node.name}
             submitLabel={t("save")}
-            onCancel={() => setEditing(null)}
+            onCancel={() => endEdit(`rename-${node.id}`)}
             onSubmit={async (name) => {
               const failure = await run(() => renameCategoryAction({ id: node.id, name }));
-              if (!failure) setEditing(null);
+              if (!failure) endEdit(`rename-${node.id}`);
               return failure;
             }}
           />
@@ -204,6 +218,7 @@ function Row({
             type="button"
             variant="ghost"
             size="icon-sm"
+            data-focus={`rename-${node.id}`}
             aria-label={t("rename", { name: node.name })}
             onClick={() => setEditing({ kind: "rename", id: node.id })}
           >
@@ -214,6 +229,7 @@ function Row({
               type="button"
               variant="ghost"
               size="icon-sm"
+              data-focus={`sub-${node.id}`}
               aria-label={t("addSub", { name: node.name })}
               onClick={() => setEditing({ kind: "sub", parentId: node.id })}
             >
@@ -236,7 +252,7 @@ function DeleteButton({
   subCount: number | null;
   ctx: Ctx;
 }) {
-  const { t, run, setNotice, startTransition } = ctx;
+  const { t, run, setNotice, startTransition, focus } = ctx;
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -272,6 +288,7 @@ function DeleteButton({
               startTransition(async () => {
                 const failure = await run(() => deleteCategoryAction(node.id));
                 if (failure) setNotice(failure);
+                else focus("add");
               });
             }}
           >
@@ -297,7 +314,31 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
   const [editing, setEditing] = useState<Editing | null>(null);
   const [notice, setNotice] = useState<ErrorKey | null>(null);
   const [, startTransition] = useTransition();
-  const ctx: Ctx = { t, editing, setEditing, run, setNotice, startTransition };
+  const [open, setOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const pendingFocus = useRef<string | null>(null);
+  const focus = (focusKey: string) => {
+    document.querySelector<HTMLElement>(`[data-focus="${focusKey}"]`)?.focus();
+  };
+  const endEdit = (focusKey: string) => {
+    pendingFocus.current = focusKey;
+    setEditing(null);
+  };
+  useEffect(() => {
+    if (editing === null && pendingFocus.current) {
+      focus(pendingFocus.current);
+      pendingFocus.current = null;
+    }
+  }, [editing]);
+  function onOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setEditing(null);
+      setNotice(null);
+      setFormKey((key) => key + 1);
+    }
+  }
+  const ctx: Ctx = { t, editing, setEditing, endEdit, focus, run, setNotice, startTransition };
 
   async function run(
     call: () => Promise<{ ok: true } | { ok: false; error: CategoryError }>,
@@ -305,6 +346,7 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
     try {
       const result = await call();
       if (result.ok) {
+        setNotice(null);
         router.refresh();
         return null;
       }
@@ -346,7 +388,7 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button type="button" variant="outline">
           <FolderTreeIcon aria-hidden /> {tLibrary("manageCategories")}
@@ -365,6 +407,7 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
           <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
         <NameForm
+          key={formKey}
           placeholder={t("addPlaceholder")}
           submitLabel={t("add")}
           onSubmit={(name) => run(() => createCategoryAction({ name, parentId: null }))}
@@ -402,12 +445,12 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
                       inline
                       placeholder={t("subPlaceholder")}
                       submitLabel={t("save")}
-                      onCancel={() => setEditing(null)}
+                      onCancel={() => endEdit(`sub-${node.id}`)}
                       onSubmit={async (name) => {
                         const failure = await run(() =>
                           createCategoryAction({ name, parentId: node.id }),
                         );
-                        if (!failure) setEditing(null);
+                        if (!failure) endEdit(`sub-${node.id}`);
                         return failure;
                       }}
                     />
