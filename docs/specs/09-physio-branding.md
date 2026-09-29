@@ -112,7 +112,7 @@ Namespace `Settings.branding`.
   (≥ 4.5:1 for every colour, grid-tested). The dark variant is lighter only (desaturation only
   through gamut clamping). The form shows an "adjusted" note.
 - Palette: 10 swatches (teal, sky, blue, indigo, violet, pink, red, orange, green, slate), each
-  readable on white without adjustment (tested), plus Default (app colours) and a custom
+  used unchanged in light and dark mode, i.e. ≥ 3:1 on white and on the dark card (tested), plus Default (app colours) and a custom
   colour/hex input.
 - Phone is stored as `+<digits>` (7-15 digits; a `00` prefix is accepted). Local numbers are
   rejected because WhatsApp links need the country code. Website must be https: bare domains

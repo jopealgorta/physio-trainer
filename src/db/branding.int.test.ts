@@ -75,10 +75,6 @@ describe("branding columns", () => {
     ["empty clinic name", { clinicName: "" }],
     ["phone without +", { contactPhone: "5491112345678" }],
     ["http website", { website: "http://kine.com" }],
-    [
-      "logo in another physio's folder",
-      { logoPath: "00000000-0000-0000-0000-000000000000/logo-x.png" },
-    ],
     ["logo with svg extension", { logoPath: "SELF/logo-00000000-0000-0000-0000-000000000000.svg" }],
   ])("rejects %s", async (_name, values) => {
     const resolved = Object.fromEntries(
@@ -88,6 +84,15 @@ describe("branding columns", () => {
       ]),
     );
     await expect(update(resolved)).rejects.toThrow();
+  });
+
+  it("rejects a well-formed logo path in another physio's folder (own-folder rule)", async () => {
+    const error = await update({ logoPath: logoPath(other.id) }).then(
+      () => null,
+      (e: unknown) => e as Error & { cause?: { constraint_name?: string } },
+    );
+    expect(error).not.toBeNull();
+    expect(error?.cause?.constraint_name).toBe("physios_logo_path_own");
   });
 });
 

@@ -653,13 +653,13 @@ export const ACCENT_PALETTE: readonly { name: AccentName; hex: string }[] = [
   { name: "teal", hex: "#0f766e" },
   { name: "sky", hex: "#0369a1" },
   { name: "blue", hex: "#2563eb" },
-  { name: "indigo", hex: "#4f46e5" },
+  { name: "indigo", hex: "#6366f1" },
   { name: "violet", hex: "#7c3aed" },
   { name: "pink", hex: "#db2777" },
   { name: "red", hex: "#dc2626" },
   { name: "orange", hex: "#c2410c" },
   { name: "green", hex: "#15803d" },
-  { name: "slate", hex: "#334155" },
+  { name: "slate", hex: "#64748b" },
 ];
 
 const startsWith = (bytes: Uint8Array, prefix: number[], offset = 0) =>

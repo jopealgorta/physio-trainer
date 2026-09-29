@@ -19,8 +19,11 @@ describe("ACCENT_PALETTE", () => {
     expect(ACCENT_PALETTE).toHaveLength(10);
     expect(new Set(ACCENT_PALETTE.map((s) => s.hex)).size).toBe(10);
   });
-  it.each(ACCENT_PALETTE)("$name is used unchanged in light mode", ({ hex }) => {
-    expect(brandTokens(hex).light.primary).toBe(hex);
+  it.each(ACCENT_PALETTE)("$name is used unchanged in light and dark mode", ({ hex }) => {
+    const tokens = brandTokens(hex);
+    expect(tokens.adjusted).toBe(false);
+    expect(tokens.light.primary).toBe(hex);
+    expect(tokens.dark.primary).toBe(hex);
   });
 });
 
