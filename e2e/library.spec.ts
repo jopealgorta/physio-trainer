@@ -10,8 +10,12 @@ async function openFilters(page: Page, isMobile: boolean) {
   if (isMobile) await page.getByRole("button", { name: "Filters" }).click();
 }
 
-/** Drives dnd-kit with the keyboard, waiting for its live announcement between keys. */
-async function moveUp(page: Page, handleName: string, item: string) {
+/**
+ * Drives dnd-kit with the keyboard, waiting for its live announcement between keys. Moves the
+ * second of two items to the top (the retry below is only safe for a two-item list). With
+ * `persists`, also waits for the reorder Server Action (a POST to the page) to finish.
+ */
+async function moveUp(page: Page, handleName: string, item: string, persists = false) {
   const live = page.locator("[aria-live]").filter({ hasText: item });
   await page.getByRole("button", { name: handleName }).focus();
   await page.keyboard.press("Space");
@@ -21,8 +25,12 @@ async function moveUp(page: Page, handleName: string, item: string) {
     await page.keyboard.press("ArrowUp");
     await expect(live.first()).toContainText(`${item} moved to position 1 of 2`, { timeout: 500 });
   }).toPass();
+  const saved = persists
+    ? page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/library"))
+    : Promise.resolve(null);
   await page.keyboard.press("Space");
   await expect(live.first()).toContainText(`${item} dropped at position 1 of 2`);
+  await saved;
 }
 
 async function addCategory(page: Page, name: string) {
@@ -54,7 +62,7 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await page.getByLabel("Name").fill("Single-leg bridge");
   await page.getByLabel("Category").selectOption({ label: "Lower limb › Glutes" });
   await page.getByLabel("Instructions").fill("Push through the heel.\nHold at the top.");
-  await page.getByRole("checkbox", { name: "Glute" }).check();
+  await page.getByRole("checkbox", { name: "Glute", exact: true }).check();
   await page.getByLabel("Tags").fill("Bodyweight");
   await page.getByLabel("Tags").press("Enter");
   await page.getByLabel("Tags").fill("beginner,");
@@ -114,8 +122,9 @@ test("reordering categories with the keyboard persists", async ({ physioPage: pa
   await addCategory(page, "Alpha");
   await addCategory(page, "Beta");
 
-  await moveUp(page, "Reorder Beta", "Beta");
+  await moveUp(page, "Reorder Beta", "Beta", true);
   await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toBeHidden();
 
   await page.reload();
   await openFilters(page, isMobile);
