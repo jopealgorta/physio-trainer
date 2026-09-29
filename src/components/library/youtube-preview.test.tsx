@@ -33,4 +33,13 @@ describe("YouTubePreview", () => {
     const regular = renderPreview(false);
     expect(regular.container.firstElementChild).toHaveClass("aspect-video");
   });
+
+  it("loads the iframe straight away with autoPlay", () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <YouTubePreview videoId="dQw4w9WgXcQ" isShort={false} title="Bridge" autoPlay />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByTitle("Video: Bridge")).toBeInTheDocument();
+  });
 });

@@ -50,8 +50,13 @@ export function MediaListEditor({
   const atLimit = items.length >= MAX_MEDIA;
   const shownError: MediaError | null = atLimit ? "limit" : error;
 
+  const pending = draft.trim() === "" || atLimit ? null : parseYouTubeUrl(draft);
+  const pendingNew = pending && !items.some((item) => item.videoId === pending.videoId);
+
+  // An empty draft is a no-op: a blur that just committed the draft must not turn the
+  // following "Add video" click into an error.
   function add() {
-    if (atLimit) return;
+    if (atLimit || draft.trim() === "") return;
     const video = parseYouTubeUrl(draft);
     if (!video) return setError("notYouTube");
     if (items.some((item) => item.videoId === video.videoId)) return setError("duplicate");
@@ -76,6 +81,9 @@ export function MediaListEditor({
             onChange={(event) => {
               setDraft(event.target.value);
               setError(null);
+            }}
+            onBlur={() => {
+              if (draft.trim() !== "" && !atLimit) add();
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -145,7 +153,12 @@ export function MediaListEditor({
                   </Button>
                 </div>
                 {previewKey === item.key ? (
-                  <YouTubePreview videoId={item.videoId} isShort={item.isShort} title={title} />
+                  <YouTubePreview
+                    videoId={item.videoId}
+                    isShort={item.isShort}
+                    title={title}
+                    autoPlay
+                  />
                 ) : null}
               </div>
             );
@@ -156,6 +169,8 @@ export function MediaListEditor({
       {items.map((item) => (
         <input key={item.key} type="hidden" name={name} value={item.url} />
       ))}
+      {/* A valid link typed but not yet added still saves with the form. */}
+      {pending && pendingNew ? <input type="hidden" name={name} value={pending.url} /> : null}
     </div>
   );
 }

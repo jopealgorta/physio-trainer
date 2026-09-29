@@ -15,14 +15,17 @@ export function YouTubePreview({
   isShort,
   title,
   className,
+  autoPlay = false,
 }: {
   videoId: string;
   isShort: boolean;
   title: string;
   className?: string;
+  /** Load the embed immediately (the caller already asked to preview). */
+  autoPlay?: boolean;
 }) {
   const t = useTranslations("Library.media");
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(autoPlay);
   return (
     <div
       className={cn(

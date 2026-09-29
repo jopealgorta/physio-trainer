@@ -73,4 +73,46 @@ describe("MediaListEditor", () => {
     expect(first).toHaveAttribute("aria-expanded", "false");
     expect(second).not.toBe(first);
   });
+
+  it("commits a valid pasted link on blur", async () => {
+    const user = userEvent.setup();
+    const { media } = renderEditor();
+    await user.type(input(), "youtu.be/dQw4w9WgXcQ");
+    await user.tab();
+    expect(media()).toEqual([url("dQw4w9WgXcQ")]);
+    expect(input()).toHaveValue("");
+  });
+
+  it("does not turn Add video into an error after blur committed the link", async () => {
+    const user = userEvent.setup();
+    const { media } = renderEditor();
+    await user.type(input(), "youtu.be/dQw4w9WgXcQ");
+    await user.click(screen.getByRole("button", { name: "Add video" }));
+    expect(media()).toEqual([url("dQw4w9WgXcQ")]);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("reports an invalid pending link on blur", async () => {
+    const user = userEvent.setup();
+    const { media } = renderEditor();
+    await user.type(input(), "https://example.com/x");
+    await user.tab();
+    expect(screen.getByText(messages.Library.media.errors.notYouTube)).toBeInTheDocument();
+    expect(media()).toEqual([]);
+  });
+
+  it("includes a valid pending link in the submitted form data", async () => {
+    const user = userEvent.setup();
+    const { media } = renderEditor([url(ID(1))]);
+    await user.type(input(), "youtu.be/dQw4w9WgXcQ");
+    expect(media()).toEqual([url(ID(1)), url("dQw4w9WgXcQ")]);
+  });
+
+  it("opens the embed with a single click on the preview toggle", async () => {
+    const user = userEvent.setup();
+    renderEditor([url(ID(1))]);
+    await user.click(screen.getByRole("button", { name: "Preview video 1" }));
+    expect(screen.getByTitle("Video: Videos")).toBeInTheDocument();
+  });
 });
+
