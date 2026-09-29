@@ -1,6 +1,6 @@
 # 03 · Exercise library
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** Core
 - **Depends on:** 01, 02
 
@@ -114,12 +114,12 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
 
 ## Acceptance criteria
 
-- [ ] CRUD for categories (2 levels max) and exercises; archive/restore.
-- [ ] YouTube links (videos and Shorts) embed correctly; reorder media.
-- [ ] Search + filter by category, body area and tag, reflected in the URL.
-- [ ] Shared prescription zod schema and Drizzle helper exist and are tested.
-- [ ] RLS integration tests for all three tables.
-- [ ] Works on mobile (single column, filters in a sheet).
+- [x] CRUD for categories (2 levels max) and exercises; archive/restore.
+- [x] YouTube links (videos and Shorts) embed correctly; reorder media.
+- [x] Search + filter by category, body area and tag, reflected in the URL.
+- [x] Shared prescription zod schema and Drizzle helper exist and are tested.
+- [x] RLS integration tests for all three tables.
+- [x] Works on mobile (single column, filters in a sheet).
 
 ## Test plan
 
@@ -142,4 +142,30 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Composite FKs everywhere**: every `(physio_id, …)` reference is composite. `exercises` →
+  `categories` is `ON DELETE SET NULL (category_id)` (custom migration, so `physio_id` is never
+  nulled). Media `position` uniqueness is scoped by `(physio_id, exercise_id, position)` so it
+  cannot be used as a cross-tenant existence oracle.
+- **Search**: `public.f_unaccent` immutable wrapper plus a trigram GIN index on
+  `f_unaccent(lower(name))`. The name matches as a substring, tags as a prefix; LIKE wildcards
+  are escaped.
+- **URL params**: `?q=&category=<uuid>|none|archived&area=&tag=&view=grid|list`; results are
+  capped at 500.
+- **Media**: YouTube only (watch, youtu.be, shorts; `www.`/`m.` hosts). The canonical URL is
+  stored. Shorts are detected from a `/shorts/` URL only (a Short shared as `youtu.be` plays
+  16:9). Click-to-load `youtube-nocookie` embed, `i.ytimg.com` thumbnails, at most 10 videos;
+  media is replaced wholesale on save.
+- **Tags** are normalised (lowercase, trimmed, `#` and commas stripped), at most 20 of 30 chars.
+  The tag input is a combobox with a plain listbox (no shadcn command/popover).
+- **Prescription**: shared zod schema (`src/lib/prescription.ts`) and Drizzle helper
+  (`src/db/schema/_prescription.ts`) with DB check constraints. New `Prescription` and
+  `Sortable` message namespaces; limits live in `src/lib/library-limits.ts`.
+- **Empty states**: the full-width empty library shows only with no categories, no exercises and
+  no filters; otherwise empty/no-results render inside the results column.
+- **Exercise form** dispatches from `onSubmit` (no React form reset) and is not re-keyed after
+  save, so "Saved" persists and typed values are kept.
+- **Delete** is always allowed until spec 05 adds a `routine_items` FK (then "inUse" + archive).
+- **E2E found a mobile layout bug**: a long video URL widened the page horizontally (grid
+  column sized to content). Fixed with `min-w-0`/`grid-cols-1` on the media rows and sortable
+  items; the e2e asserts no horizontal overflow. Real keyboard reorder (categories and videos)
+  is covered end to end because unit tests cannot drive dnd-kit.
