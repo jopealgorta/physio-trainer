@@ -47,8 +47,9 @@ done.
 
 ## Deferred (agreed "later")
 
-Seed exercise library / CSV import (G), uploaded exercise media (videos/images, Vimeo; spec 03 ships YouTube links only), outcome measures (K), offline patient page (L), AI
-assist (M), GDPR tooling (N), patient reminders (O), clinics/teams, billing. Write a spec with
+Seed exercise library / CSV import (G), uploaded exercise media (videos/images, Vimeo; spec 03
+ships YouTube links only), outcome measures (K), offline patient page (L), AI assist (M), GDPR
+tooling (N), patient reminders (O), clinics/teams, billing. Write a spec with
 [`_template.md`](./_template.md) when one is picked up.
 
 ## Working on a spec

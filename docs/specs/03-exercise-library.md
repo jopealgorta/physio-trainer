@@ -160,8 +160,15 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
 - **Prescription**: shared zod schema (`src/lib/prescription.ts`) and Drizzle helper
   (`src/db/schema/_prescription.ts`) with DB check constraints. New `Prescription` and
   `Sortable` message namespaces; limits live in `src/lib/library-limits.ts`.
-- **Empty states**: the full-width empty library shows only with no categories, no exercises and
-  no filters; otherwise empty/no-results render inside the results column.
+- **Empty states**: the full-width empty library shows only when the physio has no exercises at
+  all (archived included), no categories and no filters, so "Archived" stays reachable;
+  otherwise empty/no-results render inside the results column.
+- **Pending video link**: a valid YouTube URL typed but not added is committed on blur and is
+  also submitted as a hidden `media` value, so it is never silently dropped; an invalid one shows
+  the error on blur. Empty "Add video" is a no-op. The preview toggle opens the embed directly.
+- **500-row cap**: the list fetches 501 rows and shows a "refine your search" hint when truncated.
+- **`listTags`** covers active (non-archived) exercises only, so the tag filter never offers a tag
+  that matches nothing in the default view. Search lower-cases the term in SQL.
 - **Exercise form** dispatches from `onSubmit` (no React form reset) and is not re-keyed after
   save, so "Saved" persists and typed values are kept.
 - **Delete** is always allowed until spec 05 adds a `routine_items` FK (then "inUse" + archive).
