@@ -88,7 +88,7 @@ test("a physio uploads a logo that is publicly reachable", async ({
     mimeType: "image/png",
     buffer: LOGO_PNG,
   });
-  // The browser resized it (canvas → WebP/PNG) before it was previewed.
+  // The browser resized it (canvas → PNG) before it was previewed.
   const logoBox = page.locator("form").getByRole("img", { name: /logo$/ });
   await expect(logoBox).toBeVisible();
   await expect(page.getByRole("figure", { name: "Patient page" }).getByRole("img")).toBeVisible();
@@ -100,12 +100,12 @@ test("a physio uploads a logo that is publicly reachable", async ({
   await expect(logo).toBeVisible();
   const src = await logo.getAttribute("src");
   expect(src).toMatch(
-    new RegExp(`/storage/v1/object/public/branding/${physio.id}/logo-[0-9a-f-]+\\.(webp|png)$`),
+    new RegExp(`/storage/v1/object/public/branding/${physio.id}/logo-[0-9a-f-]+\\.png$`),
   );
   // Anonymous request: a fresh context with no cookies.
   const response = await request.get(src!);
   expect(response.status()).toBe(200);
-  expect(response.headers()["content-type"]).toMatch(/^image\/(webp|png)$/);
+  expect(response.headers()["content-type"]).toMatch(/^image\/png$/);
 
   // Downscaled to fit 512 px, keeping the 2:1 ratio.
   await expect

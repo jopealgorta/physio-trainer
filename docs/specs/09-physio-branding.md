@@ -58,7 +58,8 @@ are sanitised or rejected (see open questions).
    `brandTokens(accent) → { light: {primary, primaryForeground}, dark: {...} }`.
 2. `<BrandingStyle tokens>` renders a `<style>` scoped to the patient layout root
    (`[data-brand] { --primary: … }`) so the app shell is unaffected.
-3. Logo: max 2 MB, resized/cropped client-side to ≤ 512 px; transparent PNG/WebP recommended.
+3. Logo: the picked file may be ≤ 10 MB; the browser fits it within 512 px (no crop, no
+   upscaling) and re-encodes it as PNG; the stored file is ≤ 2 MB. Transparent PNG recommended.
 4. When no branding is set, patient pages use the app defaults and the physio's display name.
 
 ## Security and privacy
@@ -97,8 +98,9 @@ Namespace `Settings.branding`.
 
 - Logos are raster only (PNG/WebP/JPEG), identified on the server by magic bytes, not the
   browser MIME type. The picked file may be ≤ 10 MB; the browser resizes it to fit 512 px (no
-  crop, no upscaling) and re-encodes it as WebP, falling back to PNG. The stored file is ≤ 2 MB
-  (bucket limit plus server check). `serverActions.bodySizeLimit` is 3 MB in `next.config.ts`.
+  crop, no upscaling) and re-encodes it as PNG (OG images and PDFs can't render WebP); stored
+  logos are PNG or JPEG, and the server rejects WebP. The stored file is ≤ 2 MB (bucket limit
+  plus server check). `serverActions.bodySizeLimit` is 3 MB in `next.config.ts`.
 - The logo is uploaded inside the Server Action with the physio's own Supabase session, so the
   bucket RLS applies and the secret key is never used. Path
   `{physio_id}/logo-{uuid}.{png|webp|jpg}` in the public bucket `branding`; a new uuid per

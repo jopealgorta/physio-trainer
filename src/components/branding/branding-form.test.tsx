@@ -11,9 +11,7 @@ import messages from "../../../messages/en.json";
 import { BrandingForm } from "./branding-form";
 
 vi.mock("@/lib/resize-image", () => ({
-  resizeLogo: vi.fn(
-    async () => new File([new Uint8Array([1])], "logo.webp", { type: "image/webp" }),
-  ),
+  resizeLogo: vi.fn(async () => new File([new Uint8Array([1])], "logo.png", { type: "image/png" })),
 }));
 
 type Props = ComponentProps<typeof BrandingForm>;
@@ -158,7 +156,7 @@ describe("BrandingForm", () => {
   it("uploads the resized logo with the other fields", async () => {
     const action = vi.fn<Props["action"]>(async () => ({
       status: "saved",
-      logoUrl: "https://cdn.example/logo.webp",
+      logoUrl: "https://cdn.example/logo.png",
     }));
     const user = userEvent.setup();
     renderForm({ action });
@@ -181,7 +179,7 @@ describe("BrandingForm", () => {
     const formData = action.mock.calls[0][1];
     const logo = formData.get("logo");
     expect(logo).toBeInstanceOf(File);
-    expect((logo as File).type).toBe("image/webp");
+    expect((logo as File).type).toBe("image/png");
     expect(formData.get("clinicName")).toBe("Kine Sur");
     expect(formData.get("accentColor")).toBe("#0f766e");
     expect(formData.get("showContactToPatients")).toBe("on");
@@ -190,7 +188,7 @@ describe("BrandingForm", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Saved");
     expect(within(patientPage()).getByRole("img", { name: "Kine Sur logo" })).toHaveAttribute(
       "src",
-      "https://cdn.example/logo.webp",
+      "https://cdn.example/logo.png",
     );
   });
 

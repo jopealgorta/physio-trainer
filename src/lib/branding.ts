@@ -13,6 +13,11 @@ export const LOGO_MAX_DIMENSION = 512;
 export const LOGO_ACCEPT = "image/png,image/webp,image/jpeg";
 
 export type LogoType = "png" | "webp" | "jpeg";
+/**
+ * Types a stored logo may have. WebP can be picked (the browser re-encodes it) but is never
+ * stored: next/og (Satori) and @react-pdf cannot render it.
+ */
+export const STORED_LOGO_TYPES: readonly LogoType[] = ["png", "jpeg"];
 export const LOGO_CONTENT_TYPES: Record<LogoType, string> = {
   png: "image/png",
   webp: "image/webp",

@@ -82,6 +82,11 @@ describe("checkLogo", () => {
     });
     await expect(checkLogo(file)).resolves.toMatchObject({ ok: true, logo: { type: "png" } });
   });
+  it("rejects WebP: OG images and PDFs cannot render it", async () => {
+    const webp = new TextEncoder().encode("RIFF\0\0\0\0WEBPVP8 ");
+    const file = new File([webp], "logo.webp", { type: "image/webp" });
+    await expect(checkLogo(file)).resolves.toEqual({ ok: false, error: "logoInvalidType" });
+  });
   it("rejects a text file renamed .png", async () => {
     const file = new File(["hello"], "logo.png", { type: "image/png" });
     await expect(checkLogo(file)).resolves.toEqual({ ok: false, error: "logoInvalidType" });

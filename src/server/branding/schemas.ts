@@ -5,6 +5,7 @@ import {
   normalizePhone,
   normalizeWebsite,
   sniffImageType,
+  STORED_LOGO_TYPES,
   type LogoType,
 } from "@/lib/branding";
 import { normalizeHex } from "@/lib/color";
@@ -68,7 +69,10 @@ export const brandingSchema = z.object({
 export type BrandingInput = z.output<typeof brandingSchema>;
 export type ValidLogo = { bytes: Uint8Array; type: LogoType };
 
-/** Size limit, then the real type from magic bytes (the browser's MIME type is not trusted). */
+/**
+ * Size limit, then the real type from magic bytes (the browser's MIME type is not trusted).
+ * Only PNG and JPEG are stored (see STORED_LOGO_TYPES).
+ */
 export async function checkLogo(
   file: File,
 ): Promise<
@@ -77,7 +81,9 @@ export async function checkLogo(
   if (file.size > LOGO_MAX_BYTES) return { ok: false, error: "logoTooLarge" };
   const bytes = new Uint8Array(await file.arrayBuffer());
   const type = sniffImageType(bytes);
-  return type ? { ok: true, logo: { bytes, type } } : { ok: false, error: "logoInvalidType" };
+  return type && STORED_LOGO_TYPES.includes(type)
+    ? { ok: true, logo: { bytes, type } }
+    : { ok: false, error: "logoInvalidType" };
 }
 
 export type BrandingFieldErrors = {

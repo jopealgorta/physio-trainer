@@ -1,12 +1,12 @@
 import { LOGO_MAX_DIMENSION } from "@/lib/branding";
 
-const toBlob = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
-  new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+const toBlob = (canvas: HTMLCanvasElement, type: string) =>
+  new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type));
 
 /**
  * Browser only. Scales an image to fit `maxDimension` (never upscales), keeping transparency,
- * and re-encodes it as WebP (PNG where the browser cannot encode WebP). Throws when the file
- * cannot be decoded as an image.
+ * and re-encodes it as PNG (next/og and @react-pdf cannot render WebP, so stored logos are PNG
+ * or JPEG). Throws when the file cannot be decoded as an image.
  */
 export async function resizeLogo(file: File, maxDimension = LOGO_MAX_DIMENSION): Promise<File> {
   const bitmap = await createImageBitmap(file);
@@ -19,9 +19,7 @@ export async function resizeLogo(file: File, maxDimension = LOGO_MAX_DIMENSION):
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
 
-  let blob = await toBlob(canvas, "image/webp", 0.9);
-  if (!blob || blob.type !== "image/webp") blob = await toBlob(canvas, "image/png");
+  const blob = await toBlob(canvas, "image/png");
   if (!blob) throw new Error("Could not encode the logo");
-  const extension = blob.type === "image/webp" ? "webp" : "png";
-  return new File([blob], `logo.${extension}`, { type: blob.type });
+  return new File([blob], "logo.png", { type: "image/png" });
 }
