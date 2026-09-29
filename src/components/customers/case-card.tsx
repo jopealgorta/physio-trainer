@@ -32,8 +32,8 @@ function Detail({
 }
 
 /**
- * Summary of one case with its Edit and Close/Reopen actions. Precautions are surfaced in the
- * overview's alert instead. `today` is the physio's calendar day (`YYYY-MM-DD`).
+ * Summary of one case with its Edit and Close/Reopen actions. An open case's precautions are
+ * surfaced in the overview's alert instead; a closed case has no alert, so its card shows them. `today` is the physio's calendar day (`YYYY-MM-DD`).
  */
 export function CaseCard({
   case: item,
@@ -66,6 +66,11 @@ export function CaseCard({
         ) : null}
       </p>
       <dl className="grid gap-3 sm:grid-cols-2">
+        {closed && item.precautions?.trim() ? (
+          <Detail label={t("precautions")} multiline>
+            {item.precautions}
+          </Detail>
+        ) : null}
         {item.diagnosis ? <Detail label={t("diagnosis")}>{item.diagnosis}</Detail> : null}
         {item.goals ? (
           <Detail label={t("goals")} multiline>
@@ -80,7 +85,7 @@ export function CaseCard({
           </Detail>
         ) : null}
       </dl>
-      <CaseActions caseId={item.id} status={item.status} today={today}>
+      <CaseActions caseId={item.id} title={item.title} status={item.status} today={today}>
         <CaseSheet
           customerId={item.customerId}
           customerName={customerName}

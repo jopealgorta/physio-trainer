@@ -88,24 +88,41 @@ describe("CaseCard", () => {
     expect(screen.getByText("Closed on Apr 15, 2026")).toBeInTheDocument();
   });
 
+  it("shows a closed case's precautions on its card", () => {
+    setup({ status: "closed", closedOn: "2026-04-15", precautions: "No deep flexion\nNo running" });
+    expect(screen.getByText("Precautions")).toBeInTheDocument();
+    expect(screen.getByText(/No deep flexion/)).toHaveClass("whitespace-pre-line");
+  });
+
+  it("leaves an open case's precautions to the overview alert", () => {
+    setup({ precautions: "No deep flexion" });
+    expect(screen.queryByText("Precautions")).not.toBeInTheDocument();
+    expect(screen.queryByText(/No deep flexion/)).not.toBeInTheDocument();
+  });
+
+  it("omits the precautions of a closed case when there are none", () => {
+    setup({ status: "closed", closedOn: "2026-04-15", precautions: "  " });
+    expect(screen.queryByText("Precautions")).not.toBeInTheDocument();
+  });
+
   it("offers Edit and Close on an open case", () => {
     setup();
-    expect(screen.getByRole("button", { name: "Edit case" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close case" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Reopen case" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit case ACL rehab" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close case ACL rehab" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reopen case ACL rehab" })).not.toBeInTheDocument();
   });
 
   it("offers Edit and Reopen on a closed case", () => {
     setup({ status: "closed", closedOn: "2026-04-15" });
-    expect(screen.getByRole("button", { name: "Edit case" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reopen case" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Close case" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit case ACL rehab" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reopen case ACL rehab" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close case ACL rehab" })).not.toBeInTheDocument();
   });
 
   it("opens the edit sheet prefilled with the case's fields", async () => {
     const user = userEvent.setup();
     setup({ diagnosis: "Tear", bodyArea: "knee", side: "left", initialPain: 3 });
-    await user.click(screen.getByRole("button", { name: "Edit case" }));
+    await user.click(screen.getByRole("button", { name: "Edit case ACL rehab" }));
     expect(await screen.findByLabelText("Title")).toHaveValue("ACL rehab");
     expect(screen.getByLabelText("Diagnosis")).toHaveValue("Tear");
     expect(screen.getByLabelText("Initial pain (0–10)")).toHaveValue("3");
