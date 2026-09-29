@@ -1,6 +1,6 @@
 # 09 · Physio branding
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** F (physio branding)
 - **Depends on:** 01
 
@@ -30,7 +30,7 @@ Add to `physios`:
 | Column                     | Type                          | Notes                                                     |
 | -------------------------- | ----------------------------- | --------------------------------------------------------- |
 | `clinic_name`              | text null                     | ≤ 80; falls back to `display_name`                        |
-| `logo_path`                | text null                     | Storage `branding/{physio_id}/logo-{uuid}.{png,webp,svg}` |
+| `logo_path`                | text null                     | Storage `branding/{physio_id}/logo-{uuid}.{png,webp,jpg}` |
 | `accent_color`             | text null                     | `#RRGGBB`; null = app default                             |
 | `contact_email`            | text null                     |                                                           |
 | `contact_phone`            | text null                     | also used for a WhatsApp "message your physio" button     |
@@ -58,7 +58,8 @@ are sanitised or rejected (see open questions).
    `brandTokens(accent) → { light: {primary, primaryForeground}, dark: {...} }`.
 2. `<BrandingStyle tokens>` renders a `<style>` scoped to the patient layout root
    (`[data-brand] { --primary: … }`) so the app shell is unaffected.
-3. Logo: max 2 MB, resized/cropped client-side to ≤ 512 px; transparent PNG/WebP recommended.
+3. Logo: the picked file may be ≤ 10 MB; the browser fits it within 512 px (no crop, no
+   upscaling) and re-encodes it as PNG; the stored file is ≤ 2 MB. Transparent PNG recommended.
 4. When no branding is set, patient pages use the app defaults and the physio's display name.
 
 ## Security and privacy
@@ -72,10 +73,10 @@ Namespace `Settings.branding`.
 
 ## Acceptance criteria
 
-- [ ] Physio can set clinic name, logo, accent colour, contact details; preview updates live.
-- [ ] Contrast guard produces readable button text for every palette colour and custom colours.
-- [ ] `getBranding` + `BrandingStyle` ready for specs 10, 11, 14.
-- [ ] Logo upload restricted to the owner; public URL works without auth.
+- [x] Physio can set clinic name, logo, accent colour, contact details; preview updates live.
+- [x] Contrast guard produces readable button text for every palette colour and custom colours.
+- [x] `getBranding` + `BrandingStyle` ready for specs 10, 11, 14.
+- [x] Logo upload restricted to the owner; public URL works without auth.
 
 ## Test plan
 
@@ -85,9 +86,43 @@ Namespace `Settings.branding`.
 
 ## Open questions
 
-1. Allow SVG logos (needs sanitising) or only PNG/WebP/JPEG?
-2. Should the app's own name appear on patient pages ("Powered by …"), or be fully white-label?
+1. SVG logos? → **No.** PNG, WebP and JPEG only (a public bucket serving SVG is a stored-XSS
+   risk; raster works for OG images and PDFs).
+2. App name on patient pages? → **Yes, a small "Powered by Physio Trainer" line** at the
+   bottom of patient-facing surfaces, not fully white-label.
+3. (Added) Low-contrast custom accent? → **Auto-adjust**: keep the chosen colour, derive
+   light/dark tokens at the same hue with lightness nudged until ≥ 3:1; the form says so.
+4. (Added) Settings layout? → **Tabs** driven by `?section=profile|branding|account`.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- Logos are raster only (PNG/WebP/JPEG), identified on the server by magic bytes, not the
+  browser MIME type. The picked file may be ≤ 10 MB; the browser resizes it to fit 512 px (no
+  crop, no upscaling) and re-encodes it as PNG (OG images and PDFs can't render WebP); stored
+  logos are PNG or JPEG, and the server rejects WebP. The stored file is ≤ 2 MB (bucket limit
+  plus server check). `serverActions.bodySizeLimit` is 3 MB in `next.config.ts`.
+- The logo is uploaded inside the Server Action with the physio's own Supabase session, so the
+  bucket RLS applies and the secret key is never used. Path
+  `{physio_id}/logo-{uuid}.{png|webp|jpg}` in the public bucket `branding`; a new uuid per
+  upload busts caches. The replaced logo is deleted after the transaction commits, and a failed
+  DB update removes the new upload. The DB check `physios_logo_path_own` mirrors the storage
+  folder rule.
+- Contrast guard: tokens nudge OKLCH lightness at the same hue until ≥ 3:1 against `#ffffff`
+  (light) and `#171717` (dark card). Button text is black or white, whichever contrasts more
+  (≥ 4.5:1 for every colour, grid-tested). The dark variant is lighter only (desaturation only
+  through gamut clamping). The form shows an "adjusted" note.
+- Palette: 10 swatches (teal, sky, blue, indigo, violet, pink, red, orange, green, slate), each
+  used unchanged in light and dark mode, i.e. ≥ 3:1 on white and on the dark card (tested), plus Default (app colours) and a custom
+  colour/hex input.
+- Phone is stored as `+<digits>` (7-15 digits; a `00` prefix is accepted). Local numbers are
+  rejected because WhatsApp links need the country code. Website must be https: bare domains
+  get `https://`, `http://` is rejected, URLs with credentials are rejected.
+- Settings became URL-driven tabs (`?section=profile|branding|account`).
+- `getBranding(q, physioId)` takes a physio transaction or the owner `db` (spec 10, after link
+  resolution) and returns `updatedAt` for spec 11's image cache key. Contact is null when
+  hidden or empty. `buildBranding` (pure, `src/lib/branding.ts`) is shared with the settings
+  preview.
+- `<BrandingStyle tokens scope>` renders scoped `[data-brand="<scope>"]` light and
+  `.dark [data-brand="<scope>"]` CSS. Usage:
+  `<div data-brand="patient"><BrandingStyle scope="patient" …/>…</div>`. `<PoweredBy>` renders
+  the "Powered by Physio Trainer" line (not white-label).

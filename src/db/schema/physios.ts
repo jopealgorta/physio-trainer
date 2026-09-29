@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, pgPolicy, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, pgPolicy, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { authenticatedRole, authUid, authUsers } from "drizzle-orm/supabase";
 
 import { timestamps } from "./_columns";
@@ -17,6 +17,14 @@ export const physios = pgTable(
     locale: text().notNull().default("en"),
     timezone: text().notNull().default("UTC"),
     onboardedAt: timestamp({ withTimezone: true }),
+    // Branding (docs/specs/09-physio-branding.md). null = not set / app default.
+    clinicName: text(),
+    logoPath: text(),
+    accentColor: text(),
+    contactEmail: text(),
+    contactPhone: text(),
+    website: text(),
+    showContactToPatients: boolean().notNull().default(true),
     ...timestamps,
   },
   (table) => [
@@ -25,6 +33,22 @@ export const physios = pgTable(
       sql`${table.handle} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(${table.handle}) between 3 and 30`,
     ),
     check("physios_display_name_length", sql`char_length(${table.displayName}) between 1 and 80`),
+    check("physios_clinic_name_length", sql`char_length(${table.clinicName}) between 1 and 80`),
+    check("physios_accent_color_format", sql`${table.accentColor} ~ '^#[0-9a-f]{6}$'`),
+    // The logo must live in the physio's own Storage folder (same rule as the bucket policies).
+    check(
+      "physios_logo_path_own",
+      sql`${table.logoPath} ~ ('^' || ${table.id}::text || '/logo-[0-9a-f-]{36}\\.(png|webp|jpg)$')`,
+    ),
+    check(
+      "physios_contact_email_length",
+      sql`char_length(${table.contactEmail}) between 3 and 254`,
+    ),
+    check("physios_contact_phone_format", sql`${table.contactPhone} ~ '^\\+[0-9]{7,15}$'`),
+    check(
+      "physios_website_format",
+      sql`${table.website} ~ '^https://' and char_length(${table.website}) <= 2048`,
+    ),
     pgPolicy("physios_select_own", {
       for: "select",
       to: authenticatedRole,
