@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import type { Customer } from "@/db/schema";
+import { customerName } from "@/lib/customers";
 import { telHref, whatsappHref } from "@/lib/phone";
 
 import { CustomerArchiveButton } from "./customer-archive-button";
@@ -24,7 +25,7 @@ export function CustomerHeader({
   age: number | null;
 }) {
   const t = useTranslations("Customers.detail");
-  const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ");
+  const name = customerName(customer.firstName, customer.lastName);
   const tel = customer.phone ? telHref(customer.phone) : null;
   const whatsapp = customer.phone ? whatsappHref(customer.phone) : null;
 

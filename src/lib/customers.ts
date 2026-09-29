@@ -15,6 +15,11 @@ export function parseCustomerTab(value: string | undefined): CustomerTab {
     : "overview";
 }
 
+/** A customer's full name: first and last name, skipping a missing last name. */
+export function customerName(firstName: string, lastName: string | null): string {
+  return [firstName, lastName].filter(Boolean).join(" ");
+}
+
 export const FIRST_NAME_MAX = 60;
 export const LAST_NAME_MAX = 60;
 export const EMAIL_MAX = 254;

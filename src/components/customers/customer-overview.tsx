@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
 import { languageOptions } from "@/i18n/config";
+import { customerName } from "@/lib/customers";
 import type { CustomerDetail } from "@/server/customers/queries";
 
 import { CaseCard } from "./case-card";
@@ -33,7 +34,7 @@ export function CustomerOverview({
   const tCases = useTranslations("Cases");
   const format = useFormatter();
 
-  const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ");
+  const name = customerName(customer.firstName, customer.lastName);
   const openCases = customer.cases.filter((item) => item.status === "open");
   const closedCases = customer.cases.filter((item) => item.status === "closed");
   const withPrecautions = openCases.filter((item) => item.precautions?.trim());

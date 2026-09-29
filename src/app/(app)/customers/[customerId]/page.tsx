@@ -10,16 +10,18 @@ import { CustomerTabs } from "@/components/customers/customer-tabs";
 import { TabEmpty } from "@/components/customers/tab-empty";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ageInYears, todayIn } from "@/lib/calendar-date";
-import { parseCustomerTab } from "@/lib/customers";
+import { customerName, parseCustomerTab } from "@/lib/customers";
 import { firstParam } from "@/lib/search-params";
-import { customerDisplayName, loadCustomer } from "@/server/customers/load";
+import { loadCustomer } from "@/server/customers/load";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/customers/[customerId]">): Promise<Metadata> {
   const { customerId } = await params;
   const loaded = await loadCustomer(customerId);
-  return { title: loaded ? customerDisplayName(loaded.customer) : undefined };
+  return {
+    title: loaded ? customerName(loaded.customer.firstName, loaded.customer.lastName) : undefined,
+  };
 }
 
 export default async function CustomerPage({

@@ -22,6 +22,3 @@ export const loadCustomer = cache(async (rawId: string) => {
     return { customer, timezone: profile?.timezone ?? "UTC" };
   });
 });
-
-export const customerDisplayName = (customer: { firstName: string; lastName: string | null }) =>
-  [customer.firstName, customer.lastName].filter(Boolean).join(" ");

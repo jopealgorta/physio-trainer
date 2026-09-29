@@ -7,8 +7,9 @@ import { getTranslations } from "next-intl/server";
 import { CustomerForm } from "@/components/customers/customer-form";
 import { PageHeader } from "@/components/page-header";
 import { resolveLocale } from "@/i18n/config";
+import { customerName } from "@/lib/customers";
 import { saveCustomerAction } from "@/server/customers/actions";
-import { customerDisplayName, loadCustomer } from "@/server/customers/load";
+import { loadCustomer } from "@/server/customers/load";
 
 export async function generateMetadata({
   params,
@@ -17,7 +18,9 @@ export async function generateMetadata({
   const loaded = await loadCustomer(customerId);
   const t = await getTranslations("Customers.form");
   return {
-    title: loaded ? `${t("editTitle")} · ${customerDisplayName(loaded.customer)}` : t("editTitle"),
+    title: loaded
+      ? `${t("editTitle")} · ${customerName(loaded.customer.firstName, loaded.customer.lastName)}`
+      : t("editTitle"),
   };
 }
 
