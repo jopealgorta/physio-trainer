@@ -8,6 +8,8 @@ import type { BodyArea, BodySide } from "@/lib/body-areas";
 import type { CustomerFilters } from "@/lib/customer-params";
 import { escapeLike } from "@/lib/sql-like";
 
+import { isUuid } from "./schemas";
+
 export const LIST_LIMIT = 500;
 
 /** Must match the trigram index expression in the customers migration to stay indexable. */
@@ -107,6 +109,7 @@ export async function getCustomer(
   physioId: string,
   id: string,
 ): Promise<CustomerDetail | null> {
+  if (!isUuid(id)) return null;
   const [customer] = await tx
     .select()
     .from(customers)

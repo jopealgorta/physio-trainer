@@ -50,4 +50,13 @@ describe("customer archive hook", () => {
     expect(result).toEqual({ ok: false, error: "notFound" });
     expect(onCustomerArchived).not.toHaveBeenCalled();
   });
+
+  it("does not run for a malformed customer id", async () => {
+    vi.mocked(onCustomerArchived).mockClear();
+    const result = await runAsPhysio(physio.claims, (tx, id) =>
+      setCustomerArchived(tx, id, "nope", true),
+    );
+    expect(result).toEqual({ ok: false, error: "notFound" });
+    expect(onCustomerArchived).not.toHaveBeenCalled();
+  });
 });

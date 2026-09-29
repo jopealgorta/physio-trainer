@@ -546,4 +546,39 @@ describe("customers server layer", () => {
       expect(results.filter((result) => !result.ok)).toEqual([{ ok: false, error: "notOpen" }]);
     });
   });
+
+  describe("malformed ids", () => {
+    it.each(["nope", ""])(
+      "are reported as not found without aborting the transaction (%j)",
+      async (bad) => {
+        const id = await customer(a, { firstName: "Malformed" });
+        const results = await as(a, async (tx, physioId) => {
+          const out = {
+            get: await getCustomer(tx, physioId, bad),
+            update: await updateCustomer(tx, physioId, bad, customerInput()),
+            archive: await setCustomerArchived(tx, physioId, bad, true),
+            restore: await setCustomerArchived(tx, physioId, bad, false),
+            createCase: await createCase(tx, physioId, bad, caseInput(), "2026-03-10"),
+            updateCase: await updateCase(tx, physioId, bad, caseInput()),
+            close: await closeCase(tx, physioId, bad, "2026-03-10"),
+            reopen: await reopenCase(tx, physioId, bad),
+          };
+          // the transaction must still be usable
+          const after = await getCustomer(tx, physioId, id);
+          return { out, after };
+        });
+        expect(results.out).toEqual({
+          get: null,
+          update: { ok: false, error: "notFound" },
+          archive: { ok: false, error: "notFound" },
+          restore: { ok: false, error: "notFound" },
+          createCase: { ok: false, error: "customerNotFound" },
+          updateCase: { ok: false, error: "notFound" },
+          close: { ok: false, error: "notFound" },
+          reopen: { ok: false, error: "notFound" },
+        });
+        expect(results.after?.firstName).toBe("Malformed");
+      },
+    );
+  });
 });

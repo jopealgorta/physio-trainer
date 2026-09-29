@@ -8,7 +8,7 @@ import { cases, customers, physios } from "@/db/schema";
 import { type Locale, resolveLocale } from "@/i18n/config";
 
 import { onCustomerArchived } from "./hooks";
-import type { CaseInput, CustomerInput, Result } from "./schemas";
+import { isUuid, type CaseInput, type CustomerInput, type Result } from "./schemas";
 
 const ok = <T>(data: T) => ({ ok: true, data }) as const;
 const fail = <E extends string>(error: E) => ({ ok: false, error }) as const;
@@ -46,6 +46,7 @@ export async function updateCustomer(
   id: string,
   input: CustomerInput,
 ): Promise<Result<null, "notFound">> {
+  if (!isUuid(id)) return fail("notFound");
   // A blank locale keeps the customer's current one (the column is not null).
   const { locale, ...rest } = input;
   const rows = await tx
@@ -62,6 +63,7 @@ export async function setCustomerArchived(
   id: string,
   archived: boolean,
 ): Promise<Result<null, "notFound">> {
+  if (!isUuid(id)) return fail("notFound");
   const rows = await tx
     .update(customers)
     .set({ archivedAt: archived ? new Date() : null })
@@ -79,6 +81,7 @@ export async function createCase(
   input: CaseInput,
   today: string,
 ): Promise<Result<{ id: string }, "customerNotFound">> {
+  if (!isUuid(customerId)) return fail("customerNotFound");
   const [customer] = await tx
     .select({ id: customers.id })
     .from(customers)
@@ -105,6 +108,7 @@ export async function updateCase(
   id: string,
   input: CaseInput,
 ): Promise<Result<null, "notFound" | "openedAfterClosed">> {
+  if (!isUuid(id)) return fail("notFound");
   // Content only: status and closedOn change through closeCase/reopenCase. A blank opening date
   // keeps the current one (the column is not null).
   const { openedOn, ...rest } = input;
@@ -131,6 +135,7 @@ export async function closeCase(
   id: string,
   closedOn: string,
 ): Promise<Result<null, "notFound" | "notOpen" | "closedBeforeOpened">> {
+  if (!isUuid(id)) return fail("notFound");
   // One guarded UPDATE, so two concurrent closes cannot both succeed.
   try {
     const rows = await tx.transaction((savepoint) =>
@@ -156,6 +161,7 @@ export async function reopenCase(
   physioId: string,
   id: string,
 ): Promise<Result<null, "notFound" | "notClosed">> {
+  if (!isUuid(id)) return fail("notFound");
   const rows = await tx
     .update(cases)
     .set({ status: "open", closedOn: null })

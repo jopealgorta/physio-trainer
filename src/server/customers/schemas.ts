@@ -30,6 +30,9 @@ export type Result<T, E extends string> = { ok: true; data: T } | { ok: false; e
 
 export const idSchema = z.uuid();
 
+/** Cheap guard so malformed ids never reach a uuid comparison (Postgres would raise 22P02). */
+export const isUuid = (value: string): boolean => idSchema.safeParse(value).success;
+
 /** Blank (or absent) form values become null. */
 const blankToNull = (value: unknown) => {
   const text = typeof value === "string" ? value.trim() : value;
