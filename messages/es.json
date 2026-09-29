@@ -437,6 +437,7 @@
     "noResults": {
       "title": "Ningún cliente coincide",
       "body": "Probá con otro nombre o quitá los filtros.",
+      "allArchived": "Todos tus clientes están archivados. Activá «Mostrar archivados» para verlos.",
       "clear": "Quitar filtros"
     },
     "form": {

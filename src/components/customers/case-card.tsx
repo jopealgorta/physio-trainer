@@ -20,7 +20,11 @@ function Detail({
   return (
     <div className="grid gap-0.5">
       <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className={multiline ? "text-sm break-words whitespace-pre-line" : "text-sm break-words"}>
+      <dd
+        className={
+          multiline ? "text-sm wrap-anywhere whitespace-pre-line" : "text-sm wrap-anywhere"
+        }
+      >
         {children}
       </dd>
     </div>
@@ -48,7 +52,7 @@ export function CaseCard({
   return (
     <article className="grid gap-3 rounded-lg border p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="min-w-0 text-base font-semibold break-words">{item.title}</h3>
+        <h3 className="min-w-0 text-base font-semibold wrap-anywhere">{item.title}</h3>
         <Badge variant={closed ? "outline" : "secondary"}>{t(`status.${item.status}`)}</Badge>
         {item.bodyArea ? <BodyAreaBadge area={item.bodyArea} side={item.side} /> : null}
       </div>

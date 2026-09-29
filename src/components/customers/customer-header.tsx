@@ -34,7 +34,7 @@ export function CustomerHeader({
         <div className="flex min-w-0 items-center gap-4">
           <CustomerAvatar firstName={customer.firstName} lastName={customer.lastName} size="lg" />
           <div className="min-w-0 space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight break-words">{name}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
             {age !== null ? (
               <p className="text-muted-foreground text-sm">{t("age", { age })}</p>
             ) : null}

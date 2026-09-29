@@ -437,6 +437,7 @@
     "noResults": {
       "title": "No customers match",
       "body": "Try a different name or clear the filters.",
+      "allArchived": "All your customers are archived. Turn on \"Show archived\" to see them.",
       "clear": "Clear filters"
     },
     "form": {

@@ -23,17 +23,22 @@ export function EmptyCustomers() {
   );
 }
 
-/** Filters or search matched nothing. */
-export function NoCustomerResults() {
+/**
+ * Filters or search matched nothing. Without an active filter the only customers left are
+ * archived, so there is nothing to clear: point at "Show archived" instead.
+ */
+export function NoCustomerResults({ canClear }: { canClear: boolean }) {
   const t = useTranslations("Customers.noResults");
   return (
     <Card>
       <CardContent className="mx-auto grid max-w-md justify-items-center gap-3 py-10 text-center">
         <h2 className="text-base font-semibold">{t("title")}</h2>
-        <p className="text-muted-foreground text-sm">{t("body")}</p>
-        <Button asChild variant="outline">
-          <Link href={customersHref(DEFAULT_CUSTOMER_FILTERS)}>{t("clear")}</Link>
-        </Button>
+        <p className="text-muted-foreground text-sm">{t(canClear ? "body" : "allArchived")}</p>
+        {canClear ? (
+          <Button asChild variant="outline">
+            <Link href={customersHref(DEFAULT_CUSTOMER_FILTERS)}>{t("clear")}</Link>
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );

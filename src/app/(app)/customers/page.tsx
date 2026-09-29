@@ -48,7 +48,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
           {customers.length > 0 ? (
             <CustomerResults customers={customers} truncated={truncated} />
           ) : (
-            <NoCustomerResults />
+            <NoCustomerResults canClear={hasActiveCustomerFilters(filters)} />
           )}
         </div>
       )}

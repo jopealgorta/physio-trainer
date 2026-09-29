@@ -13,7 +13,7 @@ function Field({ label, value, notSet }: { label: string; value: string | null; 
   return (
     <div className="grid gap-0.5">
       <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className={value ? "text-sm break-words" : "text-muted-foreground text-sm"}>
+      <dd className={value ? "text-sm wrap-anywhere" : "text-muted-foreground text-sm"}>
         {value || notSet}
       </dd>
     </div>
@@ -49,8 +49,10 @@ export function CustomerOverview({
           <AlertDescription className="gap-3">
             {withPrecautions.map((item) => (
               <div key={item.id} className="grid gap-0.5">
-                <p className="text-foreground font-semibold">{item.title}</p>
-                <p className="text-foreground whitespace-pre-line">{item.precautions}</p>
+                <p className="text-foreground font-semibold wrap-anywhere">{item.title}</p>
+                <p className="text-foreground wrap-anywhere whitespace-pre-line">
+                  {item.precautions}
+                </p>
               </div>
             ))}
           </AlertDescription>
@@ -89,7 +91,7 @@ export function CustomerOverview({
           <h2 id="medical-history" className="text-base font-semibold">
             {t("overview.medicalHistory")}
           </h2>
-          <p className="text-sm break-words whitespace-pre-line">{medicalHistory}</p>
+          <p className="text-sm wrap-anywhere whitespace-pre-line">{medicalHistory}</p>
         </section>
       ) : null}
 
