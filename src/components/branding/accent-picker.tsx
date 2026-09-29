@@ -138,7 +138,9 @@ export function AccentPicker({
         {errorCode ? t(`errors.${errorCode}`) : adjusted ? t("accentAdjusted") : null}
       </p>
 
-      {name ? <input type="hidden" name={name} value={value ?? ""} /> : null}
+      {/* An invalid hex is posted as typed so the server rejects it; posting the previous valid
+          accent would show "Saved" next to the inline error. */}
+      {name ? <input type="hidden" name={name} value={textInvalid ? text : (value ?? "")} /> : null}
     </div>
   );
 }

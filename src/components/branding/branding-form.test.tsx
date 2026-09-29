@@ -93,6 +93,21 @@ describe("BrandingForm", () => {
     expect(screen.queryByText("Enter a colour like #0f766e.")).not.toBeInTheDocument();
   });
 
+  it("posts an invalid hex as typed so the server rejects it instead of saving the old colour", async () => {
+    const user = userEvent.setup();
+    const { action, accentInput } = renderForm({
+      defaults: { ...baseDefaults, accentColor: "#2563eb" },
+    });
+    // "#2563eb" minus its last digit: invalid, while the previous valid accent is still held.
+    await user.type(screen.getByLabelText("Hex code"), "{Backspace}");
+    expect(screen.getByLabelText("Hex code")).toHaveValue("#2563e");
+    expect(accentInput()).toHaveValue("#2563e");
+
+    await user.click(screen.getByRole("button", { name: "Save branding" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    expect(action.mock.calls[0][1].get("accentColor")).toBe("#2563e");
+  });
+
   it("goes back to the app default colour", async () => {
     const user = userEvent.setup();
     const { previewStyle, accentInput } = renderForm({
@@ -185,7 +200,7 @@ describe("BrandingForm", () => {
     expect(formData.get("showContactToPatients")).toBe("on");
     expect(formData.get("removeLogo")).toBeNull();
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Saved");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
     expect(within(patientPage()).getByRole("img", { name: "Kine Sur logo" })).toHaveAttribute(
       "src",
       "https://cdn.example/logo.png",
@@ -209,6 +224,22 @@ describe("BrandingForm", () => {
     await user.click(screen.getByRole("button", { name: "Save branding" }));
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
     expect(action.mock.calls[0][1].get("removeLogo")).toBe("1");
+  });
+
+  it("moves focus to the file input after removing the logo", async () => {
+    const user = userEvent.setup();
+    renderForm({ defaults: { ...baseDefaults, logoUrl: "https://cdn.example/a.png" } });
+    await user.click(screen.getByRole("button", { name: "Remove logo" }));
+    expect(screen.getByLabelText("Logo", { exact: true })).toHaveFocus();
+  });
+
+  it("keeps an empty status region mounted until something is saved", async () => {
+    const action = vi.fn<Props["action"]>(async () => ({ status: "saved", logoUrl: null }));
+    const user = userEvent.setup();
+    renderForm({ action });
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    await user.click(screen.getByRole("button", { name: "Save branding" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
   });
 
   it("shows field errors from the server", async () => {

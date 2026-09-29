@@ -103,6 +103,7 @@ export function BrandingForm({
   const [removeLogo, setRemoveLogo] = useState(false);
   const [logoError, setLogoError] = useState<LogoError | null>(null);
   const pickCounter = useRef(0);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // After a save, the stored logo replaces the pending file and a pending removal is done.
   const [seenState, setSeenState] = useState(state);
@@ -163,6 +164,8 @@ export function BrandingForm({
     setLogoFile(null);
     setLogoError(null);
     setRemoveLogo(savedLogoUrl !== null);
+    // The button unmounts with the logo; keep keyboard focus in the logo controls.
+    logoInputRef.current?.focus();
   }
 
   // Dispatched from onSubmit (not the form's `action`) so the resized logo can be added and
@@ -219,6 +222,7 @@ export function BrandingForm({
             <div className="grid min-w-0 gap-2">
               {/* No `name`: a submit before hydration must not post the raw, unresized file. */}
               <Input
+                ref={logoInputRef}
                 id={logoInputId}
                 type="file"
                 accept={LOGO_ACCEPT}
@@ -340,11 +344,10 @@ export function BrandingForm({
           <Button type="submit" disabled={pending}>
             {pending ? t("saving") : t("save")}
           </Button>
-          {state.status === "saved" && !pending ? (
-            <p role="status" className="text-muted-foreground text-sm">
-              {t("saved")}
-            </p>
-          ) : null}
+          {/* Always mounted: screen readers only announce changes to an existing live region. */}
+          <p role="status" className="text-muted-foreground text-sm">
+            {state.status === "saved" && !pending ? t("saved") : null}
+          </p>
         </div>
       </form>
 
