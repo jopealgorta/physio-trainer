@@ -318,6 +318,7 @@
       "confirmDelete": "Eliminar ejercicio",
       "errors": {
         "notFound": "Este ejercicio ya no existe.",
+        "inUse": "Este ejercicio se usa en una rutina, así que no se puede eliminar. Archivalo en su lugar.",
         "unknown": "Algo salió mal. Probá de nuevo."
       }
     },

@@ -118,6 +118,11 @@ describe("exercise actions", () => {
     expect(m.setExerciseArchived).toHaveBeenCalledWith({}, "physio-1", UUID, false);
   });
 
+  it("returns inUse instead of redirecting when a routine uses the exercise", async () => {
+    m.deleteExercise.mockResolvedValue({ ok: false, error: "inUse" });
+    await expect(deleteExerciseAction(UUID)).resolves.toEqual({ ok: false, error: "inUse" });
+  });
+
   it("redirects to the library after deleting", async () => {
     m.deleteExercise.mockResolvedValue({ ok: true, data: null });
     await expect(deleteExerciseAction(UUID)).rejects.toThrow("REDIRECT /library");

@@ -200,15 +200,20 @@ export async function setExerciseArchived(
   return rows.length ? ok(null) : fail("notFound");
 }
 
-/** Spec 05 adds a routine_items FK; then this returns "inUse" and the UI offers archive. */
+/** An exercise a routine uses cannot be deleted ("inUse"): the UI offers archive instead. */
 export async function deleteExercise(
   tx: Tx,
   physioId: string,
   id: string,
-): Promise<Result<null, "notFound">> {
-  const rows = await tx
-    .delete(exercises)
-    .where(ownExercise(physioId, id))
-    .returning({ id: exercises.id });
-  return rows.length ? ok(null) : fail("notFound");
+): Promise<Result<null, "notFound" | "inUse">> {
+  try {
+    // A savepoint, so the foreign key violation does not abort the caller's transaction.
+    const rows = await tx.transaction((savepoint) =>
+      savepoint.delete(exercises).where(ownExercise(physioId, id)).returning({ id: exercises.id }),
+    );
+    return rows.length ? ok(null) : fail("notFound");
+  } catch (error) {
+    if (isForeignKeyViolation(error, "routine_items_exercise_fk")) return fail("inUse");
+    throw error;
+  }
 }

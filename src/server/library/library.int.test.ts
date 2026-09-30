@@ -3,7 +3,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio, type Tx } from "@/db/rls";
-import { exerciseCategories, exerciseMedia, exercises } from "@/db/schema";
+import {
+  customers,
+  exerciseCategories,
+  exerciseMedia,
+  exercises,
+  routineItems,
+  routines,
+} from "@/db/schema";
 import { DEFAULT_LIBRARY_FILTERS, type LibraryFilters } from "@/lib/library-params";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
@@ -420,6 +427,34 @@ describe("library server layer", () => {
       });
       const [row] = await db.select().from(exercises).where(eq(exercises.id, bExercise));
       expect(row.archivedAt).toBeNull();
+    });
+  });
+
+  describe("deleteExercise with routines", () => {
+    it("is inUse for an exercise a routine uses, and the transaction stays usable", async () => {
+      const used = await exercise(a, exerciseInput({ name: "Used in routine" }));
+      const [customer] = await db
+        .insert(customers)
+        .values({ physioId: a.id, firstName: "Ana", locale: "en" })
+        .returning({ id: customers.id });
+      const [routine] = await db
+        .insert(routines)
+        .values({ physioId: a.id, customerId: customer.id, name: "R" })
+        .returning({ id: routines.id });
+      await db
+        .insert(routineItems)
+        .values({ physioId: a.id, routineId: routine.id, exerciseId: used, position: 0 });
+
+      const outcome = await asA(async (tx, p) => ({
+        result: await deleteExercise(tx, p, used),
+        after: await getExercise(tx, p, used),
+      }));
+      expect(outcome.result).toEqual({ ok: false, error: "inUse" });
+      expect(outcome.after).toMatchObject({ id: used });
+      expect(await asA((tx, p) => deleteExercise(tx, p, RANDOM_ID))).toEqual({
+        ok: false,
+        error: "notFound",
+      });
     });
   });
 

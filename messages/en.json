@@ -318,6 +318,7 @@
       "confirmDelete": "Delete exercise",
       "errors": {
         "notFound": "This exercise no longer exists.",
+        "inUse": "This exercise is used in a routine, so it can't be deleted. Archive it instead.",
         "unknown": "Something went wrong. Try again."
       }
     },
