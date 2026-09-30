@@ -246,16 +246,7 @@
     "handle": "Reorder {item}"
   },
   "Prescription": {
-    "sets": "Sets",
-    "reps": "Reps",
-    "repsMax": "Reps (max)",
-    "repsMaxHint": "For a range, e.g. 8–12",
-    "durationSeconds": "Duration (s)",
-    "holdSeconds": "Hold (s)",
-    "restSeconds": "Rest (s)",
-    "load": "Load",
     "loadPlaceholder": "e.g. 5 kg, red band",
-    "side": "Side",
     "sideNone": "Not set",
     "sides": {
       "left": "Left",
@@ -263,7 +254,6 @@
       "both": "Both sides",
       "alternating": "Alternating"
     },
-    "notes": "Notes",
     "errors": {
       "notAWholeNumber": "Enter a whole number.",
       "outOfRange": "Enter a number from {min, number} to {max, number}.",
@@ -272,6 +262,15 @@
       "repsMaxWithoutReps": "Enter reps first.",
       "repsMaxNotAboveReps": "Must be more than reps.",
       "invalid": "Check this field."
+    },
+    "summary": {
+      "count": "{value, number}",
+      "range": "{min, number}–{max, number}",
+      "seconds": "{value, number} s",
+      "sets": "{count, plural, one {# set} other {# sets}}",
+      "blank": "–",
+      "hold": "hold {value, number} s",
+      "rest": "rest {value, number} s"
     }
   },
   "Library": {
@@ -671,13 +670,48 @@
         "exerciseNotFound": "One of the exercises no longer exists. Remove it and save again.",
         "needsItems": "Add at least one exercise before activating.",
         "blockedByPlans": "This routine is used in an active weekly plan.",
-        "invalid": "Check the highlighted fields.",
+        "invalid": "Check the form and try again.",
         "generic": "Couldn't save. Try again.",
         "nameRequired": "Enter a name.",
         "nameTooLong": "Use at most {max, number} characters.",
         "notesTooLong": "Use at most {max, number} characters.",
         "outOfRange": "Enter a whole number from {min, number} to {max, number}."
       }
+    },
+    "items": {
+      "empty": "No exercises yet. Pick some from the list.",
+      "superset": "Superset",
+      "supersetHint": "Alternates set by set: A1, B1, rest, A2, B2…",
+      "groupRest": "Rest after each round (s)",
+      "expand": "Edit prescription",
+      "collapse": "Hide prescription",
+      "archivedBadge": "Archived",
+      "menu": "Exercise options",
+      "duplicate": "Duplicate",
+      "remove": "Remove",
+      "groupWithNext": "Group with next",
+      "ungroup": "Ungroup",
+      "openExercise": "Open exercise",
+      "noPrescription": "No prescription set",
+      "sets": {
+        "title": "Sets",
+        "set": "Set {n, number}",
+        "reps": "Reps",
+        "repsMax": "Max reps",
+        "duration": "Duration (s)",
+        "load": "Load",
+        "add": "Add set",
+        "remove": "Remove set {n, number}",
+        "syncHint": "Sets stay in sync across the superset.",
+        "limit": "Up to {max, number} sets."
+      },
+      "fields": {
+        "hold": "Hold (s)",
+        "rest": "Rest (s)",
+        "side": "Side",
+        "notes": "Notes"
+      },
+      "limit": "A routine can have up to {max, number} exercises."
     }
   },
   "Branding": {

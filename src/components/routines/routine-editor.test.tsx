@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EditorBlock } from "@/lib/routine-editor";
+import type { EditorBlock, EditorItem } from "@/lib/routine-editor";
 import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
@@ -74,6 +74,9 @@ function setup(props: RoutineEditorProps = PROPS) {
   };
 }
 
+// The drag-and-drop library keeps its own aria-live region (also role="status") in the page.
+const saveStatus = () =>
+  screen.getAllByRole("status").find((element) => !element.id.startsWith("DndLiveRegion"))!;
 const save = () => screen.getByRole("button", { name: /^Save/ });
 const nameInput = () => screen.getByRole("textbox", { name: "Routine name" });
 
@@ -84,13 +87,13 @@ beforeEach(() => {
 });
 
 describe("RoutineEditor", () => {
-  it("shows the customer as a link and the body slots", () => {
+  it("shows the customer as a link, the block list and the picker slot", () => {
     setup();
     expect(screen.getByRole("link", { name: "Ana Pérez" })).toHaveAttribute(
       "href",
       "/customers/cust-1",
     );
-    expect(screen.getByTestId("block-list-slot")).toBeInTheDocument();
+    expect(screen.getByText("Squat")).toBeInTheDocument();
     expect(screen.getByTestId("picker-slot")).toBeInTheDocument();
   });
 
@@ -100,7 +103,7 @@ describe("RoutineEditor", () => {
     expect(save()).toBeDisabled();
     await user.type(nameInput(), "!");
     expect(save()).toBeEnabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Unsaved changes");
+    expect(saveStatus()).toHaveTextContent("Unsaved changes");
     await user.type(nameInput(), "{Backspace}");
     expect(save()).toBeDisabled();
   });
@@ -139,7 +142,7 @@ describe("RoutineEditor", () => {
         },
       ],
     });
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    await waitFor(() => expect(saveStatus()).toHaveTextContent("Saved"));
     expect(save()).toBeDisabled();
   });
 
@@ -173,14 +176,42 @@ describe("RoutineEditor", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("resets to the server's routine when the page delivers a newer version", async () => {
+  it("resets header and blocks after a conflict and Reload delivers a newer version", async () => {
     const user = userEvent.setup();
     saveRoutineAction.mockResolvedValue({ ok: false, error: "conflict" });
     const { rerenderWith } = setup();
     await user.type(nameInput(), "!");
     await user.click(save());
     await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Reload" }));
 
+    const theirs: EditorBlock[] = [
+      {
+        kind: "single",
+        key: "t1",
+        item: { ...(BLOCKS[0] as { item: EditorItem }).item, key: "t1", exerciseName: "Lunge" },
+      },
+    ];
+    rerenderWith({
+      ...PROPS,
+      initialBlocks: theirs,
+      routine: {
+        ...PROPS.routine,
+        version: 5,
+        header: { ...PROPS.routine.header, name: "Theirs" },
+      },
+    });
+    await waitFor(() => expect(nameInput()).toHaveValue("Theirs"));
+    expect(screen.getByText("Lunge")).toBeInTheDocument();
+    expect(screen.queryByText("Squat")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(save()).toBeDisabled();
+  });
+
+  it("does not reset when a newer page version arrives without a conflict", async () => {
+    const user = userEvent.setup();
+    const { rerenderWith } = setup();
+    await user.type(nameInput(), "!");
     rerenderWith({
       ...PROPS,
       routine: {
@@ -189,9 +220,8 @@ describe("RoutineEditor", () => {
         header: { ...PROPS.routine.header, name: "Theirs" },
       },
     });
-    await waitFor(() => expect(nameInput()).toHaveValue("Theirs"));
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(save()).toBeDisabled();
+    expect(nameInput()).toHaveValue("Knee rehab!");
+    expect(save()).toBeEnabled();
   });
 
   it("keeps in-progress edits when the page re-renders with the version just saved", async () => {
@@ -199,7 +229,7 @@ describe("RoutineEditor", () => {
     const { rerenderWith } = setup();
     await user.type(nameInput(), "!");
     await user.click(save());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    await waitFor(() => expect(saveStatus()).toHaveTextContent("Saved"));
     await user.type(nameInput(), "?");
 
     rerenderWith({
@@ -208,6 +238,18 @@ describe("RoutineEditor", () => {
     });
     expect(nameInput()).toHaveValue("Knee rehab!?");
     expect(save()).toBeEnabled();
+  });
+
+  it("edits the blocks and sends the change on save", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Edit prescription" }));
+    await user.click(screen.getByRole("button", { name: "Add set" }));
+    expect(save()).toBeEnabled();
+    await user.click(save());
+    await waitFor(() => expect(saveRoutineAction).toHaveBeenCalledTimes(1));
+    const { items } = saveRoutineAction.mock.calls[0][0];
+    expect(items[0].sets).toHaveLength(2);
   });
 
   it("maps server errors to messages", async () => {
@@ -224,7 +266,7 @@ describe("RoutineEditor", () => {
     saveRoutineAction.mockResolvedValue({ ok: false, error: "invalid" });
     await user.click(save());
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("Check the highlighted fields."),
+      expect(screen.getByRole("alert")).toHaveTextContent("Check the form and try again."),
     );
   });
 

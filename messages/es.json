@@ -246,16 +246,7 @@
     "handle": "Reordenar {item}"
   },
   "Prescription": {
-    "sets": "Series",
-    "reps": "Repeticiones",
-    "repsMax": "Repeticiones (máx.)",
-    "repsMaxHint": "Para un rango, p. ej. 8–12",
-    "durationSeconds": "Duración (s)",
-    "holdSeconds": "Sostener (s)",
-    "restSeconds": "Descanso (s)",
-    "load": "Carga",
     "loadPlaceholder": "p. ej. 5 kg, banda roja",
-    "side": "Lado",
     "sideNone": "Sin definir",
     "sides": {
       "left": "Izquierdo",
@@ -263,7 +254,6 @@
       "both": "Ambos lados",
       "alternating": "Alternado"
     },
-    "notes": "Notas",
     "errors": {
       "notAWholeNumber": "Ingresá un número entero.",
       "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
@@ -272,6 +262,15 @@
       "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
       "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
       "invalid": "Revisá este campo."
+    },
+    "summary": {
+      "count": "{value, number}",
+      "range": "{min, number}–{max, number}",
+      "seconds": "{value, number} s",
+      "sets": "{count, plural, one {# serie} other {# series}}",
+      "blank": "–",
+      "hold": "sostener {value, number} s",
+      "rest": "descanso {value, number} s"
     }
   },
   "Library": {
@@ -671,13 +670,48 @@
         "exerciseNotFound": "Uno de los ejercicios ya no existe. Quitalo y guardá de nuevo.",
         "needsItems": "Agregá al menos un ejercicio antes de activarla.",
         "blockedByPlans": "Esta rutina se usa en un plan semanal activo.",
-        "invalid": "Revisá los campos marcados.",
+        "invalid": "Revisá el formulario y probá de nuevo.",
         "generic": "No se pudo guardar. Probá de nuevo.",
         "nameRequired": "Ingresá un nombre.",
         "nameTooLong": "Usá como máximo {max, number} caracteres.",
         "notesTooLong": "Usá como máximo {max, number} caracteres.",
         "outOfRange": "Ingresá un número entero de {min, number} a {max, number}."
       }
+    },
+    "items": {
+      "empty": "Todavía no hay ejercicios. Elegí algunos de la lista.",
+      "superset": "Superserie",
+      "supersetHint": "Se alterna serie por serie: A1, B1, descanso, A2, B2…",
+      "groupRest": "Descanso después de cada ronda (s)",
+      "expand": "Editar prescripción",
+      "collapse": "Ocultar prescripción",
+      "archivedBadge": "Archivado",
+      "menu": "Opciones del ejercicio",
+      "duplicate": "Duplicar",
+      "remove": "Quitar",
+      "groupWithNext": "Agrupar con el siguiente",
+      "ungroup": "Desagrupar",
+      "openExercise": "Abrir ejercicio",
+      "noPrescription": "Sin prescripción",
+      "sets": {
+        "title": "Series",
+        "set": "Serie {n, number}",
+        "reps": "Repeticiones",
+        "repsMax": "Repeticiones máx.",
+        "duration": "Duración (s)",
+        "load": "Carga",
+        "add": "Agregar serie",
+        "remove": "Quitar serie {n, number}",
+        "syncHint": "Las series se mantienen sincronizadas en toda la superserie.",
+        "limit": "Hasta {max, number} series."
+      },
+      "fields": {
+        "hold": "Sostener (s)",
+        "rest": "Descanso (s)",
+        "side": "Lado",
+        "notes": "Notas"
+      },
+      "limit": "Una rutina puede tener hasta {max, number} ejercicios."
     }
   },
   "Branding": {

@@ -12,6 +12,7 @@ import { validateHeader, type HeaderErrors } from "@/lib/routine-validation";
 import { saveRoutineAction, type SaveRoutineActionError } from "@/server/routines/actions";
 import type { ExerciseSummary } from "@/server/library/queries";
 
+import { BlockList } from "./block-list";
 import { RoutineHeader, type HeaderValues } from "./routine-header";
 import { useUnsavedGuard } from "./use-unsaved-guard";
 
@@ -34,19 +35,21 @@ export type RoutineEditorProps = {
 
 type SaveError = SaveRoutineActionError | "generic";
 
+const newKey = () => crypto.randomUUID();
+
 const snapshotOf = (header: HeaderValues, blocks: EditorBlock[]) =>
   JSON.stringify([header, toSaveBlocks(blocks)]);
 
 /**
  * The routine editor: header fields, the block list and the exercise picker, saved as one unit
- * with an optimistic version check. Tasks 10 and 11 fill the two body slots.
+ * with an optimistic version check. Task 11 fills the picker slot.
  */
 export function RoutineEditor({ routine, initialBlocks }: RoutineEditorProps) {
   const t = useTranslations("Routines.editor");
   const router = useRouter();
 
   const [header, setHeader] = useState(routine.header);
-  const [blocks] = useState(initialBlocks);
+  const [blocks, setBlocks] = useState(initialBlocks);
   const [version, setVersion] = useState(routine.version);
   const [snapshot, setSnapshot] = useState(() => snapshotOf(routine.header, initialBlocks));
   const [saving, setSaving] = useState(false);
@@ -54,14 +57,16 @@ export function RoutineEditor({ routine, initialBlocks }: RoutineEditorProps) {
   const [fieldErrors, setFieldErrors] = useState<HeaderErrors>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  // The page re-renders with fresh data after a conflict's Reload. A newer version than ours is
-  // someone else's change, so it replaces local state; the version we just saved ourselves (the
-  // action revalidates this page) must not wipe edits made while the save was in flight.
+  // The page re-renders with fresh data after a conflict's Reload. Only then does a newer
+  // version replace local state (someone else's change, which the user chose to load). Otherwise
+  // it is the version we just saved ourselves (the action revalidates this page): record it and
+  // keep any edits made while the save was in flight.
   const [seenVersion, setSeenVersion] = useState(routine.version);
   if (routine.version !== seenVersion) {
     setSeenVersion(routine.version);
-    if (routine.version > version) {
+    if (error === "conflict" && routine.version > version) {
       setHeader(routine.header);
+      setBlocks(initialBlocks);
       setVersion(routine.version);
       setSnapshot(snapshotOf(routine.header, initialBlocks));
       setError(null);
@@ -154,7 +159,7 @@ export function RoutineEditor({ routine, initialBlocks }: RoutineEditorProps) {
       ) : null}
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
-        <div data-testid="block-list-slot" />
+        <BlockList blocks={blocks} onChange={setBlocks} newKey={newKey} />
         <div data-testid="picker-slot" />
       </div>
     </div>
