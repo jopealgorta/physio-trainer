@@ -510,7 +510,6 @@
       "notes": "Notes"
     },
     "tabEmpty": {
-      "routines": "Routines for this customer will appear here.",
       "plans": "Weekly plans for this customer will appear here.",
       "activity": "Their activity and progress will appear here.",
       "notes": "Session notes for this customer will appear here."
@@ -590,6 +589,63 @@
       "customerNotFound": "This customer no longer exists.",
       "invalid": "Check this field.",
       "unknown": "Something went wrong. Try again."
+    }
+  },
+  "Routines": {
+    "title": "Routines",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "list": {
+      "columns": {
+        "name": "Name",
+        "customer": "Customer",
+        "case": "Case",
+        "status": "Status",
+        "items": "Exercises",
+        "frequency": "Per week",
+        "updated": "Updated"
+      },
+      "items": "{count, plural, one {# exercise} other {# exercises}}",
+      "perWeek": "{count, number}×",
+      "empty": {
+        "title": "No routines yet",
+        "body": "Open a customer to create their first routine.",
+        "cta": "Go to customers"
+      },
+      "noResults": "No routines match these filters.",
+      "clearFilters": "Clear filters",
+      "truncated": "Showing the first {count, number}. Refine your search."
+    },
+    "filters": {
+      "search": "Search routines",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "customer": "Customer",
+      "allCustomers": "All customers"
+    },
+    "customerTab": {
+      "title": "Routines",
+      "empty": "No routines for {name} yet."
+    },
+    "new": {
+      "button": "New routine",
+      "title": "New routine for {name}",
+      "name": "Name",
+      "case": "Case",
+      "noCase": "No case",
+      "create": "Create routine",
+      "creating": "Creating…",
+      "cancel": "Cancel",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "customerNotFound": "This customer no longer exists.",
+        "caseNotFound": "That case doesn't belong to this customer.",
+        "invalid": "Check the form and try again."
+      }
     }
   },
   "Branding": {

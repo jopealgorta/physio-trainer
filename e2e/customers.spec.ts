@@ -80,11 +80,11 @@ test("the customer tabs are addressable by URL", async ({ physioPage: page }) =>
 
   await tabs.getByRole("link", { name: "Routines" }).click();
   await expect(page).toHaveURL(/\?tab=routines$/);
-  await expect(page.getByText("Routines for this customer will appear here.")).toBeVisible();
+  await expect(page.getByText("No routines for Tabs Tester yet.")).toBeVisible();
 
   await page.reload();
   await expect(page).toHaveURL(/\?tab=routines$/);
-  await expect(page.getByText("Routines for this customer will appear here.")).toBeVisible();
+  await expect(page.getByText("No routines for Tabs Tester yet.")).toBeVisible();
   await expect(tabs.getByRole("link", { name: "Routines" })).toHaveAttribute(
     "aria-current",
     "page",

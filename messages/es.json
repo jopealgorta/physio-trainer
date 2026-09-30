@@ -510,7 +510,6 @@
       "notes": "Notas"
     },
     "tabEmpty": {
-      "routines": "Acá van a aparecer las rutinas de este cliente.",
       "plans": "Acá van a aparecer los planes semanales de este cliente.",
       "activity": "Acá van a aparecer su actividad y su progreso.",
       "notes": "Acá van a aparecer las notas de sesión de este cliente."
@@ -590,6 +589,63 @@
       "customerNotFound": "Este cliente ya no existe.",
       "invalid": "Revisá este campo.",
       "unknown": "Algo salió mal. Probá de nuevo."
+    }
+  },
+  "Routines": {
+    "title": "Rutinas",
+    "status": {
+      "draft": "Borrador",
+      "active": "Activa",
+      "archived": "Archivada"
+    },
+    "list": {
+      "columns": {
+        "name": "Nombre",
+        "customer": "Cliente",
+        "case": "Caso",
+        "status": "Estado",
+        "items": "Ejercicios",
+        "frequency": "Por semana",
+        "updated": "Actualizada"
+      },
+      "items": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+      "perWeek": "{count, number}×",
+      "empty": {
+        "title": "Todavía no hay rutinas",
+        "body": "Abrí un cliente para crear su primera rutina.",
+        "cta": "Ir a clientes"
+      },
+      "noResults": "Ninguna rutina coincide con estos filtros.",
+      "clearFilters": "Borrar filtros",
+      "truncated": "Mostrando las primeras {count, number}. Afiná la búsqueda."
+    },
+    "filters": {
+      "search": "Buscar rutinas",
+      "status": "Estado",
+      "allStatuses": "Todos los estados",
+      "customer": "Cliente",
+      "allCustomers": "Todos los clientes"
+    },
+    "customerTab": {
+      "title": "Rutinas",
+      "empty": "{name} todavía no tiene rutinas."
+    },
+    "new": {
+      "button": "Nueva rutina",
+      "title": "Nueva rutina para {name}",
+      "name": "Nombre",
+      "case": "Caso",
+      "noCase": "Sin caso",
+      "create": "Crear rutina",
+      "creating": "Creando…",
+      "cancel": "Cancelar",
+      "errors": {
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "customerNotFound": "Este cliente ya no existe.",
+        "caseNotFound": "Ese caso no pertenece a este cliente.",
+        "invalid": "Revisá el formulario y probá de nuevo."
+      }
     }
   },
   "Branding": {
