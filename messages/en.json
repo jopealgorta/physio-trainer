@@ -646,6 +646,38 @@
         "caseNotFound": "That case doesn't belong to this customer.",
         "invalid": "Check the form and try again."
       }
+    },
+    "editor": {
+      "back": "Back to routines",
+      "name": "Routine name",
+      "status": "Status",
+      "case": "Case",
+      "noCase": "No case",
+      "customer": "Customer",
+      "sessionsPerWeek": "Sessions per week",
+      "sessionsPerDay": "Sessions per day",
+      "notes": "Notes for the patient",
+      "notesHint": "Shown at the top of the routine.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "unsaved": "Unsaved changes",
+      "leaveConfirm": "You have unsaved changes. Leave without saving?",
+      "conflict": "This routine changed in another tab. Reload?",
+      "reload": "Reload",
+      "errors": {
+        "notFound": "This routine no longer exists.",
+        "caseNotFound": "That case doesn't belong to this customer.",
+        "exerciseNotFound": "One of the exercises no longer exists. Remove it and save again.",
+        "needsItems": "Add at least one exercise before activating.",
+        "blockedByPlans": "This routine is used in an active weekly plan.",
+        "invalid": "Check the highlighted fields.",
+        "generic": "Couldn't save. Try again.",
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "notesTooLong": "Use at most {max, number} characters.",
+        "outOfRange": "Enter a whole number from {min, number} to {max, number}."
+      }
     }
   },
   "Branding": {

@@ -646,6 +646,38 @@
         "caseNotFound": "Ese caso no pertenece a este cliente.",
         "invalid": "Revisá el formulario y probá de nuevo."
       }
+    },
+    "editor": {
+      "back": "Volver a rutinas",
+      "name": "Nombre de la rutina",
+      "status": "Estado",
+      "case": "Caso",
+      "noCase": "Sin caso",
+      "customer": "Cliente",
+      "sessionsPerWeek": "Sesiones por semana",
+      "sessionsPerDay": "Sesiones por día",
+      "notes": "Notas para el paciente",
+      "notesHint": "Se muestran al principio de la rutina.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "unsaved": "Cambios sin guardar",
+      "leaveConfirm": "Tenés cambios sin guardar. ¿Salir sin guardar?",
+      "conflict": "Esta rutina cambió en otra pestaña. ¿Recargar?",
+      "reload": "Recargar",
+      "errors": {
+        "notFound": "Esta rutina ya no existe.",
+        "caseNotFound": "Ese caso no pertenece a este cliente.",
+        "exerciseNotFound": "Uno de los ejercicios ya no existe. Quitalo y guardá de nuevo.",
+        "needsItems": "Agregá al menos un ejercicio antes de activarla.",
+        "blockedByPlans": "Esta rutina se usa en un plan semanal activo.",
+        "invalid": "Revisá los campos marcados.",
+        "generic": "No se pudo guardar. Probá de nuevo.",
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "notesTooLong": "Usá como máximo {max, number} caracteres.",
+        "outOfRange": "Ingresá un número entero de {min, number} a {max, number}."
+      }
     }
   },
   "Branding": {

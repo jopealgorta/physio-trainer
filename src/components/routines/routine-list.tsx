@@ -1,4 +1,3 @@
-import type { Route } from "next";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { DumbbellIcon } from "lucide-react";
@@ -14,8 +13,7 @@ import { StatusBadge } from "./status-badge";
 function RoutineLink({ routine }: { routine: RoutineSummary }) {
   return (
     <Link
-      // The editor route lands with the next task; the cast keeps typed routes happy until then.
-      href={`/routines/${routine.id}` as Route}
+      href={`/routines/${routine.id}`}
       className="focus-visible:ring-ring/30 block min-w-0 truncate rounded-md font-medium outline-none hover:underline focus-visible:ring-2"
     >
       {routine.name}
