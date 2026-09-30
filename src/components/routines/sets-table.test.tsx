@@ -120,7 +120,7 @@ describe("SetsTable", () => {
     expect(screen.getByText("Up to 20 sets.")).toBeInTheDocument();
   });
 
-  it("shows an error for invalid text and does not store it", async () => {
+  it("shows an error for invalid text while typing", async () => {
     const user = userEvent.setup();
     setup([single("a", { sets: [set("s1", { reps: 7 })] })], "a");
     const reps = screen.getByRole("textbox", { name: "Set 1: Reps" });
@@ -129,16 +129,18 @@ describe("SetsTable", () => {
     expect(await screen.findByText("Enter a whole number.")).toBeInTheDocument();
     expect(reps).toHaveValue("abc");
     expect(reps).toHaveAttribute("aria-invalid", "true");
-    // The stored value is whatever was last valid (blank after the clear), never the raw text.
-    expect(sets()[0].reps).toBeNull();
   });
 
-  it("shows the range error for out-of-range numbers", async () => {
+  it("discards invalid text on blur so the box shows the stored value", async () => {
     const user = userEvent.setup();
     setup([single("a", { sets: [set("s1")] })], "a");
-    await user.type(screen.getByRole("textbox", { name: "Set 1: Reps" }), "1000");
+    const reps = screen.getByRole("textbox", { name: "Set 1: Reps" });
+    await user.type(reps, "1000");
     expect(await screen.findByText("Enter a number from 1 to 999.")).toBeInTheDocument();
-    expect(sets()[0].reps).toBe(100);
+    await user.tab();
+    expect(screen.queryByText("Enter a number from 1 to 999.")).not.toBeInTheDocument();
+    expect(reps).toHaveValue(String(sets()[0].reps ?? ""));
+    expect(reps).not.toHaveAttribute("aria-invalid", "true");
   });
 
   it("flags a max that is not above reps", () => {

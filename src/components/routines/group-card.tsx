@@ -1,6 +1,6 @@
 "use client";
 
-import { GripVerticalIcon, LayersIcon } from "lucide-react";
+import { LayersIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, type ReactNode } from "react";
 
@@ -19,6 +19,7 @@ import {
   type NewKey,
 } from "@/lib/routine-editor";
 
+import { DragHandle } from "./drag-handle";
 import { NumberField } from "./number-field";
 
 /** A superset: shared rest, group-level actions and its members, which reorder only within it. */
@@ -48,13 +49,7 @@ export function GroupCard({
     >
       <div className="grid min-w-0 gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            {...handle}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 shrink-0 cursor-grab touch-none rounded-md p-1 outline-none focus-visible:ring-[3px]"
-          >
-            <GripVerticalIcon aria-hidden className="size-4" />
-          </button>
+          <DragHandle handle={handle} />
           <LayersIcon aria-hidden className="text-primary size-4" />
           <span className="text-sm font-medium">{t("superset")}</span>
           <div className="ml-auto flex flex-wrap gap-2">

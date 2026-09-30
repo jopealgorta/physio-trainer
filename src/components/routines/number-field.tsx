@@ -23,8 +23,8 @@ function parse(schema: ZodType<number | null>, text: string): Parsed {
 
 /**
  * Whole-number input for the prescription fields. It emits a valid `number | null` and nothing
- * else: invalid text stays in the box (with its error) while the stored value keeps the last valid
- * number. `extraError` shows a cross-field error (e.g. max reps not above reps) in the same slot.
+ * else: while typing, invalid text stays in the box with its error (the stored value keeps the
+ * last valid number); on blur the invalid text is discarded and the box shows the stored value. `extraError` shows a cross-field error (e.g. max reps not above reps) in the same slot.
  */
 export function NumberField({
   value,
@@ -44,6 +44,17 @@ export function NumberField({
   const t = useTranslations("Prescription.errors");
   const errorId = useId();
   const [draft, setDraft] = useState<string | null>(null);
+
+  // When the stored value changes from outside (a synced set, a conflict reset), a draft that
+  // does not parse to it is stale: drop it so the box shows the stored value again.
+  const [seenValue, setSeenValue] = useState(value);
+  if (value !== seenValue) {
+    setSeenValue(value);
+    if (draft !== null) {
+      const own = parse(schema, draft);
+      if (!own.ok || own.value !== value) setDraft(null);
+    }
+  }
 
   const parsed = draft === null ? null : parse(schema, draft);
   const code = parsed && !parsed.ok ? parsed.error : (extraError ?? null);
@@ -65,9 +76,9 @@ export function NumberField({
           const next = parse(schema, text);
           if (next.ok) onValueChange(next.value);
         }}
-        onBlur={() => {
-          if (draft !== null && parse(schema, draft).ok) setDraft(null);
-        }}
+        // Leaving the field ends the draft: valid text is already stored, and invalid text is
+        // discarded so the box never shows something other than what will be saved.
+        onBlur={() => setDraft(null)}
       />
       {code !== null ? (
         <p id={errorId} role="alert" className="text-destructive text-xs">

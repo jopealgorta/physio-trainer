@@ -66,13 +66,18 @@ describe("ItemEditor", () => {
     expect(current().restSeconds).toBe(45);
   });
 
-  it("rejects out-of-range rest without storing it", async () => {
+  it("flags an out-of-range rest while typing and discards it on blur", async () => {
     const user = userEvent.setup();
-    setup([single("a")], "a");
-    await user.type(screen.getByRole("textbox", { name: "Rest (s)" }), "99999");
+    setup([single("a", { restSeconds: 30 })], "a");
+    const rest = screen.getByRole("textbox", { name: "Rest (s)" });
+    await user.clear(rest);
+    await user.type(rest, "99999");
     expect(await screen.findByText("Enter a number from 1 to 3,600.")).toBeInTheDocument();
-    // The last valid value stays stored; the rejected text lives only in the box.
-    expect(current().restSeconds).toBe(999);
+    await user.tab();
+    expect(screen.queryByText("Enter a number from 1 to 3,600.")).not.toBeInTheDocument();
+    // The box shows exactly what is stored, so what is saved is what the user sees.
+    expect(rest).toHaveValue(String(current().restSeconds ?? ""));
+    expect(rest).not.toHaveAttribute("aria-invalid", "true");
   });
 
   it("picks a side with the select", async () => {

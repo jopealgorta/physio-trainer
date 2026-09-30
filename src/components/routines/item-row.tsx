@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  ChevronDownIcon,
-  DumbbellIcon,
-  EllipsisVerticalIcon,
-  GripVerticalIcon,
-} from "lucide-react";
+import { ChevronDownIcon, DumbbellIcon, EllipsisVerticalIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
@@ -34,6 +29,7 @@ import {
 } from "@/lib/routine-editor";
 import { cn } from "@/lib/utils";
 
+import { DragHandle } from "./drag-handle";
 import { ItemEditor } from "./item-editor";
 import { useSummaryTranslator } from "./prescription-summary";
 
@@ -68,13 +64,7 @@ export function ItemRow({
   return (
     <div data-testid="item-row" className="bg-card min-w-0 rounded-lg border">
       <div className="flex min-w-0 items-center gap-2 p-2">
-        <button
-          type="button"
-          {...handle}
-          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 shrink-0 cursor-grab touch-none rounded-md p-1 outline-none focus-visible:ring-[3px]"
-        >
-          <GripVerticalIcon aria-hidden className="size-4" />
-        </button>
+        <DragHandle handle={handle} />
         <div
           className={cn(
             "bg-muted text-muted-foreground flex shrink-0 items-center justify-center overflow-hidden rounded-md",
