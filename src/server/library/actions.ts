@@ -72,7 +72,9 @@ export async function setExerciseArchivedAction(
   return result;
 }
 
-export async function deleteExerciseAction(id: string): Promise<Result<null, "notFound">> {
+export async function deleteExerciseAction(
+  id: string,
+): Promise<Result<null, "notFound" | "inUse">> {
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) return { ok: false, error: "notFound" };
   const result = await withPhysio((tx, physioId) => deleteExercise(tx, physioId, parsed.data));

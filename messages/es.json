@@ -246,18 +246,7 @@
     "handle": "Reordenar {item}"
   },
   "Prescription": {
-    "legend": "Prescripción por defecto",
-    "hint": "Se copia en las rutinas cuando agregás este ejercicio. Dejá en blanco lo que no aplique.",
-    "sets": "Series",
-    "reps": "Repeticiones",
-    "repsMax": "Repeticiones (máx.)",
-    "repsMaxHint": "Para un rango, p. ej. 8–12",
-    "durationSeconds": "Duración (s)",
-    "holdSeconds": "Sostener (s)",
-    "restSeconds": "Descanso (s)",
-    "load": "Carga",
     "loadPlaceholder": "p. ej. 5 kg, banda roja",
-    "side": "Lado",
     "sideNone": "Sin definir",
     "sides": {
       "left": "Izquierdo",
@@ -265,15 +254,20 @@
       "both": "Ambos lados",
       "alternating": "Alternado"
     },
-    "notes": "Notas",
     "errors": {
       "notAWholeNumber": "Ingresá un número entero.",
       "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
-      "tooLong": "Usá como máximo {max, number} caracteres.",
-      "invalidSide": "Elegí un lado de la lista.",
       "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
-      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
-      "invalid": "Revisá este campo."
+      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones."
+    },
+    "summary": {
+      "count": "{value, number}",
+      "range": "{min, number}–{max, number}",
+      "seconds": "{value, number} s",
+      "sets": "{count, plural, one {# serie} other {# series}}",
+      "blank": "–",
+      "hold": "sostener {value, number} s",
+      "rest": "descanso {value, number} s"
     }
   },
   "Library": {
@@ -320,6 +314,7 @@
       "confirmDelete": "Eliminar ejercicio",
       "errors": {
         "notFound": "Este ejercicio ya no existe.",
+        "inUse": "Este ejercicio se usa en una rutina, así que no se puede eliminar. Archivalo en su lugar.",
         "unknown": "Algo salió mal. Probá de nuevo."
       }
     },
@@ -352,7 +347,7 @@
     "manageCategories": "Administrar categorías",
     "empty": {
       "title": "Armá tu biblioteca de ejercicios",
-      "body": "Agregá ejercicios con instrucciones, videos de YouTube y series y repeticiones por defecto. Agrupalos en categorías (por ejemplo Miembro inferior → Glúteos) y etiquetalos para encontrarlos rápido.",
+      "body": "Agregá ejercicios con instrucciones y videos de YouTube. Agrupalos en categorías (por ejemplo Miembro inferior → Glúteos) y etiquetalos para encontrarlos rápido.",
       "cta": "Creá tu primer ejercicio"
     },
     "noResults": {
@@ -511,7 +506,6 @@
       "notes": "Notas"
     },
     "tabEmpty": {
-      "routines": "Acá van a aparecer las rutinas de este cliente.",
       "plans": "Acá van a aparecer los planes semanales de este cliente.",
       "activity": "Acá van a aparecer su actividad y su progreso.",
       "notes": "Acá van a aparecer las notas de sesión de este cliente."
@@ -591,6 +585,149 @@
       "customerNotFound": "Este cliente ya no existe.",
       "invalid": "Revisá este campo.",
       "unknown": "Algo salió mal. Probá de nuevo."
+    }
+  },
+  "Routines": {
+    "title": "Rutinas",
+    "status": {
+      "draft": "Borrador",
+      "active": "Activa",
+      "archived": "Archivada"
+    },
+    "list": {
+      "columns": {
+        "name": "Nombre",
+        "customer": "Cliente",
+        "case": "Caso",
+        "status": "Estado",
+        "items": "Ejercicios",
+        "frequency": "Por semana",
+        "updated": "Actualizada"
+      },
+      "items": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+      "perWeek": "{count, number}×",
+      "empty": {
+        "title": "Todavía no hay rutinas",
+        "body": "Abrí un cliente para crear su primera rutina.",
+        "cta": "Ir a clientes"
+      },
+      "noResults": "Ninguna rutina coincide con estos filtros.",
+      "clearFilters": "Borrar filtros",
+      "truncated": "Mostrando las primeras {count, number}. Afiná la búsqueda."
+    },
+    "filters": {
+      "search": "Buscar rutinas",
+      "status": "Estado",
+      "allStatuses": "Todos los estados",
+      "customer": "Cliente",
+      "allCustomers": "Todos los clientes"
+    },
+    "customerTab": {
+      "title": "Rutinas",
+      "empty": "{name} todavía no tiene rutinas."
+    },
+    "new": {
+      "button": "Nueva rutina",
+      "title": "Nueva rutina para {name}",
+      "name": "Nombre",
+      "case": "Caso",
+      "noCase": "Sin caso",
+      "create": "Crear rutina",
+      "creating": "Creando…",
+      "cancel": "Cancelar",
+      "errors": {
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "customerNotFound": "Este cliente ya no existe.",
+        "caseNotFound": "Ese caso no pertenece a este cliente.",
+        "invalid": "Revisá el formulario y probá de nuevo."
+      }
+    },
+    "editor": {
+      "back": "Volver a rutinas",
+      "name": "Nombre de la rutina",
+      "status": "Estado",
+      "case": "Caso",
+      "noCase": "Sin caso",
+      "customer": "Cliente",
+      "sessionsPerWeek": "Sesiones por semana",
+      "sessionsPerDay": "Sesiones por día",
+      "notes": "Notas para el paciente",
+      "notesHint": "Se muestran al principio de la rutina.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "unsaved": "Cambios sin guardar",
+      "leaveConfirm": "Tenés cambios sin guardar. ¿Salir sin guardar?",
+      "conflict": "Esta rutina cambió en otra pestaña. ¿Recargar?",
+      "reload": "Recargar",
+      "errors": {
+        "notFound": "Esta rutina ya no existe.",
+        "caseNotFound": "Ese caso no pertenece a este cliente.",
+        "exerciseNotFound": "Uno de los ejercicios ya no existe. Quitalo y guardá de nuevo.",
+        "needsItems": "Agregá al menos un ejercicio antes de activarla.",
+        "blockedByPlans": "Esta rutina se usa en un plan semanal activo.",
+        "invalid": "Revisá el formulario y probá de nuevo.",
+        "sets": "Algunas series tienen repeticiones inválidas. Revisá los ejercicios resaltados.",
+        "generic": "No se pudo guardar. Probá de nuevo.",
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "notesTooLong": "Usá como máximo {max, number} caracteres.",
+        "outOfRange": "Ingresá un número entero de {min, number} a {max, number}."
+      }
+    },
+    "items": {
+      "empty": "Todavía no hay ejercicios. Elegí algunos de la lista.",
+      "superset": "Superserie",
+      "supersetHint": "Se alterna serie por serie: A1, B1, descanso, A2, B2…",
+      "groupRest": "Descanso después de cada ronda (s)",
+      "expand": "Editar prescripción",
+      "collapse": "Ocultar prescripción",
+      "archivedBadge": "Archivado",
+      "invalidBadge": "Revisá las series",
+      "menu": "Opciones del ejercicio",
+      "duplicate": "Duplicar",
+      "remove": "Quitar",
+      "groupWithNext": "Agrupar con el siguiente",
+      "ungroup": "Desagrupar",
+      "openExercise": "Abrir ejercicio",
+      "noPrescription": "Sin prescripción",
+      "sets": {
+        "title": "Series",
+        "set": "Serie {n, number}",
+        "reps": "Repeticiones",
+        "repsMax": "Repeticiones máx.",
+        "duration": "Duración (s)",
+        "load": "Carga",
+        "add": "Agregar serie",
+        "remove": "Quitar serie {n, number}",
+        "syncHint": "Las series se mantienen sincronizadas en toda la superserie.",
+        "limit": "Hasta {max, number} series."
+      },
+      "fields": {
+        "hold": "Sostener (s)",
+        "rest": "Descanso (s)",
+        "side": "Lado",
+        "notes": "Notas"
+      },
+      "limit": "Una rutina puede tener hasta {max, number} ejercicios."
+    },
+    "picker": {
+      "title": "Agregar ejercicios",
+      "search": "Buscar ejercicios",
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "area": "Zona del cuerpo",
+      "anyArea": "Cualquier zona",
+      "recent": "Recientes",
+      "results": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+      "none": "Ningún ejercicio coincide.",
+      "noLibrary": "Tu biblioteca está vacía. <link>Agregá ejercicios en la biblioteca</link> primero.",
+      "added": "Se agregó {name}.",
+      "full": "Una rutina puede tener hasta {max, number} ejercicios.",
+      "error": "No se pudo buscar. Probá de nuevo.",
+      "open": "Agregar ejercicios",
+      "close": "Listo"
     }
   },
   "Branding": {

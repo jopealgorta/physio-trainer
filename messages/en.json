@@ -246,18 +246,7 @@
     "handle": "Reorder {item}"
   },
   "Prescription": {
-    "legend": "Default prescription",
-    "hint": "Copied into routines when you add this exercise. Leave blank anything that doesn't apply.",
-    "sets": "Sets",
-    "reps": "Reps",
-    "repsMax": "Reps (max)",
-    "repsMaxHint": "For a range, e.g. 8–12",
-    "durationSeconds": "Duration (s)",
-    "holdSeconds": "Hold (s)",
-    "restSeconds": "Rest (s)",
-    "load": "Load",
     "loadPlaceholder": "e.g. 5 kg, red band",
-    "side": "Side",
     "sideNone": "Not set",
     "sides": {
       "left": "Left",
@@ -265,15 +254,20 @@
       "both": "Both sides",
       "alternating": "Alternating"
     },
-    "notes": "Notes",
     "errors": {
       "notAWholeNumber": "Enter a whole number.",
       "outOfRange": "Enter a number from {min, number} to {max, number}.",
-      "tooLong": "Use at most {max, number} characters.",
-      "invalidSide": "Choose a side from the list.",
       "repsMaxWithoutReps": "Enter reps first.",
-      "repsMaxNotAboveReps": "Must be more than reps.",
-      "invalid": "Check this field."
+      "repsMaxNotAboveReps": "Must be more than reps."
+    },
+    "summary": {
+      "count": "{value, number}",
+      "range": "{min, number}–{max, number}",
+      "seconds": "{value, number} s",
+      "sets": "{count, plural, one {# set} other {# sets}}",
+      "blank": "–",
+      "hold": "hold {value, number} s",
+      "rest": "rest {value, number} s"
     }
   },
   "Library": {
@@ -320,6 +314,7 @@
       "confirmDelete": "Delete exercise",
       "errors": {
         "notFound": "This exercise no longer exists.",
+        "inUse": "This exercise is used in a routine, so it can't be deleted. Archive it instead.",
         "unknown": "Something went wrong. Try again."
       }
     },
@@ -352,7 +347,7 @@
     "manageCategories": "Manage categories",
     "empty": {
       "title": "Build your exercise library",
-      "body": "Add exercises with instructions, YouTube videos and default sets and reps. Group them in categories (for example Lower limb → Glutes) and tag them to find them fast.",
+      "body": "Add exercises with instructions and YouTube videos. Group them in categories (for example Lower limb → Glutes) and tag them to find them fast.",
       "cta": "Create your first exercise"
     },
     "noResults": {
@@ -511,7 +506,6 @@
       "notes": "Notes"
     },
     "tabEmpty": {
-      "routines": "Routines for this customer will appear here.",
       "plans": "Weekly plans for this customer will appear here.",
       "activity": "Their activity and progress will appear here.",
       "notes": "Session notes for this customer will appear here."
@@ -591,6 +585,149 @@
       "customerNotFound": "This customer no longer exists.",
       "invalid": "Check this field.",
       "unknown": "Something went wrong. Try again."
+    }
+  },
+  "Routines": {
+    "title": "Routines",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "list": {
+      "columns": {
+        "name": "Name",
+        "customer": "Customer",
+        "case": "Case",
+        "status": "Status",
+        "items": "Exercises",
+        "frequency": "Per week",
+        "updated": "Updated"
+      },
+      "items": "{count, plural, one {# exercise} other {# exercises}}",
+      "perWeek": "{count, number}×",
+      "empty": {
+        "title": "No routines yet",
+        "body": "Open a customer to create their first routine.",
+        "cta": "Go to customers"
+      },
+      "noResults": "No routines match these filters.",
+      "clearFilters": "Clear filters",
+      "truncated": "Showing the first {count, number}. Refine your search."
+    },
+    "filters": {
+      "search": "Search routines",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "customer": "Customer",
+      "allCustomers": "All customers"
+    },
+    "customerTab": {
+      "title": "Routines",
+      "empty": "No routines for {name} yet."
+    },
+    "new": {
+      "button": "New routine",
+      "title": "New routine for {name}",
+      "name": "Name",
+      "case": "Case",
+      "noCase": "No case",
+      "create": "Create routine",
+      "creating": "Creating…",
+      "cancel": "Cancel",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "customerNotFound": "This customer no longer exists.",
+        "caseNotFound": "That case doesn't belong to this customer.",
+        "invalid": "Check the form and try again."
+      }
+    },
+    "editor": {
+      "back": "Back to routines",
+      "name": "Routine name",
+      "status": "Status",
+      "case": "Case",
+      "noCase": "No case",
+      "customer": "Customer",
+      "sessionsPerWeek": "Sessions per week",
+      "sessionsPerDay": "Sessions per day",
+      "notes": "Notes for the patient",
+      "notesHint": "Shown at the top of the routine.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "unsaved": "Unsaved changes",
+      "leaveConfirm": "You have unsaved changes. Leave without saving?",
+      "conflict": "This routine changed in another tab. Reload?",
+      "reload": "Reload",
+      "errors": {
+        "notFound": "This routine no longer exists.",
+        "caseNotFound": "That case doesn't belong to this customer.",
+        "exerciseNotFound": "One of the exercises no longer exists. Remove it and save again.",
+        "needsItems": "Add at least one exercise before activating.",
+        "blockedByPlans": "This routine is used in an active weekly plan.",
+        "invalid": "Check the form and try again.",
+        "sets": "Some sets have invalid reps. Check the highlighted exercises.",
+        "generic": "Couldn't save. Try again.",
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Use at most {max, number} characters.",
+        "notesTooLong": "Use at most {max, number} characters.",
+        "outOfRange": "Enter a whole number from {min, number} to {max, number}."
+      }
+    },
+    "items": {
+      "empty": "No exercises yet. Pick some from the list.",
+      "superset": "Superset",
+      "supersetHint": "Alternates set by set: A1, B1, rest, A2, B2…",
+      "groupRest": "Rest after each round (s)",
+      "expand": "Edit prescription",
+      "collapse": "Hide prescription",
+      "archivedBadge": "Archived",
+      "invalidBadge": "Check sets",
+      "menu": "Exercise options",
+      "duplicate": "Duplicate",
+      "remove": "Remove",
+      "groupWithNext": "Group with next",
+      "ungroup": "Ungroup",
+      "openExercise": "Open exercise",
+      "noPrescription": "No prescription set",
+      "sets": {
+        "title": "Sets",
+        "set": "Set {n, number}",
+        "reps": "Reps",
+        "repsMax": "Max reps",
+        "duration": "Duration (s)",
+        "load": "Load",
+        "add": "Add set",
+        "remove": "Remove set {n, number}",
+        "syncHint": "Sets stay in sync across the superset.",
+        "limit": "Up to {max, number} sets."
+      },
+      "fields": {
+        "hold": "Hold (s)",
+        "rest": "Rest (s)",
+        "side": "Side",
+        "notes": "Notes"
+      },
+      "limit": "A routine can have up to {max, number} exercises."
+    },
+    "picker": {
+      "title": "Add exercises",
+      "search": "Search exercises",
+      "category": "Category",
+      "allCategories": "All categories",
+      "area": "Body area",
+      "anyArea": "Any area",
+      "recent": "Recent",
+      "results": "{count, plural, one {# exercise} other {# exercises}}",
+      "none": "No exercises match.",
+      "noLibrary": "Your library is empty. <link>Add exercises in the library</link> first.",
+      "added": "Added {name}.",
+      "full": "A routine can have up to {max, number} exercises.",
+      "error": "Couldn't search. Try again.",
+      "open": "Add exercises",
+      "close": "Done"
     }
   },
   "Branding": {

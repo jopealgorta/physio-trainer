@@ -31,7 +31,7 @@ export function ExerciseActions({
   const t = useTranslations("Library.detail");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<"notFound" | "unknown" | null>(null);
+  const [error, setError] = useState<"notFound" | "inUse" | "unknown" | null>(null);
 
   function toggleArchived() {
     setError(null);

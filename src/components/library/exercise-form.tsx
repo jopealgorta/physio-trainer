@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useId, type FormEvent } from "react";
 
 import { BodyAreaPicker } from "@/components/body-areas/body-area-picker";
-import { PrescriptionFields } from "@/components/prescription/prescription-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import type { BodyArea } from "@/lib/body-areas";
 import type { CategoryNode } from "@/lib/category-tree";
 import { EXERCISE_NAME_MAX_LENGTH, INSTRUCTIONS_MAX_LENGTH, MAX_MEDIA } from "@/lib/library-limits";
-import { PRESCRIPTION_FIELDS, type Prescription } from "@/lib/prescription";
 import { MAX_TAG_LENGTH, MAX_TAGS } from "@/lib/tags";
 import type { ExerciseFieldErrors, ExerciseFormState } from "@/server/library/schemas";
 
@@ -29,7 +27,6 @@ export type ExerciseFormValues = {
   bodyAreas: BodyArea[];
   tags: string[];
   mediaUrls: string[];
-  prescription: Prescription;
 };
 
 const initialState: ExerciseFormState = { status: "idle" };
@@ -75,9 +72,6 @@ export function ExerciseForm({
   const editing = defaults.id !== undefined;
 
   const errors: ExerciseFieldErrors = state.status === "error" ? state.fieldErrors : {};
-  const prescriptionErrors = Object.fromEntries(
-    PRESCRIPTION_FIELDS.flatMap((field) => (errors[field] ? [[field, errors[field]]] : [])),
-  ) as Partial<Record<keyof Prescription, string>>;
 
   const message = (field: FieldWithMessage) => {
     const code = errors[field];
@@ -177,8 +171,6 @@ export function ExerciseForm({
           {errorText("bodyAreas")}
         </div>
       </div>
-
-      <PrescriptionFields defaultValue={defaults.prescription} errors={prescriptionErrors} />
 
       <section className="grid gap-3">
         <h2 className="text-base font-medium">{t("media")}</h2>

@@ -4,7 +4,6 @@ import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
 import type { CategoryNode } from "@/lib/category-tree";
-import { EMPTY_PRESCRIPTION } from "@/lib/prescription";
 import type { ExerciseFormState } from "@/server/library/schemas";
 import { chooseOption } from "@/test/select";
 
@@ -30,7 +29,6 @@ const defaults: ExerciseFormValues = {
   bodyAreas: [],
   tags: [],
   mediaUrls: [],
-  prescription: EMPTY_PRESCRIPTION,
 };
 
 function setup(
@@ -58,11 +56,17 @@ describe("ExerciseForm", () => {
     expect(screen.getByLabelText("Category")).toBeInTheDocument();
     expect(screen.getByLabelText("Instructions")).toBeInTheDocument();
     expect(screen.getByLabelText("Tags")).toBeInTheDocument();
-    expect(screen.getByLabelText("Sets")).toBeInTheDocument();
     expect(screen.getByText("Body areas")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Videos" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create exercise" })).toBeInTheDocument();
     expect(document.querySelector('input[name="id"]')).toBeNull();
+  });
+
+  it("has no default prescription fields", () => {
+    setup(idleAction());
+    expect(screen.queryByText(/default prescription/i)).toBeNull();
+    expect(screen.queryByLabelText(/^sets$/i)).toBeNull();
+    expect(screen.queryByLabelText(/^reps/i)).toBeNull();
   });
 
   it("offers Save changes and a hidden id when editing", () => {
@@ -91,7 +95,6 @@ describe("ExerciseForm", () => {
     setup(action, { bodyAreas: ["knee"] });
     await user.type(screen.getByLabelText("Name"), "Bridge");
     await chooseOption(user, screen.getByLabelText("Category"), "Lower limb › Glutes");
-    await user.type(screen.getByLabelText("Sets"), "3");
     await user.type(screen.getByLabelText("Tags"), "band{Enter}");
     await user.type(screen.getByLabelText("YouTube link"), "https://youtu.be/dQw4w9WgXcQ{Enter}");
     await user.click(screen.getByRole("button", { name: "Create exercise" }));
@@ -102,7 +105,7 @@ describe("ExerciseForm", () => {
     expect(formData.getAll("bodyAreas")).toEqual(["knee"]);
     expect(formData.getAll("tags")).toEqual(["band"]);
     expect(formData.getAll("media")).toEqual(["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]);
-    expect(formData.get("sets")).toBe("3");
+    expect(formData.has("sets")).toBe(false);
   });
 
   it("submits an empty category for Uncategorised", async () => {
@@ -126,21 +129,25 @@ describe("ExerciseForm", () => {
     const user = userEvent.setup();
     const action = vi.fn(async (): Promise<ExerciseFormState> => ({
       status: "error",
-      fieldErrors: { name: "nameTooLong", reps: "outOfRange", media: "mediaInvalid" },
+      fieldErrors: {
+        name: "nameTooLong",
+        instructions: "instructionsTooLong",
+        media: "mediaInvalid",
+      },
     }));
     setup(action);
     await user.type(screen.getByLabelText("Name"), "Bridge");
     await chooseOption(user, screen.getByLabelText("Category"), "Upper limb");
-    await user.type(screen.getByLabelText("Reps"), "5000");
+    await user.type(screen.getByLabelText("Instructions"), "Slowly");
     await user.click(screen.getByRole("button", { name: "Create exercise" }));
 
     expect(await screen.findByText("Use at most 120 characters.")).toBeInTheDocument();
-    expect(screen.getByText("Enter a number from 1 to 999.")).toBeInTheDocument();
+    expect(screen.getByText("Use at most 5,000 characters.")).toBeInTheDocument();
     expect(screen.getByText("Each video must be a different YouTube link.")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByLabelText("Reps")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Instructions")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("Name")).toHaveValue("Bridge");
-    expect(screen.getByLabelText("Reps")).toHaveValue("5000");
+    expect(screen.getByLabelText("Instructions")).toHaveValue("Slowly");
     expect(screen.getByLabelText("Category")).toHaveTextContent("Upper limb");
   });
 

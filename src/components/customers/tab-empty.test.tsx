@@ -6,7 +6,7 @@ import messages from "../../../messages/en.json";
 import { TabEmpty } from "./tab-empty";
 
 describe("TabEmpty", () => {
-  it.each(["routines", "plans", "activity", "notes"] as const)(
+  it.each(["plans", "activity", "notes"] as const)(
     "explains what will appear in the %s tab",
     (tab) => {
       render(

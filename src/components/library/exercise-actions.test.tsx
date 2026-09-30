@@ -69,6 +69,20 @@ describe("ExerciseActions", () => {
     expect(await screen.findByText("This exercise no longer exists.")).toBeInTheDocument();
   });
 
+  it("explains that an exercise used in a routine can only be archived", async () => {
+    const user = userEvent.setup();
+    remove.mockResolvedValue({ ok: false, error: "inUse" });
+    setup();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Delete exercise" }));
+    expect(
+      await screen.findByText(
+        "This exercise is used in a routine, so it can't be deleted. Archive it instead.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
+  });
+
   it("shows an error when archiving fails", async () => {
     const user = userEvent.setup();
     setArchived.mockResolvedValue({ ok: false, error: "notFound" });

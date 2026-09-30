@@ -27,13 +27,13 @@ This supports clinical record-keeping ("what was Ana doing in March?").
 
 `routine_versions`:
 
-| Column                          | Type                               | Notes                                                                                                                      |
-| ------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `id`, `physio_id`, `created_at` |                                    | append-only (no update/delete policies)                                                                                    |
-| `routine_id`                    | uuid not null → routines (cascade) |                                                                                                                            |
-| `version`                       | integer not null                   | matches `routines.version` after the save; unique with `routine_id`                                                        |
-| `snapshot`                      | jsonb not null                     | versioned shape `{ schema: 1, routine: {...}, items: [{ exercise: { id, name, instructions }, prescription, position }] }` |
-| `summary`                       | text null                          | generated change summary                                                                                                   |
+| Column                          | Type                               | Notes                                                                                                                                                                                             |
+| ------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `physio_id`, `created_at` |                                    | append-only (no update/delete policies)                                                                                                                                                           |
+| `routine_id`                    | uuid not null → routines (cascade) |                                                                                                                                                                                                   |
+| `version`                       | integer not null                   | matches `routines.version` after the save; unique with `routine_id`                                                                                                                               |
+| `snapshot`                      | jsonb not null                     | versioned shape `{ schema: 1, routine: {...}, items: [{ exercise: { id, name, instructions }, prescription, position }] }` (`prescription` = per-set rows + per-item fields + group, see spec 05) |
+| `summary`                       | text null                          | generated change summary                                                                                                                                                                          |
 
 `weekly_plan_versions`: same shape with `{ plan, entries: [{ weekday, position, label, routine: { id, name, version } }] }`.
 
@@ -48,7 +48,8 @@ allows future migrations of the shape.
    < 5 minutes old and by the same session (update the latest instead of inserting). Routine
    saves always insert.
 3. Diff (`src/lib/history/diff.ts`, pure): items added/removed/moved/changed (field-level for
-   prescription), header changes (name, notes, status, dates). Used both for `summary` and the
+   prescription: per set since spec 05, so "reps changed on set 2"; group membership too), header
+   changes (name, notes, status, dates). Used both for `summary` and the
    diff view.
 4. Restore = load snapshot → write it as the current state via the normal save path (validates
    that referenced exercises still exist; archived ones are fine; deleted ones are dropped with

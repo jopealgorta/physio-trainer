@@ -5,7 +5,6 @@ import { getTranslations } from "next-intl/server";
 
 import { ExerciseForm } from "@/components/library/exercise-form";
 import { PageHeader } from "@/components/page-header";
-import { EMPTY_PRESCRIPTION } from "@/lib/prescription";
 import { withPhysio } from "@/server/auth/session";
 import { saveExerciseAction } from "@/server/library/actions";
 import { listCategoryTree, listTags } from "@/server/library/queries";
@@ -44,7 +43,6 @@ export default async function NewExercisePage() {
           bodyAreas: [],
           tags: [],
           mediaUrls: [],
-          prescription: EMPTY_PRESCRIPTION,
         }}
       />
     </div>

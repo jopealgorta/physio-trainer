@@ -4,6 +4,7 @@ import { pgEnum } from "drizzle-orm/pg-core";
 import { BODY_AREAS, BODY_SIDES } from "../../lib/body-areas";
 import { CASE_STATUSES, CUSTOMER_SEXES } from "../../lib/customers";
 import { PRESCRIPTION_SIDES } from "../../lib/prescription";
+import { ROUTINE_STATUSES } from "../../lib/routines";
 
 /** Body areas and sides (spec 02). Values come from src/lib/body-areas.ts. */
 export const bodyAreaEnum = pgEnum("body_area", BODY_AREAS);
@@ -19,3 +20,6 @@ export const exerciseMediaKindEnum = pgEnum("exercise_media_kind", EXERCISE_MEDI
 /** Customer sex and case status (spec 04). Values come from src/lib/customers.ts. */
 export const customerSexEnum = pgEnum("customer_sex", CUSTOMER_SEXES);
 export const caseStatusEnum = pgEnum("case_status", CASE_STATUSES);
+
+/** Routine lifecycle (spec 05). Values come from src/lib/routines.ts. */
+export const routineStatusEnum = pgEnum("routine_status", ROUTINE_STATUSES);

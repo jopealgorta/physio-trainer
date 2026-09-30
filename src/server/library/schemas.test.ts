@@ -30,9 +30,6 @@ describe("exerciseSchema", () => {
         ["tags", "Bodyweight"],
         ["tags", "beginner"],
         ["media", SHORT],
-        ["sets", "3"],
-        ["reps", "12"],
-        ["side", ""],
       ]),
     );
     expect(exerciseSchema.parse(values)).toMatchObject({
@@ -48,10 +45,23 @@ describe("exerciseSchema", () => {
           url: "https://www.youtube.com/shorts/dQw4w9WgXcQ",
         },
       ],
-      sets: 3,
-      reps: 12,
-      side: null,
     });
+  });
+
+  it("ignores prescription fields (exercises no longer carry defaults)", () => {
+    const parsed = exerciseSchema.parse(
+      exerciseFormValues(
+        form([
+          ["name", "Plank"],
+          ["sets", "abc"],
+          ["reps", "12"],
+          ["repsMax", "10"],
+        ]),
+      ),
+    );
+    expect(parsed).not.toHaveProperty("sets");
+    expect(parsed).not.toHaveProperty("reps");
+    expect(parsed).not.toHaveProperty("repsMax");
   });
 
   it("treats blank optional fields as empty", () => {
@@ -122,21 +132,6 @@ describe("exerciseSchema", () => {
     [
       [["name", "a"], ...Array.from({ length: 11 }, () => ["media", SHORT] as [string, string])],
       { media: "tooManyMedia" },
-    ],
-    [
-      [
-        ["name", "a"],
-        ["reps", "12"],
-        ["repsMax", "10"],
-      ],
-      { repsMax: "repsMaxNotAboveReps" },
-    ],
-    [
-      [
-        ["name", "a"],
-        ["sets", "lots"],
-      ],
-      { sets: "notAWholeNumber" },
     ],
   ] as [[string, string][], object][])("maps errors for %j", (entries, expected) => {
     const result = exerciseSchema.safeParse(exerciseFormValues(form(entries)));

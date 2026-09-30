@@ -58,7 +58,7 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await expect(dialog.getByText("Glutes")).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
 
-  // Exercise with category, area, tags, prescription and a YouTube Short.
+  // Exercise with category, area, tags and a YouTube Short.
   await page.getByRole("link", { name: "New exercise" }).first().click();
   await page.getByLabel("Name").fill("Single-leg bridge");
   await chooseOption(page, page.getByLabel("Category"), "Lower limb › Glutes");
@@ -67,8 +67,6 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await page.getByLabel("Tags").fill("Bodyweight");
   await page.getByLabel("Tags").press("Enter");
   await page.getByLabel("Tags").fill("beginner,");
-  await page.getByLabel("Sets").fill("3");
-  await page.getByLabel("Reps", { exact: true }).fill("12");
   await page.getByLabel("YouTube link").fill(SHORT);
   await page.getByRole("button", { name: "Add video" }).click();
   await expect(page.getByText("Cover", { exact: true })).toBeVisible();
@@ -77,14 +75,15 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
   await page.reload();
   await expect(page.getByLabel("Name")).toHaveValue("Single-leg bridge");
-  await expect(page.getByLabel("Sets")).toHaveValue("3");
   await expect(page.getByText("bodyweight")).toBeVisible();
 
   // Edit keeps typed values after saving.
-  await page.getByLabel("Reps (max)").fill("15");
+  await page.getByLabel("Instructions").fill("Push through the heel.\nSqueeze at the top.");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
-  await expect(page.getByLabel("Reps (max)")).toHaveValue("15");
+  await expect(page.getByLabel("Instructions")).toHaveValue(
+    "Push through the heel.\nSqueeze at the top.",
+  );
 
   // Filters in the URL.
   await page.goto("/library");

@@ -13,7 +13,9 @@ It turns the link into something that feels like an app while the patient is exe
 ## Goals
 
 - Step-through of the routine's items in order, with progress ("3 of 8").
-- Per exercise: media, name, prescription, cues; set tracker (tap "Set done").
+- Per exercise: media, name, prescription, cues; set tracker (tap "Set done"). Note (spec 05):
+  the prescription is per set (+ per item hold/rest/side); step through the item's sets in order
+  and alternate set by set inside a superset, using the group's rest after each round.
 - Timers: hold countdown (per rep), timed exercise countdown (`duration_seconds`), rest
   countdown between sets/exercises (`rest_seconds`), with skip/+15 s.
 - Audio/vibration cues at timer end (optional, off by default on iOS until user interaction).

@@ -127,6 +127,8 @@ export const cases = pgTable(
     ...timestamps,
   },
   (t) => [
+    // Target of routines_case_fk (a routine's case must belong to the routine's customer).
+    unique("cases_physio_customer_id_unique").on(t.physioId, t.customerId, t.id),
     foreignKey({
       name: "cases_customer_fk",
       columns: [t.physioId, t.customerId],
