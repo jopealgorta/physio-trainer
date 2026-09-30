@@ -210,7 +210,11 @@ export async function getRoutine(
   };
 }
 
-/** Distinct non-archived exercises, the one added to a routine most recently first. */
+/**
+ * Distinct non-archived exercises, most recently saved into a routine first. A save recreates a
+ * routine's rows with one timestamp, so exercises saved together tie on it and the later one in
+ * the routine (higher position) comes first; the order among those is best effort, not a history.
+ */
 export async function listRecentExercises(
   tx: Tx,
   physioId: string,
@@ -220,6 +224,7 @@ export async function listRecentExercises(
     .select({
       exerciseId: routineItems.exerciseId,
       lastUsed: sql<Date>`max(${routineItems.createdAt})`.as("last_used"),
+      lastPosition: sql<number>`max(${routineItems.position})`.as("last_position"),
     })
     .from(routineItems)
     .where(eq(routineItems.physioId, physioId))
@@ -245,7 +250,7 @@ export async function listRecentExercises(
       and(eq(exercises.physioId, physioId), eq(exercises.id, recent.exerciseId)),
     )
     .where(sql`${exercises.archivedAt} is null`)
-    .orderBy(desc(recent.lastUsed), asc(exercises.id))
+    .orderBy(desc(recent.lastUsed), desc(recent.lastPosition), asc(exercises.id))
     .limit(limit);
 
   return rows.map(({ coverUrl, ...row }) => ({ ...row, cover: coverOf(coverUrl) }));

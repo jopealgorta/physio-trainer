@@ -43,6 +43,7 @@ export function ItemRow({
   groupKey,
   handle,
   expanded,
+  invalid = false,
   onToggle,
   onChange,
   newKey,
@@ -52,6 +53,8 @@ export function ItemRow({
   groupKey?: string;
   handle: SortableHandleProps;
   expanded: boolean;
+  /** A set would be rejected on save (shown as a badge, also while collapsed). */
+  invalid?: boolean;
   onToggle: () => void;
   onChange: (next: (blocks: EditorBlock[]) => EditorBlock[]) => void;
   newKey: NewKey;
@@ -62,7 +65,10 @@ export function ItemRow({
   const summary = formatPrescription(item, summarize);
 
   return (
-    <div data-testid="item-row" className="bg-card min-w-0 rounded-lg border">
+    <div
+      data-testid="item-row"
+      className={cn("bg-card min-w-0 rounded-lg border", invalid && "border-destructive")}
+    >
       <div className="flex min-w-0 items-center gap-2 p-2">
         <DragHandle handle={handle} />
         <div
@@ -81,6 +87,7 @@ export function ItemRow({
           <div className="flex min-w-0 items-center gap-2">
             <span className="truncate text-sm font-medium">{item.exerciseName}</span>
             {item.exerciseArchived ? <Badge variant="secondary">{t("archivedBadge")}</Badge> : null}
+            {invalid ? <Badge variant="destructive">{t("invalidBadge")}</Badge> : null}
           </div>
           <p className="text-muted-foreground truncate text-xs">{summary || t("noPrescription")}</p>
         </div>

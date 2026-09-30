@@ -533,5 +533,20 @@ describe("routines server layer", () => {
         expect.objectContaining({ name: "Z" }),
       );
     });
+
+    it("breaks timestamp ties (one save) by position: the later exercise comes first", async () => {
+      const p = await fresh();
+      const customerId = await customer(p);
+      const [x, y, z] = await Promise.all([exercise(p, "X"), exercise(p, "Y"), exercise(p, "Z")]);
+      const id = await routine(p, customerId, "Tie");
+      await save(p, payload(id, { items: [item(y), item(z), item(x)] }));
+      await db
+        .update(routineItems)
+        .set({ createdAt: new Date(Date.UTC(2026, 0, 1, 10, 0)) })
+        .where(eq(routineItems.routineId, id));
+
+      const names = (await as(p, (tx, pid) => listRecentExercises(tx, pid))).map((row) => row.name);
+      expect(names).toEqual(["X", "Z", "Y"]);
+    });
   });
 });

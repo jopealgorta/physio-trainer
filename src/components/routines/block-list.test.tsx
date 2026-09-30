@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -15,12 +16,41 @@ import { group, item, set, single, testKey } from "@/test/routine-fixtures";
 import messages from "../../../messages/en.json";
 import { BlockList } from "./block-list";
 
-const onChange = vi.fn();
+const onChange = vi.fn<Dispatch<SetStateAction<EditorBlock[]>>>();
+let shown: EditorBlock[] = [];
 
-function setup(blocks: EditorBlock[]) {
+/** What the editor's state would hold after the n-th change, whether it passed a value or an updater. */
+const applied = (call = 0, from: EditorBlock[] = shown): EditorBlock[] => {
+  const next = onChange.mock.calls[call][0];
+  return typeof next === "function" ? next(from) : next;
+};
+
+/** Holds the expanded set like the editor does. */
+function Harness({ blocks, invalid }: { blocks: EditorBlock[]; invalid: ReadonlySet<string> }) {
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  return (
+    <BlockList
+      blocks={blocks}
+      onChange={onChange}
+      newKey={testKey}
+      expanded={expanded}
+      invalid={invalid}
+      onToggle={(key) =>
+        setExpanded((previous) => {
+          const next = new Set(previous);
+          if (!next.delete(key)) next.add(key);
+          return next;
+        })
+      }
+    />
+  );
+}
+
+function setup(blocks: EditorBlock[], invalid: ReadonlySet<string> = new Set()) {
+  shown = blocks;
   render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <BlockList blocks={blocks} onChange={onChange} newKey={testKey} />
+      <Harness blocks={blocks} invalid={invalid} />
     </NextIntlClientProvider>,
   );
 }
@@ -68,6 +98,11 @@ describe("BlockList", () => {
     expect(screen.getAllByText("Archived")).toHaveLength(1);
   });
 
+  it("marks items with invalid sets", () => {
+    setup([single("a", { exerciseName: "Squat" }), single("b")], new Set(["a"]));
+    expect(screen.getAllByText("Check sets")).toHaveLength(1);
+  });
+
   it("toggles the prescription editor with aria-expanded", async () => {
     const user = userEvent.setup();
     setup([single("a", { exerciseName: "Squat" })]);
@@ -88,7 +123,7 @@ describe("BlockList", () => {
     setup(blocks);
     await openMenu(user, "Lunge");
     await user.click(await screen.findByRole("menuitem", { name: "Remove" }));
-    const update = onChange.mock.calls[0][0] as EditorBlock[];
+    const update = applied();
     expect(update).toEqual(removeItem(blocks, "b"));
     expect(update).toHaveLength(1);
     expect(update[0].kind).toBe("single");
@@ -100,7 +135,7 @@ describe("BlockList", () => {
     setup(blocks);
     await openMenu(user, "Squat");
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
-    const update = onChange.mock.calls[0][0] as EditorBlock[];
+    const update = applied();
     expect(update).toHaveLength(2);
     expect(update[1].kind === "single" && update[1].item.exerciseId).toBe("ex-a");
   });
@@ -111,7 +146,7 @@ describe("BlockList", () => {
     setup(blocks);
     await openMenu(user, "Squat");
     await user.click(await screen.findByRole("menuitem", { name: "Group with next" }));
-    const update = onChange.mock.calls[0][0] as EditorBlock[];
+    const update = applied();
     expect(update).toHaveLength(1);
     expect(update[0].kind).toBe("group");
     expect(groupWithNext(blocks, "a", () => "x")).toHaveLength(1);
@@ -139,7 +174,7 @@ describe("BlockList", () => {
     setup(blocks);
     const card = screen.getByRole("group", { name: "Superset" });
     await user.click(within(card).getByRole("button", { name: "Group with next" }));
-    expect(onChange.mock.calls[0][0]).toEqual(groupWithNext(blocks, "g", () => "x"));
+    expect(applied()).toEqual(groupWithNext(blocks, "g", () => "x"));
   });
 
   it("ungroups from the card", async () => {
@@ -148,7 +183,7 @@ describe("BlockList", () => {
     setup(blocks);
     const card = screen.getByRole("group", { name: "Superset" });
     await user.click(within(card).getByRole("button", { name: "Ungroup" }));
-    expect(onChange.mock.calls[0][0]).toEqual(ungroup(blocks, "g"));
+    expect(applied()).toEqual(ungroup(blocks, "g"));
   });
 
   it("edits the group's rest", async () => {
@@ -156,7 +191,7 @@ describe("BlockList", () => {
     const blocks = [group("g", [item("a"), item("b")], null)];
     setup(blocks);
     await user.type(screen.getByLabelText("Rest after each round (s)"), "9");
-    expect(onChange).toHaveBeenLastCalledWith(updateGroupRest(blocks, "g", 9));
+    expect(applied(onChange.mock.calls.length - 1)).toEqual(updateGroupRest(blocks, "g", 9));
   });
 
   it("links to the exercise", async () => {

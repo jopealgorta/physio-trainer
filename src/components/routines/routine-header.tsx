@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ export function RoutineHeader({
   saving,
   saved,
   onSave,
+  focusToken,
 }: {
   values: HeaderValues;
   errors: HeaderErrors;
@@ -62,10 +63,17 @@ export function RoutineHeader({
   /** The last save succeeded and nothing changed since. */
   saved: boolean;
   onSave: () => void;
+  /** Bumped by the editor when a save is refused, to move focus to the first invalid field. */
+  focusToken: number;
 }) {
   const t = useTranslations("Routines.editor");
   const tStatus = useTranslations("Routines.status");
   const id = useId();
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (focusToken > 0) root.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [focusToken]);
 
   const errorId = (field: HeaderField) => `${id}-${field}-error`;
   const invalid = (field: HeaderField) => errors[field] !== undefined;
@@ -78,7 +86,7 @@ export function RoutineHeader({
     if (!code) return null;
     const range = field === "sessionsPerWeek" || field === "sessionsPerDay" ? RANGES[field] : null;
     return (
-      <p id={errorId(field)} className="text-destructive text-sm">
+      <p id={errorId(field)} role="alert" className="text-destructive text-sm">
         {t(`errors.${code}`, {
           max: field === "notes" ? ROUTINE_NOTES_MAX : (range?.max ?? ROUTINE_NAME_MAX),
           min: range?.min ?? 1,
@@ -91,7 +99,7 @@ export function RoutineHeader({
   const indicator = saving ? "" : dirty ? t("unsaved") : saved ? t("saved") : "";
 
   return (
-    <div className="grid gap-4">
+    <div ref={root} className="grid gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid min-w-0 flex-1 gap-1">
           <Input

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 import { SortableList } from "@/components/sortable/sortable-list";
 import { itemCount, type EditorBlock, type NewKey } from "@/lib/routine-editor";
@@ -18,21 +18,21 @@ export function BlockList({
   blocks,
   onChange,
   newKey,
+  expanded,
+  invalid,
+  onToggle,
 }: {
   blocks: EditorBlock[];
-  onChange: (blocks: EditorBlock[]) => void;
+  /** A state setter: row actions pass updaters, so they always apply to the latest blocks. */
+  onChange: Dispatch<SetStateAction<EditorBlock[]>>;
   newKey: NewKey;
+  /** Item keys whose prescription editor is open. */
+  expanded: ReadonlySet<string>;
+  /** Item keys to flag because a set would be rejected on save. */
+  invalid: ReadonlySet<string>;
+  onToggle: (itemKey: string) => void;
 }) {
   const t = useTranslations("Routines.items");
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-
-  const apply = (next: (blocks: EditorBlock[]) => EditorBlock[]) => onChange(next(blocks));
-  const toggle = (key: string) =>
-    setExpanded((previous) => {
-      const next = new Set(previous);
-      if (!next.delete(key)) next.add(key);
-      return next;
-    });
 
   if (blocks.length === 0) {
     return <p className="text-muted-foreground text-sm">{t("empty")}</p>;
@@ -52,8 +52,9 @@ export function BlockList({
               item={block.item}
               handle={handle}
               expanded={expanded.has(block.item.key)}
-              onToggle={() => toggle(block.item.key)}
-              onChange={apply}
+              invalid={invalid.has(block.item.key)}
+              onToggle={() => onToggle(block.item.key)}
+              onChange={onChange}
               newKey={newKey}
             />
           ) : (
@@ -61,7 +62,7 @@ export function BlockList({
               blocks={blocks}
               block={block}
               handle={handle}
-              onChange={apply}
+              onChange={onChange}
               newKey={newKey}
               renderMember={(item, memberHandle) => (
                 <ItemRow
@@ -70,8 +71,9 @@ export function BlockList({
                   groupKey={block.key}
                   handle={memberHandle}
                   expanded={expanded.has(item.key)}
-                  onToggle={() => toggle(item.key)}
-                  onChange={apply}
+                  invalid={invalid.has(item.key)}
+                  onToggle={() => onToggle(item.key)}
+                  onChange={onChange}
                   newKey={newKey}
                 />
               )}

@@ -1,6 +1,7 @@
 import {
   EMPTY_ITEM_PRESCRIPTION,
   EMPTY_SET,
+  setSchema,
   type ItemPrescription,
   type SetPrescription,
 } from "./prescription";
@@ -67,6 +68,13 @@ const blockIndexOfItem = (blocks: EditorBlock[], itemKey: string) =>
 
 export function flatItems(blocks: EditorBlock[]): EditorItem[] {
   return blocks.flatMap(blockItems);
+}
+
+/** Keys of the items with a set the server schema would reject (e.g. max reps not above reps). */
+export function itemsWithInvalidSets(blocks: EditorBlock[]): string[] {
+  return flatItems(blocks)
+    .filter((item) => item.sets.some((set) => !setSchema.safeParse(set).success))
+    .map((item) => item.key);
 }
 
 export function itemCount(blocks: EditorBlock[]): number {

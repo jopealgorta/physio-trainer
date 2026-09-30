@@ -142,7 +142,9 @@ test("a routine needs an exercise to be activated, and shows in the list once ac
   await page.goto("/routines");
   const link = page.getByRole("link", { name: "Ankle plan" }).filter({ visible: true });
   await expect(link).toBeVisible();
-  await expect(page.getByText("Active", { exact: true }).filter({ visible: true })).toBeVisible();
+  // The row is a table row on desktop and a list item on mobile.
+  const row = page.locator("tr, li").filter({ has: link });
+  await expect(row.getByText("Active", { exact: true })).toBeVisible();
 
   await page.goto("/routines?status=draft");
   await expect(page.getByText("No routines match these filters.")).toBeVisible();
@@ -165,8 +167,11 @@ test("an exercise used by a routine cannot be deleted, and archiving hides it fr
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
   await page.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete exercise" }).click();
-  await expect(page.getByText(/This exercise is used in a routine/)).toBeVisible();
-  await expect(page.getByText(/Archive it instead/)).toBeVisible();
+  await expect(
+    page.getByText(
+      "This exercise is used in a routine, so it can't be deleted. Archive it instead.",
+    ),
+  ).toBeVisible();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
 
   await page.getByRole("button", { name: "Archive", exact: true }).click();

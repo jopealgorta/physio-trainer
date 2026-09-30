@@ -104,4 +104,11 @@ describe("ItemEditor", () => {
     await user.clear(notes);
     expect(current().notes).toBeNull();
   });
+
+  it("stores whitespace-only notes as null", async () => {
+    const user = userEvent.setup();
+    setup([single("a")], "a");
+    await user.type(screen.getByRole("textbox", { name: "Notes" }), "   ");
+    expect(current().notes).toBeNull();
+  });
 });

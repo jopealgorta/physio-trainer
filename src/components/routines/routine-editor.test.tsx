@@ -352,6 +352,115 @@ describe("RoutineEditor", () => {
     expect(screen.queryByText("Enter a name.")).not.toBeInTheDocument();
   });
 
+  it("blocks the save when a collapsed item has an invalid rep range, and expands it", async () => {
+    const user = userEvent.setup();
+    const bad: EditorBlock[] = [
+      {
+        kind: "single",
+        key: "k1",
+        item: {
+          ...BLOCKS_ITEM,
+          sets: [{ key: "s1", reps: 12, repsMax: 10, durationSeconds: null, load: null }],
+        },
+      },
+    ];
+    setup({ ...PROPS, initialBlocks: bad });
+    expect(screen.getByRole("button", { name: "Edit prescription" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await user.type(nameInput(), "!");
+    await user.click(save());
+
+    expect(saveRoutineAction).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Some sets have invalid reps. Check the highlighted exercises."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hide prescription" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByRole("textbox", { name: "Set 1: Max reps" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(within(screen.getByTestId("item-row")).getByText("Check sets")).toBeInTheDocument();
+
+    // Fixing the range clears the message and lets the save through.
+    await user.clear(screen.getByRole("textbox", { name: "Set 1: Max reps" }));
+    await user.click(save());
+    await waitFor(() => expect(saveRoutineAction).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText("Check sets")).not.toBeInTheDocument();
+    expect(screen.queryByText(/invalid reps/)).not.toBeInTheDocument();
+  });
+
+  it("blocks the save when max reps has no reps", async () => {
+    const user = userEvent.setup();
+    const bad: EditorBlock[] = [
+      {
+        kind: "single",
+        key: "k1",
+        item: {
+          ...BLOCKS_ITEM,
+          sets: [{ key: "s1", reps: null, repsMax: 8, durationSeconds: null, load: null }],
+        },
+      },
+    ];
+    setup({ ...PROPS, initialBlocks: bad });
+    await user.type(nameInput(), "!");
+    await user.click(save());
+    expect(saveRoutineAction).not.toHaveBeenCalled();
+    expect(await screen.findByText(/invalid reps/)).toBeInTheDocument();
+    expect(screen.getByText("Enter reps first.")).toBeInTheDocument();
+  });
+
+  it("keeps working when the page already has a newer version before the conflict", async () => {
+    const user = userEvent.setup();
+    saveRoutineAction.mockResolvedValue({ ok: false, error: "conflict" });
+    const { rerenderWith } = setup();
+    // Fresher data arrives (e.g. a background refresh) while the user has no conflict yet.
+    rerenderWith({
+      ...PROPS,
+      routine: {
+        ...PROPS.routine,
+        version: 5,
+        header: { ...PROPS.routine.header, name: "Theirs" },
+      },
+    });
+    await user.type(nameInput(), "!");
+    await user.click(save());
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Reload" }));
+    await waitFor(() => expect(nameInput()).toHaveValue("Theirs"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(save()).toBeDisabled();
+  });
+
+  it("does not call the server when activating a routine with no exercises", async () => {
+    const user = userEvent.setup();
+    setup({ ...PROPS, initialBlocks: [] });
+    await chooseOption(user, screen.getByRole("combobox", { name: "Status" }), "Active");
+    await user.click(save());
+    expect(saveRoutineAction).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Add at least one exercise before activating.",
+    );
+  });
+
+  it("announces header errors and focuses the first invalid field", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.clear(nameInput());
+    await user.type(screen.getByLabelText("Sessions per day"), "9");
+    await user.click(save());
+    const errors = await screen.findAllByRole("alert");
+    expect(errors.map((element) => element.textContent)).toEqual([
+      "Enter a name.",
+      "Enter a whole number from 1 to 5.",
+    ]);
+    expect(nameInput()).toHaveFocus();
+  });
+
   it("hides the case select when the customer has no cases", () => {
     setup({ ...PROPS, routine: { ...PROPS.routine, cases: [] } });
     expect(screen.queryByRole("combobox", { name: "Case" })).not.toBeInTheDocument();

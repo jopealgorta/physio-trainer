@@ -117,7 +117,9 @@ export function ItemEditor({
           rows={2}
           maxLength={PRESCRIPTION_NOTES_MAX_LENGTH}
           value={item.notes ?? ""}
-          onChange={(event) => patch({ notes: event.target.value || null })}
+          onChange={(event) =>
+            patch({ notes: event.target.value.trim() ? event.target.value : null })
+          }
         />
       </div>
     </div>

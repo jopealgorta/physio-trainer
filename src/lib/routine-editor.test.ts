@@ -12,6 +12,7 @@ import {
   fromLoaded,
   groupWithNext,
   itemCount,
+  itemsWithInvalidSets,
   newItem,
   removeItem,
   removeSet,
@@ -116,6 +117,17 @@ describe("items", () => {
   it("flatItems flattens groups in order", () => {
     const [a, b, c] = [mk("a"), mk("b"), mk("c")];
     expect(flatItems([single(a), group("g", null, [b, c])])).toEqual([a, b, c]);
+  });
+
+  it("itemsWithInvalidSets lists the items whose sets break the rep-range rule", () => {
+    const ok = mk("ok");
+    const bad = { ...mk("bad"), sets: [{ ...mk("bad").sets[0], reps: 12, repsMax: 10 }] };
+    const noReps = { ...mk("nr"), sets: [{ ...mk("nr").sets[0], reps: null, repsMax: 8 }] };
+    const valid = { ...mk("v"), sets: [{ ...mk("v").sets[0], reps: 8, repsMax: 12 }] };
+    expect(
+      itemsWithInvalidSets([single(ok), group("g", null, [bad, valid]), single(noReps)]),
+    ).toEqual([bad.key, noReps.key]);
+    expect(itemsWithInvalidSets([single(ok), single(valid)])).toEqual([]);
   });
 
   it("removeItem removes from a single", () => {

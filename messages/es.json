@@ -257,11 +257,8 @@
     "errors": {
       "notAWholeNumber": "Ingresá un número entero.",
       "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
-      "tooLong": "Usá como máximo {max, number} caracteres.",
-      "invalidSide": "Elegí un lado de la lista.",
       "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
-      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
-      "invalid": "Revisá este campo."
+      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones."
     },
     "summary": {
       "count": "{value, number}",
@@ -671,6 +668,7 @@
         "needsItems": "Agregá al menos un ejercicio antes de activarla.",
         "blockedByPlans": "Esta rutina se usa en un plan semanal activo.",
         "invalid": "Revisá el formulario y probá de nuevo.",
+        "sets": "Algunas series tienen repeticiones inválidas. Revisá los ejercicios resaltados.",
         "generic": "No se pudo guardar. Probá de nuevo.",
         "nameRequired": "Ingresá un nombre.",
         "nameTooLong": "Usá como máximo {max, number} caracteres.",
@@ -686,6 +684,7 @@
       "expand": "Editar prescripción",
       "collapse": "Ocultar prescripción",
       "archivedBadge": "Archivado",
+      "invalidBadge": "Revisá las series",
       "menu": "Opciones del ejercicio",
       "duplicate": "Duplicar",
       "remove": "Quitar",

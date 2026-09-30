@@ -257,11 +257,8 @@
     "errors": {
       "notAWholeNumber": "Enter a whole number.",
       "outOfRange": "Enter a number from {min, number} to {max, number}.",
-      "tooLong": "Use at most {max, number} characters.",
-      "invalidSide": "Choose a side from the list.",
       "repsMaxWithoutReps": "Enter reps first.",
-      "repsMaxNotAboveReps": "Must be more than reps.",
-      "invalid": "Check this field."
+      "repsMaxNotAboveReps": "Must be more than reps."
     },
     "summary": {
       "count": "{value, number}",
@@ -671,6 +668,7 @@
         "needsItems": "Add at least one exercise before activating.",
         "blockedByPlans": "This routine is used in an active weekly plan.",
         "invalid": "Check the form and try again.",
+        "sets": "Some sets have invalid reps. Check the highlighted exercises.",
         "generic": "Couldn't save. Try again.",
         "nameRequired": "Enter a name.",
         "nameTooLong": "Use at most {max, number} characters.",
@@ -686,6 +684,7 @@
       "expand": "Edit prescription",
       "collapse": "Hide prescription",
       "archivedBadge": "Archived",
+      "invalidBadge": "Check sets",
       "menu": "Exercise options",
       "duplicate": "Duplicate",
       "remove": "Remove",

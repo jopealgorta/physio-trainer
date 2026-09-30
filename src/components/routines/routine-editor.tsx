@@ -20,6 +20,8 @@ import type { CategoryNode } from "@/lib/category-tree";
 import {
   addItem,
   canAddItem,
+  flatItems,
+  itemsWithInvalidSets,
   newItem,
   toSaveBlocks,
   type EditorBlock,
@@ -84,23 +86,44 @@ export function RoutineEditor({
   const [fieldErrors, setFieldErrors] = useState<HeaderErrors>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  // The page re-renders with fresh data after a conflict's Reload. Only then does a newer
-  // version replace local state (someone else's change, which the user chose to load). Otherwise
-  // it is the version we just saved ourselves (the action revalidates this page): record it and
-  // keep any edits made while the save was in flight.
-  const [seenVersion, setSeenVersion] = useState(routine.version);
-  if (routine.version !== seenVersion) {
-    setSeenVersion(routine.version);
-    if (error === "conflict" && routine.version > version) {
-      setHeader(routine.header);
-      setBlocks(initialBlocks);
-      setVersion(routine.version);
-      setSnapshot(snapshotOf(routine.header, initialBlocks));
-      setError(null);
-      setFieldErrors({});
-      setSavedAt(null);
-    }
+  const [focusToken, setFocusToken] = useState(0);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  // Set once a save was refused for invalid sets; from then on the flagged items follow the edits.
+  const [checkSets, setCheckSets] = useState(false);
+  const [reloadRequested, setReloadRequested] = useState(false);
+
+  // Reload (after a conflict) asks the page for fresh data. Only once the user asked, and only
+  // when the page holds a newer version than ours, does it replace local state (someone else's
+  // change, which the user chose to load). A newer version without a request is either our own
+  // save (the action revalidates this page) or background data: edits in progress are kept.
+  if (reloadRequested && routine.version > version) {
+    setReloadRequested(false);
+    setHeader(routine.header);
+    setBlocks(initialBlocks);
+    setVersion(routine.version);
+    setSnapshot(snapshotOf(routine.header, initialBlocks));
+    setError(null);
+    setFieldErrors({});
+    setSavedAt(null);
+    setExpanded(new Set());
+    setCheckSets(false);
   }
+
+  function reload() {
+    setReloadRequested(true);
+    router.refresh();
+  }
+
+  const invalidItems = useMemo(
+    () => (checkSets ? new Set(itemsWithInvalidSets(blocks)) : new Set<string>()),
+    [checkSets, blocks],
+  );
+  const toggleExpanded = (key: string) =>
+    setExpanded((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
 
   const current = useMemo(() => snapshotOf(header, blocks), [header, blocks]);
   const dirty = current !== snapshot;
@@ -135,9 +158,22 @@ export function RoutineEditor({
     const validation = validateHeader(header);
     if (!validation.ok) {
       setFieldErrors(validation.errors);
+      setFocusToken((token) => token + 1);
       return;
     }
     setFieldErrors({});
+    // The action only says "invalid", so sets are checked here to point at the exercises.
+    const badItems = itemsWithInvalidSets(blocks);
+    if (badItems.length > 0) {
+      setError(null);
+      setCheckSets(true);
+      setExpanded((previous) => new Set([...previous, ...badItems]));
+      return;
+    }
+    if (header.status === "active" && flatItems(blocks).length === 0) {
+      setError("needsItems");
+      return;
+    }
     setError(null);
     setSaving(true);
     const savedSnapshot = current;
@@ -180,13 +216,20 @@ export function RoutineEditor({
         saving={saving}
         saved={savedAt !== null}
         onSave={save}
+        focusToken={focusToken}
       />
+
+      {invalidItems.size > 0 ? (
+        <Alert variant="destructive">
+          <AlertDescription>{t("errors.sets")}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {error === "conflict" ? (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             {t("conflict")}
-            <Button type="button" variant="outline" size="sm" onClick={() => router.refresh()}>
+            <Button type="button" variant="outline" size="sm" onClick={reload}>
               {t("reload")}
             </Button>
           </AlertDescription>
@@ -226,7 +269,14 @@ export function RoutineEditor({
               </SheetContent>
             </Sheet>
           </div>
-          <BlockList blocks={blocks} onChange={setBlocks} newKey={newKey} />
+          <BlockList
+            blocks={blocks}
+            onChange={setBlocks}
+            newKey={newKey}
+            expanded={expanded}
+            invalid={invalidItems}
+            onToggle={toggleExpanded}
+          />
         </div>
         <aside
           aria-labelledby="picker-title"

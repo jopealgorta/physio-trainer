@@ -148,4 +148,14 @@ describe("SetsTable", () => {
     const row = screen.getAllByRole("row")[1];
     expect(within(row).getByText("Must be more than reps.")).toBeInTheDocument();
   });
+
+  it("stores a whitespace-only load as null but keeps spaces inside a load", async () => {
+    const user = userEvent.setup();
+    setup([single("a", { sets: [set("s1")] })], "a");
+    const load = screen.getByRole("textbox", { name: "Set 1: Load" });
+    await user.type(load, "   ");
+    expect(sets()[0].load).toBeNull();
+    await user.type(load, "5 kg");
+    expect(sets()[0].load).toBe("5 kg");
+  });
 });

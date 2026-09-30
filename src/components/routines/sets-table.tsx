@@ -124,7 +124,11 @@ export function SetsTable({
                       value={set.load ?? ""}
                       maxLength={LOAD_MAX_LENGTH}
                       placeholder={loadPlaceholder}
-                      onChange={(event) => patch(set.key, { load: event.target.value || null })}
+                      onChange={(event) =>
+                        patch(set.key, {
+                          load: event.target.value.trim() ? event.target.value : null,
+                        })
+                      }
                     />
                   </td>
                   <td>
