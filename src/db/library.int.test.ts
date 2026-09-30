@@ -157,12 +157,22 @@ describe("exercise library tables", () => {
     expect(moved).toMatchObject({ categoryId: null, physioId: a.id });
   });
 
-  it("enforces prescription and media checks", async () => {
-    await expect(
-      runAsPhysio(a.claims, (tx, physioId) =>
-        tx.insert(exercises).values({ physioId, name: "Bad range", reps: 12, repsMax: 8 }),
-      ),
-    ).rejects.toMatchObject(rejectsWith("23514", "exercises_reps_range_order"));
+  it("has no default-prescription columns or checks on exercises (spec 05)", async () => {
+    const columns = await db.execute<{ column_name: string }>(sql`
+      select column_name from information_schema.columns
+      where table_schema = 'public' and table_name = 'exercises'
+        and column_name in ('sets', 'reps', 'reps_max', 'duration_seconds', 'hold_seconds',
+                            'rest_seconds', 'load', 'side', 'notes')`);
+    expect(columns.map((row) => row.column_name)).toEqual([]);
+    const checks = await db.execute<{ conname: string }>(sql`
+      select conname from pg_constraint
+      where conrelid = 'public.exercises'::regclass and contype = 'c'
+        and (conname like 'exercises\_%\_range' or conname in (
+          'exercises_reps_range_order', 'exercises_load_length', 'exercises_notes_length'))`);
+    expect(checks.map((row) => row.conname)).toEqual([]);
+  });
+
+  it("enforces media checks", async () => {
     await expect(
       runAsPhysio(a.claims, (tx, physioId) =>
         tx.insert(exerciseMedia).values({

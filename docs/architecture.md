@@ -184,7 +184,7 @@ erDiagram
 ### Prescription model (spec 05)
 
 The prescription lives only on routines; exercises carry no defaults (the old default columns on
-`exercises` are unused and dropped in a follow-up chore). It has two levels:
+`exercises` were dropped after spec 05). It has two levels:
 
 - **Per set**, one `routine_item_sets` row each (`position` 0-based, at most 20 per item):
   `reps smallint`, `reps_max smallint` (range when set: "8–12"; needs `reps` and must exceed

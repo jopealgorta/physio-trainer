@@ -178,5 +178,5 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
   is covered end to end because unit tests cannot drive dnd-kit.
 - **Prescription defaults were removed in spec 05** (UI and code): exercises no longer carry or
   copy a default prescription, and the prescription lives on routine items. The unused database
-  columns are dropped in a follow-up chore PR. Delete now returns `inUse` (and offers archive)
+  columns were dropped afterwards (migration `drop-exercise-prescription-defaults`). Delete now returns `inUse` (and offers archive)
   once a routine item references the exercise.
