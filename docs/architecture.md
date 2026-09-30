@@ -132,7 +132,10 @@ erDiagram
   customers ||--o{ weekly_plans : has
   cases |o--o{ routines : "optional link"
   cases |o--o{ weekly_plans : "optional link"
+  routines ||--o{ routine_groups : "supersets"
   routines ||--o{ routine_items : contains
+  routine_groups |o--o{ routine_items : "groups 2-3"
+  routine_items ||--o{ routine_item_sets : "one row per set"
   exercises ||--o{ routine_items : "used in"
   weekly_plans ||--o{ weekly_plan_entries : "day slots"
   routines ||--o{ weekly_plan_entries : "attached to"
@@ -148,10 +151,11 @@ erDiagram
 | ------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------- |
 | `physios`                                  | 01 (+09 branding columns)      | Profile, 1:1 with `auth.users` (`id` = auth user id). `handle` unique. |
 | `exercise_categories`                      | 03                             | Two-level tree (`parent_id` null = top level).                         |
-| `exercises`, `exercise_media`              | 03                             | Library entries with default prescription values and ordered media.    |
+| `exercises`, `exercise_media`              | 03                             | Library entries (no prescription of their own) and ordered media.      |
 | `customers`                                | 04                             | Patient contact/basic info, `locale`.                                  |
 | `cases`                                    | 04                             | Injury episodes per customer (body area/side from spec 02).            |
-| `routines`, `routine_items`                | 05 (+07 templates, +08 phases) | Ordered exercises with prescription. `customer_id` null ⇔ template.    |
+| `routines`, `routine_groups`               | 05 (+07 templates, +08 phases) | Routine header; a group is one superset (shared rest). Template ⇔ null |
+| `routine_items`, `routine_item_sets`       | 05                             | Ordered exercises (per-item prescription) and one row per set.         |
 | `weekly_plans`, `weekly_plan_entries`      | 06 (+07, +08)                  | Mon–Sun; entries reference routines by id.                             |
 | `share_links`                              | 10                             | Link code, target, PIN hash, expiry, revocation.                       |
 | `session_logs`                             | 13                             | Patient-submitted completion/pain/comment per routine per date.        |
@@ -177,13 +181,24 @@ erDiagram
   backwards-compatible with the previous app version (expand, then contract): add nullable
   columns/new tables first, and drop or rename in a later PR once no deployed code uses them.
 
-### Prescription fields (shared by `exercises` defaults and `routine_items`)
+### Prescription model (spec 05)
 
-`sets smallint`, `reps smallint`, `reps_max smallint` (range when set: "8–12"),
-`duration_seconds integer` (timed exercises), `hold_seconds smallint`, `rest_seconds smallint`,
-`load text` ("5 kg", "red band"), `side` enum (`left | right | both | alternating`), `notes text`.
-All nullable; the UI shows only what is set. Define one zod schema and one Drizzle column helper
-for these in spec 03 and reuse them in spec 05.
+The prescription lives only on routines; exercises carry no defaults (the old default columns on
+`exercises` are unused and dropped in a follow-up chore). It has two levels:
+
+- **Per set**, one `routine_item_sets` row each (`position` 0-based, at most 20 per item):
+  `reps smallint`, `reps_max smallint` (range when set: "8–12"; needs `reps` and must exceed
+  it), `duration_seconds integer` (timed sets), `load text` ("5 kg", "red band"). Sets may differ
+  (12 / 10 / 8).
+- **Per item**, on `routine_items`: `hold_seconds smallint`, `rest_seconds smallint`, `side` enum
+  (`left | right | both | alternating`), `notes text`.
+- **Supersets**: `routine_groups` (rest after each round, `rest_seconds`). Items point to it with
+  `group_id`; 2 or 3 consecutive members alternate set by set, all with the same number of sets,
+  and a grouped item has no `rest_seconds` of its own.
+
+Everything is nullable and the UI shows only what is set. The zod shapes (`setShape`,
+`itemShape`) and the Drizzle helpers (`_prescription.ts`) are shared, and every consumer renders
+the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
 
 ## Conventions
 

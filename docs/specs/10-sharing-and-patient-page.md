@@ -84,7 +84,9 @@ Patient page layout (mobile-first, branded via spec 09):
    look at other days. For customer links, also active single routines ("Your routines").
 3. Routine view: notes, then exercise cards: media (video loops muted, tap for sound/fullscreen;
    YouTube/Vimeo embeds lazy-loaded), name, prescription summary (`formatPrescription`),
-   instructions (collapsible), item notes.
+   instructions (collapsible), item notes. Note (spec 05): the prescription is per set (plus
+   hold, rest, side and notes per item), and a superset shows as one block; render it with
+   `formatPrescription`, never from raw columns.
 4. Footer: physio contact buttons (call, WhatsApp, email) if allowed; "Add to home screen" hint.
 5. States: expired/revoked → friendly page with physio contact; nothing active → "Your physio
    hasn't scheduled anything for today" + next upcoming item if spec 08 decided to show it.

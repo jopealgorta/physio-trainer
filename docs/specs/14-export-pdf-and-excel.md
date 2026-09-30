@@ -30,6 +30,8 @@ live link, so a printed sheet always leads back to the latest version.
 3. For each routine: name, phase label/date range, notes; exercise rows with thumbnail
    (cover image or video poster), name, prescription summary (`formatPrescription`),
    instructions (truncated to fit), item notes; a checkbox column per day for paper tracking.
+   Note (spec 05): the prescription is per set (+ per item) since spec 05; render it with
+   `formatPrescription`, and mark supersets.
 4. Footer: QR code + short URL of the share link (customer link by default), page numbers.
 
 **Excel**:
@@ -37,6 +39,8 @@ live link, so a printed sheet always leads back to the latest version.
 - Sheet "Overview" (plan week grid), one sheet per routine: columns Exercise, Sets, Reps,
   Hold, Duration, Rest, Load, Side, Notes, Instructions, Video link (signed/public page link).
 - Header rows with physio and customer name; frozen header; column widths set.
+- Note (spec 05): sets differ per set, so the Sets/Reps/Duration/Load columns hold the
+  `formatPrescription` parts (or one row per set); superset members share a group label.
 
 ## Technical approach
 
