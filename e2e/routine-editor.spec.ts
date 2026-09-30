@@ -26,7 +26,7 @@ test("a physio renames a routine and a stale tab hits the version conflict", asy
   const save = page.getByRole("button", { name: "Save" });
   await expect(save).toBeDisabled();
   await name.fill("Week 1 - knee");
-  await expect(page.getByRole("status")).toHaveText("Unsaved changes");
+  await expect(page.getByTestId("save-status")).toHaveText("Unsaved changes");
 
   // Open the same routine in a second tab before saving in the first.
   const other = await page.context().newPage();
@@ -34,7 +34,7 @@ test("a physio renames a routine and a stale tab hits the version conflict", asy
   await expect(other.getByRole("textbox", { name: "Routine name" })).toHaveValue("Week 1");
 
   await save.click();
-  await expect(page.getByRole("status")).toHaveText("Saved");
+  await expect(page.getByTestId("save-status")).toHaveText("Saved");
   await expect(save).toBeDisabled();
   await expect(name).toHaveValue("Week 1 - knee");
 

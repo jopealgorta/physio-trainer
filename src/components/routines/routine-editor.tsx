@@ -1,18 +1,38 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import type { CategoryNode } from "@/lib/category-tree";
-import { toSaveBlocks, type EditorBlock } from "@/lib/routine-editor";
+import {
+  addItem,
+  canAddItem,
+  newItem,
+  toSaveBlocks,
+  type EditorBlock,
+  type ExerciseRef,
+} from "@/lib/routine-editor";
+import { MAX_ITEMS } from "@/lib/routines";
 import { validateHeader, type HeaderErrors } from "@/lib/routine-validation";
 import { saveRoutineAction, type SaveRoutineActionError } from "@/server/routines/actions";
 import type { ExerciseSummary } from "@/server/library/queries";
 
 import { BlockList } from "./block-list";
+import { ExercisePicker } from "./exercise-picker";
 import { RoutineHeader, type HeaderValues } from "./routine-header";
 import { useUnsavedGuard } from "./use-unsaved-guard";
 
@@ -42,10 +62,18 @@ const snapshotOf = (header: HeaderValues, blocks: EditorBlock[]) =>
 
 /**
  * The routine editor: header fields, the block list and the exercise picker, saved as one unit
- * with an optimistic version check. Task 11 fills the picker slot.
+ * with an optimistic version check. The picker is a sticky side panel from `lg`, and a bottom
+ * sheet (the same component) below it.
  */
-export function RoutineEditor({ routine, initialBlocks }: RoutineEditorProps) {
+export function RoutineEditor({
+  routine,
+  initialBlocks,
+  categories,
+  recent,
+  exercises,
+}: RoutineEditorProps) {
   const t = useTranslations("Routines.editor");
+  const tPicker = useTranslations("Routines.picker");
   const router = useRouter();
 
   const [header, setHeader] = useState(routine.header);
@@ -90,6 +118,18 @@ export function RoutineEditor({ routine, initialBlocks }: RoutineEditorProps) {
       return remaining;
     });
   }
+
+  const pick = (exercise: ExerciseRef) =>
+    setBlocks((previous) => addItem(previous, newItem(exercise, newKey)));
+  const picker = (
+    <ExercisePicker
+      categories={categories}
+      recent={recent}
+      initial={exercises}
+      disabledReason={canAddItem(blocks) ? null : tPicker("full", { max: MAX_ITEMS })}
+      onPick={pick}
+    />
+  );
 
   async function save() {
     if (saving || !dirty) return;
@@ -159,8 +199,40 @@ export function RoutineEditor({ routine, initialBlocks }: RoutineEditorProps) {
       ) : null}
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
-        <BlockList blocks={blocks} onChange={setBlocks} newKey={newKey} />
-        <div data-testid="picker-slot" />
+        <div className="grid min-w-0 gap-4">
+          <div className="lg:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button type="button" variant="outline">
+                  <PlusIcon aria-hidden />
+                  {tPicker("open")}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[85dvh]" aria-describedby={undefined}>
+                <SheetHeader>
+                  <SheetTitle>{tPicker("title")}</SheetTitle>
+                  <SheetDescription className="sr-only">{tPicker("title")}</SheetDescription>
+                </SheetHeader>
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">{picker}</div>
+                <SheetFooter>
+                  <SheetClose asChild>
+                    <Button type="button">{tPicker("close")}</Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </div>
+          <BlockList blocks={blocks} onChange={setBlocks} newKey={newKey} />
+        </div>
+        <aside
+          aria-labelledby="picker-title"
+          className="bg-card sticky top-6 hidden max-h-[calc(100dvh-3rem)] min-w-0 overflow-y-auto rounded-lg border p-4 lg:grid lg:gap-3"
+        >
+          <h2 id="picker-title" className="text-sm font-semibold">
+            {tPicker("title")}
+          </h2>
+          {picker}
+        </aside>
       </div>
     </div>
   );

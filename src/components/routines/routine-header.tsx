@@ -115,7 +115,7 @@ export function RoutineHeader({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <p role="status" className="text-muted-foreground text-sm">
+          <p role="status" data-testid="save-status" className="text-muted-foreground text-sm">
             {indicator}
           </p>
           <Button type="button" onClick={onSave} disabled={!dirty || saving}>

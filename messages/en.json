@@ -712,6 +712,23 @@
         "notes": "Notes"
       },
       "limit": "A routine can have up to {max, number} exercises."
+    },
+    "picker": {
+      "title": "Add exercises",
+      "search": "Search exercises",
+      "category": "Category",
+      "allCategories": "All categories",
+      "area": "Body area",
+      "anyArea": "Any area",
+      "recent": "Recent",
+      "results": "{count, plural, one {# exercise} other {# exercises}}",
+      "none": "No exercises match.",
+      "noLibrary": "Your library is empty. <link>Add exercises in the library</link> first.",
+      "added": "Added {name}.",
+      "full": "A routine can have up to {max, number} exercises.",
+      "error": "Couldn't search. Try again.",
+      "open": "Add exercises",
+      "close": "Done"
     }
   },
   "Branding": {

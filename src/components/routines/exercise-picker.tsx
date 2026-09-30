@@ -1,0 +1,312 @@
+"use client";
+
+import { DumbbellIcon } from "lucide-react";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { useEffect, useId, useRef, useState } from "react";
+
+import { BodyAreaBadge } from "@/components/body-areas/body-area-badge";
+import { YouTubeThumbnail } from "@/components/library/youtube-thumbnail";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { BODY_AREAS, bodyAreaSchema } from "@/lib/body-areas";
+import type { CategoryNode } from "@/lib/category-tree";
+import { SEARCH_MAX_LENGTH } from "@/lib/library-params";
+import type { ExerciseRef } from "@/lib/routine-editor";
+import { fromSelectValue, toSelectValue } from "@/lib/select-value";
+import { searchExercisesAction } from "@/server/routines/actions";
+import type { ExerciseSummary } from "@/server/library/queries";
+
+const SEARCH_DEBOUNCE_MS = 250;
+const MAX_AREA_BADGES = 2;
+
+export const toExerciseRef = (summary: ExerciseSummary): ExerciseRef => ({
+  id: summary.id,
+  name: summary.name,
+  archived: summary.archivedAt !== null,
+  cover: summary.cover,
+});
+
+type Fetched = { key: string; exercises: ExerciseSummary[] | null };
+
+function ExerciseButton({
+  exercise,
+  disabled,
+  onPick,
+}: {
+  exercise: ExerciseSummary;
+  disabled: boolean;
+  onPick: (exercise: ExerciseSummary) => void;
+}) {
+  const shown = exercise.bodyAreas.slice(0, MAX_AREA_BADGES);
+  const more = exercise.bodyAreas.length - shown.length;
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      aria-label={exercise.name}
+      disabled={disabled}
+      onClick={() => onPick(exercise)}
+      className="h-auto w-full justify-start gap-3 p-2 text-left font-normal whitespace-normal"
+    >
+      <span className="bg-muted aspect-video w-16 shrink-0 overflow-hidden rounded-md">
+        {exercise.cover ? (
+          <YouTubeThumbnail videoId={exercise.cover.videoId} />
+        ) : (
+          <span className="text-muted-foreground flex size-full items-center justify-center">
+            <DumbbellIcon aria-hidden className="size-5" />
+          </span>
+        )}
+      </span>
+      <span className="grid min-w-0 flex-1 gap-1">
+        <span className="line-clamp-2 text-sm font-medium">{exercise.name}</span>
+        <span className="flex flex-wrap items-center gap-1">
+          {shown.map((area) => (
+            <BodyAreaBadge key={area} area={area} />
+          ))}
+          {more > 0 ? <Badge variant="outline">+{more}</Badge> : null}
+        </span>
+      </span>
+    </Button>
+  );
+}
+
+/**
+ * Searchable, filterable exercise list for the routine editor (spec 05). Idle (no query and no
+ * filter) it shows the physio's recent exercises and the first page of the library; otherwise it
+ * searches on the server, debounced, with responses sequenced so a slow older one is dropped.
+ * Picking never closes anything: the physio keeps adding.
+ */
+export function ExercisePicker({
+  categories,
+  recent,
+  initial,
+  disabledReason,
+  onPick,
+}: {
+  categories: CategoryNode[];
+  recent: ExerciseSummary[];
+  initial: ExerciseSummary[];
+  /** Set when nothing can be added (routine at its limit); shown and disables every pick. */
+  disabledReason: string | null;
+  onPick: (exercise: ExerciseRef) => void;
+}) {
+  const t = useTranslations("Routines.picker");
+  const tAreas = useTranslations("BodyAreas.areas");
+  const tCategory = useTranslations("Library.form");
+  const id = useId();
+
+  const [q, setQ] = useState("");
+  const [category, setCategory] = useState("");
+  const [area, setArea] = useState("");
+  const [fetched, setFetched] = useState<Fetched | null>(null);
+  const [announcement, setAnnouncement] = useState({ text: "", count: 0 });
+  const sequence = useRef(0);
+
+  const term = q.trim();
+  const idle = term === "" && category === "" && area === "";
+  const key = JSON.stringify([term, category, area]);
+
+  useEffect(() => {
+    // Any change (or unmount) invalidates whatever is pending or in flight.
+    const request = ++sequence.current;
+    if (idle) return;
+    const timer = setTimeout(async () => {
+      let exercises: ExerciseSummary[] | null;
+      try {
+        exercises = await searchExercisesAction({
+          q: term || undefined,
+          category: category || undefined,
+          area: area || undefined,
+        });
+      } catch {
+        exercises = null;
+      }
+      if (request === sequence.current) setFetched({ key, exercises });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [idle, key, term, category, area]);
+
+  // While a search is pending or in flight the previous results stay on screen.
+  const busy = !idle && fetched?.key !== key;
+  const failed = !idle && fetched?.key === key && fetched.exercises === null;
+  const exercises = idle ? initial : (fetched?.exercises ?? initial);
+  const libraryEmpty = idle && initial.length === 0;
+  const disabled = disabledReason !== null;
+
+  const categoryLabels = new Map<string, string>();
+  for (const node of categories) {
+    categoryLabels.set(node.id, node.name);
+    for (const child of node.children) {
+      categoryLabels.set(
+        child.id,
+        tCategory("subcategoryOption", { parent: node.name, name: child.name }),
+      );
+    }
+  }
+
+  function pick(exercise: ExerciseSummary) {
+    if (disabled) return;
+    onPick(toExerciseRef(exercise));
+    // A trailing no-break space makes repeating the same pick a text change, so it is announced.
+    setAnnouncement((previous) => ({
+      text: t("added", { name: exercise.name }),
+      count: previous.count + 1,
+    }));
+  }
+
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-3">
+        <Input
+          type="search"
+          aria-label={t("search")}
+          placeholder={t("search")}
+          maxLength={SEARCH_MAX_LENGTH}
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid min-w-0 gap-1">
+            <Label htmlFor={`${id}-category`} className="text-muted-foreground">
+              {t("category")}
+            </Label>
+            <Select
+              value={toSelectValue(category)}
+              onValueChange={(value) => {
+                // "" only comes from Radix's internal <select>, never from a choice.
+                if (value === "") return;
+                setCategory(fromSelectValue(value));
+              }}
+            >
+              <SelectTrigger id={`${id}-category`} className="w-full">
+                <SelectValue>
+                  {category
+                    ? (categoryLabels.get(category) ?? t("allCategories"))
+                    : t("allCategories")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value={toSelectValue("")}>{t("allCategories")}</SelectItem>
+                {categories.map((node) => (
+                  <SelectGroup key={node.id}>
+                    <SelectLabel>{node.name}</SelectLabel>
+                    <SelectItem value={node.id}>{node.name}</SelectItem>
+                    {node.children.map((child) => (
+                      <SelectItem key={child.id} value={child.id}>
+                        {categoryLabels.get(child.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid min-w-0 gap-1">
+            <Label htmlFor={`${id}-area`} className="text-muted-foreground">
+              {t("area")}
+            </Label>
+            <Select
+              value={toSelectValue(area)}
+              onValueChange={(value) => {
+                if (value === "") return;
+                const next = bodyAreaSchema.safeParse(fromSelectValue(value));
+                setArea(next.success ? next.data : "");
+              }}
+            >
+              <SelectTrigger id={`${id}-area`} className="w-full">
+                <SelectValue>
+                  {area ? tAreas(bodyAreaSchema.parse(area)) : t("anyArea")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value={toSelectValue("")}>{t("anyArea")}</SelectItem>
+                {BODY_AREAS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {tAreas(option)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <p role="status" data-testid="picker-announcer" className="sr-only">
+        {announcement.text ? announcement.text + (announcement.count % 2 ? "" : " ") : ""}
+      </p>
+
+      {disabled ? <p className="text-muted-foreground text-sm">{disabledReason}</p> : null}
+
+      {libraryEmpty ? (
+        <p className="text-muted-foreground text-sm">
+          {t.rich("noLibrary", {
+            link: (chunks) => (
+              <Link href="/library/new" className="text-primary underline underline-offset-2">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
+      ) : (
+        <>
+          {idle && recent.length > 0 ? (
+            <section aria-labelledby={`${id}-recent`} className="grid gap-1">
+              <h3 id={`${id}-recent`} className="text-muted-foreground text-xs font-medium">
+                {t("recent")}
+              </h3>
+              <ul className="grid gap-0.5">
+                {recent.map((exercise) => (
+                  <li key={exercise.id}>
+                    <ExerciseButton exercise={exercise} disabled={disabled} onPick={pick} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {failed ? (
+            <p className="text-destructive text-sm">{t("error")}</p>
+          ) : (
+            <div className="grid gap-1">
+              <p
+                id={`${id}-count`}
+                role="status"
+                data-testid="picker-count"
+                className="text-muted-foreground text-xs"
+              >
+                {t("results", { count: exercises.length })}
+              </p>
+              {exercises.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t("none")}</p>
+              ) : (
+                <ul
+                  data-testid="picker-list"
+                  aria-labelledby={`${id}-count`}
+                  aria-busy={busy}
+                  className="grid gap-0.5 aria-busy:opacity-60"
+                >
+                  {exercises.map((exercise) => (
+                    <li key={exercise.id}>
+                      <ExerciseButton exercise={exercise} disabled={disabled} onPick={pick} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

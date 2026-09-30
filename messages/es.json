@@ -712,6 +712,23 @@
         "notes": "Notas"
       },
       "limit": "Una rutina puede tener hasta {max, number} ejercicios."
+    },
+    "picker": {
+      "title": "Agregar ejercicios",
+      "search": "Buscar ejercicios",
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "area": "Zona del cuerpo",
+      "anyArea": "Cualquier zona",
+      "recent": "Recientes",
+      "results": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+      "none": "Ningún ejercicio coincide.",
+      "noLibrary": "Tu biblioteca está vacía. <link>Agregá ejercicios en la biblioteca</link> primero.",
+      "added": "Se agregó {name}.",
+      "full": "Una rutina puede tener hasta {max, number} ejercicios.",
+      "error": "No se pudo buscar. Probá de nuevo.",
+      "open": "Agregar ejercicios",
+      "close": "Listo"
     }
   },
   "Branding": {

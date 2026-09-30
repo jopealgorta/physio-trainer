@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EditorBlock, EditorItem } from "@/lib/routine-editor";
+import type { ExerciseSummary } from "@/server/library/queries";
 import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
@@ -13,7 +14,10 @@ const { saveRoutineAction, refresh } = vi.hoisted(() => ({
   saveRoutineAction: vi.fn(),
   refresh: vi.fn(),
 }));
-vi.mock("@/server/routines/actions", () => ({ saveRoutineAction }));
+vi.mock("@/server/routines/actions", () => ({
+  saveRoutineAction,
+  searchExercisesAction: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 const BLOCKS: EditorBlock[] = [
@@ -34,6 +38,19 @@ const BLOCKS: EditorBlock[] = [
     },
   },
 ];
+
+const BLOCKS_ITEM = (BLOCKS[0] as Extract<EditorBlock, { kind: "single" }>).item;
+const summary = (id: string, name: string): ExerciseSummary => ({
+  id,
+  name,
+  categoryId: null,
+  bodyAreas: [],
+  tags: [],
+  archivedAt: null,
+  cover: null,
+});
+const LUNGE = summary("00000000-0000-4000-8000-000000000002", "Lunge");
+const BRIDGE = summary("00000000-0000-4000-8000-000000000003", "Bridge");
 
 const PROPS: RoutineEditorProps = {
   routine: {
@@ -87,14 +104,43 @@ beforeEach(() => {
 });
 
 describe("RoutineEditor", () => {
-  it("shows the customer as a link, the block list and the picker slot", () => {
+  it("shows the customer as a link, the block list and the picker", () => {
     setup();
     expect(screen.getByRole("link", { name: "Ana Pérez" })).toHaveAttribute(
       "href",
       "/customers/cust-1",
     );
     expect(screen.getByText("Squat")).toBeInTheDocument();
-    expect(screen.getByTestId("picker-slot")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Search exercises" })).toBeInTheDocument();
+  });
+
+  it("adds an exercise picked from the picker as a new row and stays open", async () => {
+    const user = userEvent.setup();
+    setup({ ...PROPS, exercises: [LUNGE, BRIDGE] });
+    const picker = within(screen.getByTestId("picker-list"));
+    await user.click(picker.getByRole("button", { name: "Lunge" }));
+    await user.click(picker.getByRole("button", { name: "Bridge" }));
+    const rows = screen.getAllByTestId("item-row");
+    expect(rows).toHaveLength(3);
+    expect(rows[1]).toHaveTextContent("Lunge");
+    expect(rows[2]).toHaveTextContent("Bridge");
+    expect(save()).toBeEnabled();
+    expect(screen.getByTestId("picker-announcer")).toHaveTextContent("Added Bridge.");
+  });
+
+  it("disables the picker once the routine has 50 exercises", () => {
+    const many: EditorBlock[] = Array.from({ length: 50 }, (_, index) => ({
+      kind: "single",
+      key: `k${index}`,
+      item: { ...BLOCKS_ITEM, key: `k${index}` },
+    }));
+    setup({ ...PROPS, initialBlocks: many, exercises: [LUNGE] });
+    expect(
+      within(screen.getByRole("complementary")).getByText("A routine can have up to 50 exercises."),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("picker-list")).getByRole("button", { name: "Lunge" }),
+    ).toBeDisabled();
   });
 
   it("keeps Save disabled until something changes", async () => {
