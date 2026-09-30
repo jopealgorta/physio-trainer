@@ -78,6 +78,13 @@
       "when": 1790778987688,
       "tag": "20260930143627_routines-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790790799469,
+      "tag": "20260930175319_drop-exercise-prescription-defaults",
+      "breakpoints": true
     }
   ]
 }

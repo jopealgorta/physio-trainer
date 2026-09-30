@@ -8,7 +8,6 @@ export const PRESCRIPTION_SIDES = ["left", "right", "both", "alternating"] as co
 export type PrescriptionSide = (typeof PRESCRIPTION_SIDES)[number];
 
 export const PRESCRIPTION_LIMITS = {
-  sets: { min: 1, max: 99 },
   reps: { min: 1, max: 999 },
   repsMax: { min: 1, max: 999 },
   durationSeconds: { min: 1, max: 7200 },
@@ -49,7 +48,6 @@ function optionalText(max: number) {
 }
 
 const prescriptionShape = {
-  sets: optionalInt(PRESCRIPTION_LIMITS.sets),
   reps: optionalInt(PRESCRIPTION_LIMITS.reps),
   repsMax: optionalInt(PRESCRIPTION_LIMITS.repsMax),
   durationSeconds: optionalInt(PRESCRIPTION_LIMITS.durationSeconds),

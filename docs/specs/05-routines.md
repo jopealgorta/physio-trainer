@@ -91,8 +91,9 @@ all members have the same number of sets; grouped items carry no `rest_seconds`.
 
 `exercises` stops using its prescription columns: the exercise form, queries, zod schema and
 tests lose them and nothing is copied when adding an exercise to a routine (a new item starts
-with one empty set; "Add set" copies the previous set). The database columns stay for now
-(expand-then-contract, see architecture) and a follow-up chore PR drops them. `deleteExercise`
+with one empty set; "Add set" copies the previous set). The database columns stayed for one release
+(expand-then-contract, see architecture) and a follow-up chore PR dropped them
+(`drop-exercise-prescription-defaults`). `deleteExercise`
 now returns `inUse` when a routine item references it (FK `restrict`) and the UI offers
 archive instead.
 
@@ -267,9 +268,9 @@ Namespace `Routines`, `Prescription` (units and summary patterns, with plural ru
     stack was started before `supabase/templates/magic_link.html` existed (the stack kept sending
     the default PKCE link). Verified: restarting the local stack fixed it (26/26 auth specs
     pass); not an app bug.
-- **Follow-up chore PR**: drop the `exercises` default-prescription columns (`sets`, `reps`,
-  `reps_max`, `duration_seconds`, `hold_seconds`, `rest_seconds`, `load`, `side`, `notes`) and
-  the `_prescription.test.ts` legacy column list, once no deployed code reads them
-  (expand-then-contract). Known minor items deferred: no index on
+- **Follow-up chore PR (done)**: dropped the `exercises` default-prescription columns (`sets`,
+  `reps`, `reps_max`, `duration_seconds`, `hold_seconds`, `rest_seconds`, `load`, `side`,
+  `notes`), their check constraints, `prescriptionColumns`/`prescriptionChecks` and the
+  `_prescription.test.ts` legacy column list. Known minor items deferred: no index on
   `routine_items (physio_id, exercise_id)` for the `inUse` check, and group members read back in
   no guaranteed order from `getRoutine` (consumers key by id/position).

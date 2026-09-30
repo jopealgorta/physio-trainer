@@ -16,7 +16,6 @@ import {
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 
 import { timestamps } from "./_columns";
-import { prescriptionChecks, prescriptionColumns } from "./_prescription";
 import { bodyAreaEnum, exerciseMediaKindEnum } from "./enums";
 import { physios } from "./physios";
 
@@ -92,7 +91,6 @@ export const exercises = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'`),
-    ...prescriptionColumns(),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,
   },
@@ -105,7 +103,6 @@ export const exercises = pgTable(
     check("exercises_name_length", sql`char_length(${t.name}) between 1 and 120`),
     check("exercises_instructions_length", sql`char_length(${t.instructions}) <= 5000`),
     check("exercises_tags_count", sql`cardinality(${t.tags}) <= 20`),
-    ...prescriptionChecks("exercises", t),
     ownRows("exercises_own", t.physioId),
   ],
 );
