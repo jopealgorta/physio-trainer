@@ -2,73 +2,50 @@ import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_ITEM_PRESCRIPTION,
-  EMPTY_PRESCRIPTION,
   EMPTY_SET,
-  PRESCRIPTION_FIELDS,
   formatPrescription,
   itemPrescriptionSchema,
-  prescriptionSchema,
   setSchema,
   type PrescriptionTranslate,
   type SetPrescription,
 } from "./prescription";
 
-const issues = (input: Record<string, unknown>) => {
-  const result = prescriptionSchema.safeParse(input);
+const issues = (schema: typeof setSchema | typeof itemPrescriptionSchema, input: object) => {
+  const result = schema.safeParse(input);
   if (result.success) return {};
   return Object.fromEntries(result.error.issues.map((issue) => [issue.path[0], issue.message]));
 };
 
-describe("prescriptionSchema", () => {
-  it("turns blank form values into nulls", () => {
-    const blank = Object.fromEntries(PRESCRIPTION_FIELDS.map((field) => [field, ""]));
-    expect(prescriptionSchema.parse(blank)).toEqual(EMPTY_PRESCRIPTION);
-    expect(prescriptionSchema.parse({})).toEqual(EMPTY_PRESCRIPTION);
-  });
-
+describe("field limits", () => {
   it("coerces numbers and trims text", () => {
     expect(
-      prescriptionSchema.parse({
-        sets: "3",
-        reps: " 8 ",
-        repsMax: "12",
-        durationSeconds: "45",
+      setSchema.parse({ reps: " 8 ", repsMax: "12", durationSeconds: "45", load: "  red band " }),
+    ).toEqual({ reps: 8, repsMax: 12, durationSeconds: 45, load: "red band" });
+    expect(
+      itemPrescriptionSchema.parse({
         holdSeconds: "5",
         restSeconds: "60",
-        load: "  red band ",
         side: "alternating",
         notes: " slow ",
       }),
-    ).toEqual({
-      sets: 3,
-      reps: 8,
-      repsMax: 12,
-      durationSeconds: 45,
-      holdSeconds: 5,
-      restSeconds: 60,
-      load: "red band",
-      side: "alternating",
-      notes: "slow",
-    });
+    ).toEqual({ holdSeconds: 5, restSeconds: 60, side: "alternating", notes: "slow" });
   });
 
   it.each([
-    [{ sets: "abc" }, { sets: "notAWholeNumber" }],
-    [{ sets: "2.5" }, { sets: "notAWholeNumber" }],
-    [{ sets: "0" }, { sets: "outOfRange" }],
-    [{ sets: "100" }, { sets: "outOfRange" }],
-    [{ reps: "1000" }, { reps: "outOfRange" }],
-    [{ durationSeconds: "7201" }, { durationSeconds: "outOfRange" }],
-    [{ holdSeconds: "-1" }, { holdSeconds: "outOfRange" }],
-    [{ restSeconds: "3601" }, { restSeconds: "outOfRange" }],
-    [{ load: "x".repeat(41) }, { load: "tooLong" }],
-    [{ notes: "x".repeat(501) }, { notes: "tooLong" }],
-    [{ side: "up" }, { side: "invalidSide" }],
-    [{ repsMax: "12" }, { repsMax: "repsMaxWithoutReps" }],
-    [{ reps: "12", repsMax: "12" }, { repsMax: "repsMaxNotAboveReps" }],
-    [{ reps: "12", repsMax: "8" }, { repsMax: "repsMaxNotAboveReps" }],
-  ])("rejects %j", (input, expected) => {
-    expect(issues(input)).toEqual(expected);
+    [setSchema, { reps: "abc" }, { reps: "notAWholeNumber" }],
+    [setSchema, { reps: "2.5" }, { reps: "notAWholeNumber" }],
+    [setSchema, { reps: "1000" }, { reps: "outOfRange" }],
+    [setSchema, { durationSeconds: "7201" }, { durationSeconds: "outOfRange" }],
+    [setSchema, { load: "x".repeat(41) }, { load: "tooLong" }],
+    [setSchema, { repsMax: "12" }, { repsMax: "repsMaxWithoutReps" }],
+    [setSchema, { reps: "12", repsMax: "12" }, { repsMax: "repsMaxNotAboveReps" }],
+    [setSchema, { reps: "12", repsMax: "8" }, { repsMax: "repsMaxNotAboveReps" }],
+    [itemPrescriptionSchema, { holdSeconds: "-1" }, { holdSeconds: "outOfRange" }],
+    [itemPrescriptionSchema, { restSeconds: "3601" }, { restSeconds: "outOfRange" }],
+    [itemPrescriptionSchema, { notes: "x".repeat(501) }, { notes: "tooLong" }],
+    [itemPrescriptionSchema, { side: "up" }, { side: "invalidSide" }],
+  ])("rejects %j", (schema, input, expected) => {
+    expect(issues(schema, input)).toEqual(expected);
   });
 });
 

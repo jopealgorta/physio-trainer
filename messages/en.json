@@ -246,8 +246,6 @@
     "handle": "Reorder {item}"
   },
   "Prescription": {
-    "legend": "Default prescription",
-    "hint": "Copied into routines when you add this exercise. Leave blank anything that doesn't apply.",
     "sets": "Sets",
     "reps": "Reps",
     "repsMax": "Reps (max)",

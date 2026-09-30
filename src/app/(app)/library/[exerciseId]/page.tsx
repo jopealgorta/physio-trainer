@@ -9,7 +9,6 @@ import { ExerciseActions } from "@/components/library/exercise-actions";
 import { ExerciseForm } from "@/components/library/exercise-form";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PRESCRIPTION_FIELDS, type Prescription } from "@/lib/prescription";
 import { withPhysio } from "@/server/auth/session";
 import { saveExerciseAction } from "@/server/library/actions";
 import { getExercise, listCategoryTree, listTags } from "@/server/library/queries";
@@ -41,10 +40,6 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
   if (!loaded) notFound();
   const { exercise, categories, tags } = loaded;
   const t = await getTranslations("Library");
-
-  const prescription = Object.fromEntries(
-    PRESCRIPTION_FIELDS.map((field) => [field, exercise[field]]),
-  ) as Prescription;
 
   return (
     <div className="grid gap-8">
@@ -84,7 +79,6 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
           bodyAreas: exercise.bodyAreas,
           tags: exercise.tags,
           mediaUrls: exercise.media.map((item) => item.url),
-          prescription,
         }}
       />
     </div>

@@ -7,7 +7,6 @@ import {
   INSTRUCTIONS_MAX_LENGTH,
   MAX_MEDIA,
 } from "@/lib/library-limits";
-import { type Prescription, prescriptionShape, refinePrescription } from "@/lib/prescription";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@/lib/tags";
 import { parseYouTubeUrl, type YouTubeVideo } from "@/lib/youtube";
 
@@ -56,38 +55,35 @@ export function categoryInputError(error: z.ZodError): CategoryError {
 const stringList = z.array(z.string());
 const BODY_AREA_ORDER = new Map(BODY_AREAS.map((area, index) => [area, index]));
 
-export const exerciseSchema = z
-  .object({
-    name: z.string().trim().min(1, "nameRequired").max(EXERCISE_NAME_MAX_LENGTH, "nameTooLong"),
-    categoryId: z.preprocess(
-      (value) => (value === "" || value === undefined ? null : value),
-      z.uuid("categoryInvalid").nullable(),
+export const exerciseSchema = z.object({
+  name: z.string().trim().min(1, "nameRequired").max(EXERCISE_NAME_MAX_LENGTH, "nameTooLong"),
+  categoryId: z.preprocess(
+    (value) => (value === "" || value === undefined ? null : value),
+    z.uuid("categoryInvalid").nullable(),
+  ),
+  instructions: z
+    .preprocess((value) => value ?? "", z.string("instructionsTooLong"))
+    .transform((value) => value.trim())
+    .pipe(z.string().max(INSTRUCTIONS_MAX_LENGTH, "instructionsTooLong"))
+    .transform((value) => value || null),
+  bodyAreas: z
+    .array(z.enum(BODY_AREAS, { error: "bodyAreasInvalid" }), "bodyAreasInvalid")
+    .transform((areas) =>
+      [...new Set(areas)].sort((a, b) => BODY_AREA_ORDER.get(a)! - BODY_AREA_ORDER.get(b)!),
     ),
-    instructions: z
-      .preprocess((value) => value ?? "", z.string("instructionsTooLong"))
-      .transform((value) => value.trim())
-      .pipe(z.string().max(INSTRUCTIONS_MAX_LENGTH, "instructionsTooLong"))
-      .transform((value) => value || null),
-    bodyAreas: z
-      .array(z.enum(BODY_AREAS, { error: "bodyAreasInvalid" }), "bodyAreasInvalid")
-      .transform((areas) =>
-        [...new Set(areas)].sort((a, b) => BODY_AREA_ORDER.get(a)! - BODY_AREA_ORDER.get(b)!),
-      ),
-    tags: stringList
-      .transform(normalizeTags)
-      .pipe(z.array(z.string().max(MAX_TAG_LENGTH, "tagTooLong")).max(MAX_TAGS, "tooManyTags")),
-    media: stringList.max(MAX_MEDIA, "tooManyMedia").transform((urls, ctx): YouTubeVideo[] => {
-      const videos = urls.map(parseYouTubeUrl);
-      const ids = videos.map((video) => video?.videoId);
-      if (videos.some((video) => video === null) || new Set(ids).size !== ids.length) {
-        ctx.addIssue({ code: "custom", message: "mediaInvalid" });
-        return z.NEVER;
-      }
-      return videos as YouTubeVideo[];
-    }),
-    ...prescriptionShape,
-  })
-  .superRefine(refinePrescription);
+  tags: stringList
+    .transform(normalizeTags)
+    .pipe(z.array(z.string().max(MAX_TAG_LENGTH, "tagTooLong")).max(MAX_TAGS, "tooManyTags")),
+  media: stringList.max(MAX_MEDIA, "tooManyMedia").transform((urls, ctx): YouTubeVideo[] => {
+    const videos = urls.map(parseYouTubeUrl);
+    const ids = videos.map((video) => video?.videoId);
+    if (videos.some((video) => video === null) || new Set(ids).size !== ids.length) {
+      ctx.addIssue({ code: "custom", message: "mediaInvalid" });
+      return z.NEVER;
+    }
+    return videos as YouTubeVideo[];
+  }),
+});
 
 export type ExerciseInput = z.output<typeof exerciseSchema>;
 
@@ -103,8 +99,7 @@ export function exerciseFormValues(formData: FormData): Record<string, unknown> 
   return values;
 }
 
-export type ExerciseField =
-  "name" | "categoryId" | "instructions" | "bodyAreas" | "tags" | "media" | keyof Prescription;
+export type ExerciseField = "name" | "categoryId" | "instructions" | "bodyAreas" | "tags" | "media";
 export type ExerciseFieldErrors = Partial<Record<ExerciseField, string>>;
 
 const KNOWN_CODES = new Set([

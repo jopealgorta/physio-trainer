@@ -292,15 +292,6 @@ describe("library server layer", () => {
           bodyAreas: ["knee", "glute"],
           tags: ["Band", "rubber"],
           media: [SHORT, WATCH(V2), WATCH(V3)],
-          sets: 3,
-          reps: 8,
-          repsMax: 12,
-          durationSeconds: 60,
-          holdSeconds: 5,
-          restSeconds: 30,
-          load: "5 kg",
-          side: "alternating",
-          notes: "Careful",
         }),
       );
       const detail = await asA((tx, physioId) => getExercise(tx, physioId, id));
@@ -312,15 +303,6 @@ describe("library server layer", () => {
         instructions: "Do it slowly.",
         bodyAreas: ["glute", "knee"],
         tags: ["band", "rubber"],
-        sets: 3,
-        reps: 8,
-        repsMax: 12,
-        durationSeconds: 60,
-        holdSeconds: 5,
-        restSeconds: 30,
-        load: "5 kg",
-        side: "alternating",
-        notes: "Careful",
         archivedAt: null,
       });
       expect(detail?.media.map(({ url, videoId, isShort }) => ({ url, videoId, isShort }))).toEqual(
@@ -347,7 +329,7 @@ describe("library server layer", () => {
     it("updates fields and replaces media", async () => {
       const id = await exercise(
         a,
-        exerciseInput({ name: "Before", media: [WATCH(V1), WATCH(V2)], tags: ["old"], sets: 5 }),
+        exerciseInput({ name: "Before", media: [WATCH(V1), WATCH(V2)], tags: ["old"] }),
       );
       const cat = await category(a, { name: "Update cat", parentId: null });
       const result = await asA((tx, physioId) =>
@@ -365,7 +347,7 @@ describe("library server layer", () => {
       );
       expect(result).toEqual({ ok: true, data: { id } });
       const detail = await asA((tx, physioId) => getExercise(tx, physioId, id));
-      expect(detail).toMatchObject({ name: "After", categoryId: cat, tags: ["new"], sets: null });
+      expect(detail).toMatchObject({ name: "After", categoryId: cat, tags: ["new"] });
       expect(detail?.media.map((media) => media.videoId)).toEqual([V3, V2]);
     });
 

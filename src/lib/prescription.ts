@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Prescription fields shared by exercise defaults (spec 03) and routine items (spec 05).
+ * Prescription fields of routine items (spec 05): per-set and per-item shapes.
  * All optional; the UI shows only what is set. Error messages are i18n keys (Prescription.errors.*).
  */
 export const PRESCRIPTION_SIDES = ["left", "right", "both", "alternating"] as const;
@@ -52,7 +52,7 @@ function optionalText(max: number) {
     .transform((value) => value || null);
 }
 
-export const prescriptionShape = {
+const prescriptionShape = {
   sets: optionalInt(PRESCRIPTION_LIMITS.sets),
   reps: optionalInt(PRESCRIPTION_LIMITS.reps),
   repsMax: optionalInt(PRESCRIPTION_LIMITS.repsMax),
@@ -78,23 +78,6 @@ export function refinePrescription(
     ctx.addIssue({ code: "custom", path: ["repsMax"], message: "repsMaxNotAboveReps" });
   }
 }
-
-export const prescriptionSchema = z.object(prescriptionShape).superRefine(refinePrescription);
-export type Prescription = z.output<typeof prescriptionSchema>;
-
-export const PRESCRIPTION_FIELDS = Object.keys(prescriptionShape) as (keyof Prescription)[];
-
-export const EMPTY_PRESCRIPTION: Prescription = {
-  sets: null,
-  reps: null,
-  repsMax: null,
-  durationSeconds: null,
-  holdSeconds: null,
-  restSeconds: null,
-  load: null,
-  side: null,
-  notes: null,
-};
 
 /** Per-set fields (spec 05): one row per set. */
 export const setShape = {

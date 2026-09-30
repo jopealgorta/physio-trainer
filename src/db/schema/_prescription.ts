@@ -9,7 +9,11 @@ import {
 } from "../../lib/prescription";
 import { prescriptionSideEnum } from "./enums";
 
-/** Prescription columns (architecture "Prescription fields"): exercise defaults and routine items. */
+/**
+ * Prescription columns (architecture "Prescription fields"): routine items.
+ * Legacy: the `exercises` table also carries them as exercise defaults, which nothing reads or
+ * writes any more (spec 05). A follow-up chore PR drops those exercise columns.
+ */
 export function prescriptionColumns() {
   return {
     sets: smallint(),

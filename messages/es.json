@@ -246,8 +246,6 @@
     "handle": "Reordenar {item}"
   },
   "Prescription": {
-    "legend": "Prescripción por defecto",
-    "hint": "Se copia en las rutinas cuando agregás este ejercicio. Dejá en blanco lo que no aplique.",
     "sets": "Series",
     "reps": "Repeticiones",
     "repsMax": "Repeticiones (máx.)",
