@@ -149,9 +149,10 @@ Namespace `Routines`, `Prescription` (units and summary patterns, with plural ru
 
 ## Acceptance criteria
 
-- [x] Create, edit, reorder (mouse, touch, keyboard), duplicate/remove items, save. (Keyboard
-      reorder is covered end to end; pointer and touch use dnd-kit's `PointerSensor` and are not
-      automated.)
+- [x] Create, edit, keyboard reorder, duplicate/remove items, save. (Keyboard reorder is
+      covered end to end.)
+- [ ] Pointer and touch reorder: uses dnd-kit's `PointerSensor` and is not automated, so it is
+      unchecked until someone tries it on a real device.
 - [x] Per-set reps/duration/load editing; supersets (group, ungroup, reorder, set-count sync).
 - [x] Picker search/filter reuses library queries; adding creates one empty set.
 - [x] Exercise defaults removed from the exercise UI and code; delete returns `inUse`.
@@ -216,14 +217,16 @@ Namespace `Routines`, `Prescription` (units and summary patterns, with plural ru
   Spec 06 must fill it in and add the plan names to the message.
 - **Cases**: `cases` gets a `(physio_id, customer_id, id)` unique constraint so `routines` can
   carry the composite FK `(physio_id, customer_id, case_id)`; a case can never belong to another
-  customer, and deleting a case clears only `case_id` (`ON DELETE SET NULL (case_id)`). It lives
-  in the custom migration with the other hand-written constraints.
+  customer, and deleting a case clears only `case_id` (`ON DELETE SET NULL (case_id)`). The unique
+  constraint is in the generated migration; only the FK (drizzle can't express the column-list
+  `SET NULL`) is in the custom migration.
 - **Editor state and version sync.** The editor does not use `key={version}`: a remount after the
   editor's own save (the action revalidates the page) would wipe "Saved" and edits made while
-  the save was in flight. Local state resets from props only after a conflict and the user's
-  Reload, when the page delivers a newer version; any other new version is just our own save and
-  is recorded. A dirty snapshot (`JSON` of header + blocks) drives Save's enabled state and the
-  "Unsaved changes" indicator.
+  the save was in flight. Local state resets from props only after the user clicked Reload (a
+  `reloadRequested` flag) and the page holds a newer version than the editor's, whether it
+  arrives after the click or was already there; any other new version is just our own save or
+  background data and is ignored. A dirty snapshot (`JSON` of header + blocks) drives Save's
+  enabled state and the "Unsaved changes" indicator.
 - **`NumberField` discards invalid drafts on blur.** While typing, invalid text stays in the
   box with its error and the stored value keeps the last valid number; on blur the draft is
   dropped and the box shows what will be saved, so the box never differs from the payload.
@@ -232,9 +235,14 @@ Namespace `Routines`, `Prescription` (units and summary patterns, with plural ru
   It does not cover back/forward (`popstate`): Next's router gives no way to cancel that, and
   a stale page is protected by the optimistic lock anyway.
 - **Client pre-validation mirrors the server schema** (`src/lib/routine-validation.ts` for the
-  header; `setSchema`/`itemShape` limits for cells), so invalid input is flagged on its field and
-  never sent. The server still validates everything and answers `invalid` for anything that gets
-  through (shown as a generic message).
+  header; `setSchema`/`itemShape` limits for cells). Header errors and invalid cells are flagged
+  on their field. `save()` also runs `setSchema` over every set (`itemsWithInvalidSets`) and
+  checks "activate needs at least one exercise" before calling the action; a failed check sends
+  nothing, expands the offending items (expanded state lives in the editor), badges them "Check
+  sets" and shows a summary alert; a failed header check focuses the first invalid field. Item
+  fields that only `NumberField` constrains (hold, rest) can't hold invalid values: invalid
+  drafts are discarded on blur. The server still validates everything and answers `invalid` for
+  anything that gets through (shown as a generic message).
 - **`inUse` message** lives at `Library.detail.errors.inUse` (the exercise detail already
   resolves `errors.*` under `Library.detail`), not under a new `Library.actions` namespace.
 - **Superset UX**: "Group with next" is a button on the superset card and a menu item on single
@@ -255,12 +263,13 @@ Namespace `Routines`, `Prescription` (units and summary patterns, with plural ru
   - Keyboard reorder announces "moved to position N" straight after pick-up (the pick-up text is
     replaced at once); reorder collapsed blocks, an expanded tall one landed oddly.
   - A recently used exercise appears under "Recent" and in the list, so picks use `.first()`.
-  - `e2e/auth.spec.ts` "emailed link opened in another browser" fails when the local Supabase
-    stack was started before `supabase/templates/magic_link.html` existed (the stack still sends
-    the default PKCE link); restart the stack, not an app bug.
+  - `e2e/auth.spec.ts` "emailed link opened in another browser" failed when the local Supabase
+    stack was started before `supabase/templates/magic_link.html` existed (the stack kept sending
+    the default PKCE link). Verified: restarting the local stack fixed it (26/26 auth specs
+    pass); not an app bug.
 - **Follow-up chore PR**: drop the `exercises` default-prescription columns (`sets`, `reps`,
   `reps_max`, `duration_seconds`, `hold_seconds`, `rest_seconds`, `load`, `side`, `notes`) and
   the `_prescription.test.ts` legacy column list, once no deployed code reads them
-  (expand-then-contract). Known minor items deferred: no index on `routine_items (physio_id,
-exercise_id)` for the `inUse` check, and group members read back in no guaranteed order from
-  `getRoutine` (consumers key by id/position).
+  (expand-then-contract). Known minor items deferred: no index on
+  `routine_items (physio_id, exercise_id)` for the `inUse` check, and group members read back in
+  no guaranteed order from `getRoutine` (consumers key by id/position).
