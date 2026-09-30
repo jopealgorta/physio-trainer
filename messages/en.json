@@ -350,7 +350,7 @@
     "manageCategories": "Manage categories",
     "empty": {
       "title": "Build your exercise library",
-      "body": "Add exercises with instructions, YouTube videos and default sets and reps. Group them in categories (for example Lower limb → Glutes) and tag them to find them fast.",
+      "body": "Add exercises with instructions and YouTube videos. Group them in categories (for example Lower limb → Glutes) and tag them to find them fast.",
       "cta": "Create your first exercise"
     },
     "noResults": {
