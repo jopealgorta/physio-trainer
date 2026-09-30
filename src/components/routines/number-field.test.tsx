@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { describe, expect, it } from "vitest";
 
 import { PRESCRIPTION_LIMITS, setShape } from "@/lib/prescription";
@@ -14,8 +14,10 @@ let setExternally: (value: number | null) => void = () => {};
 
 function Harness({ initial }: { initial: number | null }) {
   const [value, setValue] = useState(initial);
-  stored = value;
-  setExternally = setValue;
+  useEffect(() => {
+    stored = value;
+    setExternally = setValue;
+  }, [value]);
   return (
     <>
       <NumberField
