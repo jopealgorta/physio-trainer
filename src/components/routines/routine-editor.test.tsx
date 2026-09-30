@@ -114,6 +114,16 @@ describe("RoutineEditor", () => {
     expect(screen.getByRole("searchbox", { name: "Search exercises" })).toBeInTheDocument();
   });
 
+  it("opens the picker sheet with only the localized Done button to close it", async () => {
+    const user = userEvent.setup();
+    setup({ ...PROPS, exercises: [LUNGE] });
+    await user.click(screen.getByRole("button", { name: "Add exercises" }));
+    const sheet = await screen.findByRole("dialog", { name: "Add exercises" });
+    expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
+    // The sheet's built-in X button carries a hard-coded English "Close" label.
+    expect(within(sheet).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+
   it("adds an exercise picked from the picker as a new row and stays open", async () => {
     const user = userEvent.setup();
     setup({ ...PROPS, exercises: [LUNGE, BRIDGE] });

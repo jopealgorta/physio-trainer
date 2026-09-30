@@ -146,6 +146,43 @@ describe("ExercisePicker", () => {
     expect(within(list()).getByRole("button", { name: "Squat" })).toBeInTheDocument();
   });
 
+  it("marks the list busy again when the same query is retyped after clearing the box", async () => {
+    let resolveSecond!: (value: ExerciseSummary[]) => void;
+    searchExercisesAction
+      .mockResolvedValueOnce([BRIDGE])
+      .mockReturnValueOnce(new Promise((r) => (resolveSecond = r)));
+    setup();
+    type("br");
+    await advance();
+    expect(await within(list()).findByRole("button", { name: "Bridge" })).toBeInTheDocument();
+    type("");
+    await advance();
+    type("br");
+    await advance();
+    // The old "br" results must not pass for the new request's.
+    expect(list()).toHaveAttribute("aria-busy", "true");
+    await act(async () => resolveSecond([SQUAT]));
+    expect(list()).toHaveAttribute("aria-busy", "false");
+  });
+
+  it("does not show an earlier failure when the same query is retyped", async () => {
+    let resolveSecond!: (value: ExerciseSummary[]) => void;
+    searchExercisesAction
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockReturnValueOnce(new Promise((r) => (resolveSecond = r)));
+    setup();
+    type("br");
+    await advance();
+    expect(await screen.findByText("Couldn't search. Try again.")).toBeInTheDocument();
+    type("");
+    await advance();
+    type("br");
+    await advance();
+    expect(screen.queryByText("Couldn't search. Try again.")).not.toBeInTheDocument();
+    await act(async () => resolveSecond([BRIDGE]));
+    expect(within(list()).getByRole("button", { name: "Bridge" })).toBeInTheDocument();
+  });
+
   it("keeps results visible and marks the list busy while a search is in flight", async () => {
     let resolve!: (value: ExerciseSummary[]) => void;
     searchExercisesAction.mockReturnValue(new Promise((r) => (resolve = r)));

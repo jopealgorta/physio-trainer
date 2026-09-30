@@ -11,7 +11,6 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -208,10 +207,15 @@ export function RoutineEditor({
                   {tPicker("open")}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[85dvh]" aria-describedby={undefined}>
+              {/* The title says it all (no description), and Done is the localized way out. */}
+              <SheetContent
+                side="bottom"
+                showCloseButton={false}
+                className="max-h-[85dvh]"
+                aria-describedby={undefined}
+              >
                 <SheetHeader>
                   <SheetTitle>{tPicker("title")}</SheetTitle>
-                  <SheetDescription className="sr-only">{tPicker("title")}</SheetDescription>
                 </SheetHeader>
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">{picker}</div>
                 <SheetFooter>

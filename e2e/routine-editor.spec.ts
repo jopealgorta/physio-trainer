@@ -1,18 +1,5 @@
-import type { Page } from "@playwright/test";
-
 import { expect, test } from "./helpers/auth";
-
-async function createRoutine(page: Page, name: string) {
-  await page.goto("/customers/new");
-  await page.getByLabel("First name").fill("Edith");
-  await page.getByRole("button", { name: "Create customer" }).click();
-  await expect(page).toHaveURL(/\/customers\/[0-9a-f-]{36}$/);
-  await page.goto(`${new URL(page.url()).pathname}?tab=routines`);
-  await page.getByRole("button", { name: "New routine" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill(name);
-  await page.getByRole("button", { name: "Create routine" }).click();
-  await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
-}
+import { createRoutine } from "./helpers/routines";
 
 test("a physio renames a routine and a stale tab hits the version conflict", async ({
   physioPage: page,

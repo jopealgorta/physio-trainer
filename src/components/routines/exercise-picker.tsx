@@ -118,24 +118,32 @@ export function ExercisePicker({
   const idle = term === "" && category === "" && area === "";
   const key = JSON.stringify([term, category, area]);
 
+  // Once the filters go idle the last results (or failure) no longer describe anything: drop
+  // them, so retyping the same query is treated as a new search (busy, no stale error).
+  if (idle && fetched !== null) setFetched(null);
+
   useEffect(() => {
-    // Any change (or unmount) invalidates whatever is pending or in flight.
-    const request = ++sequence.current;
-    if (idle) return;
-    const timer = setTimeout(async () => {
-      let exercises: ExerciseSummary[] | null;
-      try {
-        exercises = await searchExercisesAction({
-          q: term || undefined,
-          category: category || undefined,
-          area: area || undefined,
-        });
-      } catch {
-        exercises = null;
-      }
-      if (request === sequence.current) setFetched({ key, exercises });
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    const request = sequence.current;
+    const timer = idle
+      ? undefined
+      : setTimeout(async () => {
+          let exercises: ExerciseSummary[] | null;
+          try {
+            exercises = await searchExercisesAction({
+              q: term || undefined,
+              category: category || undefined,
+              area: area || undefined,
+            });
+          } catch {
+            exercises = null;
+          }
+          if (request === sequence.current) setFetched({ key, exercises });
+        }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      // Runs on every change and on unmount: whatever is pending or in flight is now stale.
+      clearTimeout(timer);
+      sequence.current++;
+    };
   }, [idle, key, term, category, area]);
 
   // While a search is pending or in flight the previous results stay on screen.
@@ -159,7 +167,8 @@ export function ExercisePicker({
   function pick(exercise: ExerciseSummary) {
     if (disabled) return;
     onPick(toExerciseRef(exercise));
-    // A trailing no-break space makes repeating the same pick a text change, so it is announced.
+    // The announcer alternates a trailing no-break space (U+00A0, see below) so that repeating
+    // the same pick still changes the text and is announced again.
     setAnnouncement((previous) => ({
       text: t("added", { name: exercise.name }),
       count: previous.count + 1,
