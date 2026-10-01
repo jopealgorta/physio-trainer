@@ -912,6 +912,56 @@
       "generic": "Algo salió mal. Probá de nuevo.",
       "nameRequired": "Ingresá un nombre.",
       "nameTooLong": "Usá como máximo {max, number} caracteres."
+    },
+    "title": "Plantillas",
+    "tabs": {
+      "label": "Tipo de lista",
+      "customers": "Clientes",
+      "templates": "Plantillas"
+    },
+    "list": {
+      "label": {
+        "routine": "Plantillas de rutina",
+        "plan": "Plantillas de plan"
+      },
+      "columns": {
+        "name": "Nombre",
+        "status": "Estado",
+        "exercises": "Ejercicios",
+        "week": "Semana",
+        "updated": "Actualizada"
+      },
+      "empty": {
+        "routine": {
+          "title": "Todavía no hay plantillas de rutina",
+          "body": "Guardá la rutina de un cliente como plantilla, o empezá una desde cero."
+        },
+        "plan": {
+          "title": "Todavía no hay plantillas de plan",
+          "body": "Guardá el plan semanal de un cliente como plantilla, o empezá uno desde cero."
+        }
+      },
+      "noResults": "Ninguna plantilla coincide con los filtros.",
+      "clearFilters": "Borrar filtros",
+      "truncated": "Mostrando las primeras {count, number} plantillas. Afiná la búsqueda.",
+      "actions": "Acciones de {name}",
+      "assign": "Asignar a un cliente…",
+      "duplicate": "Duplicar",
+      "duplicateFailed": "No se pudo duplicar la plantilla. Probá de nuevo."
+    },
+    "new": {
+      "button": {
+        "routine": "Nueva plantilla de rutina",
+        "plan": "Nueva plantilla de plan"
+      },
+      "title": {
+        "routine": "Nueva plantilla de rutina",
+        "plan": "Nueva plantilla de plan"
+      },
+      "name": "Nombre",
+      "create": "Crear plantilla",
+      "creating": "Creando…",
+      "cancel": "Cancelar"
     }
   },
   "Branding": {

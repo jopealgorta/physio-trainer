@@ -912,6 +912,56 @@
       "generic": "Something went wrong. Try again.",
       "nameRequired": "Enter a name.",
       "nameTooLong": "Use at most {max, number} characters."
+    },
+    "title": "Templates",
+    "tabs": {
+      "label": "List type",
+      "customers": "Customers",
+      "templates": "Templates"
+    },
+    "list": {
+      "label": {
+        "routine": "Routine templates",
+        "plan": "Plan templates"
+      },
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "exercises": "Exercises",
+        "week": "Week",
+        "updated": "Updated"
+      },
+      "empty": {
+        "routine": {
+          "title": "No routine templates yet",
+          "body": "Save a customer's routine as a template, or start one from scratch."
+        },
+        "plan": {
+          "title": "No plan templates yet",
+          "body": "Save a customer's weekly plan as a template, or start one from scratch."
+        }
+      },
+      "noResults": "No templates match your filters.",
+      "clearFilters": "Clear filters",
+      "truncated": "Showing the first {count, number} templates. Narrow the search.",
+      "actions": "Actions for {name}",
+      "assign": "Assign to customer…",
+      "duplicate": "Duplicate",
+      "duplicateFailed": "Couldn't duplicate the template. Try again."
+    },
+    "new": {
+      "button": {
+        "routine": "New routine template",
+        "plan": "New plan template"
+      },
+      "title": {
+        "routine": "New routine template",
+        "plan": "New plan template"
+      },
+      "name": "Name",
+      "create": "Create template",
+      "creating": "Creating…",
+      "cancel": "Cancel"
     }
   },
   "Branding": {
