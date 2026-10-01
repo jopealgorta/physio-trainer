@@ -6,9 +6,9 @@ import { db } from "@/db";
 import { customers, physios, shareLinks } from "@/db/schema";
 import { env } from "@/env";
 import { resolveLocale, type Locale } from "@/i18n/config";
-import type { Branding } from "@/lib/branding";
+import { buildBranding, type Branding } from "@/lib/branding";
 import { isShareCode, type ShareTarget } from "@/lib/share-links";
-import { getBranding } from "@/server/branding/queries";
+import { brandingSource } from "@/server/branding/queries";
 
 import { isPinTokenValid } from "./pin-cookie";
 
@@ -65,8 +65,7 @@ export async function resolveLink(code: string, now: Date = new Date()): Promise
       pinHash: shareLinks.pinHash,
       expiresAt: shareLinks.expiresAt,
       revokedAt: shareLinks.revokedAt,
-      handle: physios.handle,
-      timeZone: physios.timezone,
+      physio: physios,
       customerFirstName: customers.firstName,
       customerLocale: customers.locale,
       customerArchivedAt: customers.archivedAt,
@@ -77,13 +76,16 @@ export async function resolveLink(code: string, now: Date = new Date()): Promise
     .where(eq(shareLinks.code, code));
   if (!row) return { status: "not_found" };
 
-  const branding = await getBranding(db, row.physioId);
-  if (!branding) return { status: "not_found" };
+  // Branding comes from the physio row already joined: no second round trip per request.
+  const branding = {
+    ...buildBranding(brandingSource(row.physio)),
+    updatedAt: row.physio.updatedAt,
+  };
 
   const shell: LinkShell = {
     physioId: row.physioId,
-    handle: row.handle,
-    timeZone: row.timeZone,
+    handle: row.physio.handle,
+    timeZone: row.physio.timezone,
     code: row.code,
     slug: row.slug,
     locale: resolveLocale(row.customerLocale),

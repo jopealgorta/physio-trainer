@@ -178,6 +178,23 @@ describe("share links (physio side)", () => {
       expect(live).toHaveLength(1);
     });
 
+    it("drops an expiry that has already passed instead of creating a dead link", async () => {
+      const customerId = await insertCustomer(a.id);
+      const { link } = okData(
+        await as(a, (tx, id) => ensureShareLink(tx, id, customerRef(customerId))),
+      );
+      await db
+        .update(shareLinks)
+        .set({ expiresAt: new Date("2026-09-01T00:00:00Z") })
+        .where(eq(shareLinks.id, link.id));
+      const next = okData(
+        await as(a, (tx, id) =>
+          renewShareLink(tx, id, customerRef(customerId), new Date("2026-10-01T00:00:00Z")),
+        ),
+      ).link;
+      expect(next.expiresAt).toBeNull();
+    });
+
     it("creates a fresh link with defaults when the target never had one", async () => {
       const customerId = await insertCustomer(a.id, { firstName: "Luz" });
       const next = okData(

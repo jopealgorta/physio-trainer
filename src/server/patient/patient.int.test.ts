@@ -370,7 +370,7 @@ describe("patient data layer", () => {
       expect(view).toMatchObject({ plans: [], routines: [], nextStart: "2026-10-12" });
     });
 
-    it("never shows archived routines inside a plan, nor another customer's routine", async () => {
+    it("never shows draft or archived routines inside a plan, nor another customer's routine", async () => {
       const customerId = await insertCustomer(physio.id);
       const otherCustomer = await insertCustomer(physio.id, { firstName: "Other" });
       const ex = await insertExercise(physio.id);
@@ -386,6 +386,12 @@ describe("patient data layer", () => {
         isStandalone: false,
         items: [{ exerciseId: ex }],
       });
+      const draft = await insertRoutine(physio.id, customerId, {
+        name: "draft",
+        status: "draft",
+        isStandalone: false,
+        items: [{ exerciseId: ex }],
+      });
       const foreign = await insertRoutine(physio.id, otherCustomer, {
         name: "foreign",
         status: "active",
@@ -398,6 +404,8 @@ describe("patient data layer", () => {
         entries: [
           { weekday: WEDNESDAY, routineId: mine },
           { weekday: WEDNESDAY, routineId: archived },
+          { weekday: WEDNESDAY, routineId: draft },
+          { weekday: 5, routineId: draft },
           // Cannot happen through the app (addEntry checks), but the patient layer must not trust it.
           { weekday: WEDNESDAY, routineId: foreign },
         ],
@@ -405,6 +413,8 @@ describe("patient data layer", () => {
       const link = await customerLink(physio, customerId);
       const view = await viewOf(link.code);
       expect(view.plans[0]!.entries.map((entry) => entry.routine.name)).toEqual(["mine"]);
+      // A day that only has a draft routine shows no dot in the strip.
+      expect(view.weekdaysWithContent).toEqual([WEDNESDAY]);
     });
 
     it("a customer link never shows another customer's content (same physio)", async () => {

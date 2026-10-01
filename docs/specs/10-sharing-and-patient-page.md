@@ -1,6 +1,6 @@
 # 10 · Sharing and patient page
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** Core (+ link security decisions)
 - **Depends on:** 05, 06, 08, 09
 
@@ -95,10 +95,9 @@ Patient page layout (mobile-first, branded via spec 09):
 
 1. Server-side resolution in `src/server/patient/resolve-link.ts`: find by code; 404 if
    missing; "unavailable" page if revoked/expired or customer archived; PIN gate if `pin_hash`.
-2. PIN: 4 digits; on success set an httpOnly, secure, `SameSite=Lax` cookie scoped to the link
-   path containing an HMAC of (`code`, `pin_hash`) so regenerating the PIN invalidates it.
-   Rate-limit attempts: 5 per 15 min per link+IP (Postgres table or Upstash; decide in plan),
-   then a cool-down message.
+2. PIN: 4 digits; on success set an httpOnly, secure, `SameSite=Lax` cookie containing an HMAC of
+   (`code`, `pin_hash`) so regenerating the PIN invalidates it. **No rate limiting** (decided,
+   see Open questions): the PIN is a light lock only.
 3. Locale for the page = customer's `locale` (pass it to next-intl explicitly).
 4. "Today" uses the physio's timezone for v1 (spec 08 helper).
 5. Media URLs are signed (≥ 1 h validity) at render time; the page is `dynamic` and sends
@@ -118,7 +117,8 @@ Patient page layout (mobile-first, branded via spec 09):
 - Exposed to patients: customer first name, routine/plan names/notes, exercises (name,
   instructions, media), prescription, physio branding/contact. **Not exposed**: case details,
   medical history, visit notes, other customers, last names, contact info of the customer.
-- Codes: 40 bits of entropy + rate limiting on 404s per IP (reuse the limiter).
+- Codes: 40 bits of entropy are the real protection. There is no rate limiting (decided), so a
+  4-digit PIN can be brute-forced by anyone who holds the link.
 - Integration tests: a link for customer A can't be used to fetch customer B's routine even
   when B's routine id is passed in a crafted request (for any action that takes ids).
 
@@ -128,18 +128,18 @@ Namespace `Patient` (all copy on the patient page), `Sharing` (physio popover).
 
 ## Acceptance criteria
 
-- [ ] Physio can create, copy, share (WhatsApp/email), revoke, regenerate, set expiry and PIN.
-- [ ] Canonical redirects work after handle/slug changes; unknown codes 404.
-- [ ] Patient page shows today's plan entries and active single routines, with media and prescription, in the customer's locale and physio branding.
-- [ ] PIN gate + rate limit; revoked/expired pages; noindex + no-store headers.
-- [ ] Per-link web manifest; installable on Android/iOS.
-- [ ] Lighthouse mobile performance ≥ 90 on a routine with 8 exercises (lazy media).
-- [ ] Integration tests for resolution rules and cross-customer isolation.
+- [x] Physio can create, copy, share (WhatsApp/email), revoke, regenerate, set expiry and PIN.
+- [x] Canonical redirects work after handle/slug changes; unknown codes 404.
+- [x] Patient page shows today's plan entries and active single routines, with media and prescription, in the customer's locale and physio branding.
+- [x] PIN gate (no rate limit, by decision); revoked/expired pages; noindex + no-store headers.
+- [x] Per-link web manifest; installable on Android/iOS.
+- [x] Lighthouse mobile performance ≥ 90 on a routine with 8 exercises (lazy media). See decisions.
+- [x] Integration tests for resolution rules and cross-customer isolation.
 
 ## Test plan
 
 - Unit: code generation alphabet/length, slug param parsing, URL building, PIN cookie HMAC.
-- Integration: resolve-link (valid/revoked/expired/archived/PIN), isolation, rate limit.
+- Integration: resolve-link (valid/revoked/expired/archived/PIN), isolation, open-count throttle.
 - E2E (mobile project): open customer link → today's routine visible → switch day; PIN flow;
   revoked link page.
 
@@ -160,4 +160,77 @@ Namespace `Patient` (all copy on the patient page), `Sharing` (physio popover).
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **No rate limiting** (answer to a question raised in design): no limiter table, no Upstash, no
+  limit on unknown codes either. Besides guessing, each PIN attempt costs one scrypt run, so a
+  flood of attempts also costs CPU; revisit with the limiter if that ever matters. The consequence is written into the popover's PIN hint ("a light
+  lock, not strong security").
+- **Link per target.** Besides the specced one live customer link, a routine and a plan each have
+  at most one live link (partial unique indexes), so "Share this routine" always shows the same
+  link. Composite FKs keep a link inside its physio; `routine_id` / `weekly_plan_id` are set only
+  for their target (check constraint) and the customer is always derived from the routine or plan.
+- **Created on first open, never silently re-created.** Opening the popover creates the link only
+  when the target never had one. After a revoke it shows the revoked state with "Create new link",
+  so the physio's revoke is not undone by reopening. Archived customers get no Share button (their
+  links are revoked by `onCustomerArchived`; restoring does not re-enable them).
+- **Regenerate** revokes the live link and creates a new code but keeps the slug, the PIN and an
+  expiry that is still ahead (an expired link's date would make the new link dead on arrival, so
+  it is dropped). The PIN cookie is bound to the code, so everyone has to re-enter it.
+- **PIN** is always generated (4 random digits, unbiased), stored as a scrypt hash from
+  `node:crypto` (no new dependency) and shown once; turning it on again issues a new one.
+  The unlock cookie is `pin_<code>`, HMAC of (code, pin_hash) keyed with `SUPABASE_SECRET_KEY`,
+  `httpOnly`, `SameSite=Lax`, `Secure` in production, lifetime 30 days (shorter if the link
+  expires sooner). **Deviation:** its path is `/`, not the link path, so it keeps working after a
+  slug rename redirects. The cookie name carries the code, so it is useless for any other link.
+  On iOS an installed home-screen app has its own cookie jar, so the PIN is asked once more there.
+- **Expiry** is chosen as a calendar day: the link works through the end of that day in the
+  physio's time zone (`endOfDay` / `lastDayBefore` in `src/lib/calendar-date.ts`). Saved with a
+  button (a date input passes through other valid dates while a year is typed).
+- **Slug** is edited as free text, normalised with `slugify` (≤ 40 chars). Defaults: first name,
+  routine name or plan name, `link` when nothing usable remains.
+- **"Preview as patient"** lives in the popover (an "open" button next to Copy), not on the
+  customer page. The signed-in physio bypasses the PIN and does not count as an open.
+- **Week strip** is for plans only and is driven by `?day=1..7` (server-rendered, works without
+  JS, the canonical redirect keeps it). Single routines show their existing `sessions_per_week` /
+  `sessions_per_day` as text ("3× per week"). One strip is shared by all active plans.
+- **Drafts never reach the patient.** A routine inside an active plan is shown only when its own
+  status is `active` (routines created from the plan board start as drafts), the same rule as
+  when it is shared on its own; a day that only has a draft routine gets no dot in the strip.
+- **Opens by link-preview bots are not counted** (`isLinkPreviewBot`: WhatsApp, iMessage,
+  Slack, search crawlers…), nor are opens by the signed-in owner, so "Opened 1 time" means a
+  person looked.
+- **What an item link shows.** Routine and plan links apply the same "active today" rule as the
+  customer link (spec 08), so a draft, ended or not-yet-started item shows the empty state with
+  the next start date. A routine that lives only inside a plan can still be shared on its own; its
+  own window is ignored there (spec 08).
+- **Patient data layer.** `src/server/patient/` only: `resolveLink` (code → link, customer first
+  name and locale, physio handle, time zone and branding), `hasLinkAccess` (no PIN, owner session or
+  valid token), `getPatientView` (every id from the link; plan entries' routines must belong to the
+  link's customer and not be archived), `touchLink` (one conditional UPDATE, 30 min). The PIN hash
+  never leaves the server.
+- **Customer's language.** The root layout only knows the physio's cookie, so the patient layout
+  nests a `NextIntlClientProvider` with the customer's locale and only the namespaces its client
+  components use (`Patient`, `Library.media`); server components call `getTranslations({ locale })`.
+  `lang` is set on the page wrapper (the `<html>` element stays the root layout's).
+- **Headers.** `src/proxy.ts` adds `Cache-Control: private, no-store`, `Referrer-Policy:
+no-referrer` and `X-Robots-Tag: noindex, nofollow` to paths matching `/{handle}/{slug}-{code}`
+  (`isPatientPath`, which relies on `RESERVED_HANDLES` to tell app routes apart); the page also
+  emits `<meta name="robots">` / `<meta name="referrer">`. In `next dev` Next replaces the cache
+  header; the production build (e2e) keeps `no-store`.
+- **Manifest.** `/{handle}/{slug}-{code}/manifest.webmanifest` (route handler, 404 for unusable
+  links) has the clinic name, the link as `start_url`/`id`, `/{handle}/` as the scope (so a slug
+  rename, which redirects the installed app's start URL, stays in scope; a handle rename does
+  not), the accent as `theme_color`
+  and the app's icons (a clinic logo has no guaranteed size or shape). `metadata.manifest` in the
+  patient layout replaces the physio app's.
+- **Media.** Exercise media is YouTube links only in v1, so there are no signed URLs to make;
+  videos are the existing click-to-load `YouTubePreview` (thumbnail lazy, iframe on tap).
+- **QR code.** `qrcode` (new dependency) in `src/lib/qr.ts` gives a path of horizontal runs; the
+  popover draws it as a plain `<path>`, always black on white with a quiet zone.
+- **Lighthouse.** Not enforced in CI. Run by hand (`lighthouse@12`, mobile, production build) on a
+  routine with 8 exercises and a video each: performance 0.99 (FCP 0.9 s, LCP 2.0 s, TBT 50 ms,
+  CLS 0). The sandbox has no internet, so the YouTube thumbnails did not load; they are
+  `loading="lazy"` images, so the score should hold.
+- **Verification environment.** No Docker daemon here, so integration and e2e ran against a local
+  Postgres 16 with stubbed `auth`/`storage` schemas and a small fake GoTrue (create/delete user,
+  magic link, verify, user). The branding suites and the Data API test need real Supabase and were
+  not runnable; CI runs them.

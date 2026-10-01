@@ -49,18 +49,22 @@ export function serviceWorkerUrl(buildId: string): string {
 
 /**
  * Manifest of one patient link (spec 10): installing it opens that link. `path` is the canonical
- * `/{handle}/{slug}-{code}`; the scope is the link itself so the home-screen app never wanders.
+ * `/{handle}/{slug}-{code}`. The scope is the physio's `/{handle}/` (only patient links live there),
+ * not the link itself: after a slug rename the installed app's start URL redirects to the new
+ * path, which must still be in scope.
  * Icons are the app's (a clinic logo has no guaranteed size or shape; branded icons are a later
  * refinement).
  */
 export function buildPatientManifest({
   locale,
   clinicName,
+  handle,
   path,
   themeColor,
 }: {
   locale: string;
   clinicName: string;
+  handle: string;
   path: string;
   /** The clinic's accent (light mode), or null for the app default. */
   themeColor: string | null;
@@ -71,7 +75,7 @@ export function buildPatientManifest({
     short_name: clinicName.length > 12 ? clinicName.slice(0, 12).trimEnd() : clinicName,
     lang: locale,
     start_url: path,
-    scope: path,
+    scope: `/${handle}/`,
     display: "standalone",
     background_color: APP_BACKGROUND,
     theme_color: themeColor ?? APP_BACKGROUND,

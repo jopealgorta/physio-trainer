@@ -1,11 +1,12 @@
 import type { Route } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { after } from "next/server";
 
 import { PatientHome } from "@/components/patient/patient-home";
 import { PinGate } from "@/components/patient/pin-gate";
 import { Unavailable } from "@/components/patient/unavailable";
+import { isLinkPreviewBot } from "@/lib/link-preview-bots";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { firstParam } from "@/lib/search-params";
 import { getSessionPhysio } from "@/server/auth/session";
@@ -56,8 +57,10 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
 
   const day = Number(firstParam(sp.day));
   const view = await getPatientView(shell, link, Number.isInteger(day) ? day : null);
-  // The physio previewing their own link is not a patient opening it.
-  if (!owner) after(() => touchLink(link.id));
+  // Neither the physio previewing their own link nor a chat app unfurling it is a patient opening it.
+  if (!owner && !isLinkPreviewBot((await headers()).get("user-agent"))) {
+    after(() => touchLink(link.id));
+  }
 
   return (
     <PatientHome view={view} firstName={link.customerFirstName} locale={shell.locale} path={path} />

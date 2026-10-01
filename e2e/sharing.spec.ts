@@ -144,7 +144,7 @@ test.describe("patient page", () => {
     expect(await response.json()).toMatchObject({
       name: "Maria Physio",
       start_url: link.path,
-      scope: link.path,
+      scope: `/${physio.handle}/`,
       display: "standalone",
       theme_color: "#0f766e",
     });

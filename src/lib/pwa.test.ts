@@ -57,24 +57,25 @@ describe("buildPatientManifest", () => {
   const manifest = buildPatientManifest({
     locale: "es",
     clinicName: "Maria Physio",
+    handle: "maria-lopez",
     path: "/maria-lopez/ana-7k2m9qpx",
     themeColor: "#0f766e",
   });
 
-  it("installs the link itself, named after the clinic and scoped to it", () => {
+  it("installs the link itself, named after the clinic, scoped to the physio's links", () => {
     expect(manifest).toMatchObject({
       id: "/maria-lopez/ana-7k2m9qpx",
       name: "Maria Physio",
       short_name: "Maria Physio",
       lang: "es",
       start_url: "/maria-lopez/ana-7k2m9qpx",
-      scope: "/maria-lopez/ana-7k2m9qpx",
+      scope: "/maria-lopez/",
       display: "standalone",
       theme_color: "#0f766e",
     });
   });
 
-  it("keeps the start URL inside the scope", () => {
+  it("keeps the start URL inside the scope, so a slug rename still opens in the app", () => {
     expect(manifest.start_url!.startsWith(manifest.scope!)).toBe(true);
   });
 
@@ -88,6 +89,7 @@ describe("buildPatientManifest", () => {
     const long = buildPatientManifest({
       locale: "en",
       clinicName: "Centro de Rehabilitación Integral del Sur",
+      handle: "h",
       path: "/h/x-7k2m9qpx",
       themeColor: null,
     });

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, inArray, ne, or, type SQL } from "drizzle-orm";
+import { and, asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -152,9 +152,10 @@ export async function getPatientView(
               weeklyPlanEntries.weeklyPlanId,
               planRows.map((plan) => plan.id),
             ),
-            // The routine must be the same customer's and not archived.
+            // The routine must be the same customer's and finished: a draft or archived routine
+            // is never shown, the same rule as when it is shared on its own.
             eq(routines.customerId, link.customerId),
-            ne(routines.status, "archived"),
+            eq(routines.status, "active"),
           ),
         )
         .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position))

@@ -142,7 +142,7 @@ Namespaces `Customers`, `Cases`. Dates formatted with the physio's locale.
   The phone field hints at this.
 - **Archive**: archived customers stay viewable and editable, with a banner and Restore; restoring
   does not re-enable share links. `onCustomerArchived` (src/server/customers/hooks.ts) is a
-  no-op TODO hook for spec 10. Re-archiving an archived customer resets `archived_at` and calls the
+  hook that spec 10 fills in (it revokes the customer's share links). Re-archiving an archived customer resets `archived_at` and calls the
   hook again (harmless today).
 - **Cases**: several open cases per customer are allowed. Closing sets `closed_on` from an
   editable date that defaults to today in the **physio's timezone** (computed server-side and

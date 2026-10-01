@@ -226,13 +226,15 @@ export async function ensureShareLink(
 }
 
 /**
- * Revokes the live link (if any) and creates a new one with a new code. The slug, PIN and expiry
- * carry over: regenerating is about the code, so a patient who knows the PIN keeps using it.
+ * Revokes the live link (if any) and creates a new one with a new code. The slug and PIN carry
+ * over (regenerating is about the code, so a patient who knows the PIN keeps using it), and so does
+ * an expiry that is still ahead: an expired link's date would make the new one dead on arrival.
  */
 export async function renewShareLink(
   tx: Tx,
   physioId: string,
   ref: ShareRef,
+  now: Date = new Date(),
 ): Promise<Result<{ link: ShareLink; context: ShareContext }, ShareError>> {
   const context = await getShareContext(tx, physioId, ref);
   if (!context) return fail("notFound");
@@ -242,11 +244,15 @@ export async function renewShareLink(
   if (previous && previous.revokedAt === null) {
     await tx
       .update(shareLinks)
-      .set({ revokedAt: new Date() })
+      .set({ revokedAt: now })
       .where(and(eq(shareLinks.physioId, physioId), eq(shareLinks.id, previous.id)));
   }
   const defaults = previous
-    ? { slug: previous.slug, pinHash: previous.pinHash, expiresAt: previous.expiresAt }
+    ? {
+        slug: previous.slug,
+        pinHash: previous.pinHash,
+        expiresAt: previous.expiresAt && previous.expiresAt > now ? previous.expiresAt : null,
+      }
     : defaultsFor(context);
   const link = await insertLink(tx, physioId, ref, context, defaults);
   return ok({ link, context });

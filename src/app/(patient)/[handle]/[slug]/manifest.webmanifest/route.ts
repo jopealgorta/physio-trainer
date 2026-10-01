@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { PATIENT_HEADERS } from "@/lib/patient-paths";
 import { buildPatientManifest } from "@/lib/pwa";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { loadLink } from "@/server/patient/load";
@@ -24,14 +25,12 @@ export async function GET(
   const manifest = buildPatientManifest({
     locale: shell.locale,
     clinicName: shell.branding.clinicName,
+    handle: shell.handle,
     path: buildSharePath(shell.handle, shell.slug, shell.code),
     themeColor: shell.branding.tokens?.light.primary ?? null,
   });
   return NextResponse.json(manifest, {
-    headers: {
-      "Content-Type": "application/manifest+json",
-      "Cache-Control": "private, no-store",
-      "X-Robots-Tag": "noindex, nofollow",
-    },
+    // The proxy skips *.webmanifest, so the privacy headers are applied here.
+    headers: { ...PATIENT_HEADERS, "Content-Type": "application/manifest+json" },
   });
 }
