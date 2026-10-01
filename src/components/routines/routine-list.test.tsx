@@ -17,6 +17,11 @@ const base: RoutineSummary = {
   caseTitle: "ACL rehab",
   itemCount: 1,
   sessionsPerWeek: 3,
+  phaseLabel: null,
+  startsOn: null,
+  endsOn: null,
+  previousId: null,
+  isStandalone: true,
   updatedAt: new Date("2026-03-05T12:00:00Z"),
 };
 const routines: RoutineSummary[] = [
@@ -82,5 +87,32 @@ describe("RoutineList", () => {
   it("also renders cards for narrow screens", () => {
     setup(true);
     expect(screen.getAllByRole("link", { name: "Knee week 1" })).toHaveLength(2);
+  });
+
+  describe("phases", () => {
+    const phased = (patch: Partial<RoutineSummary>) =>
+      render(
+        <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+          <RoutineList routines={[{ ...base, ...patch }]} showCustomer={false} />
+        </NextIntlClientProvider>,
+      );
+
+    it("shows the label and dates of a standalone routine, and Ended once it is over", () => {
+      phased({ phaseLabel: "Phase 1", startsOn: "2020-01-01", endsOn: "2020-01-31" });
+      const table = screen.getByRole("table", { name: "Routines" });
+      expect(within(table).getByText("Phase 1")).toBeInTheDocument();
+      expect(within(table).getByText(/Jan 1\s*–\s*31, 2020/)).toBeInTheDocument();
+      expect(within(table).getByText("Ended")).toBeInTheDocument();
+    });
+
+    it("marks a routine that is in its window as current", () => {
+      phased({ phaseLabel: "Phase 2", startsOn: "2020-01-01", endsOn: null });
+      expect(screen.getAllByText("Current").length).toBeGreaterThan(0);
+    });
+
+    it("shows nothing for a routine inside a plan", () => {
+      phased({ isStandalone: false, phaseLabel: "Phase 2", startsOn: "2020-01-01" });
+      expect(screen.queryByText("Phase 2")).not.toBeInTheDocument();
+    });
   });
 });

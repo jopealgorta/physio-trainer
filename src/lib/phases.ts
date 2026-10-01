@@ -93,3 +93,31 @@ export function groupByChain<
       .map(({ item }) => item),
   );
 }
+
+/** The number for the next phase's default label: the first number in the label plus one, else 2. */
+export function nextPhaseNumber(label: string | null): number {
+  const match = label === null ? null : /\d+/.exec(label);
+  return match ? Number(match[0]) + 1 : 2;
+}
+
+/**
+ * What the "Copy into next phase" dialog shows before submitting: whether ending the current
+ * phase the day before is impossible, and whether the new window would overlap the current one
+ * (after it is ended, when `endCurrent` applies; only an active phase is ever ended).
+ */
+export function previewNextPhase(input: {
+  current: PhaseWindow & { status: "draft" | "active" | "archived" };
+  next: PhaseWindow;
+  endCurrent: boolean;
+}): { error: "startBeforePredecessor" | null; overlaps: boolean } {
+  const { current, next } = input;
+  if (input.endCurrent && current.status === "active" && next.startsOn !== null) {
+    const ended = endPredecessor(current, next.startsOn);
+    if (!ended.ok) return { error: "startBeforePredecessor", overlaps: false };
+    return {
+      error: null,
+      overlaps: windowsOverlap({ startsOn: current.startsOn, endsOn: ended.endsOn }, next),
+    };
+  }
+  return { error: null, overlaps: windowsOverlap(current, next) };
+}

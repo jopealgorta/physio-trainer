@@ -4,10 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { PhaseBar } from "@/components/phases/phase-bar";
 import { PlanBoard } from "@/components/plans/plan-board";
 import { PlanDetailsForm } from "@/components/plans/plan-details-form";
 import { StatusBadge } from "@/components/routines/status-badge";
+import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
+import { requirePhysio } from "@/server/auth/session";
 import { loadPlan } from "@/server/plans/load";
 
 export async function generateMetadata({
@@ -24,6 +27,7 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
   if (!loaded) notFound();
   const { plan, routines } = loaded;
   const t = await getTranslations("Plans.board");
+  const { profile } = await requirePhysio();
 
   const owner = plan.customerFirstName
     ? customerName(plan.customerFirstName, plan.customerLastName)
@@ -48,6 +52,17 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
         <h1 className="text-2xl font-semibold tracking-tight">{plan.name}</h1>
         <StatusBadge status={plan.status} />
       </div>
+      {plan.customerId ? (
+        <PhaseBar
+          kind="plan"
+          id={plan.id}
+          status={plan.status}
+          phaseLabel={plan.phaseLabel}
+          startsOn={plan.startsOn}
+          endsOn={plan.endsOn}
+          today={todayIn(profile.timezone)}
+        />
+      ) : null}
       <PlanDetailsForm
         planId={plan.id}
         initial={{

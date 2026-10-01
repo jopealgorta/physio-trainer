@@ -155,7 +155,7 @@ function withoutKey<T extends { key: string }>(item: T): Omit<T, "key"> {
 type Editing = { kind: "rename"; id: string } | { kind: "sub"; parentId: string };
 
 type Ctx = {
-  t: ReturnType<typeof useTranslations>;
+  t: ReturnType<typeof useTranslations<"Library.categories">>;
   editing: Editing | null;
   setEditing: (editing: Editing | null) => void;
   /** Ends the inline edit and returns focus to the control with this data-focus key. */

@@ -5,6 +5,8 @@ import {
   endPredecessor,
   groupByChain,
   nextPhaseDefaults,
+  nextPhaseNumber,
+  previewNextPhase,
   validateWindow,
   windowsOverlap,
 } from "./phases";
@@ -126,5 +128,65 @@ describe("groupByChain", () => {
       ["child1"],
       ["root", "child3", "child2"],
     ]);
+  });
+});
+
+describe("nextPhaseNumber", () => {
+  it("adds one to the first number in the label, else starts at 2", () => {
+    expect(nextPhaseNumber("Phase 2 – strength")).toBe(3);
+    expect(nextPhaseNumber("Fase 10")).toBe(11);
+    expect(nextPhaseNumber("Strength")).toBe(2);
+    expect(nextPhaseNumber(null)).toBe(2);
+  });
+});
+
+describe("previewNextPhase", () => {
+  const current = { status: "active" as const, startsOn: "2026-09-01", endsOn: null };
+
+  it("has no overlap when the current phase is ended the day before", () => {
+    expect(
+      previewNextPhase({
+        current,
+        next: { startsOn: "2026-10-08", endsOn: null },
+        endCurrent: true,
+      }),
+    ).toEqual({ error: null, overlaps: false });
+  });
+
+  it("warns when the current phase keeps running", () => {
+    expect(
+      previewNextPhase({
+        current,
+        next: { startsOn: "2026-10-08", endsOn: null },
+        endCurrent: false,
+      }),
+    ).toEqual({ error: null, overlaps: true });
+    expect(
+      previewNextPhase({
+        current: { ...current, endsOn: "2026-10-07" },
+        next: { startsOn: "2026-10-08", endsOn: null },
+        endCurrent: false,
+      }),
+    ).toEqual({ error: null, overlaps: false });
+  });
+
+  it("reports a start that would end the current phase before it began", () => {
+    expect(
+      previewNextPhase({
+        current,
+        next: { startsOn: "2026-09-01", endsOn: null },
+        endCurrent: true,
+      }),
+    ).toEqual({ error: "startBeforePredecessor", overlaps: false });
+  });
+
+  it("ignores endCurrent for a current phase that is not active", () => {
+    expect(
+      previewNextPhase({
+        current: { ...current, status: "draft" },
+        next: { startsOn: "2026-10-08", endsOn: null },
+        endCurrent: true,
+      }),
+    ).toEqual({ error: null, overlaps: true });
   });
 });
