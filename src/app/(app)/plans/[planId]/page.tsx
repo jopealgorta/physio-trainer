@@ -49,8 +49,6 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
         <StatusBadge status={plan.status} />
       </div>
       <PlanDetailsForm
-        // A newer version means the plan changed elsewhere: start the form from the server's copy.
-        key={plan.version}
         planId={plan.id}
         initial={{
           name: plan.name,

@@ -1,6 +1,6 @@
 # 06 · Weekly plans
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** Core
 - **Depends on:** 05
 
@@ -95,11 +95,17 @@ Namespace `Plans`; weekday names via `Intl.DateTimeFormat` for the active locale
 
 ## Acceptance criteria
 
-- [ ] Build a plan with multiple routines per day, labels, reorder, move and copy between days.
-- [ ] Shared routine edits appear on every day; "Make separate copy" diverges one entry.
-- [ ] Rules 1–4 enforced server-side.
-- [ ] Mobile board is usable one-handed (day list with add/reorder).
-- [ ] RLS tests for both tables; cross-customer routine attach rejected.
+- [x] Build a plan with multiple routines per day, labels, reorder, move and copy between days.
+- [x] Shared routine edits appear on every day (entries point at the same routine);
+      "Make separate copy" diverges one entry.
+- [x] Rules 1–6 enforced server-side (rule 5's "routine content edits bump the routine's version"
+      is spec 05's save path, unchanged).
+- [x] Mobile board is usable one-handed (day list with add and the entry menu for move up/down,
+      move to day, copy to day).
+- [ ] Pointer and touch drag: uses dnd-kit's `PointerSensor`; a desktop mouse drag between days
+      is automated, touch drag is not (the handle is hidden on touch layouts, where the menu
+      covers every move), so this stays unchecked until tried on a real device.
+- [x] RLS tests for both tables; cross-customer routine attach rejected.
 
 ## Test plan
 
@@ -124,4 +130,47 @@ Namespace `Plans`; weekday names via `Intl.DateTimeFormat` for the active locale
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Server layer.** `src/server/plans/{schemas,queries,mutations,actions,load}.ts`. Every board
+  action locks the plan row (`for update`), validates, applies and bumps the plan `version`
+  (a move that changes nothing does not). Positions are rewritten from a snapshot of the plan's
+  entries by the pure helpers in `src/lib/plans.ts` (`moveEntry`, `copyEntry`, `appendEntry`),
+  which the client reuses for optimistic updates, so server and board always agree on the
+  arrangement. `weekly_plan_entries` has no unique position index: reorders write row by row.
+- **No optimistic locking on plans.** Board actions refer to entries by id and are applied on
+  the current state, so a stale tab at worst puts a card at a slightly different position; the
+  details form (name, status, case, notes) is last write wins. `version` exists for spec 15.
+- **Cross-customer attach** is validated in `addEntry` (the routine must belong to the same
+  physio and the same customer as the plan, else `routineNotFound`); the DB enforces the physio
+  side with composite FKs. Archived routines cannot be attached (`routineArchived`).
+- **Rule 1 (standalone).** `AddEntryInput.standalone` is optional: the dialog starts from the
+  routine's own flag and only sends it when the physio changed it. Routines created from the
+  board are `is_standalone = false`.
+- **Rule 3 (delete last reference).** `removeEntry` takes `deleteRoutine` (server default false;
+  the dialog defaults to yes) and only deletes when no entry in any plan still uses the routine
+  and it is not standalone. The board knows this from `routineEntryCount` (all plans).
+- **Rule 2 (separate copy).** `duplicateRoutine` (`src/server/routines/mutations.ts`) copies the
+  header, groups, items and sets; the copy keeps the source's status, is not standalone and is
+  named by the action with the translated `Plans.board.entry.copyName` ("… (copy)").
+- **Spec 05 hook filled in.** `listPlansUsingRoutine` returns the **active** plans that use a
+  routine; archiving it is refused with `blockedByPlans` and the failure now carries the plan
+  names (`Result` gained an optional `plans`), which the editor lists in its message.
+- **Case FK.** `weekly_plans_case_fk` (composite, `ON DELETE SET NULL (case_id)`) and a check
+  that a case needs a customer live in the custom migration, with the `updated_at` triggers.
+- **"New routine" from a day** is a form action (`addNewRoutineEntryAction`) that creates the
+  draft, attaches it and redirects to `/routines/[id]?plan=<planId>`; the editor page shows
+  "Back to plan" when `plan` is a uuid (the plan page itself 404s for anything not the
+  physio's).
+- **Board UX.** Desktop shows seven columns Monday to Sunday (each at least 11 rem wide, the row
+  scrolls sideways when the screen is narrower); below `lg` it is a vertical day list. Dragging
+  uses dnd-kit with one `SortableContext` per day plus a droppable per day (so an empty day can
+  receive a card), a drag overlay and translated announcements; the handle is hidden below `md`.
+  Menu moves append to the target day. Everything goes through one `run()` that applies the
+  change optimistically (`useOptimistic`) and rolls back with the server's reason on refusal.
+- **Details form** saves with a button (unlike board actions) and is not remounted when the
+  plan version moves, so a board action never wipes what is being typed.
+- **Server Actions must be `async function` declarations**: a `"use server"` file cannot export
+  arrow-function constants (found by running the real app, not by typecheck).
+- **Verification environment.** Docker could not pull Supabase's images (network policy), so the
+  integration and e2e suites were run against a local Postgres 16 with stubbed `auth`/`storage`
+  schemas plus a small fake GoTrue for sign-in; CI runs them against real Supabase. The branding
+  suites and two physios tests that need the real Auth/Storage APIs were not runnable there.

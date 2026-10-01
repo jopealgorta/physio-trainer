@@ -131,17 +131,25 @@ export async function updatePlanAction(
   return result;
 }
 
-export const addEntryAction = (input: unknown) =>
-  board(addEntrySchema, input, addEntry, { routines: true });
+export async function addEntryAction(input: unknown) {
+  return board(addEntrySchema, input, addEntry, { routines: true });
+}
 
-export const moveEntryAction = (input: unknown) => board(moveEntrySchema, input, moveEntry);
+export async function moveEntryAction(input: unknown) {
+  return board(moveEntrySchema, input, moveEntry);
+}
 
-export const copyEntryAction = (input: unknown) => board(copyEntrySchema, input, copyEntry);
+export async function copyEntryAction(input: unknown) {
+  return board(copyEntrySchema, input, copyEntry);
+}
 
-export const setEntryLabelAction = (input: unknown) => board(setLabelSchema, input, setEntryLabel);
+export async function setEntryLabelAction(input: unknown) {
+  return board(setLabelSchema, input, setEntryLabel);
+}
 
-export const removeEntryAction = (input: unknown) =>
-  board(removeEntrySchema, input, removeEntry, { routines: true });
+export async function removeEntryAction(input: unknown) {
+  return board(removeEntrySchema, input, removeEntry, { routines: true });
+}
 
 export async function makeSeparateCopyAction(input: unknown) {
   const t = await getTranslations("Plans.board.entry");

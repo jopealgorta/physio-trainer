@@ -283,7 +283,7 @@ export function PlanBoard({
           screenReaderInstructions: { draggable: t("dnd.instructions") },
         }}
       >
-        <div className="grid gap-3 lg:grid-cols-7">
+        <div className="grid gap-3 lg:auto-cols-[minmax(11rem,1fr)] lg:grid-flow-col lg:overflow-x-auto lg:pb-2">
           {WEEKDAYS.map((weekday) => {
             const dayEntries = days[weekday - 1];
             return (

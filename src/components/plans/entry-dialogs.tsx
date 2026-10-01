@@ -280,52 +280,54 @@ export function RemoveEntryDialog({
   onConfirm: (deleteRoutine: boolean) => void;
 }) {
   const t = useTranslations("Plans.board.remove");
-  const id = useId();
-  const [deleteRoutine, setDeleteRoutine] = useState(true);
   return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(next) => {
-        if (next) setDeleteRoutine(true);
-        onOpenChange(next);
-      }}
-    >
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t("title", { routine: routineName })}</AlertDialogTitle>
           <AlertDialogDescription>{t("body", { day: dayName })}</AlertDialogDescription>
         </AlertDialogHeader>
-        <div className="flex items-start gap-2">
-          <Checkbox
-            id={`${id}-delete`}
-            checked={deleteRoutine}
-            onCheckedChange={(checked) => setDeleteRoutine(checked === true)}
-            aria-describedby={`${id}-delete-hint`}
-          />
-          <div className="grid gap-0.5">
-            <Label htmlFor={`${id}-delete`} className="font-normal">
-              {t("deleteRoutine")}
-            </Label>
-            <p id={`${id}-delete-hint`} className="text-muted-foreground text-xs">
-              {t("deleteHint")}
-            </p>
-          </div>
-        </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-          {/* A plain button, not AlertDialogAction: the dialog closes through onOpenChange. */}
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => {
-              onConfirm(deleteRoutine);
-              onOpenChange(false);
-            }}
-          >
-            {t("confirm")}
-          </Button>
-        </AlertDialogFooter>
+        {/* Remounts on every open, so the box starts ticked again. */}
+        <RemoveChoice
+          onConfirm={(deleteRoutine) => {
+            onConfirm(deleteRoutine);
+            onOpenChange(false);
+          }}
+        />
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function RemoveChoice({ onConfirm }: { onConfirm: (deleteRoutine: boolean) => void }) {
+  const t = useTranslations("Plans.board.remove");
+  const id = useId();
+  const [deleteRoutine, setDeleteRoutine] = useState(true);
+  return (
+    <>
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id={`${id}-delete`}
+          checked={deleteRoutine}
+          onCheckedChange={(checked) => setDeleteRoutine(checked === true)}
+          aria-describedby={`${id}-delete-hint`}
+        />
+        <div className="grid gap-0.5">
+          <Label htmlFor={`${id}-delete`} className="font-normal">
+            {t("deleteRoutine")}
+          </Label>
+          <p id={`${id}-delete-hint`} className="text-muted-foreground text-xs">
+            {t("deleteHint")}
+          </p>
+        </div>
+      </div>
+      <AlertDialogFooter>
+        <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+        {/* A plain button, not AlertDialogAction: the dialog closes through onOpenChange. */}
+        <Button type="button" variant="destructive" onClick={() => onConfirm(deleteRoutine)}>
+          {t("confirm")}
+        </Button>
+      </AlertDialogFooter>
+    </>
   );
 }
