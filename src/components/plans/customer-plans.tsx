@@ -4,6 +4,8 @@ import { DEFAULT_PLAN_FILTERS } from "@/lib/plan-params";
 import { withPhysio } from "@/server/auth/session";
 import { listPlans } from "@/server/plans/queries";
 
+import { TemplatePickerDialog } from "@/components/templates/template-picker-dialog";
+
 import { NewPlanDialog } from "./new-plan-dialog";
 import { PlanList } from "./plan-list";
 
@@ -26,7 +28,14 @@ export async function CustomerPlans({
     listPlans(tx, physioId, { ...DEFAULT_PLAN_FILTERS, customerId }),
   );
   const dialog = archived ? null : (
-    <NewPlanDialog customerId={customerId} customerName={customerName} cases={cases} />
+    <div className="flex flex-wrap items-center gap-2">
+      <TemplatePickerDialog
+        kind="plan"
+        customer={{ id: customerId, name: customerName }}
+        cases={cases}
+      />
+      <NewPlanDialog customerId={customerId} customerName={customerName} cases={cases} />
+    </div>
   );
 
   return (

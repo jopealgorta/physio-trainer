@@ -986,6 +986,30 @@
       "submit": "Save template",
       "submitting": "Saving…",
       "cancel": "Cancel"
+    },
+    "picker": {
+      "button": {
+        "routine": "From template…",
+        "plan": "From template…"
+      },
+      "title": "Choose a template",
+      "description": {
+        "routine": "Copy a routine template for {name}.",
+        "plan": "Copy a plan template for {name}."
+      },
+      "search": "Search templates",
+      "loading": "Loading templates…",
+      "failed": "Couldn't load the templates. Try again.",
+      "empty": "No templates match your search.",
+      "none": {
+        "routine": "You have no routine templates yet. Save a routine as a template first.",
+        "plan": "You have no plan templates yet. Save a plan as a template first."
+      },
+      "detail": {
+        "routine": "{count, plural, one {# exercise} other {# exercises}}",
+        "plan": "{count, plural, one {# routine} other {# routines}}"
+      },
+      "back": "Back to templates"
     }
   },
   "Branding": {

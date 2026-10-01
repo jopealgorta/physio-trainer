@@ -4,6 +4,8 @@ import { DEFAULT_ROUTINE_FILTERS } from "@/lib/routine-params";
 import { withPhysio } from "@/server/auth/session";
 import { listRoutines } from "@/server/routines/queries";
 
+import { TemplatePickerDialog } from "@/components/templates/template-picker-dialog";
+
 import { NewRoutineDialog } from "./new-routine-dialog";
 import { RoutineList } from "./routine-list";
 
@@ -26,7 +28,14 @@ export async function CustomerRoutines({
     listRoutines(tx, physioId, { ...DEFAULT_ROUTINE_FILTERS, customerId }),
   );
   const dialog = archived ? null : (
-    <NewRoutineDialog customerId={customerId} customerName={customerName} cases={cases} />
+    <div className="flex flex-wrap items-center gap-2">
+      <TemplatePickerDialog
+        kind="routine"
+        customer={{ id: customerId, name: customerName }}
+        cases={cases}
+      />
+      <NewRoutineDialog customerId={customerId} customerName={customerName} cases={cases} />
+    </div>
   );
 
   return (

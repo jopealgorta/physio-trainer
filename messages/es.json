@@ -986,6 +986,30 @@
       "submit": "Guardar plantilla",
       "submitting": "Guardando…",
       "cancel": "Cancelar"
+    },
+    "picker": {
+      "button": {
+        "routine": "Desde una plantilla…",
+        "plan": "Desde una plantilla…"
+      },
+      "title": "Elegí una plantilla",
+      "description": {
+        "routine": "Copiá una plantilla de rutina para {name}.",
+        "plan": "Copiá una plantilla de plan para {name}."
+      },
+      "search": "Buscar plantillas",
+      "loading": "Cargando plantillas…",
+      "failed": "No se pudieron cargar las plantillas. Probá de nuevo.",
+      "empty": "Ninguna plantilla coincide con la búsqueda.",
+      "none": {
+        "routine": "Todavía no tenés plantillas de rutina. Guardá una rutina como plantilla primero.",
+        "plan": "Todavía no tenés plantillas de plan. Guardá un plan como plantilla primero."
+      },
+      "detail": {
+        "routine": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+        "plan": "{count, plural, one {# rutina} other {# rutinas}}"
+      },
+      "back": "Volver a las plantillas"
     }
   },
   "Branding": {
