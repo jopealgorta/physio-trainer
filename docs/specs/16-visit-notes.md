@@ -134,6 +134,4 @@ Namespace `VisitNotes`.
 - **Archived customers** can still have notes added, edited and deleted (same as cases).
 - **Routine/plan links dropped for v1**: see open question 2; the goal line was removed.
 - **Side effect**: `Customers.tabEmpty.notes` and the `notes` branch of `TabEmpty` were removed
-  because the tab is built. Adding messages pushed `category-manager.tsx` over TypeScript's
-  type-instantiation depth limit (its context typed the translator as the un-namespaced
-  `useTranslations`), so it now types it as `useTranslations<"Library.categories">`.
+  because the tab is built.
