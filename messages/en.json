@@ -897,5 +897,67 @@
   },
   "Branding": {
     "poweredBy": "Powered by Physio Trainer"
+  },
+  "Phases": {
+    "range": {
+      "from": "From {date}",
+      "until": "Until {date}"
+    },
+    "state": {
+      "current": "Current",
+      "upcoming": "Upcoming",
+      "ended": "Ended"
+    },
+    "bar": {
+      "title": "Phase",
+      "none": "No phase set"
+    },
+    "edit": {
+      "set": "Set phase",
+      "edit": "Edit phase",
+      "label": "Phase name",
+      "labelPlaceholder": "e.g. Phase 2 – strength",
+      "startsOn": "Starts on",
+      "endsOn": "Ends on (optional)",
+      "hint": "Leave a date empty for no start or no end.",
+      "save": "Save",
+      "saving": "Saving…"
+    },
+    "next": {
+      "button": "Copy into next phase",
+      "titleRoutine": "Copy routine into next phase",
+      "titlePlan": "Copy plan into next phase",
+      "descriptionRoutine": "Creates a copy of this routine, linked to this one. The patient sees it from its start date.",
+      "descriptionPlan": "Creates a copy of this plan with its own copy of every routine, linked to this one. You can edit the new routines without changing this phase. The patient sees it from its start date.",
+      "defaultLabel": "Phase {number, number}",
+      "label": "Phase name",
+      "startsOn": "Starts on",
+      "endsOn": "Ends on (optional)",
+      "endCurrent": "End the current phase the day before the new one starts",
+      "overlap": "The new phase overlaps this one, so the patient will see both on those days.",
+      "cancel": "Cancel",
+      "create": "Create next phase",
+      "creating": "Creating…"
+    },
+    "errors": {
+      "startsInvalid": "Enter a valid start date.",
+      "endsInvalid": "Enter a valid end date.",
+      "endBeforeStart": "The end date can't be before the start date.",
+      "labelTooLong": "Use at most {max, number} characters.",
+      "startBeforePredecessor": "Start the new phase after the current one starts, so the current one can end the day before.",
+      "notFound": "This item no longer exists.",
+      "notStandalone": "This routine belongs to a plan. Set the phase on the plan instead.",
+      "needsCustomer": "Templates don't have phases.",
+      "invalid": "Check the form and try again.",
+      "generic": "Something went wrong. Try again."
+    },
+    "timeline": {
+      "title": "Phases",
+      "past": "Past",
+      "current": "Current",
+      "upcoming": "Upcoming",
+      "noDates": "No dates",
+      "untitled": "Untitled phase"
+    }
   }
 }

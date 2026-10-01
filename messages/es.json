@@ -897,5 +897,67 @@
   },
   "Branding": {
     "poweredBy": "Hecho con Physio Trainer"
+  },
+  "Phases": {
+    "range": {
+      "from": "Desde el {date}",
+      "until": "Hasta el {date}"
+    },
+    "state": {
+      "current": "Actual",
+      "upcoming": "Próxima",
+      "ended": "Finalizada"
+    },
+    "bar": {
+      "title": "Fase",
+      "none": "Sin fase definida"
+    },
+    "edit": {
+      "set": "Definir fase",
+      "edit": "Editar fase",
+      "label": "Nombre de la fase",
+      "labelPlaceholder": "Ej.: Fase 2 – fuerza",
+      "startsOn": "Empieza el",
+      "endsOn": "Termina el (opcional)",
+      "hint": "Dejá una fecha vacía para no tener inicio o fin.",
+      "save": "Guardar",
+      "saving": "Guardando…"
+    },
+    "next": {
+      "button": "Copiar a la siguiente fase",
+      "titleRoutine": "Copiar la rutina a la siguiente fase",
+      "titlePlan": "Copiar el plan a la siguiente fase",
+      "descriptionRoutine": "Crea una copia de esta rutina, vinculada a esta. El paciente la ve desde su fecha de inicio.",
+      "descriptionPlan": "Crea una copia de este plan con su propia copia de cada rutina, vinculada a este. Podés editar las rutinas nuevas sin cambiar esta fase. El paciente lo ve desde su fecha de inicio.",
+      "defaultLabel": "Fase {number, number}",
+      "label": "Nombre de la fase",
+      "startsOn": "Empieza el",
+      "endsOn": "Termina el (opcional)",
+      "endCurrent": "Terminar la fase actual el día anterior al inicio de la nueva",
+      "overlap": "La nueva fase se superpone con esta, así que el paciente va a ver ambas en esos días.",
+      "cancel": "Cancelar",
+      "create": "Crear la siguiente fase",
+      "creating": "Creando…"
+    },
+    "errors": {
+      "startsInvalid": "Ingresá una fecha de inicio válida.",
+      "endsInvalid": "Ingresá una fecha de fin válida.",
+      "endBeforeStart": "La fecha de fin no puede ser anterior a la de inicio.",
+      "labelTooLong": "Usá como máximo {max, number} caracteres.",
+      "startBeforePredecessor": "Elegí un inicio posterior al de la fase actual, para que esta pueda terminar el día anterior.",
+      "notFound": "Este elemento ya no existe.",
+      "notStandalone": "Esta rutina pertenece a un plan. Definí la fase en el plan.",
+      "needsCustomer": "Las plantillas no tienen fases.",
+      "invalid": "Revisá el formulario e intentá de nuevo.",
+      "generic": "Algo salió mal. Intentá de nuevo."
+    },
+    "timeline": {
+      "title": "Fases",
+      "past": "Pasada",
+      "current": "Actual",
+      "upcoming": "Próxima",
+      "noDates": "Sin fechas",
+      "untitled": "Fase sin nombre"
+    }
   }
 }

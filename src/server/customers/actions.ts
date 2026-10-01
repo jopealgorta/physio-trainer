@@ -3,9 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { todayIn } from "@/lib/calendar-date";
 import { withPhysio } from "@/server/auth/session";
-import { getProfile } from "@/server/physios/queries";
+import { physioToday } from "@/server/schedule/active";
 
 import {
   closeCase,
@@ -30,12 +29,6 @@ import {
 } from "./schemas";
 
 const revalidateCustomers = () => revalidatePath("/customers", "layout");
-
-/** Today's calendar day in the physio's timezone. Call inside `withPhysio`. */
-async function physioToday(tx: Parameters<typeof getProfile>[0], physioId: string) {
-  const profile = await getProfile(tx, physioId);
-  return todayIn(profile?.timezone ?? "UTC");
-}
 
 /** `null` when the field is absent or blank, otherwise the parse result. */
 function optionalId(formData: FormData, name: string) {

@@ -172,6 +172,9 @@ erDiagram
   when a table is missing it, or when a `public` table lacks RLS.
 - Soft delete via `archived_at timestamptz` where the spec says so. Hard delete otherwise.
 - Calendar dates (injury date, phase start, log date) are `date`, not `timestamptz`.
+- "What is active on date D" (patient page, dashboard, exports) has one definition:
+  `scheduleState` in `src/lib/schedule.ts` (SQL twin: `scheduleFilter` in
+  `src/server/schedule/active.ts`), with D the physio's calendar day (spec 08).
 - Weekdays are ISO numbers: 1 = Monday … 7 = Sunday.
 - Ordered children use `position integer not null`; reorders rewrite positions in one transaction.
 - Enums are Postgres enums defined in Drizzle (`pgEnum`) and mirrored as TS unions.
