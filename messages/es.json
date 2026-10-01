@@ -814,7 +814,6 @@
       "entry": {
         "exercises": "{count, plural, one {# ejercicio} other {# ejercicios}}",
         "noExercises": "Todavía sin ejercicios",
-        "draft": "Borrador",
         "shared": "Compartida ×{count, number}",
         "sharedHint": "Si editás esta rutina, cambia en todos los días donde aparece.",
         "menu": "Acciones para {routine}",
