@@ -125,6 +125,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* No pinch/double-tap zoom: iOS Safari ignores the viewport's user-scalable=no. */
+    touch-action: pan-x pan-y;
+  }
   body {
     @apply bg-background text-foreground;
   }
