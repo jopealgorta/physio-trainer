@@ -146,7 +146,17 @@ Namespace `Patient` (all copy on the patient page), `Sharing` (physio popover).
 ## Open questions
 
 1. Default for new links: PIN off (friction-free) or on?
+   **Answer (2026-10-01):** off. The physio turns it on per link.
 2. Should patients see the week strip for single routines too ("3× per week"), or only for plans?
+   **Answer:** only for plans. Single routines show their existing `sessions_per_week` /
+   `sessions_per_day` as a text label ("3× per week"), no strip.
+3. (Raised while designing) Where does the PIN rate limit live: Postgres, Upstash?
+   **Answer:** neither: **no rate limiting** in this spec. Consequence: a 4-digit PIN can be
+   brute-forced by anyone holding the link, so it is only a light lock; the 40-bit code is the
+   real protection. The rate-limit rule, the 404 limiter and its acceptance criterion are
+   dropped.
+4. (Raised while designing) New dependency for the QR code?
+   **Answer:** yes, `qrcode`.
 
 ## Decisions made during implementation
 
