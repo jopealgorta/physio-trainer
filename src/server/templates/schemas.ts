@@ -8,6 +8,7 @@ import { idSchema, isUuid, type Result } from "@/server/routines/schemas";
 export { idSchema, isUuid, type Result };
 
 const kind = z.enum(["routine", "plan"]);
+export const templateKindSchema = kind;
 export const NAME_MAX = { routine: ROUTINE_NAME_MAX, plan: PLAN_NAME_MAX } as const;
 
 const blankToNull = (value: unknown) => {
@@ -49,6 +50,9 @@ export const duplicateTemplateSchema = z
   .object({ kind, templateId: z.uuid(), name })
   .superRefine(kindAwareName);
 export type DuplicateTemplateInput = z.output<typeof duplicateTemplateSchema>;
+
+/** What the duplicate action receives: the server builds the name from the source's. */
+export const duplicateRequestSchema = z.object({ kind, templateId: z.uuid() });
 
 export type TemplateError =
   | "notFound"

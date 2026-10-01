@@ -896,6 +896,24 @@
       }
     }
   },
+  "Templates": {
+    "copySuffix": " (copy)",
+    "errors": {
+      "notFound": "That routine or plan no longer exists.",
+      "alreadyTemplate": "This is already a template.",
+      "templateNotFound": "That template no longer exists.",
+      "templateArchived": "This template is archived. Make it active to assign it.",
+      "customerNotFound": "Choose a customer.",
+      "customerArchived": "This customer is archived. Unarchive them first.",
+      "caseNotFound": "That case doesn't belong to this customer.",
+      "needsItems": "Add exercises to the template first, or assign it as a draft.",
+      "needsEntries": "Add routines to the plan template first, or assign it as a draft.",
+      "invalid": "Check the form and try again.",
+      "generic": "Something went wrong. Try again.",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Use at most {max, number} characters."
+    }
+  },
   "Branding": {
     "poweredBy": "Powered by Physio Trainer"
   }

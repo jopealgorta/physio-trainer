@@ -33,3 +33,6 @@ export function remapEntries<T extends { routineId: string }>(
 export function withSuffix(name: string, suffix: string, max: number): string {
   return `${name.slice(0, Math.max(0, max - suffix.length))}${suffix}`;
 }
+
+/** Most templates the "From template…" picker shows at once. */
+export const TEMPLATE_PICKER_LIMIT = 50;

@@ -896,6 +896,24 @@
       }
     }
   },
+  "Templates": {
+    "copySuffix": " (copia)",
+    "errors": {
+      "notFound": "Esa rutina o ese plan ya no existe.",
+      "alreadyTemplate": "Esto ya es una plantilla.",
+      "templateNotFound": "Esa plantilla ya no existe.",
+      "templateArchived": "Esta plantilla está archivada. Activala para asignarla.",
+      "customerNotFound": "Elegí un cliente.",
+      "customerArchived": "Este cliente está archivado. Desarchivalo primero.",
+      "caseNotFound": "Ese caso no pertenece a este cliente.",
+      "needsItems": "Agregá ejercicios a la plantilla primero, o asignala como borrador.",
+      "needsEntries": "Agregá rutinas a la plantilla del plan primero, o asignala como borrador.",
+      "invalid": "Revisá el formulario y probá de nuevo.",
+      "generic": "Algo salió mal. Probá de nuevo.",
+      "nameRequired": "Ingresá un nombre.",
+      "nameTooLong": "Usá como máximo {max, number} caracteres."
+    }
+  },
   "Branding": {
     "poweredBy": "Hecho con Physio Trainer"
   }
