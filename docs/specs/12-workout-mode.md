@@ -73,6 +73,11 @@ Namespace `Workout`.
 ## Open questions
 
 1. Should the rest timer auto-start the next set, or wait for the patient to tap?
+   **Answer:** wait. When rest ends the app beeps/vibrates and shows the next set; nothing starts by
+   itself.
+2. How should the hold timer work? **Answer:** reps are not counted on the device. The patient
+   sees the target reps and taps "Set done", which starts the rest. The hold is an optional
+   countdown helper (a "Hold N s" button the patient can run per rep); it never gates anything.
 
 ## Decisions made during implementation
 
