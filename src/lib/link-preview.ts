@@ -21,16 +21,26 @@ export type PreviewBranding = {
   clinicName: string;
   logoUrl: string | null;
   accentColor: string | null;
+  /** The shared routine's or plan's name; null on a customer-level link (the card is just the clinic). */
+  title?: string | null;
 };
 
 /**
  * Cache-busting token for the image URL: a 32-bit FNV-1a hash of what the card draws, so a new
- * logo, name or accent gives new shares a fresh image, and unrelated profile edits (time zone,
+ * logo, name, accent or title gives new shares a fresh image, and unrelated profile edits (time zone,
  * handle) do not invalidate every cached card. The logo URL carries a new uuid per upload.
  */
-export function previewVersion({ clinicName, logoUrl, accentColor }: PreviewBranding): string {
+export function previewVersion({
+  clinicName,
+  logoUrl,
+  accentColor,
+  title,
+}: PreviewBranding): string {
   let hash = 0x811c9dc5;
-  for (const char of [clinicName, logoUrl ?? "", accentColor ?? ""].join("\n")) {
+  const drawn = [clinicName, logoUrl ?? "", accentColor ?? ""];
+  // Appended only when set, so a link without a title keeps its pre-title version.
+  if (title) drawn.push(title);
+  for (const char of drawn.join("\n")) {
     hash = Math.imul(hash ^ char.codePointAt(0)!, 0x01000193) >>> 0;
   }
   return hash.toString(36);

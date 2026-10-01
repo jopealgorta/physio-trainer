@@ -644,6 +644,7 @@
     "editor": {
       "back": "Volver a rutinas",
       "name": "Nombre de la rutina",
+      "nameHint": "Se muestra como título en la vista previa del enlace cuando lo compartís.",
       "status": "Estado",
       "case": "Caso",
       "noCase": "Sin caso",
@@ -791,6 +792,7 @@
       "details": {
         "title": "Detalles del plan",
         "name": "Nombre",
+        "nameHint": "Se muestra como título en la vista previa del enlace cuando lo compartís.",
         "status": "Estado",
         "case": "Caso",
         "noCase": "Sin caso",
@@ -1297,9 +1299,14 @@
     },
     "install": "Tip: agregá esta página a tu pantalla de inicio para abrirla como una app.",
     "meta": {
-      "title": "Tu plan de ejercicios · {clinic}",
-      "description": "Abrí tu rutina de {clinic}.",
-      "imageAlt": "{clinic}"
+      "title": "Tu plan de ejercicios",
+      "description": {
+        "customer": "Abrí tus ejercicios.",
+        "routine": "Abrí tu rutina.",
+        "weeklyPlan": "Abrí tu plan semanal."
+      },
+      "imageAlt": "{clinic}",
+      "imageAltTitled": "{title} · {clinic}"
     },
     "startWorkout": "Empezar entrenamiento"
   },

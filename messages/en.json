@@ -644,6 +644,7 @@
     "editor": {
       "back": "Back to routines",
       "name": "Routine name",
+      "nameHint": "Shown as the title in the link preview when you share it.",
       "status": "Status",
       "case": "Case",
       "noCase": "No case",
@@ -791,6 +792,7 @@
       "details": {
         "title": "Plan details",
         "name": "Name",
+        "nameHint": "Shown as the title in the link preview when you share it.",
         "status": "Status",
         "case": "Case",
         "noCase": "No case",
@@ -1297,9 +1299,14 @@
     },
     "install": "Tip: add this page to your home screen to open it like an app.",
     "meta": {
-      "title": "Your exercise plan · {clinic}",
-      "description": "Open your routine from {clinic}.",
-      "imageAlt": "{clinic}"
+      "title": "Your exercise plan",
+      "description": {
+        "customer": "Open your exercises.",
+        "routine": "Open your routine.",
+        "weeklyPlan": "Open your weekly plan."
+      },
+      "imageAlt": "{clinic}",
+      "imageAltTitled": "{title} · {clinic}"
     },
     "startWorkout": "Start workout"
   },

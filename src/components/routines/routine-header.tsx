@@ -113,10 +113,15 @@ export function RoutineHeader({
             onChange={(event) => onChange({ name: event.target.value })}
             aria-label={t("name")}
             aria-invalid={invalid("name")}
-            aria-describedby={describedBy("name")}
+            aria-describedby={describedBy("name", isTemplate ? undefined : `${id}-name-hint`)}
             autoComplete="off"
             className="h-auto min-w-0 px-2 py-1 text-2xl font-semibold tracking-tight md:text-2xl"
           />
+          {isTemplate ? null : (
+            <p id={`${id}-name-hint`} className="text-muted-foreground px-2 text-sm">
+              {t("nameHint")}
+            </p>
+          )}
           {errorText("name")}
           {isTemplate ? (
             <div>

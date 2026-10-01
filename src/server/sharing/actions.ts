@@ -7,6 +7,7 @@ import { resolveLocale } from "@/i18n/config";
 import { withPhysio } from "@/server/auth/session";
 import { previewVersion as versionOf, type PreviewBranding } from "@/lib/link-preview";
 import { getBranding } from "@/server/branding/queries";
+import { previewCopy } from "@/server/patient/preview-copy";
 
 import {
   ensureShareLink,
@@ -38,8 +39,12 @@ type Outcome<T> = Result<T, ShareError>;
 
 const appUrl = () => env.NEXT_PUBLIC_APP_URL;
 
-const previewVersionOf = (branding: PreviewBranding | null) =>
-  versionOf(branding ?? { clinicName: "", logoUrl: null, accentColor: null });
+/** The routine's or plan's name; a customer link's "item name" is the patient's, never shown. */
+const previewTitleOf = ({ link, context }: Pick<Loaded, "link" | "context">) =>
+  link.target === "customer" ? null : context.itemName;
+
+const previewVersionOf = (branding: PreviewBranding | null, title: string | null) =>
+  versionOf({ ...(branding ?? { clinicName: "", logoUrl: null, accentColor: null }), title });
 
 /** Share message in the customer's language; `{url}` is filled in by `toShareState`. */
 async function stateOf({ link, context, clinicName, previewVersion }: Loaded): Promise<ShareState> {
@@ -49,17 +54,18 @@ async function stateOf({ link, context, clinicName, previewVersion }: Loaded): P
     getTranslations({ locale, namespace: "Patient.meta" }),
   ]);
   const values = { name: context.customer.firstName, clinic: clinicName, url: "{url}" };
+  const copy = previewCopy(meta, {
+    target: link.target,
+    itemTitle: previewTitleOf({ link, context }),
+    clinicName,
+  });
   return toShareState(
     link,
     context,
     appUrl(),
     { subject: t("subject", values), body: t("body", values) },
     new Date(),
-    {
-      title: meta("title", { clinic: clinicName }),
-      description: meta("description", { clinic: clinicName }),
-      version: previewVersion,
-    },
+    { title: copy.title, description: copy.description, version: previewVersion },
   );
 }
 
@@ -76,7 +82,7 @@ async function run(
       data: {
         ...outcome.data,
         clinicName: branding?.clinicName ?? "",
-        previewVersion: previewVersionOf(branding),
+        previewVersion: previewVersionOf(branding, previewTitleOf(outcome.data)),
       },
     } as const;
   });

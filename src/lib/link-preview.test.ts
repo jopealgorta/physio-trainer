@@ -12,8 +12,8 @@ import { brandTokens } from "./color";
 const base = {
   path: "/maria-lopez/ana-7k2m9qpx",
   version: "abc",
-  title: "Your exercise plan · Maria Physio",
-  description: "Open your routine from Maria Physio.",
+  title: "Shoulder mobility",
+  description: "Open your routine.",
   clinicName: "Maria Physio",
   imageAlt: "Maria Physio",
 };
@@ -36,6 +36,14 @@ describe("previewVersion", () => {
     expect(previewVersion({ ...branding, logoUrl: "https://x/logo-2.png" })).not.toBe(base);
     expect(previewVersion({ ...branding, logoUrl: null })).not.toBe(base);
     expect(previewVersion({ ...branding, accentColor: null })).not.toBe(base);
+  });
+
+  it("changes with the routine or plan title shown on the card", () => {
+    const untitled = previewVersion(branding);
+    const titled = previewVersion({ ...branding, title: "Knee rehab" });
+    expect(titled).not.toBe(untitled);
+    expect(previewVersion({ ...branding, title: "Hip rehab" })).not.toBe(titled);
+    expect(previewVersion({ ...branding, title: null })).toBe(untitled);
   });
 });
 

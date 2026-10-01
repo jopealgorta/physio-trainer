@@ -57,6 +57,10 @@ export async function insertRoutine(
   return routine.id;
 }
 
+export async function renameRoutine(routineId: string, name: string): Promise<void> {
+  await sql`update public.routines set name = ${name} where id = ${routineId}`;
+}
+
 export async function insertPlan(
   physioId: string,
   customerId: string,
@@ -79,13 +83,23 @@ export type SeededLink = { code: string; slug: string; path: string };
 export async function insertCustomerLink(
   physio: { id: string; handle: string },
   customerId: string,
-  options: { slug?: string; pin?: string; revoked?: boolean; expired?: boolean } = {},
+  options: {
+    slug?: string;
+    pin?: string;
+    revoked?: boolean;
+    expired?: boolean;
+    /** Share this routine or plan instead of the whole customer. */
+    routineId?: string;
+    weeklyPlanId?: string;
+  } = {},
 ): Promise<SeededLink> {
   const code = newCode();
   const slug = options.slug ?? "ana";
+  const target = options.routineId ? "routine" : options.weeklyPlanId ? "weekly_plan" : "customer";
   await sql`
-    insert into public.share_links (physio_id, customer_id, target, slug, code, pin_hash, revoked_at, expires_at)
-    values (${physio.id}, ${customerId}, 'customer', ${slug}, ${code},
+    insert into public.share_links (physio_id, customer_id, target, routine_id, weekly_plan_id, slug, code, pin_hash, revoked_at, expires_at)
+    values (${physio.id}, ${customerId}, ${target}, ${options.routineId ?? null},
+      ${options.weeklyPlanId ?? null}, ${slug}, ${code},
       ${options.pin ? hashPin(options.pin) : null},
       ${options.revoked ? sql`now()` : null},
       ${options.expired ? sql`now() - interval '1 day'` : null})`;
