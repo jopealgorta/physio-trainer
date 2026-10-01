@@ -1007,14 +1007,16 @@
       "label": "Vence",
       "hint": "El enlace funciona hasta el final de este día.",
       "none": "No vence",
-      "clear": "Quitar vencimiento"
+      "clear": "Quitar vencimiento",
+      "save": "Guardar vencimiento"
     },
     "pin": {
       "label": "Pedir un PIN",
       "hint": "Un PIN de 4 dígitos es un candado liviano, no una seguridad fuerte. Pasáselo al paciente por separado.",
       "shown": "PIN: {pin}",
       "shownOnce": "Se muestra solo ahora. Anotalo o mandáselo al paciente.",
-      "regenerate": "Nuevo PIN"
+      "regenerate": "Nuevo PIN",
+      "set": "Hay un PIN. No se vuelve a mostrar; generá uno nuevo si lo perdiste."
     },
     "regenerate": {
       "action": "Regenerar enlace",
@@ -1042,5 +1044,61 @@
       "invalid": "Revisá los valores e intentá de nuevo.",
       "generic": "Algo salió mal. Intentá de nuevo."
     }
+  },
+  "Patient": {
+    "greeting": "Hola {name}",
+    "logoAlt": "Logo de {clinic}",
+    "today": "Hoy",
+    "week": {
+      "label": "Semana",
+      "dayToday": "{day}, hoy",
+      "dayHasRoutines": "{day}, tiene ejercicios",
+      "dayBoth": "{day}, hoy, tiene ejercicios",
+      "dayPlain": "{day}"
+    },
+    "restDay": "No hay nada programado para {day}.",
+    "yourRoutines": "Tus rutinas",
+    "sessions": {
+      "perWeek": "{count, number}× por semana",
+      "perDay": "{count, number}× por día"
+    },
+    "notes": "Notas de tu fisioterapeuta",
+    "exercise": {
+      "instructions": "Cómo hacerlo",
+      "notes": "Nota",
+      "superset": "Superserie",
+      "supersetRest": "Descansá {value, number} s después de cada vuelta",
+      "noMedia": "Sin video"
+    },
+    "empty": {
+      "title": "No hay nada programado para hoy",
+      "description": "Tu fisioterapeuta no programó nada para hoy.",
+      "next": "El próximo empieza {date}."
+    },
+    "unavailable": {
+      "title": {
+        "revoked": "Este enlace ya no está disponible",
+        "expired": "Este enlace venció",
+        "customer_archived": "Este enlace ya no está disponible"
+      },
+      "description": "Pedile un enlace nuevo a {clinic}."
+    },
+    "pin": {
+      "title": "Ingresá tu PIN",
+      "description": "{clinic} protegió esta página con un PIN de 4 dígitos.",
+      "label": "PIN",
+      "submit": "Abrir",
+      "wrong": "Ese PIN no es correcto. Probá de nuevo.",
+      "invalid": "Ingresá los 4 dígitos."
+    },
+    "contact": {
+      "title": "¿Dudas? Contactá a {clinic}",
+      "label": "Contacto",
+      "call": "Llamar",
+      "whatsapp": "WhatsApp",
+      "email": "Correo",
+      "website": "Sitio web"
+    },
+    "install": "Tip: agregá esta página a tu pantalla de inicio para abrirla como una app."
   }
 }

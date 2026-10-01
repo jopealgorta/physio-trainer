@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { PhaseBar } from "@/components/phases/phase-bar";
+import { ShareButton } from "@/components/sharing/share-button";
 import { RoutineEditor } from "@/components/routines/routine-editor";
 import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
@@ -55,13 +56,16 @@ export default async function RoutinePage({
 
   return (
     <div className="grid gap-6">
-      <Link
-        href={back.href}
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        {back.label}
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={back.href}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeftIcon aria-hidden className="size-4" />
+          {back.label}
+        </Link>
+        <ShareButton target={{ target: "routine", routineId: routine.id }} />
+      </div>
       {routine.isStandalone ? (
         <PhaseBar
           kind="routine"

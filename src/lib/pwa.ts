@@ -46,3 +46,40 @@ export function buildManifest({
 export function serviceWorkerUrl(buildId: string): string {
   return `/sw.js?v=${encodeURIComponent(buildId)}`;
 }
+
+/**
+ * Manifest of one patient link (spec 10): installing it opens that link. `path` is the canonical
+ * `/{handle}/{slug}-{code}`; the scope is the link itself so the home-screen app never wanders.
+ * Icons are the app's (a clinic logo has no guaranteed size or shape; branded icons are a later
+ * refinement).
+ */
+export function buildPatientManifest({
+  locale,
+  clinicName,
+  path,
+  themeColor,
+}: {
+  locale: string;
+  clinicName: string;
+  path: string;
+  /** The clinic's accent (light mode), or null for the app default. */
+  themeColor: string | null;
+}): MetadataRoute.Manifest {
+  return {
+    id: path,
+    name: clinicName,
+    short_name: clinicName.length > 12 ? clinicName.slice(0, 12).trimEnd() : clinicName,
+    lang: locale,
+    start_url: path,
+    scope: path,
+    display: "standalone",
+    background_color: APP_BACKGROUND,
+    theme_color: themeColor ?? APP_BACKGROUND,
+    icons: APP_ICONS.map((icon) => ({
+      src: `/icon/${icon.id}`,
+      sizes: `${icon.size}x${icon.size}`,
+      type: "image/png",
+      purpose: icon.purpose,
+    })),
+  };
+}

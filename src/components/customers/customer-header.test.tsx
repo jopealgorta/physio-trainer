@@ -6,6 +6,13 @@ import messages from "../../../messages/en.json";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/server/customers/actions", () => ({ setCustomerArchivedAction: vi.fn() }));
+vi.mock("@/server/sharing/actions", () => ({
+  loadShareAction: vi.fn(),
+  renewShareLinkAction: vi.fn(),
+  revokeShareLinkAction: vi.fn(),
+  setSharePinAction: vi.fn(),
+  updateShareLinkAction: vi.fn(),
+}));
 
 import { CustomerHeader, type HeaderCustomer } from "./customer-header";
 
@@ -95,5 +102,13 @@ describe("CustomerHeader", () => {
     unmount();
     setup({ archivedAt: new Date("2026-02-01T00:00:00Z") });
     expect(screen.getByRole("button", { name: "Restore" })).toBeInTheDocument();
+  });
+
+  it("offers sharing, except for an archived customer (their links are revoked)", () => {
+    const { unmount } = setup();
+    expect(screen.getByRole("button", { name: "Share" })).toBeInTheDocument();
+    unmount();
+    setup({ archivedAt: new Date("2026-10-01T00:00:00Z") });
+    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
   });
 });

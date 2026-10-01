@@ -1007,14 +1007,16 @@
       "label": "Expires",
       "hint": "The link works through the end of this day.",
       "none": "Never expires",
-      "clear": "Remove expiry"
+      "clear": "Remove expiry",
+      "save": "Set expiry"
     },
     "pin": {
       "label": "Require a PIN",
       "hint": "A 4-digit PIN is a light lock, not strong security. Give it to your patient separately.",
       "shown": "PIN: {pin}",
       "shownOnce": "Shown only now. Write it down or send it to your patient.",
-      "regenerate": "New PIN"
+      "regenerate": "New PIN",
+      "set": "A PIN is set. It is not shown again; generate a new one if you lost it."
     },
     "regenerate": {
       "action": "Regenerate link",
@@ -1042,5 +1044,61 @@
       "invalid": "Check the values and try again.",
       "generic": "Something went wrong. Try again."
     }
+  },
+  "Patient": {
+    "greeting": "Hi {name}",
+    "logoAlt": "{clinic} logo",
+    "today": "Today",
+    "week": {
+      "label": "Week",
+      "dayToday": "{day}, today",
+      "dayHasRoutines": "{day}, has exercises",
+      "dayBoth": "{day}, today, has exercises",
+      "dayPlain": "{day}"
+    },
+    "restDay": "Nothing scheduled for {day}.",
+    "yourRoutines": "Your routines",
+    "sessions": {
+      "perWeek": "{count, number}× per week",
+      "perDay": "{count, number}× per day"
+    },
+    "notes": "Notes from your physio",
+    "exercise": {
+      "instructions": "How to do it",
+      "notes": "Note",
+      "superset": "Superset",
+      "supersetRest": "Rest {value, number} s after each round",
+      "noMedia": "No video"
+    },
+    "empty": {
+      "title": "Nothing scheduled for today",
+      "description": "Your physio hasn't scheduled anything for today.",
+      "next": "Next one starts {date}."
+    },
+    "unavailable": {
+      "title": {
+        "revoked": "This link is no longer available",
+        "expired": "This link has expired",
+        "customer_archived": "This link is no longer available"
+      },
+      "description": "Ask {clinic} for a new link."
+    },
+    "pin": {
+      "title": "Enter your PIN",
+      "description": "{clinic} protected this page with a 4-digit PIN.",
+      "label": "PIN",
+      "submit": "Open",
+      "wrong": "That PIN is not right. Try again.",
+      "invalid": "Enter the 4 digits."
+    },
+    "contact": {
+      "title": "Questions? Contact {clinic}",
+      "label": "Contact",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "website": "Website"
+    },
+    "install": "Tip: add this page to your home screen to open it like an app."
   }
 }

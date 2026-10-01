@@ -1,10 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { routeGuard } from "@/lib/auth/route-guard";
+import { PATIENT_HEADERS, isPatientPath } from "@/lib/patient-paths";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
   const { response, signedIn } = await updateSession(request);
+  if (isPatientPath(request.nextUrl.pathname)) {
+    for (const [name, value] of Object.entries(PATIENT_HEADERS)) response.headers.set(name, value);
+  }
   const target = routeGuard(request.nextUrl.pathname, request.nextUrl.search, signedIn);
   if (!target) return response;
 
