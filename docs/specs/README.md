@@ -20,7 +20,7 @@ feature list agreed in the initial brainstorm.
 | 07  | [Templates](./07-templates.md)                                         | A       | 05, 06           | Done        |
 | 08  | [Phases and progression](./08-phases-and-progression.md)               | B       | 05, 06           | Done        |
 | 09  | [Physio branding](./09-physio-branding.md)                             | F       | 01               | Done        |
-| 10  | [Sharing and patient page](./10-sharing-and-patient-page.md)           | Core    | 05, 06, 08, 09   | Not started |
+| 10  | [Sharing and patient page](./10-sharing-and-patient-page.md)           | Core    | 05, 06, 08, 09   | Done        |
 | 11  | [Link previews](./11-link-previews.md)                                 | E       | 09, 10           | Not started |
 | 12  | [Workout mode](./12-workout-mode.md)                                   | C       | 10               | Not started |
 | 13  | [Session logging and dashboard](./13-session-logging-and-dashboard.md) | D       | 10 (12 optional) | Not started |

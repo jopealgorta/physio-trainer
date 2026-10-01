@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { PhaseBar } from "@/components/phases/phase-bar";
+import { ShareButton } from "@/components/sharing/share-button";
 import { PlanBoard } from "@/components/plans/plan-board";
 import { PlanDetailsForm } from "@/components/plans/plan-details-form";
 import { StatusBadge } from "@/components/routines/status-badge";
@@ -49,13 +50,19 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
 
   return (
     <div className="grid gap-6">
-      <Link
-        href={back.href}
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        {back.label}
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={back.href}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeftIcon aria-hidden className="size-4" />
+          {back.label}
+        </Link>
+        {/* A template (no customer) has nobody to share with. */}
+        {plan.customerId ? (
+          <ShareButton target={{ target: "weekly_plan", weeklyPlanId: plan.id }} />
+        ) : null}
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{plan.name}</h1>
         <StatusBadge status={plan.status} />

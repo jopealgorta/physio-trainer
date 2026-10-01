@@ -4,7 +4,10 @@ import {
   ageInYears,
   CALENDAR_DATE_FORMAT,
   calendarDateToDate,
+  endOfDay,
   isCalendarDate,
+  isoWeekday,
+  lastDayBefore,
   todayIn,
 } from "./calendar-date";
 
@@ -62,5 +65,52 @@ describe("calendarDateToDate", () => {
     expect(date.toISOString()).toBe("1990-09-29T00:00:00.000Z");
     expect(CALENDAR_DATE_FORMAT.timeZone).toBe("UTC");
     expect(new Intl.DateTimeFormat("en", CALENDAR_DATE_FORMAT).format(date)).toBe("Sep 29, 1990");
+  });
+});
+
+describe("endOfDay", () => {
+  it("is the start of the next calendar day in the time zone", () => {
+    expect(endOfDay("UTC", "2026-10-05").toISOString()).toBe("2026-10-06T00:00:00.000Z");
+    expect(endOfDay("America/Montevideo", "2026-10-05").toISOString()).toBe(
+      "2026-10-06T03:00:00.000Z",
+    );
+    expect(endOfDay("Pacific/Auckland", "2026-10-05").toISOString()).toBe(
+      "2026-10-05T11:00:00.000Z",
+    );
+  });
+
+  it("follows daylight saving changes", () => {
+    // New York leaves DST on 2026-11-01: that day has 25 hours, so its end is 05:00Z the next day.
+    expect(endOfDay("America/New_York", "2026-11-01").toISOString()).toBe(
+      "2026-11-02T05:00:00.000Z",
+    );
+    expect(endOfDay("America/New_York", "2026-03-07").toISOString()).toBe(
+      "2026-03-08T05:00:00.000Z",
+    );
+    expect(endOfDay("America/New_York", "2026-03-08").toISOString()).toBe(
+      "2026-03-09T04:00:00.000Z",
+    );
+  });
+
+  it("rolls over month and year ends", () => {
+    expect(endOfDay("UTC", "2026-12-31").toISOString()).toBe("2027-01-01T00:00:00.000Z");
+    expect(endOfDay("UTC", "2028-02-28").toISOString()).toBe("2028-02-29T00:00:00.000Z");
+  });
+});
+
+describe("lastDayBefore", () => {
+  it("is the calendar day an end-of-day instant closes, and inverts endOfDay", () => {
+    for (const zone of ["UTC", "America/Montevideo", "Pacific/Auckland", "America/New_York"]) {
+      expect(lastDayBefore(zone, endOfDay(zone, "2026-10-05"))).toBe("2026-10-05");
+    }
+  });
+});
+
+describe("isoWeekday", () => {
+  it("numbers Monday 1 to Sunday 7", () => {
+    expect(isoWeekday("2026-10-05")).toBe(1); // Monday
+    expect(isoWeekday("2026-10-08")).toBe(4);
+    expect(isoWeekday("2026-10-11")).toBe(7); // Sunday
+    expect(isoWeekday("2024-02-29")).toBe(4);
   });
 });

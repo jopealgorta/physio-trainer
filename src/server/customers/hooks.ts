@@ -1,16 +1,16 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- placeholder until spec 10 fills it in */
 import "server-only";
 
 import type { Tx } from "@/db/rls";
+import { revokeCustomerLinks } from "@/server/sharing/mutations";
 
 /**
- * Called after a customer is archived. Spec 10 (sharing) revokes the customer's share links
- * here; restoring a customer never re-enables them.
+ * Called after a customer is archived: revokes every share link they were sent (spec 10).
+ * Restoring a customer never re-enables them; the physio creates a new link.
  */
 export async function onCustomerArchived(
-  _tx: Tx,
-  _physioId: string,
-  _customerId: string,
+  tx: Tx,
+  physioId: string,
+  customerId: string,
 ): Promise<void> {
-  // TODO(spec 10): revoke the customer's share links.
+  await revokeCustomerLinks(tx, physioId, customerId);
 }

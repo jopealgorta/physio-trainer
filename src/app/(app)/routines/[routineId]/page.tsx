@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { PhaseBar } from "@/components/phases/phase-bar";
+import { ShareButton } from "@/components/sharing/share-button";
 import { RoutineEditor } from "@/components/routines/routine-editor";
 import { FromTemplate } from "@/components/templates/from-template";
 import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-dialog";
@@ -71,13 +72,19 @@ export default async function RoutinePage({
 
   return (
     <div className="grid gap-6">
-      <Link
-        href={back.href}
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        {back.label}
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={back.href}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeftIcon aria-hidden className="size-4" />
+          {back.label}
+        </Link>
+        {/* A template has no customer to share with. */}
+        {routine.isTemplate ? null : (
+          <ShareButton target={{ target: "routine", routineId: routine.id }} />
+        )}
+      </div>
       {routine.isTemplate ? (
         // A template plan's own routine is edited through the plan: only standalone ones are
         // assigned or duplicated from here.
