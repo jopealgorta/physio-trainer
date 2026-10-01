@@ -99,7 +99,10 @@ export function PhasePopover({
               maxLength={PHASE_LABEL_MAX}
               placeholder={t("labelPlaceholder")}
               autoComplete="off"
-              onChange={(event) => setLabel(event.target.value)}
+              onChange={(event) => {
+                setLabel(event.target.value);
+                setError(null);
+              }}
             />
           </div>
           <div className="grid gap-1.5">
@@ -109,7 +112,10 @@ export function PhasePopover({
               type="date"
               value={startsOn}
               aria-invalid={error === "startsInvalid"}
-              onChange={(event) => setStartsOn(event.target.value)}
+              onChange={(event) => {
+                setStartsOn(event.target.value);
+                setError(null);
+              }}
             />
           </div>
           <div className="grid gap-1.5">
@@ -119,7 +125,10 @@ export function PhasePopover({
               type="date"
               value={endsOn}
               aria-invalid={error === "endsInvalid" || error === "endBeforeStart"}
-              onChange={(event) => setEndsOn(event.target.value)}
+              onChange={(event) => {
+                setEndsOn(event.target.value);
+                setError(null);
+              }}
             />
           </div>
           <p className="text-muted-foreground text-xs">{t("hint")}</p>

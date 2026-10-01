@@ -1,12 +1,12 @@
-import "server-only";
-
+// No "server-only" import: `physioToday` reaches the database only through physios/queries (which
+// is server-only) and `scheduleFilter` is a pure SQL builder.
 import { and, eq, gt, isNull, lt, or, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 
 import type { Tx } from "@/db/rls";
-import { physios } from "@/db/schema";
 import { todayIn } from "@/lib/calendar-date";
 import type { ScheduleState } from "@/lib/schedule";
+import { getProfile } from "@/server/physios/queries";
 
 type ScheduleColumns = { status: PgColumn; startsOn: PgColumn; endsOn: PgColumn };
 
@@ -41,9 +41,6 @@ export async function physioToday(
   physioId: string,
   now: Date = new Date(),
 ): Promise<string> {
-  const [row] = await tx
-    .select({ timezone: physios.timezone })
-    .from(physios)
-    .where(eq(physios.id, physioId));
-  return todayIn(row?.timezone ?? "UTC", now);
+  const profile = await getProfile(tx, physioId);
+  return todayIn(profile?.timezone ?? "UTC", now);
 }

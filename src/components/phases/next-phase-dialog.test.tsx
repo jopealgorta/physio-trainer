@@ -125,6 +125,8 @@ describe("NextPhaseDialog", () => {
     const user = userEvent.setup();
     setup({ startsOn: "2026-10-06" });
     await open(user);
+    await user.clear(screen.getByLabelText("Starts on"));
+    await user.type(screen.getByLabelText("Starts on"), "2026-10-06");
     expect(
       await screen.findByText(/Start the new phase after the current one starts/),
     ).toBeVisible();
@@ -155,5 +157,33 @@ describe("NextPhaseDialog", () => {
     await user.click(screen.getByRole("button", { name: "Create next phase" }));
     expect(await screen.findByText("This item no longer exists.")).toBeVisible();
     expect(m.push).not.toHaveBeenCalled();
+  });
+
+  it("starts after a phase that has not begun yet", async () => {
+    const user = userEvent.setup();
+    setup({ startsOn: "2026-11-01" });
+    await open(user);
+    expect(screen.getByLabelText("Starts on")).toHaveValue("2026-11-02");
+    expect(screen.queryByText(/Start the new phase after/)).not.toBeInTheDocument();
+  });
+
+  it("clears a submit error as soon as the field is corrected", async () => {
+    const user = userEvent.setup();
+    setup();
+    await open(user);
+    await user.type(screen.getByLabelText("Ends on (optional)"), "2026-10-01");
+    await user.click(screen.getByRole("button", { name: "Create next phase" }));
+    expect(await screen.findByText("The end date can't be before the start date.")).toBeVisible();
+    await user.clear(screen.getByLabelText("Ends on (optional)"));
+    expect(
+      screen.queryByText("The end date can't be before the start date."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not warn about an overlap with a draft", async () => {
+    const user = userEvent.setup();
+    setup({ status: "draft", startsOn: "2026-09-01", endsOn: "2026-12-31" });
+    await open(user);
+    expect(screen.queryByText(/The new phase overlaps this one/)).not.toBeInTheDocument();
   });
 });

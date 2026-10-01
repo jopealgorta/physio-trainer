@@ -147,6 +147,7 @@ async function copyPlanPhase(
       position: weeklyPlanEntries.position,
       label: weeklyPlanEntries.label,
       routineId: weeklyPlanEntries.routineId,
+      routineName: routines.name,
       routineStatus: routines.status,
     })
     .from(weeklyPlanEntries)
@@ -180,17 +181,15 @@ async function copyPlanPhase(
   // Each routine is copied once, so entries that shared a routine still share its copy. The
   // copies belong to the new plan: not standalone, and without phase fields of their own.
   const copies = new Map<string, string>();
-  for (const { routineId } of entries) {
+  for (const { routineId, routineName } of entries) {
     if (copies.has(routineId)) continue;
-    const [routine] = await tx
-      .select({ name: routines.name })
-      .from(routines)
-      .where(and(eq(routines.physioId, physioId), eq(routines.id, routineId)));
     const duplicated = await duplicateRoutine(tx, physioId, routineId, {
-      name: routine.name,
+      name: routineName,
       isStandalone: false,
     });
-    if (!duplicated.ok) return fail("notFound");
+    // Unreachable (the entry join just found the routine), but a returned failure would commit
+    // the half-built copy, so abort the transaction instead.
+    if (!duplicated.ok) throw new Error("routine vanished during a phase copy");
     copies.set(routineId, duplicated.data.id);
   }
   if (entries.length > 0) {

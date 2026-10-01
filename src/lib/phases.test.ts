@@ -90,6 +90,15 @@ describe("nextPhaseDefaults", () => {
 
   it("starts tomorrow when the current phase has no end", () => {
     expect(nextPhaseDefaults({ endsOn: null }, "2026-10-05").startsOn).toBe("2026-10-06");
+    expect(nextPhaseDefaults({ startsOn: "2026-09-01", endsOn: null }, "2026-10-05").startsOn).toBe(
+      "2026-10-06",
+    );
+  });
+
+  it("starts after a current phase that has not begun yet", () => {
+    expect(nextPhaseDefaults({ startsOn: "2026-11-01", endsOn: null }, "2026-10-05").startsOn).toBe(
+      "2026-11-02",
+    );
   });
 });
 
@@ -132,9 +141,12 @@ describe("groupByChain", () => {
 });
 
 describe("nextPhaseNumber", () => {
-  it("adds one to the first number in the label, else starts at 2", () => {
+  it("adds one to the number after phase/fase, else starts at 2", () => {
     expect(nextPhaseNumber("Phase 2 – strength")).toBe(3);
     expect(nextPhaseNumber("Fase 10")).toBe(11);
+    expect(nextPhaseNumber("phase3")).toBe(4);
+    expect(nextPhaseNumber("Week 12 rehab")).toBe(2);
+    expect(nextPhaseNumber("2026 return to sport")).toBe(2);
     expect(nextPhaseNumber("Strength")).toBe(2);
     expect(nextPhaseNumber(null)).toBe(2);
   });
@@ -180,13 +192,15 @@ describe("previewNextPhase", () => {
     ).toEqual({ error: "startBeforePredecessor", overlaps: false });
   });
 
-  it("ignores endCurrent for a current phase that is not active", () => {
-    expect(
-      previewNextPhase({
-        current: { ...current, status: "draft" },
-        next: { startsOn: "2026-10-08", endsOn: null },
-        endCurrent: true,
-      }),
-    ).toEqual({ error: null, overlaps: true });
+  it("ignores endCurrent and never overlaps for a current phase that is not active", () => {
+    for (const status of ["draft", "archived"] as const) {
+      expect(
+        previewNextPhase({
+          current: { ...current, status },
+          next: { startsOn: "2026-10-08", endsOn: null },
+          endCurrent: true,
+        }),
+      ).toEqual({ error: null, overlaps: false });
+    }
   });
 });

@@ -60,7 +60,10 @@ export function NextPhaseDialog({
   const tErrors = useTranslations("Phases.errors");
   const router = useRouter();
   const fieldId = useId();
-  const defaults = useMemo(() => nextPhaseDefaults({ endsOn }, today), [endsOn, today]);
+  const defaults = useMemo(
+    () => nextPhaseDefaults({ startsOn, endsOn }, today),
+    [startsOn, endsOn, today],
+  );
   const defaultLabel = t("defaultLabel", { number: nextPhaseNumber(phaseLabel) });
 
   const [open, setOpen] = useState(false);
@@ -143,7 +146,10 @@ export function NextPhaseDialog({
               value={label}
               maxLength={PHASE_LABEL_MAX}
               autoComplete="off"
-              onChange={(event) => setLabel(event.target.value)}
+              onChange={(event) => {
+                setLabel(event.target.value);
+                setError(null);
+              }}
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -155,7 +161,10 @@ export function NextPhaseDialog({
                 value={start}
                 required
                 aria-invalid={error === "startsInvalid" || shownError === "startBeforePredecessor"}
-                onChange={(event) => setStart(event.target.value)}
+                onChange={(event) => {
+                  setStart(event.target.value);
+                  setError(null);
+                }}
               />
             </div>
             <div className="grid gap-1.5">
@@ -165,7 +174,10 @@ export function NextPhaseDialog({
                 type="date"
                 value={end}
                 aria-invalid={error === "endsInvalid" || error === "endBeforeStart"}
-                onChange={(event) => setEnd(event.target.value)}
+                onChange={(event) => {
+                  setEnd(event.target.value);
+                  setError(null);
+                }}
               />
             </div>
           </div>
@@ -174,7 +186,10 @@ export function NextPhaseDialog({
               <Checkbox
                 id={`${fieldId}-end-current`}
                 checked={endCurrent}
-                onCheckedChange={(checked) => setEndCurrent(checked === true)}
+                onCheckedChange={(checked) => {
+                  setEndCurrent(checked === true);
+                  setError(null);
+                }}
               />
               <Label htmlFor={`${fieldId}-end-current`} className="leading-snug">
                 {t("endCurrent")}

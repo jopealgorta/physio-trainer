@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 
+import { StatusBadge } from "@/components/routines/status-badge";
 import { scheduleState } from "@/lib/schedule";
 import type { RoutineStatus } from "@/lib/routines";
 import type { PhaseKind } from "@/server/phases/schemas";
@@ -40,9 +41,13 @@ export function PhaseBar({
       className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-3"
     >
       <h2 className="text-sm font-medium">{t("title")}</h2>
-      <div className="min-w-0 flex-1 text-sm">
+      <div className="order-last w-full min-w-0 text-sm sm:order-none sm:w-auto sm:flex-1">
         {hasPhase ? (
-          <PhaseChips phaseLabel={phaseLabel} startsOn={startsOn} endsOn={endsOn} state={state} />
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <PhaseChips phaseLabel={phaseLabel} startsOn={startsOn} endsOn={endsOn} state={state} />
+            {/* A draft or archived item is never shown to the patient, whatever its dates say. */}
+            {state === "inactive" ? <StatusBadge status={status} /> : null}
+          </span>
         ) : (
           <span className="text-muted-foreground text-xs">{t("none")}</span>
         )}

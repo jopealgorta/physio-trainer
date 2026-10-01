@@ -46,10 +46,18 @@ export function endPredecessor(
   return { ok: true, endsOn };
 }
 
-/** Dialog defaults for "Copy into next phase" (the label is translated by the caller). */
-export function nextPhaseDefaults(current: { endsOn: string | null }, today: string) {
+/**
+ * Dialog defaults for "Copy into next phase" (the label is translated by the caller): start the
+ * day after the current phase ends, or after today (or the current phase's later start) when it
+ * has no end.
+ */
+export function nextPhaseDefaults(
+  current: { startsOn?: string | null; endsOn: string | null },
+  today: string,
+) {
+  const from = current.startsOn != null && current.startsOn > today ? current.startsOn : today;
   return {
-    startsOn: addDays(current.endsOn ?? today, 1),
+    startsOn: addDays(current.endsOn ?? from, 1),
     endsOn: null as string | null,
     endCurrent: true,
   };
@@ -94,16 +102,19 @@ export function groupByChain<
   );
 }
 
-/** The number for the next phase's default label: the first number in the label plus one, else 2. */
+/**
+ * The number for the next phase's default label: the number after "phase" or "fase" in the label
+ * plus one ("Phase 2 – strength" gives 3), else 2.
+ */
 export function nextPhaseNumber(label: string | null): number {
-  const match = label === null ? null : /\d+/.exec(label);
-  return match ? Number(match[0]) + 1 : 2;
+  const match = label === null ? null : /\b(?:phase|fase)\s*(\d+)/i.exec(label);
+  return match ? Number(match[1]) + 1 : 2;
 }
 
 /**
  * What the "Copy into next phase" dialog shows before submitting: whether ending the current
  * phase the day before is impossible, and whether the new window would overlap the current one
- * (after it is ended, when `endCurrent` applies; only an active phase is ever ended).
+ * (after it is ended, when `endCurrent` applies). Only an active phase is ended or can overlap.
  */
 export function previewNextPhase(input: {
   current: PhaseWindow & { status: "draft" | "active" | "archived" };
@@ -119,5 +130,6 @@ export function previewNextPhase(input: {
       overlaps: windowsOverlap({ startsOn: current.startsOn, endsOn: ended.endsOn }, next),
     };
   }
-  return { error: null, overlaps: windowsOverlap(current, next) };
+  // Only an active phase is ever shown to the patient, so only it can overlap the new one.
+  return { error: null, overlaps: current.status === "active" && windowsOverlap(current, next) };
 }
