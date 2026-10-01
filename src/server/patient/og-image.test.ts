@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { loadLogoDataUri, nameFontSize } from "./og-image";
+import { loadLogoDataUri, nameFontSize, titleFontSize } from "./og-image";
 
 // Unit tests run without the int config's server-only alias; the real package throws here.
 vi.mock("server-only", () => ({}));
@@ -67,5 +67,12 @@ describe("nameFontSize", () => {
   it("shrinks for longer clinic names", () => {
     expect(nameFontSize("Kine Sur")).toBeGreaterThan(nameFontSize("x".repeat(30)));
     expect(nameFontSize("x".repeat(30))).toBeGreaterThan(nameFontSize("x".repeat(60)));
+  });
+});
+
+describe("titleFontSize", () => {
+  it("shrinks for longer routine and plan titles", () => {
+    expect(titleFontSize("Shoulder mobility")).toBeGreaterThan(titleFontSize("x".repeat(40)));
+    expect(titleFontSize("x".repeat(40))).toBeGreaterThan(titleFontSize("x".repeat(80)));
   });
 });

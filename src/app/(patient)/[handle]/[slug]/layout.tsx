@@ -10,6 +10,7 @@ import { PatientFooter } from "@/components/patient/patient-footer";
 import { buildPreviewMetadata, previewVersion } from "@/lib/link-preview";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { loadLink } from "@/server/patient/load";
+import { previewCopy } from "@/server/patient/preview-copy";
 
 type IntlMessages = ComponentProps<typeof NextIntlClientProvider>["messages"];
 
@@ -21,8 +22,8 @@ async function shellOf(slug: string) {
 
 /**
  * Everything about a patient page that must not leak or be indexed (spec 10 rule 9), and the card
- * it unfurls into (spec 11): the same for every link status, branding only, in the customer's
- * language. Resolving a link here never counts as an open (only `page.tsx` does).
+ * it unfurls into (spec 11): the same for every link status, the clinic's branding and the routine
+ * or plan name, in the customer's language. Resolving a link here never counts as an open (only `page.tsx` does).
  */
 export async function generateMetadata({
   params,
@@ -32,14 +33,13 @@ export async function generateMetadata({
   const path = buildSharePath(shell.handle, shell.slug, shell.code);
   const { clinicName } = shell.branding;
   const t = await getTranslations({ locale: shell.locale, namespace: "Patient.meta" });
+  const copy = previewCopy(t, { target: shell.target, itemTitle: shell.title, clinicName });
   return {
     ...buildPreviewMetadata({
       path,
-      version: previewVersion(shell.branding),
-      title: t("title", { clinic: clinicName }),
-      description: t("description", { clinic: clinicName }),
+      version: previewVersion({ ...shell.branding, title: shell.title }),
       clinicName,
-      imageAlt: t("imageAlt", { clinic: clinicName }),
+      ...copy,
     }),
     referrer: "no-referrer",
     // Replaces the physio app's manifest (spec 18) so "Add to home screen" installs this link.

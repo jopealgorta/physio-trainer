@@ -1,9 +1,9 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { customers, physios, shareLinks } from "@/db/schema";
+import { customers, physios, routines, shareLinks, weeklyPlans } from "@/db/schema";
 import { env } from "@/env";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { buildBranding, type Branding } from "@/lib/branding";
@@ -23,9 +23,15 @@ export type LinkShell = {
   timeZone: string;
   code: string;
   slug: string;
+  target: ShareTarget;
   /** The customer's language, not the physio's. */
   locale: Locale;
   branding: Branding & { updatedAt: Date };
+  /**
+   * The shared routine's or plan's name, for the link preview (spec 11). Set whatever the link's
+   * status, so every status unfurls alike; null for a customer link.
+   */
+  title: string | null;
 };
 
 /** A usable link: every id the patient queries use comes from here, never from the request. */
@@ -66,6 +72,8 @@ export async function resolveLink(code: string, now: Date = new Date()): Promise
       expiresAt: shareLinks.expiresAt,
       revokedAt: shareLinks.revokedAt,
       physio: physios,
+      routineName: routines.name,
+      planName: weeklyPlans.name,
       customerFirstName: customers.firstName,
       customerLocale: customers.locale,
       customerArchivedAt: customers.archivedAt,
@@ -73,6 +81,17 @@ export async function resolveLink(code: string, now: Date = new Date()): Promise
     .from(shareLinks)
     .innerJoin(physios, eq(physios.id, shareLinks.physioId))
     .innerJoin(customers, eq(customers.id, shareLinks.customerId))
+    .leftJoin(
+      routines,
+      and(eq(routines.id, shareLinks.routineId), eq(routines.physioId, shareLinks.physioId)),
+    )
+    .leftJoin(
+      weeklyPlans,
+      and(
+        eq(weeklyPlans.id, shareLinks.weeklyPlanId),
+        eq(weeklyPlans.physioId, shareLinks.physioId),
+      ),
+    )
     .where(eq(shareLinks.code, code));
   if (!row) return { status: "not_found" };
 
@@ -88,8 +107,10 @@ export async function resolveLink(code: string, now: Date = new Date()): Promise
     timeZone: row.physio.timezone,
     code: row.code,
     slug: row.slug,
+    target: row.target,
     locale: resolveLocale(row.customerLocale),
     branding,
+    title: row.routineName ?? row.planName ?? null,
   };
 
   if (row.revokedAt !== null) return { status: "unavailable", reason: "revoked", shell };
