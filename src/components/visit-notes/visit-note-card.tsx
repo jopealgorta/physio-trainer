@@ -21,7 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
 import { cn } from "@/lib/utils";
-import { needsExpand, SOAP_FIELDS, wasEdited } from "@/lib/visit-notes";
+import { clearDraft } from "@/lib/visit-note-draft";
+import { draftKey, needsExpand, SOAP_FIELDS, wasEdited } from "@/lib/visit-notes";
 import { deleteVisitNoteAction } from "@/server/visit-notes/actions";
 
 import { NoteSheet } from "./note-sheet";
@@ -73,8 +74,10 @@ export function VisitNoteCard({
     startTransition(async () => {
       try {
         const result = await deleteVisitNoteAction(note.id);
-        if (result.ok) router.refresh();
-        else setError(result.error);
+        if (result.ok) {
+          clearDraft(draftKey(customerId, note.id));
+          router.refresh();
+        } else setError(result.error);
       } catch {
         setError("unknown");
       }

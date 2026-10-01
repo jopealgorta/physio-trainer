@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -232,6 +232,26 @@ describe("NoteEditor", () => {
       expect(screen.getByLabelText("S · Subjective")).toHaveValue("Works");
       get.mockRestore();
       set.mockRestore();
+    });
+  });
+
+  it("never truncates a long paste: the server reports the limit instead", () => {
+    setup(idleAction());
+    const long = "a".repeat(10_001);
+    fireEvent.change(screen.getByLabelText("O · Objective"), { target: { value: long } });
+    expect(screen.getByLabelText("O · Objective")).toHaveValue(long);
+  });
+
+  it("keeps autosaving edits made after a save while the editor stays mounted", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn(async (): Promise<VisitNoteFormState> => ({ status: "saved" }));
+    setup(action);
+    await user.type(screen.getByLabelText("S · Subjective"), "First");
+    await user.click(screen.getByRole("button", { name: "Save note" }));
+    await waitFor(() => expect(localStorage.getItem(NEW_KEY)).toBeNull());
+    await user.type(screen.getByLabelText("S · Subjective"), " and more");
+    expect(JSON.parse(localStorage.getItem(NEW_KEY)!)).toMatchObject({
+      subjective: "First and more",
     });
   });
 

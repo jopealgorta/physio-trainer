@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isCalendarDate } from "@/lib/calendar-date";
+import { isCalendarDate, todayIn } from "@/lib/calendar-date";
 import { hasSoapContent, PAIN_MAX, SOAP_MAX } from "@/lib/visit-notes";
 import { formValues, idSchema, isUuid, type Result } from "@/server/customers/schemas";
 
@@ -18,9 +18,19 @@ const soapText = z
   .pipe(z.string().max(SOAP_MAX, "tooLong"))
   .transform((value) => value || null);
 
+/**
+ * The latest calendar day anywhere on Earth right now (UTC+14), so "today" is always accepted
+ * whatever the physio's time zone but a typo like 2062 is not.
+ */
+const latestVisitDay = () => todayIn("Pacific/Kiritimati");
+
 const visitedOn = z.preprocess(
   blankToNull,
-  z.string("dateInvalid").refine(isCalendarDate, "dateInvalid").nullable(),
+  z
+    .string("dateInvalid")
+    .refine(isCalendarDate, "dateInvalid")
+    .refine((value) => value <= latestVisitDay(), "dateInFuture")
+    .nullable(),
 );
 
 const caseId = z.preprocess(blankToNull, z.union([z.null(), z.uuid()], { error: "invalid" }));
@@ -78,7 +88,13 @@ export type VisitNoteFormState =
       formError?: "notFound" | "customerNotFound" | "caseNotFound" | "unknown";
     };
 
-const KNOWN_CODES = new Set(["soapRequired", "tooLong", "painOutOfRange", "dateInvalid"]);
+const KNOWN_CODES = new Set([
+  "soapRequired",
+  "tooLong",
+  "painOutOfRange",
+  "dateInvalid",
+  "dateInFuture",
+]);
 
 /** First error per field as an i18n key ("invalid" for anything unexpected). */
 export function visitNoteFieldErrors(error: z.ZodError): VisitNoteFieldErrors {

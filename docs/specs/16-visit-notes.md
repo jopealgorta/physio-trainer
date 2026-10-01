@@ -102,12 +102,25 @@ Namespace `VisitNotes`.
   20 at a time; "Load more" is a link that raises `notes` by 20 (capped at 500). A `case` that
   isn't one of the customer's cases is ignored. Collapsed cards clamp each section to two lines
   and offer "Show full note" only when something is hidden.
+- **No silent truncation**: the S/O/A/P text areas have no `maxLength`; a paste over 10 000
+  characters is kept and the server reports "use at most 10,000 characters", so nothing is lost.
+- **Visit date upper bound**: a date later than today in UTC+14 (the furthest-ahead time zone) is
+  rejected (`dateInFuture`), so a typo like 2062 can't pin a note to the top of the timeline or
+  the overview card. Today in every time zone is accepted.
+- **"Edited" and case deletion**: the `updated_at` trigger skips the one update where the FK action
+  nulls `case_id` and nothing else changed, so deleting a case doesn't make its notes look
+  edited. Clearing the case in the editor together with any content change still bumps it.
+- **Timeline cap**: "Load more" stops at 500 notes (the `notes` param is clamped). Older notes
+  stay reachable through the case filter. Cursor pagination wasn't worth it for this volume.
 - **Editor**: a right-hand sheet that is full width on mobile. The four S/O/A/P fields are
   auto-growing text areas (`field-sizing-content`). Pain is a numeric text input like the case's
   initial pain.
 - **Drafts**: every change is written to `localStorage` (per customer and per note; none while the
   form equals the saved values) and restored, with a "Discard draft" option, when the editor
-  reopens. Storage failures are swallowed; a successful save clears the draft.
+  reopens. Storage failures are swallowed; a successful save or deleting the note clears its
+  draft, and editing again after a save resumes autosave. Drafts are plaintext in the browser
+  profile and are not cleared on sign-out (a known trade-off of the spec's draft requirement:
+  avoid typing patient details into shared browsers).
 - **Shortcuts**: `N` opens a new note only from the Notes tab, and is ignored while typing, with
   modifiers, or while any dialog is open. `Cmd/Ctrl+Enter` submits the form.
 - **"Edited"** shows when `updated_at` is more than a minute after `created_at`; the date comes

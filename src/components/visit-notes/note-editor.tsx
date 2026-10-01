@@ -38,6 +38,7 @@ const FORM_ERROR_CODES = [
   "soapRequired",
   "tooLong",
   "dateInvalid",
+  "dateInFuture",
   "painOutOfRange",
   "invalid",
 ] as const;
@@ -80,8 +81,11 @@ export function NoteEditor({ action, customerId, cases, defaults, onSaved }: Pro
   const formRef = useRef<HTMLFormElement>(null);
   const savedRef = useRef(false);
 
-  const setField = (field: keyof NoteFields, value: string) =>
+  const setField = (field: keyof NoteFields, value: string) => {
+    // An edit after a save is a new unsaved change: autosave resumes.
+    savedRef.current = false;
     setForm((current) => ({ ...current, fields: { ...current.fields, [field]: value } }));
+  };
 
   // Autosave on every change so an accidental close loses nothing; an unchanged form keeps no draft.
   useEffect(() => {
@@ -243,7 +247,7 @@ export function NoteEditor({ action, customerId, cases, defaults, onSaved }: Pro
             value={fields[field]}
             onChange={(event) => setField(field, event.target.value)}
             placeholder={t(`soap.${field}.hint`)}
-            maxLength={SOAP_MAX}
+            // No maxLength: a browser would silently cut a long paste. The server reports it.
             aria-invalid={invalid(field) || invalid("soap")}
             aria-describedby={describedBy(invalid(field) ? errorId(field) : undefined, soapError)}
           />

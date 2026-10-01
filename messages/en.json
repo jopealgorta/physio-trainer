@@ -946,7 +946,6 @@
     "create": "Save note",
     "save": "Save changes",
     "saving": "Saving…",
-    "saved": "Saved",
     "saveHint": "Press Ctrl or ⌘ + Enter to save.",
     "draftRestored": "We restored your unsaved draft.",
     "discardDraft": "Discard draft",
@@ -965,7 +964,8 @@
       "notFound": "This note no longer exists.",
       "customerNotFound": "This customer no longer exists.",
       "caseNotFound": "That case no longer exists or belongs to another customer.",
-      "unknown": "Something went wrong. Try again."
+      "unknown": "Something went wrong. Try again.",
+      "dateInFuture": "The visit date can't be in the future."
     }
   },
   "Branding": {

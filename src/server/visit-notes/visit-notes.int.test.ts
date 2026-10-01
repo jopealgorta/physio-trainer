@@ -272,6 +272,41 @@ describe("visit notes server layer", () => {
   });
 
   describe("deleting a case", () => {
+    it("does not make its notes look edited", async () => {
+      const customerId = await customer(a);
+      const caseId = await kase(a, customerId);
+      const id = await note(a, customerId, { caseId });
+      await db
+        .update(visitNotes)
+        .set({ createdAt: sql`now() - interval '1 hour'` })
+        .where(eq(visitNotes.id, id));
+      // Align updated_at with created_at without the trigger bumping it back to now().
+      await db.transaction(async (tx) => {
+        await tx.execute(sql`set local session_replication_role = replica`);
+        await tx.execute(sql`update visit_notes set updated_at = created_at where id = ${id}`);
+      });
+      const before = await stored(id);
+      expect(before.updatedAt.getTime()).toBe(before.createdAt.getTime());
+
+      await db.delete(cases).where(eq(cases.id, caseId));
+      const after = await stored(id);
+      expect(after.caseId).toBeNull();
+      expect(after.updatedAt.getTime()).toBe(before.updatedAt.getTime());
+    });
+
+    it("still bumps updated_at when the case is cleared together with a content change", async () => {
+      const customerId = await customer(a);
+      const caseId = await kase(a, customerId);
+      const id = await note(a, customerId, { caseId });
+      const before = await stored(id);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      const result = await as(a, (tx, p) =>
+        updateVisitNote(tx, p, id, noteInput({ caseId: "", subjective: "Changed" })),
+      );
+      expect(result.ok).toBe(true);
+      expect((await stored(id)).updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime());
+    });
+
     it("clears only case_id on its notes", async () => {
       const customerId = await customer(a);
       const caseId = await kase(a, customerId);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SOAP_MAX } from "@/lib/visit-notes";
 
@@ -55,6 +55,33 @@ describe("visitNoteSchema", () => {
     const badCase = visitNoteSchema.safeParse({ subjective: "x", caseId: "nope" });
     expect(badCase.success).toBe(false);
     if (!badCase.success) expect(visitNoteFieldErrors(badCase.error).caseId).toBe("invalid");
+  });
+
+  describe("visit date upper bound", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("allows today everywhere on Earth (UTC+14 is already tomorrow) but not later", () => {
+      vi.useFakeTimers({ now: new Date("2026-10-01T12:00:00Z") });
+      expect(visitNoteSchema.safeParse({ subjective: "x", visitedOn: "2026-10-02" }).success).toBe(
+        true,
+      );
+      const result = visitNoteSchema.safeParse({ subjective: "x", visitedOn: "2026-10-03" });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(visitNoteFieldErrors(result.error).visitedOn).toBe("dateInFuture");
+      }
+    });
+
+    it("rejects a typo like 2062", () => {
+      const result = visitNoteSchema.safeParse({ subjective: "x", visitedOn: "2062-03-10" });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts past dates", () => {
+      expect(visitNoteSchema.safeParse({ subjective: "x", visitedOn: "2020-01-31" }).success).toBe(
+        true,
+      );
+    });
   });
 
   it("caps each SOAP section at the limit", () => {

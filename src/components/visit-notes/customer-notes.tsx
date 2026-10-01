@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
-import { notesHref, PAGE_SIZE, type NotesFilters } from "@/lib/visit-notes";
+import { nextLimit, notesHref, type NotesFilters } from "@/lib/visit-notes";
 import { withPhysio } from "@/server/auth/session";
 import { listVisitNotes } from "@/server/visit-notes/queries";
 
@@ -88,10 +88,10 @@ export async function CustomerNotes({
         </p>
       )}
 
-      {hasMore ? (
+      {hasMore && nextLimit(active.limit) !== null ? (
         <Button asChild variant="outline" className="justify-self-center">
           <Link
-            href={notesHref(customerId, active, { limit: active.limit + PAGE_SIZE })}
+            href={notesHref(customerId, active, { limit: nextLimit(active.limit)! })}
             scroll={false}
           >
             {t("loadMore")}

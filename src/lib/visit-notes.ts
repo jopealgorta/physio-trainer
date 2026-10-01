@@ -106,6 +106,11 @@ export function parseNotesParams(params: Params): NotesFilters {
   };
 }
 
+/** The limit "Load more" should link to, or null once the cap is reached (older notes stay reachable through the case filter). */
+export function nextLimit(limit: number): number | null {
+  return limit >= MAX_NOTES_LIMIT ? null : Math.min(MAX_NOTES_LIMIT, limit + PAGE_SIZE);
+}
+
 export function notesHref(
   customerId: string,
   filters: NotesFilters,

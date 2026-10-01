@@ -8,6 +8,7 @@ import {
   excerpt,
   hasSoapContent,
   needsExpand,
+  nextLimit,
   summarize,
   notesHref,
   parseNotesParams,
@@ -132,5 +133,16 @@ describe("summarize", () => {
       text: "abcde…",
     });
     expect(summarize({}, 5)).toBeNull();
+  });
+});
+
+describe("nextLimit", () => {
+  it("adds a page", () => {
+    expect(nextLimit(PAGE_SIZE)).toBe(PAGE_SIZE * 2);
+  });
+
+  it("stops at the cap, so 'Load more' never links to the page it is on", () => {
+    expect(nextLimit(MAX_NOTES_LIMIT - 1)).toBe(MAX_NOTES_LIMIT);
+    expect(nextLimit(MAX_NOTES_LIMIT)).toBeNull();
   });
 });

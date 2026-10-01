@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { draftKey } from "@/lib/visit-notes";
+
 import messages from "../../../messages/en.json";
 
 const refresh = vi.fn();
@@ -124,6 +126,23 @@ describe("VisitNoteCard", () => {
       await user.click(await screen.findByRole("button", { name: "Delete note" }));
       await waitFor(() => expect(deleteNote).toHaveBeenCalledWith("note-1"));
       await waitFor(() => expect(refresh).toHaveBeenCalled());
+    });
+
+    it("removes the note's unsaved edit draft, and only on success", async () => {
+      const user = userEvent.setup();
+      const key = draftKey("cust-1", "note-1");
+      localStorage.setItem(key, "{}");
+      deleteNote.mockResolvedValueOnce({ ok: false, error: "unknown" });
+      setup();
+      await user.click(screen.getByRole("button", { name: "Delete note from Sep 30, 2026" }));
+      await user.click(await screen.findByRole("button", { name: "Delete note" }));
+      await screen.findByRole("alert");
+      expect(localStorage.getItem(key)).not.toBeNull();
+
+      deleteNote.mockResolvedValueOnce({ ok: true, data: null });
+      await user.click(screen.getByRole("button", { name: "Delete note from Sep 30, 2026" }));
+      await user.click(await screen.findByRole("button", { name: "Delete note" }));
+      await waitFor(() => expect(localStorage.getItem(key)).toBeNull());
     });
 
     it("shows an error when the note no longer exists", async () => {

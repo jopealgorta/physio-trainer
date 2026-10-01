@@ -946,7 +946,6 @@
     "create": "Guardar nota",
     "save": "Guardar cambios",
     "saving": "Guardando…",
-    "saved": "Guardado",
     "saveHint": "Apretá Ctrl o ⌘ + Enter para guardar.",
     "draftRestored": "Recuperamos tu borrador sin guardar.",
     "discardDraft": "Descartar borrador",
@@ -965,7 +964,8 @@
       "notFound": "Esta nota ya no existe.",
       "customerNotFound": "Este cliente ya no existe.",
       "caseNotFound": "Ese caso ya no existe o pertenece a otro cliente.",
-      "unknown": "Algo salió mal. Probá de nuevo."
+      "unknown": "Algo salió mal. Probá de nuevo.",
+      "dateInFuture": "La fecha de la visita no puede ser futura."
     }
   },
   "Branding": {
