@@ -929,7 +929,8 @@
         "status": "Estado",
         "exercises": "Ejercicios",
         "week": "Semana",
-        "updated": "Actualizada"
+        "updated": "Actualizada",
+        "actions": "Acciones"
       },
       "empty": {
         "routine": {

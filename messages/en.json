@@ -929,7 +929,8 @@
         "status": "Status",
         "exercises": "Exercises",
         "week": "Week",
-        "updated": "Updated"
+        "updated": "Updated",
+        "actions": "Actions"
       },
       "empty": {
         "routine": {

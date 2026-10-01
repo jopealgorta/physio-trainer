@@ -73,6 +73,12 @@ describe("TemplateList", () => {
     );
   });
 
+  it("names the actions column for screen readers", () => {
+    wrap(<TemplateList kind="routine" rows={routineRows} />);
+    const table = screen.getByRole("table", { name: "Routine templates" });
+    expect(within(table).getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
+  });
+
   it("links plan templates to their board and shows the week strip", () => {
     wrap(<TemplateList kind="plan" rows={planRows} />);
     const table = screen.getByRole("table", { name: "Plan templates" });

@@ -10,7 +10,7 @@ test("a physio renames a routine and a stale tab hits the version conflict", asy
   await expect(page.getByRole("link", { name: "Edith" })).toBeVisible();
 
   // Nothing to save until something changes.
-  const save = page.getByRole("button", { name: "Save" });
+  const save = page.getByRole("button", { name: "Save", exact: true });
   await expect(save).toBeDisabled();
   await name.fill("Week 1 - knee");
   await expect(page.getByTestId("save-status")).toHaveText("Unsaved changes");
@@ -27,14 +27,14 @@ test("a physio renames a routine and a stale tab hits the version conflict", asy
 
   // The second tab still holds the old version: its save loses.
   await other.getByRole("textbox", { name: "Routine name" }).fill("Week 1 - hip");
-  await other.getByRole("button", { name: "Save" }).click();
+  await other.getByRole("button", { name: "Save", exact: true }).click();
   // Next's route announcer is also role=alert, so match on the message.
   const conflict = other.getByRole("alert").filter({ hasText: "changed in another tab" });
   await expect(conflict).toBeVisible();
   await other.getByRole("button", { name: "Reload" }).click();
   await expect(other.getByRole("textbox", { name: "Routine name" })).toHaveValue("Week 1 - knee");
   await expect(conflict).toBeHidden();
-  await expect(other.getByRole("button", { name: "Save" })).toBeDisabled();
+  await expect(other.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
 });
 
 test("leaving with unsaved changes asks first", async ({ physioPage: page }) => {
@@ -61,7 +61,7 @@ test("a blank name is flagged on the field and not sent", async ({ physioPage: p
   await createRoutine(page, "Week 3");
   const name = page.getByRole("textbox", { name: "Routine name" });
   await name.fill("");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Enter a name.")).toBeVisible();
   await expect(name).toHaveAttribute("aria-invalid", "true");
 });

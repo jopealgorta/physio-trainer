@@ -126,7 +126,9 @@ export function TemplateList({
             <th scope="col" className="w-28 py-2 font-medium">
               {t("columns.updated")}
             </th>
-            <th scope="col" className="w-10 py-2" />
+            <th scope="col" className="w-10 py-2">
+              <span className="sr-only">{t("columns.actions")}</span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y">
