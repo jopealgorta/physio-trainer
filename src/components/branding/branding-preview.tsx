@@ -164,7 +164,9 @@ function LinkCardMock({ branding, linkHost }: { branding: Branding; linkHost: st
       <div className="grid gap-1 p-3">
         <p className="text-muted-foreground text-[0.625rem] tracking-wide uppercase">{linkHost}</p>
         <p className="text-sm font-semibold">{t("linkTitle", { clinic: branding.clinicName })}</p>
-        <p className="text-muted-foreground text-xs">{t("linkDescription")}</p>
+        <p className="text-muted-foreground text-xs">
+          {t("linkDescription", { clinic: branding.clinicName })}
+        </p>
       </div>
     </div>
   );

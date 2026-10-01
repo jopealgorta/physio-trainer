@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SLUG_MAX } from "@/lib/share-links";
-import type { ShareError, ShareState } from "@/server/sharing/schemas";
+import type { ShareError, SharePreview, ShareState } from "@/server/sharing/schemas";
 
 import { QrCode } from "./qr-code";
 
@@ -144,6 +144,8 @@ export function ShareLinkPanel({
             </div>
           </div>
 
+          {state.preview ? <LinkCard preview={state.preview} /> : null}
+
           <QrCode
             size={link.qr.size}
             path={link.qr.path}
@@ -229,6 +231,38 @@ export function ShareLinkPanel({
         </Alert>
       ) : null}
     </div>
+  );
+}
+
+/** How chat apps unfurl the link (spec 11): the real image, then the title and description. */
+function LinkCard({ preview }: { preview: SharePreview }) {
+  const t = useTranslations("Sharing.linkCard");
+  const id = useId();
+  return (
+    <figure role="group" aria-labelledby={id} className="grid gap-1.5">
+      <figcaption id={id} className="text-sm font-medium">
+        {t("label")}
+      </figcaption>
+      <div className="bg-background overflow-hidden rounded-lg border">
+        {/* eslint-disable-next-line @next/next/no-img-element -- same-origin generated PNG; next/image would re-encode it. */}
+        <img
+          src={preview.imagePath}
+          alt={t("imageAlt")}
+          width={1200}
+          height={630}
+          loading="lazy"
+          className="bg-muted aspect-[1200/630] w-full object-cover"
+        />
+        <div className="grid gap-0.5 p-2.5">
+          <p className="text-muted-foreground text-[0.625rem] tracking-wide uppercase">
+            {preview.host}
+          </p>
+          <p className="text-sm font-semibold">{preview.title}</p>
+          <p className="text-muted-foreground text-xs">{preview.description}</p>
+        </div>
+      </div>
+      <p className="text-muted-foreground text-xs">{t("hint")}</p>
+    </figure>
   );
 }
 

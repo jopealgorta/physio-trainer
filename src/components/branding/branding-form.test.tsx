@@ -132,7 +132,7 @@ describe("BrandingForm", () => {
     expect(within(patientPage()).getByText("Kine Sur")).toBeInTheDocument();
     expect(
       within(screen.getByRole("figure", { name: "Shared link" })).getByText(
-        "Your exercises from Kine Sur",
+        "Your exercise plan · Kine Sur",
       ),
     ).toBeInTheDocument();
 

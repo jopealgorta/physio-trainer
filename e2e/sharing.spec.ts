@@ -38,7 +38,7 @@ test.describe("patient page", () => {
 
     const response = await page.goto(link.path);
     expect(response?.status()).toBe(200);
-    await expect(page).toHaveTitle("Maria Physio");
+    await expect(page).toHaveTitle("Your exercise plan · Maria Physio");
     await expect(page.getByRole("heading", { level: 1, name: "Hi Ana" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
     await expect(page.getByText("Morning")).toBeVisible();

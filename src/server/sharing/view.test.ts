@@ -109,6 +109,25 @@ describe("toShareState", () => {
     expect(state.mailtoHref.startsWith("mailto:?subject=")).toBe(true);
   });
 
+  it("describes the card the link unfurls into, with a versioned image path", () => {
+    const preview = { title: "Your exercise plan · Maria", description: "Open it.", version: "v9" };
+    const state = toShareState(link(), context(), "https://app.example", message, NOW, preview);
+    expect(state.preview).toEqual({
+      imagePath: "/maria-lopez/ana-7k2m9qpx/og?v=v9",
+      title: "Your exercise plan · Maria",
+      description: "Open it.",
+      host: "app.example",
+    });
+  });
+
+  it("has no preview for a revoked link or without a link", () => {
+    const preview = { title: "t", description: "d", version: "v" };
+    const revoked = link({ revokedAt: NOW });
+    expect(toShareState(revoked, context(), "https://a", message, NOW, preview).preview).toBeNull();
+    expect(toShareState(null, context(), "https://a", message, NOW, preview).preview).toBeNull();
+    expect(toShareState(link(), context(), "https://a", message, NOW).preview).toBeNull();
+  });
+
   it("has no link yet when there is none", () => {
     expect(toShareState(null, context(), "https://a", message, NOW).link).toBeNull();
   });

@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { env } from "@/env";
 import { resolveLocale } from "@/i18n/config";
 import { withPhysio } from "@/server/auth/session";
+import { previewVersion } from "@/lib/link-preview";
 import { getBranding } from "@/server/branding/queries";
 
 import {
@@ -26,22 +27,42 @@ import {
 import { toShareState } from "./view";
 import type { ShareLink } from "@/db/schema";
 
-type Loaded = { link: ShareLink; context: ShareContext; clinicName: string };
+type Loaded = {
+  link: ShareLink;
+  context: ShareContext;
+  clinicName: string;
+  /** `physios.updated_at`: the link-preview image URL changes with it. */
+  brandingUpdatedAt: Date;
+};
 type Outcome<T> = Result<T, ShareError>;
 
 const appUrl = () => env.NEXT_PUBLIC_APP_URL;
 
 /** Share message in the customer's language; `{url}` is filled in by `toShareState`. */
-async function stateOf({ link, context, clinicName }: Loaded): Promise<ShareState> {
-  const t = await getTranslations({
-    locale: resolveLocale(context.customer.locale),
-    namespace: "Sharing.message",
-  });
+async function stateOf({
+  link,
+  context,
+  clinicName,
+  brandingUpdatedAt,
+}: Loaded): Promise<ShareState> {
+  const locale = resolveLocale(context.customer.locale);
+  const [t, meta] = await Promise.all([
+    getTranslations({ locale, namespace: "Sharing.message" }),
+    getTranslations({ locale, namespace: "Patient.meta" }),
+  ]);
   const values = { name: context.customer.firstName, clinic: clinicName, url: "{url}" };
-  return toShareState(link, context, appUrl(), {
-    subject: t("subject", values),
-    body: t("body", values),
-  });
+  return toShareState(
+    link,
+    context,
+    appUrl(),
+    { subject: t("subject", values), body: t("body", values) },
+    new Date(),
+    {
+      title: meta("title", { clinic: clinicName }),
+      description: meta("description", { clinic: clinicName }),
+      version: previewVersion(brandingUpdatedAt),
+    },
+  );
 }
 
 /** Runs a mutation under the physio's session and adds the clinic name the message needs. */
@@ -54,7 +75,11 @@ async function run(
     const branding = await getBranding(tx, physioId);
     return {
       ok: true,
-      data: { ...outcome.data, clinicName: branding?.clinicName ?? "" },
+      data: {
+        ...outcome.data,
+        clinicName: branding?.clinicName ?? "",
+        brandingUpdatedAt: branding?.updatedAt ?? new Date(0),
+      },
     } as const;
   });
   return result.ok ? { ok: true, data: await stateOf(result.data) } : result;

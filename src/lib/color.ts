@@ -46,6 +46,11 @@ function rgbToHex(rgb: Rgb): string {
     .join("")}`;
 }
 
+/** `hex` at `amount` (0–1) opacity over white, as a hex colour: a soft tint of an accent. */
+export function mixOnWhite(hex: string, amount: number): string {
+  return rgbToHex(hexToRgb(hex).map((v) => 255 - (255 - v) * amount) as Rgb);
+}
+
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 const fromLinear = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
 
