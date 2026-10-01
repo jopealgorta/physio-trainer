@@ -103,6 +103,8 @@ export async function saveRoutine(
   if (routine.version !== input.version) return fail("conflict");
 
   if (input.caseId !== null) {
+    // Templates (no customer) never have a case.
+    if (routine.customerId === null) return fail("caseNotFound");
     const [kase] = await tx
       .select({ id: cases.id })
       .from(cases)

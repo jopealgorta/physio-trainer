@@ -47,17 +47,21 @@ const physioId = () =>
 /**
  * A routine (spec 05). References are composite (physio_id, …) so a row can never point at
  * another physio's row (FK checks bypass RLS). routines_case_fk (case must belong to the
- * customer, ON DELETE SET NULL (case_id)) lives in the custom migration.
+ * customer, ON DELETE SET NULL (case_id)) and routines_source_template_fk (provenance of a
+ * copy, ON DELETE SET NULL (source_template_id)) live in the custom migrations.
+ * customer_id is null only for templates (spec 07).
  */
 export const routines = pgTable(
   "routines",
   {
     id: uuid().primaryKey().defaultRandom(),
     physioId: physioId(),
-    customerId: uuid().notNull(),
+    customerId: uuid(),
     caseId: uuid(),
     name: text().notNull(),
     notes: text(),
+    isTemplate: boolean().notNull().default(false),
+    sourceTemplateId: uuid(),
     isStandalone: boolean().notNull().default(true),
     sessionsPerWeek: smallint(),
     sessionsPerDay: smallint(),
@@ -67,12 +71,17 @@ export const routines = pgTable(
   },
   (t) => [
     unique("routines_physio_id_id_unique").on(t.physioId, t.id),
+    // A NULL customer_id skips this FK (templates).
     foreignKey({
       name: "routines_customer_fk",
       columns: [t.physioId, t.customerId],
       foreignColumns: [customers.physioId, customers.id],
     }).onDelete("cascade"),
     index("routines_customer_idx").on(t.physioId, t.customerId, t.status),
+    index("routines_template_idx").on(t.physioId, t.isTemplate, t.status),
+    check("routines_template_customer", sql`${t.isTemplate} = (${t.customerId} is null)`),
+    check("routines_template_not_draft", sql`not ${t.isTemplate} or ${t.status} <> 'draft'`),
+    check("routines_case_needs_customer", sql`${t.caseId} is null or ${t.customerId} is not null`),
     check(
       "routines_name_length",
       sql`char_length(${t.name}) between 1 and ${sql.raw(String(ROUTINE_NAME_MAX))}`,

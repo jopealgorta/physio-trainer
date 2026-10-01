@@ -58,7 +58,8 @@ export async function listRoutines(
       id: routines.id,
       name: routines.name,
       status: routines.status,
-      customerId: routines.customerId,
+      // From the inner join: routines.customerId is null only for templates (spec 07).
+      customerId: customers.id,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       caseTitle: cases.title,
@@ -114,7 +115,8 @@ export async function getRoutine(
     .select({
       id: routines.id,
       version: routines.version,
-      customerId: routines.customerId,
+      // From the inner join: routines.customerId is null only for templates (spec 07).
+      customerId: customers.id,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       name: routines.name,

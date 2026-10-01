@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   foreignKey,
   index,
@@ -38,8 +39,9 @@ const physioId = () =>
 
 /**
  * A weekly plan (spec 06): a repeating Monday–Sunday template. customer_id is null only for
- * templates (spec 07). plans_case_fk (case must belong to the customer, ON DELETE SET NULL
- * (case_id)) lives in the custom migration.
+ * templates (spec 07). weekly_plans_case_fk (case must belong to the customer, ON DELETE SET
+ * NULL (case_id)) and weekly_plans_source_template_fk (provenance of a copy, ON DELETE SET NULL
+ * (source_template_id)) live in the custom migrations.
  */
 export const weeklyPlans = pgTable(
   "weekly_plans",
@@ -50,6 +52,8 @@ export const weeklyPlans = pgTable(
     caseId: uuid(),
     name: text().notNull(),
     notes: text(),
+    isTemplate: boolean().notNull().default(false),
+    sourceTemplateId: uuid(),
     status: routineStatusEnum().notNull().default("draft"),
     version: integer().notNull().default(1),
     ...timestamps,
@@ -63,6 +67,9 @@ export const weeklyPlans = pgTable(
       foreignColumns: [customers.physioId, customers.id],
     }).onDelete("cascade"),
     index("weekly_plans_customer_idx").on(t.physioId, t.customerId, t.status),
+    index("weekly_plans_template_idx").on(t.physioId, t.isTemplate, t.status),
+    check("weekly_plans_template_customer", sql`${t.isTemplate} = (${t.customerId} is null)`),
+    check("weekly_plans_template_not_draft", sql`not ${t.isTemplate} or ${t.status} <> 'draft'`),
     check(
       "weekly_plans_name_length",
       sql`char_length(${t.name}) between 1 and ${sql.raw(String(PLAN_NAME_MAX))}`,
