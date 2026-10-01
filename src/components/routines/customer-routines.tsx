@@ -1,5 +1,8 @@
 import { getTranslations } from "next-intl/server";
 
+import { PhaseTimeline } from "@/components/phases/phase-timeline";
+import { todayIn } from "@/lib/calendar-date";
+import { groupByChain } from "@/lib/phases";
 import { DEFAULT_ROUTINE_FILTERS } from "@/lib/routine-params";
 import { withPhysio } from "@/server/auth/session";
 import { listRoutines } from "@/server/routines/queries";
@@ -27,6 +30,10 @@ export async function CustomerRoutines({
   const { routines } = await withPhysio((tx, physioId) =>
     listRoutines(tx, physioId, { ...DEFAULT_ROUTINE_FILTERS, customerId }),
   );
+  // Phases that continue one another read as a timeline; everything else stays in the list.
+  const chains = groupByChain(routines);
+  const timelines = chains.filter((chain) => chain.length > 1);
+  const singles = chains.filter((chain) => chain.length === 1).flat();
   const dialog = archived ? null : (
     <div className="flex flex-wrap items-center gap-2">
       <TemplatePickerDialog
@@ -46,9 +53,12 @@ export async function CustomerRoutines({
         </h2>
         {dialog}
       </div>
-      {routines.length > 0 ? (
-        <RoutineList routines={routines} showCustomer={false} timeZone={timeZone} />
-      ) : (
+      {timelines.map((chain) => (
+        <PhaseTimeline key={chain[0].id} kind="routine" items={chain} today={todayIn(timeZone)} />
+      ))}
+      {singles.length > 0 ? (
+        <RoutineList routines={singles} showCustomer={false} timeZone={timeZone} />
+      ) : routines.length > 0 ? null : (
         <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
           {t("customerTab.empty", { name: customerName })}
         </p>

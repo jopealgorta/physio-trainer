@@ -10,11 +10,15 @@ import { CustomerTabs } from "@/components/customers/customer-tabs";
 import { TabEmpty } from "@/components/customers/tab-empty";
 import { CustomerPlans } from "@/components/plans/customer-plans";
 import { CustomerRoutines } from "@/components/routines/customer-routines";
+import { CustomerNotes } from "@/components/visit-notes/customer-notes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ageInYears, todayIn } from "@/lib/calendar-date";
 import { customerName, parseCustomerTab } from "@/lib/customers";
 import { firstParam } from "@/lib/search-params";
+import { parseNotesParams } from "@/lib/visit-notes";
+import { withPhysio } from "@/server/auth/session";
 import { loadCustomer } from "@/server/customers/load";
+import { latestVisitNote } from "@/server/visit-notes/queries";
 
 export async function generateMetadata({
   params,
@@ -38,6 +42,12 @@ export default async function CustomerPage({
   const t = await getTranslations("Customers");
 
   const age = customer.dateOfBirth ? ageInYears(customer.dateOfBirth, timezone) : null;
+  const name = customerName(customer.firstName, customer.lastName);
+  const caseOptions = customer.cases.map(({ id, title }) => ({ id, title }));
+  const latestNote =
+    tab === "overview"
+      ? await withPhysio((tx, physioId) => latestVisitNote(tx, physioId, customer.id))
+      : null;
 
   return (
     <div className="grid gap-6">
@@ -58,22 +68,31 @@ export default async function CustomerPage({
       ) : null}
       <CustomerTabs customerId={customer.id} active={tab} />
       {tab === "overview" ? (
-        <CustomerOverview customer={customer} today={todayIn(timezone)} />
+        <CustomerOverview customer={customer} today={todayIn(timezone)} latestNote={latestNote} />
       ) : tab === "routines" ? (
         <CustomerRoutines
           customerId={customer.id}
-          customerName={customerName(customer.firstName, customer.lastName)}
-          cases={customer.cases.map(({ id, title }) => ({ id, title }))}
+          customerName={name}
+          cases={caseOptions}
           archived={customer.archivedAt !== null}
           timeZone={timezone}
         />
       ) : tab === "plans" ? (
         <CustomerPlans
           customerId={customer.id}
-          customerName={customerName(customer.firstName, customer.lastName)}
-          cases={customer.cases.map(({ id, title }) => ({ id, title }))}
+          customerName={name}
+          cases={caseOptions}
           archived={customer.archivedAt !== null}
           timeZone={timezone}
+        />
+      ) : tab === "notes" ? (
+        <CustomerNotes
+          customerId={customer.id}
+          customerName={name}
+          cases={caseOptions}
+          today={todayIn(timezone)}
+          timeZone={timezone}
+          filters={parseNotesParams(sp)}
         />
       ) : (
         <TabEmpty tab={tab} />

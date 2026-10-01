@@ -1,6 +1,6 @@
 # 08 · Phases and progression
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** B (duplicate / progress routine)
 - **Depends on:** 05, 06
 
@@ -78,10 +78,10 @@ Namespace `Phases`. Date ranges via `Intl.DateTimeFormat.formatRange`.
 
 ## Acceptance criteria
 
-- [ ] Date window and label editable on routines and plans; validation of ranges.
-- [ ] "Copy into next phase" works for routines and plans (deep copy for plans), links `previous_id`.
-- [ ] `isActiveOn` helper exhaustively unit-tested (timezone boundaries included) and used by later specs.
-- [ ] Customer timeline shows past/current/upcoming phases.
+- [x] Date window and label editable on routines and plans; validation of ranges.
+- [x] "Copy into next phase" works for routines and plans (deep copy for plans), links `previous_id`.
+- [x] `isActiveOn` helper exhaustively unit-tested (timezone boundaries included) and used by later specs.
+- [x] Customer timeline shows past/current/upcoming phases.
 
 ## Test plan
 
@@ -92,7 +92,56 @@ Namespace `Phases`. Date ranges via `Intl.DateTimeFormat.formatRange`.
 ## Open questions
 
 1. Should the patient see upcoming phases ("Starts Monday"), or only what's active today?
+   **Answer (2026-10-01):** only what is active today. When nothing is active, the empty state
+   shows the next start date ("Next phase starts Mon 6 Oct"); nothing about a future phase's
+   content is exposed. `nextStart(items, date)` in `src/lib/schedule.ts` provides that date for
+   spec 10.
+2. (Raised while designing) Do routines inside a plan get their own window and label?
+   **Answer:** no. Phase fields are editable only on plans and on standalone routines; a routine
+   inside a plan is active when its plan is.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Schedule helpers.** `src/lib/schedule.ts` has `scheduleState(item, date)` (`active | upcoming
+| ended | inactive`; draft and archived are always `inactive`), `isActiveOn`, `scheduleStateNow`
+  (the day in a time zone) and `nextStart`. `src/server/schedule/active.ts` has the SQL twin
+  `scheduleFilter(table, state, date)` and `physioToday(tx, physioId)`; an integration test checks
+  the two agree for every status and bound combination. Later specs (10, 13, 14) must use these,
+  never their own date comparisons.
+- **Editing the window is its own action** (`setPhaseAction`, in `src/server/phases/`), not part of
+  `saveRoutine`/`updatePlan`. It does not bump `version`, so an open editor or board is never made
+  stale by it (and window edits are not versioned for spec 15). The popover saves on its own, like
+  the plan board's actions.
+- **Plan-owned routines carry no phase.** The phase bar is hidden for a non-standalone routine and
+  `setPhase`/`copyIntoNextPhase` refuse it (`notStandalone`). A standalone routine that is later
+  made plan-only keeps its stored window, which is ignored. Templates (plans with no customer)
+  refuse phases (`needsCustomer`); spec 07 must keep phases off templates when it relaxes
+  `routines.customer_id`.
+- **Copy details.** The copy keeps the source's name (the label tells phases apart). It is
+  `active` only when its source is active and activatable (routine: has exercises; plan: has
+  entries and none is archived), otherwise a `draft`; a draft or archived source is not touched
+  by "end the current phase". Routines deep-copied for a plan copy are non-standalone, have no
+  phase fields and keep their source status; a routine shared by several entries stays shared in
+  the copy. They are not linked with `previous_id` (only plans and standalone routines form
+  chains). The predecessor's `ends_on` becomes the day before the new start only when empty or
+  later; a start on or before the predecessor's own start is refused (`startBeforePredecessor`),
+  and nothing is written.
+- **Overlap warning** is a pure `previewNextPhase` (also computes the refusal above) so the dialog
+  can show it before submitting. Only an active current phase can overlap or be ended: a draft or
+  archived one is never shown to the patient. When the current phase has not started yet, the
+  default start is the day after its start.
+- **Default label** is "Phase N+1" where N is the number after "phase"/"fase" in the current label
+  (else 2). The phase bar also shows the status badge of a draft or archived item.
+- **Chains.** `groupByChain` groups by `previous_id` links; branches (two successors) are allowed
+  and ordered by start date. Chains of two or more render as a timeline in the customer's
+  Routines/Plans tabs and leave the flat list; single items stay in the list. Lists show the label,
+  dates and an Ended badge for active items past their end.
+- **Popover primitive.** shadcn's registry was unreachable, so `src/components/ui/popover.tsx` was
+  written by hand in the same style.
+- **Typecheck.** Adding the `Phases` messages pushed an unrelated all-namespaces `t` prop type in
+  `category-manager.tsx` over TypeScript's instantiation-depth limit; it is now typed to its
+  namespace.
+- **Verification environment.** No Docker daemon here, so integration and e2e ran against a local
+  Postgres 16 with stubbed `auth`/`storage` schemas and a small fake GoTrue (create/delete user,
+  magic link, session). The branding suites and one RLS test that need real Auth/Storage could
+  not run; CI runs them against real Supabase.

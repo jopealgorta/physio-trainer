@@ -4,15 +4,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { PhaseBar } from "@/components/phases/phase-bar";
 import { RoutineEditor } from "@/components/routines/routine-editor";
 import { FromTemplate } from "@/components/templates/from-template";
 import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-dialog";
 import { TemplateActions } from "@/components/templates/template-actions";
+import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
 import { DEFAULT_LIBRARY_FILTERS } from "@/lib/library-params";
 import { fromLoaded } from "@/lib/routine-editor";
 import { firstParam } from "@/lib/search-params";
-import { withPhysio } from "@/server/auth/session";
+import { requirePhysio, withPhysio } from "@/server/auth/session";
 import { listCategoryTree, listExercises } from "@/server/library/queries";
 import { idSchema } from "@/server/routines/schemas";
 import { loadRoutine } from "@/server/routines/load";
@@ -38,6 +40,7 @@ export default async function RoutinePage({
   const routine = await loadRoutine(routineId);
   if (!routine) notFound();
   const t = await getTranslations("Routines.editor");
+  const { profile } = await requirePhysio();
 
   const { categories, recent, exercises, customers } = await withPhysio(async (tx, physioId) => {
     const [tree, recentlyUsed, initial, assignable] = await Promise.all([
@@ -95,6 +98,18 @@ export default async function RoutinePage({
           <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
         </div>
       )}
+      {/* Phases belong to a customer's routine, not to a template. */}
+      {routine.isStandalone && !routine.isTemplate ? (
+        <PhaseBar
+          kind="routine"
+          id={routine.id}
+          status={routine.status}
+          phaseLabel={routine.phaseLabel}
+          startsOn={routine.startsOn}
+          endsOn={routine.endsOn}
+          today={todayIn(profile.timezone)}
+        />
+      ) : null}
       <RoutineEditor
         routine={{
           id: routine.id,

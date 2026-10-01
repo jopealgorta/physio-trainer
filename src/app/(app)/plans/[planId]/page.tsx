@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { PhaseBar } from "@/components/phases/phase-bar";
 import { PlanBoard } from "@/components/plans/plan-board";
 import { PlanDetailsForm } from "@/components/plans/plan-details-form";
 import { StatusBadge } from "@/components/routines/status-badge";
@@ -11,8 +12,9 @@ import { FromTemplate } from "@/components/templates/from-template";
 import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-dialog";
 import { TemplateActions } from "@/components/templates/template-actions";
 import { TemplateBadge } from "@/components/templates/template-badge";
+import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
-import { withPhysio } from "@/server/auth/session";
+import { requirePhysio, withPhysio } from "@/server/auth/session";
 import { loadPlan } from "@/server/plans/load";
 import { listAssignableCustomers } from "@/server/templates/queries";
 
@@ -30,6 +32,7 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
   if (!loaded) notFound();
   const { plan, routines } = loaded;
   const t = await getTranslations("Plans.board");
+  const { profile } = await requirePhysio();
 
   const owner = plan.customerFirstName
     ? customerName(plan.customerFirstName, plan.customerLastName)
@@ -74,6 +77,17 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
           <SaveAsTemplateDialog kind="plan" sourceId={plan.id} defaultName={plan.name} />
         </div>
       )}
+      {plan.customerId ? (
+        <PhaseBar
+          kind="plan"
+          id={plan.id}
+          status={plan.status}
+          phaseLabel={plan.phaseLabel}
+          startsOn={plan.startsOn}
+          endsOn={plan.endsOn}
+          today={todayIn(profile.timezone)}
+        />
+      ) : null}
       <PlanDetailsForm
         planId={plan.id}
         initial={{

@@ -1,5 +1,8 @@
 import { getTranslations } from "next-intl/server";
 
+import { PhaseTimeline } from "@/components/phases/phase-timeline";
+import { todayIn } from "@/lib/calendar-date";
+import { groupByChain } from "@/lib/phases";
 import { DEFAULT_PLAN_FILTERS } from "@/lib/plan-params";
 import { withPhysio } from "@/server/auth/session";
 import { listPlans } from "@/server/plans/queries";
@@ -27,6 +30,10 @@ export async function CustomerPlans({
   const { plans } = await withPhysio((tx, physioId) =>
     listPlans(tx, physioId, { ...DEFAULT_PLAN_FILTERS, customerId }),
   );
+  // Phases that continue one another read as a timeline; everything else stays in the list.
+  const chains = groupByChain(plans);
+  const timelines = chains.filter((chain) => chain.length > 1);
+  const singles = chains.filter((chain) => chain.length === 1).flat();
   const dialog = archived ? null : (
     <div className="flex flex-wrap items-center gap-2">
       <TemplatePickerDialog
@@ -46,9 +53,12 @@ export async function CustomerPlans({
         </h2>
         {dialog}
       </div>
-      {plans.length > 0 ? (
-        <PlanList plans={plans} showCustomer={false} timeZone={timeZone} />
-      ) : (
+      {timelines.map((chain) => (
+        <PhaseTimeline key={chain[0].id} kind="plan" items={chain} today={todayIn(timeZone)} />
+      ))}
+      {singles.length > 0 ? (
+        <PlanList plans={singles} showCustomer={false} timeZone={timeZone} />
+      ) : plans.length > 0 ? null : (
         <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
           {t("customerTab.empty", { name: customerName })}
         </p>

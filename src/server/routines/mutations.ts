@@ -217,6 +217,13 @@ export type RoutineCopyTarget = {
   status: RoutineStatus;
   isTemplate: boolean;
   sourceTemplateId: string | null;
+  /** Phase fields of the copy (spec 08); omitted = none, the source's are not carried over. */
+  phase?: {
+    phaseLabel: string | null;
+    startsOn: string | null;
+    endsOn: string | null;
+    previousId: string;
+  };
 };
 
 /**
@@ -255,6 +262,7 @@ export async function copyRoutine(
       sessionsPerWeek: source.sessionsPerWeek,
       sessionsPerDay: source.sessionsPerDay,
       status: to.status,
+      ...to.phase,
     })
     .returning({ id: routines.id });
 
@@ -323,13 +331,19 @@ export async function copyRoutine(
 
 /**
  * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
- * status and customer. Used by "Make a separate copy" on a weekly plan (spec 06).
+ * status and customer. Phase fields are not carried over unless `options.phase` sets them. Used by
+ * "Make a separate copy" on a weekly plan (spec 06) and by "Copy into next phase" (spec 08).
  */
 export function duplicateRoutine(
   tx: Tx,
   physioId: string,
   sourceId: string,
-  options: { name: string; isStandalone: boolean; status?: RoutineStatus },
+  options: {
+    name: string;
+    isStandalone: boolean;
+    status?: RoutineStatus;
+    phase?: RoutineCopyTarget["phase"];
+  },
 ): Promise<Result<{ id: string }, "notFound">> {
   return copyRoutine(tx, physioId, sourceId, (source) => ({
     name: options.name,
@@ -339,5 +353,6 @@ export function duplicateRoutine(
     status: options.status ?? source.status,
     isTemplate: source.isTemplate,
     sourceTemplateId: source.sourceTemplateId,
+    phase: options.phase,
   }));
 }

@@ -18,7 +18,7 @@ feature list agreed in the initial brainstorm.
 | 05  | [Routines](./05-routines.md)                                           | Core    | 03, 04           | Done        |
 | 06  | [Weekly plans](./06-weekly-plans.md)                                   | Core    | 05               | Done        |
 | 07  | [Templates](./07-templates.md)                                         | A       | 05, 06           | Done        |
-| 08  | [Phases and progression](./08-phases-and-progression.md)               | B       | 05, 06           | Not started |
+| 08  | [Phases and progression](./08-phases-and-progression.md)               | B       | 05, 06           | Done        |
 | 09  | [Physio branding](./09-physio-branding.md)                             | F       | 01               | Done        |
 | 10  | [Sharing and patient page](./10-sharing-and-patient-page.md)           | Core    | 05, 06, 08, 09   | Not started |
 | 11  | [Link previews](./11-link-previews.md)                                 | E       | 09, 10           | Not started |
@@ -26,7 +26,7 @@ feature list agreed in the initial brainstorm.
 | 13  | [Session logging and dashboard](./13-session-logging-and-dashboard.md) | D       | 10 (12 optional) | Not started |
 | 14  | [PDF and Excel export](./14-export-pdf-and-excel.md)                   | Core    | 05, 06, 09, 10   | Not started |
 | 15  | [Version history](./15-version-history.md)                             | I       | 05, 06           | Not started |
-| 16  | [Visit notes](./16-visit-notes.md)                                     | J       | 04               | Not started |
+| 16  | [Visit notes](./16-visit-notes.md)                                     | J       | 04               | Done        |
 | 17  | [Spanish locale](./17-spanish-locale.md)                               | Core    | 01               | Done        |
 | 18  | [Installable physio app (PWA)](./18-pwa.md)                            | Core    | 01, 17           | Done        |
 

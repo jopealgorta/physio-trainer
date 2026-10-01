@@ -91,6 +91,8 @@ Answered 2026-10-01:
 
 ## Decisions made during implementation
 
+- **Migrations** were regenerated on top of `main` after specs 08 and 16 landed, so the templates
+  migrations come last in the history (`…_templates`, `…_templates-extras`).
 - **Data model.** A template is a `routines`/`weekly_plans` row with `customer_id is null`
   (`customer_id` became nullable; `is_template = (customer_id is null)` is a check, as are "no draft
   status" and, for routines, "a case needs a customer"). `source_template_id` is a composite
@@ -133,6 +135,10 @@ Answered 2026-10-01:
   template routine, other plans' private ones included, exactly like customer plans list all of the
   customer's routines (spec 06); sharing a routine between plans is the intended behaviour there.
 - **Template list URLs** drop `status=draft` on the templates tab (nothing there is a draft).
+- **Phases (spec 08).** Templates carry no phase window: `setPhase` and "copy into next phase"
+  refuse a standalone template routine with `needsCustomer`, like they already did for a template
+  plan, and the editors show no phase bar on templates. `duplicateRoutine` keeps spec 08's `phase`
+  option and passes it through `copyRoutine`'s target.
 - **Typecheck depth.** Adding messages tipped `category-manager.tsx` over TypeScript's instantiation
   depth limit (its `t` prop was typed without a namespace, so every call was checked against all
   message keys); the prop is now typed `useTranslations<"Library.categories">`.

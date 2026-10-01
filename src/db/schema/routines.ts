@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -16,6 +17,7 @@ import {
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 
 // Relative imports: drizzle-kit loads the schema without the "@/" alias.
+import { PHASE_LABEL_MAX } from "../../lib/phases";
 import { PRESCRIPTION_LIMITS } from "../../lib/prescription";
 import { ROUTINE_NAME_MAX, ROUTINE_NOTES_MAX } from "../../lib/routines";
 import { timestamps } from "./_columns";
@@ -67,6 +69,12 @@ export const routines = pgTable(
     sessionsPerDay: smallint(),
     status: routineStatusEnum().notNull().default("draft"),
     version: integer().notNull().default(1),
+    // Phases (spec 08). routines_previous_fk (ON DELETE SET NULL (previous_id)) lives in the
+    // custom migration; the copy mutation only links a clone to its own source.
+    phaseLabel: text(),
+    startsOn: date({ mode: "string" }),
+    endsOn: date({ mode: "string" }),
+    previousId: uuid(),
     ...timestamps,
   },
   (t) => [
@@ -93,6 +101,13 @@ export const routines = pgTable(
     check("routines_sessions_per_week", sql`${t.sessionsPerWeek} between 1 and 14`),
     check("routines_sessions_per_day", sql`${t.sessionsPerDay} between 1 and 5`),
     check("routines_version_positive", sql`${t.version} >= 1`),
+    check(
+      "routines_phase_label_length",
+      sql`char_length(${t.phaseLabel}) between 1 and ${sql.raw(String(PHASE_LABEL_MAX))}`,
+    ),
+    check("routines_phase_window", sql`${t.endsOn} >= ${t.startsOn}`),
+    check("routines_previous_not_self", sql`${t.previousId} <> ${t.id}`),
+    index("routines_previous_idx").on(t.physioId, t.previousId),
     ownRows("routines_own", t.physioId),
   ],
 );

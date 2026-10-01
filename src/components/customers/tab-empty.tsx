@@ -7,7 +7,7 @@ import type { CustomerTab } from "@/lib/customers";
 export function TabEmpty({
   tab,
 }: {
-  tab: Exclude<CustomerTab, "overview" | "routines" | "plans">;
+  tab: Exclude<CustomerTab, "overview" | "routines" | "plans" | "notes">;
 }) {
   const t = useTranslations("Customers.tabEmpty");
   return (

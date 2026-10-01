@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -16,6 +17,7 @@ import {
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 
 // Relative imports: drizzle-kit loads the schema without the "@/" alias.
+import { PHASE_LABEL_MAX } from "../../lib/phases";
 import { ENTRY_LABEL_MAX, PLAN_NAME_MAX, PLAN_NOTES_MAX } from "../../lib/plans";
 import { timestamps } from "./_columns";
 import { customers } from "./customers";
@@ -56,6 +58,11 @@ export const weeklyPlans = pgTable(
     sourceTemplateId: uuid(),
     status: routineStatusEnum().notNull().default("draft"),
     version: integer().notNull().default(1),
+    // Phases (spec 08). plans_previous_fk lives in the custom migration.
+    phaseLabel: text(),
+    startsOn: date({ mode: "string" }),
+    endsOn: date({ mode: "string" }),
+    previousId: uuid(),
     ...timestamps,
   },
   (t) => [
@@ -79,6 +86,13 @@ export const weeklyPlans = pgTable(
       sql`char_length(${t.notes}) <= ${sql.raw(String(PLAN_NOTES_MAX))}`,
     ),
     check("weekly_plans_version_positive", sql`${t.version} >= 1`),
+    check(
+      "weekly_plans_phase_label_length",
+      sql`char_length(${t.phaseLabel}) between 1 and ${sql.raw(String(PHASE_LABEL_MAX))}`,
+    ),
+    check("weekly_plans_phase_window", sql`${t.endsOn} >= ${t.startsOn}`),
+    check("weekly_plans_previous_not_self", sql`${t.previousId} <> ${t.id}`),
+    index("weekly_plans_previous_idx").on(t.physioId, t.previousId),
     ownRows("weekly_plans_own", t.physioId),
   ],
 );

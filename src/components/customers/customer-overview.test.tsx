@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Case } from "@/db/schema";
+import type { LatestNoteView } from "@/components/visit-notes/latest-note";
 import type { CustomerDetail } from "@/server/customers/queries";
 
 import messages from "../../../messages/en.json";
@@ -56,10 +57,14 @@ const baseCase: Case = {
   updatedAt: new Date("2026-03-01T00:00:00Z"),
 };
 
-function setup(overrides: Partial<CustomerDetail> = {}) {
+function setup(overrides: Partial<CustomerDetail> = {}, latestNote: LatestNoteView | null = null) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CustomerOverview customer={{ ...customer, ...overrides }} today="2026-05-20" />
+      <CustomerOverview
+        customer={{ ...customer, ...overrides }}
+        today="2026-05-20"
+        latestNote={latestNote}
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -206,6 +211,35 @@ describe("CustomerOverview", () => {
       });
       expect(screen.getByText("No open cases")).toBeInTheDocument();
       expect(screen.getByText("Closed cases")).toBeInTheDocument();
+    });
+  });
+
+  describe("latest visit note", () => {
+    it("shows the date and assessment excerpt with a link to all notes", () => {
+      setup(
+        {},
+        {
+          visitedOn: "2026-05-18",
+          subjective: "Knee pain",
+          objective: null,
+          assessment: "Improving steadily",
+          plan: null,
+        },
+      );
+      const section = screen.getByRole("region", { name: "Latest visit note" });
+      expect(within(section).getByText("Visit on May 18, 2026")).toBeInTheDocument();
+      expect(within(section).getByText("Improving steadily")).toBeInTheDocument();
+      expect(within(section).getByRole("link", { name: "View all notes" })).toHaveAttribute(
+        "href",
+        "/customers/c1?tab=notes",
+      );
+    });
+
+    it("shows an empty hint when there are no notes", () => {
+      setup();
+      const section = screen.getByRole("region", { name: "Latest visit note" });
+      expect(within(section).getByText("No visit notes yet.")).toBeInTheDocument();
+      expect(within(section).queryByRole("link")).not.toBeInTheDocument();
     });
   });
 });
