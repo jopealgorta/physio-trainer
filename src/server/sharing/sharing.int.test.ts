@@ -124,7 +124,11 @@ describe("share links (physio side)", () => {
 
     it("is not found for another physio's customer, a template plan or a malformed id", async () => {
       const theirs = await insertCustomer(b.id);
-      const template = await insertPlan(a.id, null, { name: "Template" });
+      const template = await insertPlan(a.id, null, {
+        name: "Template",
+        isTemplate: true,
+        status: "active",
+      });
       for (const ref of [
         customerRef(theirs),
         customerRef(RANDOM_ID),

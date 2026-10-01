@@ -17,6 +17,7 @@ import {
 import { routinesHref, type RoutineFilters } from "@/lib/routine-params";
 import { ROUTINE_SEARCH_MAX_LENGTH, ROUTINE_STATUSES } from "@/lib/routines";
 import { fromSelectValue, toSelectValue } from "@/lib/select-value";
+import { TEMPLATE_STATUSES } from "@/lib/templates";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const ALL = "all";
@@ -64,6 +65,10 @@ export function RoutinesToolbar({
     timer.current = setTimeout(() => navigate({}, true), SEARCH_DEBOUNCE_MS);
   };
 
+  // Templates are never drafts and belong to no customer (spec 07).
+  const isTemplates = filters.tab === "templates";
+  const statuses = isTemplates ? TEMPLATE_STATUSES : ROUTINE_STATUSES;
+
   // A customer id from the URL that is not in the list (deleted, or not visible) still shows a label.
   const selectedCustomer = customers.find((customer) => customer.id === filters.customerId);
 
@@ -98,7 +103,7 @@ export function RoutinesToolbar({
           value={filters.status}
           onValueChange={(status) => {
             // "" only comes from Radix's internal <select>, never from a choice (see select-value).
-            const next = ROUTINE_STATUSES.find((candidate) => candidate === status);
+            const next = statuses.find((candidate) => candidate === status);
             if (next) navigate({ status: next });
             else if (status === ALL) navigate({ status: ALL });
           }}
@@ -110,7 +115,7 @@ export function RoutinesToolbar({
           </SelectTrigger>
           <SelectContent position="popper">
             <SelectItem value={ALL}>{t("filters.allStatuses")}</SelectItem>
-            {ROUTINE_STATUSES.map((status) => (
+            {statuses.map((status) => (
               <SelectItem key={status} value={status}>
                 {t(`status.${status}`)}
               </SelectItem>
@@ -118,34 +123,36 @@ export function RoutinesToolbar({
           </SelectContent>
         </Select>
       </div>
-      <div className="grid gap-1 md:w-52">
-        <Label htmlFor="routines-customer" className="text-muted-foreground">
-          {t("filters.customer")}
-        </Label>
-        <Select
-          value={toSelectValue(filters.customerId ?? "")}
-          onValueChange={(value) => {
-            if (value === "") return;
-            navigate({ customerId: fromSelectValue(value) || null });
-          }}
-        >
-          <SelectTrigger id="routines-customer" className="w-full">
-            <SelectValue>
-              {filters.customerId
-                ? (selectedCustomer?.name ?? t("filters.customer"))
-                : t("filters.allCustomers")}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent position="popper">
-            <SelectItem value={toSelectValue("")}>{t("filters.allCustomers")}</SelectItem>
-            {customers.map((customer) => (
-              <SelectItem key={customer.id} value={customer.id}>
-                {customer.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {isTemplates ? null : (
+        <div className="grid gap-1 md:w-52">
+          <Label htmlFor="routines-customer" className="text-muted-foreground">
+            {t("filters.customer")}
+          </Label>
+          <Select
+            value={toSelectValue(filters.customerId ?? "")}
+            onValueChange={(value) => {
+              if (value === "") return;
+              navigate({ customerId: fromSelectValue(value) || null });
+            }}
+          >
+            <SelectTrigger id="routines-customer" className="w-full">
+              <SelectValue>
+                {filters.customerId
+                  ? (selectedCustomer?.name ?? t("filters.customer"))
+                  : t("filters.allCustomers")}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent position="popper">
+              <SelectItem value={toSelectValue("")}>{t("filters.allCustomers")}</SelectItem>
+              {customers.map((customer) => (
+                <SelectItem key={customer.id} value={customer.id}>
+                  {customer.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }

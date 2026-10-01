@@ -115,9 +115,10 @@ export type PlanError =
   | "dayFull"
   | "needsEntries"
   | "hasArchivedRoutines"
-  | "notShared"
-  | "needsCustomer";
+  | "notShared";
 export type PlanActionError = PlanError | "invalid";
+export type UpdatePlanError =
+  "notFound" | "caseNotFound" | "needsEntries" | "hasArchivedRoutines" | "templateNoDraft";
 
 // Compile-time guard: parsed output must match the published input types.
 type Assert<T extends true> = T;

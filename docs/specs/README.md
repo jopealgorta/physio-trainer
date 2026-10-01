@@ -17,7 +17,7 @@ feature list agreed in the initial brainstorm.
 | 04  | [Customers and cases](./04-customers-and-cases.md)                     | Core    | 01, 02           | Done        |
 | 05  | [Routines](./05-routines.md)                                           | Core    | 03, 04           | Done        |
 | 06  | [Weekly plans](./06-weekly-plans.md)                                   | Core    | 05               | Done        |
-| 07  | [Templates](./07-templates.md)                                         | A       | 05, 06           | Not started |
+| 07  | [Templates](./07-templates.md)                                         | A       | 05, 06           | Done        |
 | 08  | [Phases and progression](./08-phases-and-progression.md)               | B       | 05, 06           | Done        |
 | 09  | [Physio branding](./09-physio-branding.md)                             | F       | 01               | Done        |
 | 10  | [Sharing and patient page](./10-sharing-and-patient-page.md)           | Core    | 05, 06, 08, 09   | Done        |

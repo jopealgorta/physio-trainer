@@ -60,7 +60,9 @@ export function RoutineList({
   const perWeek = (routine: RoutineSummary) =>
     routine.sessionsPerWeek === null ? null : t("list.perWeek", { count: routine.sessionsPerWeek });
   const owner = (routine: RoutineSummary) =>
-    customerName(routine.customerFirstName, routine.customerLastName);
+    routine.customerFirstName
+      ? customerName(routine.customerFirstName, routine.customerLastName)
+      : null;
   const dash = <span className="text-muted-foreground">—</span>;
 
   return (

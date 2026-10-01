@@ -34,6 +34,7 @@ import {
   type PlanActionError,
   type PlanError,
   type Result,
+  type UpdatePlanError,
 } from "./schemas";
 
 export type CreatePlanFormState =
@@ -123,12 +124,7 @@ async function board<S extends z.ZodType<{ planId: string }>, T, E extends PlanE
 
 export async function updatePlanAction(
   input: unknown,
-): Promise<
-  Result<
-    { version: number },
-    "notFound" | "caseNotFound" | "needsEntries" | "hasArchivedRoutines" | "invalid"
-  >
-> {
+): Promise<Result<{ version: number }, UpdatePlanError | "invalid">> {
   const parsed = updatePlanSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const result = await withPhysio((tx, physioId) => updatePlan(tx, physioId, parsed.data));

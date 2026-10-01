@@ -185,7 +185,7 @@ test("archiving a routine used by an active plan is blocked and names the plan",
 
   await page.goto(routineUrl);
   await chooseOption(page, page.getByRole("combobox", { name: "Status" }), "Archived");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText(/used in an active weekly plan: Live plan/)).toBeVisible();
 });
 

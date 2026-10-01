@@ -26,6 +26,8 @@ import {
   type SaveRoutineInput,
 } from "./schemas";
 
+type Routine = typeof routines.$inferSelect;
+
 const ok = <T>(data: T) => ({ ok: true, data }) as const;
 const fail = <E extends string>(error: E) => ({ ok: false, error }) as const;
 
@@ -93,6 +95,7 @@ export async function saveRoutine(
   const [routine] = await tx
     .select({
       customerId: routines.customerId,
+      isTemplate: routines.isTemplate,
       version: routines.version,
       status: routines.status,
     })
@@ -101,8 +104,12 @@ export async function saveRoutine(
     .for("update");
   if (!routine) return fail("notFound");
   if (routine.version !== input.version) return fail("conflict");
+  // Templates are active or archived (a DB check too); say so before the check does.
+  if (routine.isTemplate && input.status === "draft") return fail("templateNoDraft");
 
   if (input.caseId !== null) {
+    // Templates (no customer) never have a case.
+    if (routine.customerId === null) return fail("caseNotFound");
     const [kase] = await tx
       .select({ id: cases.id })
       .from(cases)
@@ -125,7 +132,10 @@ export async function saveRoutine(
     if (found !== exerciseIds.length) return fail("exerciseNotFound");
   }
 
-  if (input.status === "active" && input.items.length === 0) return fail("needsItems");
+  // A template can be active while empty: it is a blank to fill in, and is checked when assigned.
+  if (!routine.isTemplate && input.status === "active" && input.items.length === 0) {
+    return fail("needsItems");
+  }
   if (input.status === "archived" && routine.status !== "archived") {
     const plans = await listPlansUsingRoutine(tx, physioId, input.id);
     if (plans.length > 0) return { ok: false, error: "blockedByPlans", plans } as const;
@@ -199,48 +209,60 @@ export async function saveRoutine(
   return ok({ version: saved.version });
 }
 
+export type RoutineCopyTarget = {
+  name: string;
+  customerId: string | null;
+  caseId: string | null;
+  isStandalone: boolean;
+  status: RoutineStatus;
+  isTemplate: boolean;
+  sourceTemplateId: string | null;
+  /** Phase fields of the copy (spec 08); omitted = none, the source's are not carried over. */
+  phase?: {
+    phaseLabel: string | null;
+    startsOn: string | null;
+    endsOn: string | null;
+    previousId: string;
+  };
+};
+
 /**
- * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
- * status and customer. Phase fields are not carried over unless `options.phase` sets them. Used by
- * "Make a separate copy" on a weekly plan (spec 06) and by "Copy into next phase" (spec 08).
+ * Copies a routine's header, groups, items and sets into a new routine described by `target`
+ * (given the source row). The source is locked `for share`, so a concurrent `saveRoutine` (which
+ * locks `for update` and then replaces items) can never leave the copy with half-replaced items.
+ * Callers decide the copy's owner/provenance; the DB checks keep `is_template` and `customer_id`
+ * consistent.
  */
-export async function duplicateRoutine(
+export async function copyRoutine(
   tx: Tx,
   physioId: string,
   sourceId: string,
-  options: {
-    name: string;
-    isStandalone: boolean;
-    status?: RoutineStatus;
-    /** Phase fields of the copy (spec 08); omitted = none, the source's are not carried over. */
-    phase?: {
-      phaseLabel: string | null;
-      startsOn: string | null;
-      endsOn: string | null;
-      previousId: string;
-    };
-  },
+  target: (source: Routine) => RoutineCopyTarget,
 ): Promise<Result<{ id: string }, "notFound">> {
   if (!isUuid(sourceId)) return fail("notFound");
   const [source] = await tx
     .select()
     .from(routines)
-    .where(and(eq(routines.physioId, physioId), eq(routines.id, sourceId)));
+    .where(and(eq(routines.physioId, physioId), eq(routines.id, sourceId)))
+    .for("share");
   if (!source) return fail("notFound");
+  const to = target(source);
 
   const [copy] = await tx
     .insert(routines)
     .values({
       physioId,
-      customerId: source.customerId,
-      caseId: source.caseId,
-      name: options.name,
+      customerId: to.customerId,
+      caseId: to.caseId,
+      name: to.name,
       notes: source.notes,
-      isStandalone: options.isStandalone,
+      isTemplate: to.isTemplate,
+      sourceTemplateId: to.sourceTemplateId,
+      isStandalone: to.isStandalone,
       sessionsPerWeek: source.sessionsPerWeek,
       sessionsPerDay: source.sessionsPerDay,
-      status: options.status ?? source.status,
-      ...options.phase,
+      status: to.status,
+      ...to.phase,
     })
     .returning({ id: routines.id });
 
@@ -305,4 +327,32 @@ export async function duplicateRoutine(
     }
   }
   return ok({ id: copy.id });
+}
+
+/**
+ * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
+ * status and customer. Phase fields are not carried over unless `options.phase` sets them. Used by
+ * "Make a separate copy" on a weekly plan (spec 06) and by "Copy into next phase" (spec 08).
+ */
+export function duplicateRoutine(
+  tx: Tx,
+  physioId: string,
+  sourceId: string,
+  options: {
+    name: string;
+    isStandalone: boolean;
+    status?: RoutineStatus;
+    phase?: RoutineCopyTarget["phase"];
+  },
+): Promise<Result<{ id: string }, "notFound">> {
+  return copyRoutine(tx, physioId, sourceId, (source) => ({
+    name: options.name,
+    customerId: source.customerId,
+    caseId: source.caseId,
+    isStandalone: options.isStandalone,
+    status: options.status ?? source.status,
+    isTemplate: source.isTemplate,
+    sourceTemplateId: source.sourceTemplateId,
+    phase: options.phase,
+  }));
 }

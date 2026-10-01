@@ -664,6 +664,7 @@
         "caseNotFound": "That case doesn't belong to this customer.",
         "exerciseNotFound": "One of the exercises no longer exists. Remove it and save again.",
         "needsItems": "Add at least one exercise before activating.",
+        "templateNoDraft": "Templates are either active or archived.",
         "blockedByPlans": "This routine is used in an active weekly plan: {plans}. Remove it from the plan first.",
         "invalid": "Check the form and try again.",
         "sets": "Some sets have invalid reps. Check the highlighted exercises.",
@@ -882,7 +883,6 @@
         "caseNotFound": "That case doesn't belong to this customer.",
         "dayFull": "A day holds at most {max, number} routines.",
         "needsEntries": "Add at least one routine before activating the plan.",
-        "needsCustomer": "This plan has no customer.",
         "invalid": "Check the form and try again.",
         "generic": "Something went wrong. Try again.",
         "nameRequired": "Enter a name.",
@@ -890,8 +890,126 @@
         "notesTooLong": "Use at most {max, number} characters.",
         "labelTooLong": "Use at most {max, number} characters.",
         "hasArchivedRoutines": "Remove archived routines from the plan before activating it.",
+        "templateNoDraft": "Templates are either active or archived.",
         "notShared": "Nothing else uses this routine, so there is nothing to separate it from."
       }
+    }
+  },
+  "Templates": {
+    "copySuffix": " (copy)",
+    "errors": {
+      "notFound": "That routine or plan no longer exists.",
+      "alreadyTemplate": "This is already a template.",
+      "templateNotFound": "That template no longer exists.",
+      "templateArchived": "This template is archived. Make it active to assign it.",
+      "customerNotFound": "Choose a customer.",
+      "customerArchived": "This customer is archived. Unarchive them first.",
+      "caseNotFound": "That case doesn't belong to this customer.",
+      "needsItems": "Add exercises to the template first, or assign it as a draft.",
+      "needsEntries": "Add routines to the plan template first, or assign it as a draft.",
+      "invalid": "Check the form and try again.",
+      "generic": "Something went wrong. Try again.",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Use at most {max, number} characters."
+    },
+    "title": "Templates",
+    "tabs": {
+      "label": "List type",
+      "customers": "Customers",
+      "templates": "Templates"
+    },
+    "list": {
+      "label": {
+        "routine": "Routine templates",
+        "plan": "Plan templates"
+      },
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "exercises": "Exercises",
+        "week": "Week",
+        "updated": "Updated",
+        "actions": "Actions"
+      },
+      "empty": {
+        "routine": {
+          "title": "No routine templates yet",
+          "body": "Save a customer's routine as a template, or start one from scratch."
+        },
+        "plan": {
+          "title": "No plan templates yet",
+          "body": "Save a customer's weekly plan as a template, or start one from scratch."
+        }
+      },
+      "noResults": "No templates match your filters.",
+      "clearFilters": "Clear filters",
+      "truncated": "Showing the first {count, number} templates. Narrow the search.",
+      "actions": "Actions for {name}",
+      "assign": "Assign to customer…",
+      "duplicate": "Duplicate",
+      "duplicateFailed": "Couldn't duplicate the template. Try again."
+    },
+    "new": {
+      "button": {
+        "routine": "New routine template",
+        "plan": "New plan template"
+      },
+      "title": {
+        "routine": "New routine template",
+        "plan": "New plan template"
+      },
+      "name": "Name",
+      "create": "Create template",
+      "creating": "Creating…",
+      "cancel": "Cancel"
+    },
+    "badge": "Template",
+    "from": "From template: <link></link>",
+    "assign": {
+      "title": "Assign to a customer",
+      "description": "“{name}” is copied for the customer. The copy is independent: editing it never changes the template.",
+      "customer": "Customer",
+      "noCustomer": "Choose a customer",
+      "case": "Case",
+      "noCase": "No case",
+      "name": "Name",
+      "status": "Status",
+      "submit": "Assign",
+      "submitting": "Assigning…",
+      "cancel": "Cancel"
+    },
+    "save": {
+      "button": "Save as template…",
+      "title": "Save as template",
+      "name": "Template name",
+      "notesWarning": "Notes and labels are copied as they are. Review them for patient information.",
+      "submit": "Save template",
+      "submitting": "Saving…",
+      "cancel": "Cancel"
+    },
+    "picker": {
+      "button": {
+        "routine": "From template…",
+        "plan": "From template…"
+      },
+      "title": "Choose a template",
+      "description": {
+        "routine": "Copy a routine template for {name}.",
+        "plan": "Copy a plan template for {name}."
+      },
+      "search": "Search templates",
+      "loading": "Loading templates…",
+      "failed": "Couldn't load the templates. Try again.",
+      "empty": "No templates match your search.",
+      "none": {
+        "routine": "You have no routine templates yet. Save a routine as a template first.",
+        "plan": "You have no plan templates yet. Save a plan as a template first."
+      },
+      "detail": {
+        "routine": "{count, plural, one {# exercise} other {# exercises}}",
+        "plan": "{count, plural, one {# routine} other {# routines}}"
+      },
+      "back": "Back to templates"
     }
   },
   "VisitNotes": {

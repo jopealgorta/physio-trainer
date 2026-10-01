@@ -664,6 +664,7 @@
         "caseNotFound": "Ese caso no pertenece a este cliente.",
         "exerciseNotFound": "Uno de los ejercicios ya no existe. Quitalo y guardá de nuevo.",
         "needsItems": "Agregá al menos un ejercicio antes de activarla.",
+        "templateNoDraft": "Las plantillas están activas o archivadas.",
         "blockedByPlans": "Esta rutina se usa en un plan semanal activo: {plans}. Quitala del plan primero.",
         "invalid": "Revisá el formulario y probá de nuevo.",
         "sets": "Algunas series tienen repeticiones inválidas. Revisá los ejercicios resaltados.",
@@ -882,7 +883,6 @@
         "caseNotFound": "Ese caso no pertenece a este cliente.",
         "dayFull": "Un día admite como máximo {max, number} rutinas.",
         "needsEntries": "Agregá al menos una rutina antes de activar el plan.",
-        "needsCustomer": "Este plan no tiene cliente.",
         "invalid": "Revisá el formulario y probá de nuevo.",
         "generic": "Algo salió mal. Probá de nuevo.",
         "nameRequired": "Ingresá un nombre.",
@@ -890,8 +890,126 @@
         "notesTooLong": "Usá como máximo {max, number} caracteres.",
         "labelTooLong": "Usá como máximo {max, number} caracteres.",
         "hasArchivedRoutines": "Quitá las rutinas archivadas del plan antes de activarlo.",
+        "templateNoDraft": "Las plantillas están activas o archivadas.",
         "notShared": "Ninguna otra entrada usa esta rutina, así que no hay de qué separarla."
       }
+    }
+  },
+  "Templates": {
+    "copySuffix": " (copia)",
+    "errors": {
+      "notFound": "Esa rutina o ese plan ya no existe.",
+      "alreadyTemplate": "Esto ya es una plantilla.",
+      "templateNotFound": "Esa plantilla ya no existe.",
+      "templateArchived": "Esta plantilla está archivada. Activala para asignarla.",
+      "customerNotFound": "Elegí un cliente.",
+      "customerArchived": "Este cliente está archivado. Desarchivalo primero.",
+      "caseNotFound": "Ese caso no pertenece a este cliente.",
+      "needsItems": "Agregá ejercicios a la plantilla primero, o asignala como borrador.",
+      "needsEntries": "Agregá rutinas a la plantilla del plan primero, o asignala como borrador.",
+      "invalid": "Revisá el formulario y probá de nuevo.",
+      "generic": "Algo salió mal. Probá de nuevo.",
+      "nameRequired": "Ingresá un nombre.",
+      "nameTooLong": "Usá como máximo {max, number} caracteres."
+    },
+    "title": "Plantillas",
+    "tabs": {
+      "label": "Tipo de lista",
+      "customers": "Clientes",
+      "templates": "Plantillas"
+    },
+    "list": {
+      "label": {
+        "routine": "Plantillas de rutina",
+        "plan": "Plantillas de plan"
+      },
+      "columns": {
+        "name": "Nombre",
+        "status": "Estado",
+        "exercises": "Ejercicios",
+        "week": "Semana",
+        "updated": "Actualizada",
+        "actions": "Acciones"
+      },
+      "empty": {
+        "routine": {
+          "title": "Todavía no hay plantillas de rutina",
+          "body": "Guardá la rutina de un cliente como plantilla, o empezá una desde cero."
+        },
+        "plan": {
+          "title": "Todavía no hay plantillas de plan",
+          "body": "Guardá el plan semanal de un cliente como plantilla, o empezá uno desde cero."
+        }
+      },
+      "noResults": "Ninguna plantilla coincide con los filtros.",
+      "clearFilters": "Borrar filtros",
+      "truncated": "Mostrando las primeras {count, number} plantillas. Afiná la búsqueda.",
+      "actions": "Acciones de {name}",
+      "assign": "Asignar a un cliente…",
+      "duplicate": "Duplicar",
+      "duplicateFailed": "No se pudo duplicar la plantilla. Probá de nuevo."
+    },
+    "new": {
+      "button": {
+        "routine": "Nueva plantilla de rutina",
+        "plan": "Nueva plantilla de plan"
+      },
+      "title": {
+        "routine": "Nueva plantilla de rutina",
+        "plan": "Nueva plantilla de plan"
+      },
+      "name": "Nombre",
+      "create": "Crear plantilla",
+      "creating": "Creando…",
+      "cancel": "Cancelar"
+    },
+    "badge": "Plantilla",
+    "from": "Desde la plantilla: <link></link>",
+    "assign": {
+      "title": "Asignar a un cliente",
+      "description": "“{name}” se copia para el cliente. La copia es independiente: editarla nunca cambia la plantilla.",
+      "customer": "Cliente",
+      "noCustomer": "Elegí un cliente",
+      "case": "Caso",
+      "noCase": "Sin caso",
+      "name": "Nombre",
+      "status": "Estado",
+      "submit": "Asignar",
+      "submitting": "Asignando…",
+      "cancel": "Cancelar"
+    },
+    "save": {
+      "button": "Guardar como plantilla…",
+      "title": "Guardar como plantilla",
+      "name": "Nombre de la plantilla",
+      "notesWarning": "Las notas y las etiquetas se copian tal cual. Revisalas por si incluyen datos del paciente.",
+      "submit": "Guardar plantilla",
+      "submitting": "Guardando…",
+      "cancel": "Cancelar"
+    },
+    "picker": {
+      "button": {
+        "routine": "Desde una plantilla…",
+        "plan": "Desde una plantilla…"
+      },
+      "title": "Elegí una plantilla",
+      "description": {
+        "routine": "Copiá una plantilla de rutina para {name}.",
+        "plan": "Copiá una plantilla de plan para {name}."
+      },
+      "search": "Buscar plantillas",
+      "loading": "Cargando plantillas…",
+      "failed": "No se pudieron cargar las plantillas. Probá de nuevo.",
+      "empty": "Ninguna plantilla coincide con la búsqueda.",
+      "none": {
+        "routine": "Todavía no tenés plantillas de rutina. Guardá una rutina como plantilla primero.",
+        "plan": "Todavía no tenés plantillas de plan. Guardá un plan como plantilla primero."
+      },
+      "detail": {
+        "routine": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+        "plan": "{count, plural, one {# rutina} other {# rutinas}}"
+      },
+      "back": "Volver a las plantillas"
     }
   },
   "VisitNotes": {

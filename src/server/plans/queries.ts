@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import type { Tx } from "@/db/rls";
 import { cases, customers, routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
@@ -35,7 +36,10 @@ export async function listPlans(
   filters: PlanFilters,
   limit = PLANS_LIST_LIMIT,
 ): Promise<{ plans: PlanSummary[]; truncated: boolean }> {
-  const conditions: SQL[] = [eq(weeklyPlans.physioId, physioId)];
+  const conditions: SQL[] = [
+    eq(weeklyPlans.physioId, physioId),
+    eq(weeklyPlans.isTemplate, filters.tab === "templates"),
+  ];
   if (filters.status !== "all") conditions.push(eq(weeklyPlans.status, filters.status));
   if (filters.customerId) {
     // A malformed id can never match (and must not reach a uuid comparison).
@@ -132,6 +136,9 @@ export type PlanDetail = {
   customerId: string | null;
   customerFirstName: string | null;
   customerLastName: string | null;
+  isTemplate: boolean;
+  /** The template this plan was copied from, while that template still exists. */
+  sourceTemplate: { id: string; name: string } | null;
   name: string;
   notes: string | null;
   caseId: string | null;
@@ -145,13 +152,17 @@ export type PlanDetail = {
 
 export async function getPlan(tx: Tx, physioId: string, id: string): Promise<PlanDetail | null> {
   if (!isUuid(id)) return null;
-  const [header] = await tx
+  const source = alias(weeklyPlans, "source_template");
+  const [row] = await tx
     .select({
       id: weeklyPlans.id,
       version: weeklyPlans.version,
       customerId: weeklyPlans.customerId,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
+      isTemplate: weeklyPlans.isTemplate,
+      sourceTemplateId: source.id,
+      sourceTemplateName: source.name,
       name: weeklyPlans.name,
       notes: weeklyPlans.notes,
       caseId: weeklyPlans.caseId,
@@ -165,8 +176,13 @@ export async function getPlan(tx: Tx, physioId: string, id: string): Promise<Pla
       customers,
       and(eq(customers.physioId, weeklyPlans.physioId), eq(customers.id, weeklyPlans.customerId)),
     )
+    .leftJoin(
+      source,
+      and(eq(source.physioId, weeklyPlans.physioId), eq(source.id, weeklyPlans.sourceTemplateId)),
+    )
     .where(and(eq(weeklyPlans.physioId, physioId), eq(weeklyPlans.id, id)));
-  if (!header) return null;
+  if (!row) return null;
+  const { sourceTemplateId, sourceTemplateName, ...header } = row;
 
   const [entries, customerCases] = await Promise.all([
     tx
@@ -210,7 +226,15 @@ export async function getPlan(tx: Tx, physioId: string, id: string): Promise<Pla
       : Promise.resolve([]),
   ]);
 
-  return { ...header, entries, cases: customerCases };
+  return {
+    ...header,
+    sourceTemplate:
+      sourceTemplateId !== null && sourceTemplateName !== null
+        ? { id: sourceTemplateId, name: sourceTemplateName }
+        : null,
+    entries,
+    cases: customerCases,
+  };
 }
 
 export type AttachableRoutine = {
@@ -221,13 +245,17 @@ export type AttachableRoutine = {
   itemCount: number;
 };
 
-/** A customer's routines that can be attached to a plan (not archived), newest first. */
+/**
+ * Routines that can be attached to a plan (not archived), by name: a customer's routines for a
+ * customer plan, the template routines for a template plan (`customerId` null). The two sets
+ * never mix.
+ */
 export async function listAttachableRoutines(
   tx: Tx,
   physioId: string,
-  customerId: string,
+  customerId: string | null,
 ): Promise<AttachableRoutine[]> {
-  if (!isUuid(customerId)) return [];
+  if (customerId !== null && !isUuid(customerId)) return [];
   return tx
     .select({
       id: routines.id,
@@ -242,7 +270,7 @@ export async function listAttachableRoutines(
     .where(
       and(
         eq(routines.physioId, physioId),
-        eq(routines.customerId, customerId),
+        customerId === null ? eq(routines.isTemplate, true) : eq(routines.customerId, customerId),
         sql`${routines.status} <> 'archived'`,
       ),
     )

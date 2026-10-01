@@ -83,6 +83,20 @@ describe("phases server layer", () => {
     }
     return row.id;
   };
+  /** A standalone template routine (spec 07): no customer. */
+  const templateRoutine = async (who: TestPhysio) => {
+    const [row] = await db
+      .insert(routines)
+      .values({
+        physioId: who.id,
+        customerId: null,
+        isTemplate: true,
+        name: "Template",
+        status: "active",
+      })
+      .returning({ id: routines.id });
+    return row.id;
+  };
   const plan = async (
     who: TestPhysio,
     customerId: string | null,
@@ -159,7 +173,7 @@ describe("phases server layer", () => {
     it("refuses a plan-owned routine, a template plan, another physio's rows and bad ids", async () => {
       const c = await customer(a);
       const inPlan = await routine(a, c, { isStandalone: false });
-      const template = await plan(a, null);
+      const template = await plan(a, null, { isTemplate: true });
       const mine = await routine(a, c);
       const call = (who: TestPhysio, kind: "routine" | "plan", id: string) =>
         as(who, (tx, physioId) =>
@@ -179,6 +193,31 @@ describe("phases server layer", () => {
         error: "notFound",
       });
       await expect(call(a, "plan", "nope")).resolves.toEqual({ ok: false, error: "notFound" });
+    });
+  });
+
+  describe("templates carry no phase", () => {
+    it("refuses a window on a standalone template routine", async () => {
+      const template = await templateRoutine(a);
+      await expect(
+        as(a, (tx, physioId) =>
+          setPhase(tx, physioId, {
+            kind: "routine",
+            id: template,
+            phaseLabel: "Phase 1",
+            startsOn: "2026-10-01",
+            endsOn: null,
+          }),
+        ),
+      ).resolves.toEqual({ ok: false, error: "needsCustomer" });
+      expect((await routineRow(template)).startsOn).toBeNull();
+    });
+
+    it("refuses to copy a standalone template routine into a next phase", async () => {
+      const template = await templateRoutine(a);
+      await expect(
+        as(a, (tx, physioId) => copyIntoNextPhase(tx, physioId, copyInput("routine", template))),
+      ).resolves.toEqual({ ok: false, error: "needsCustomer" });
     });
   });
 
@@ -418,7 +457,7 @@ describe("phases server layer", () => {
     });
 
     it("refuses a template, another physio's plan and bad ids", async () => {
-      const template = await plan(a, null);
+      const template = await plan(a, null, { isTemplate: true });
       const mine = await plan(a, await customer(a));
       const call = (who: TestPhysio, id: string) =>
         as(who, (tx, physioId) => copyIntoNextPhase(tx, physioId, copyInput("plan", id)));

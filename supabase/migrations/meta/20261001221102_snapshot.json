@@ -1,6 +1,6 @@
 {
-  "id": "99004995-8d11-4c1d-9f71-311b06d48b57",
-  "prevId": "3216cd6d-7c29-4515-8dcd-d45cb6f97b12",
+  "id": "e8b7ca9d-578d-4353-afbe-c29328187c0e",
+  "prevId": "f9f13747-dcfa-46c8-95b0-5125aa903318",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1677,7 +1677,7 @@
           "name": "customer_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "case_id": {
           "name": "case_id",
@@ -1694,6 +1694,19 @@
         "notes": {
           "name": "notes",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_template": {
+          "name": "is_template",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "source_template_id": {
+          "name": "source_template_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -1798,6 +1811,33 @@
           "method": "btree",
           "with": {}
         },
+        "routines_template_idx": {
+          "name": "routines_template_idx",
+          "columns": [
+            {
+              "expression": "physio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "is_template",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "routines_previous_idx": {
           "name": "routines_previous_idx",
           "columns": [
@@ -1874,6 +1914,18 @@
         }
       },
       "checkConstraints": {
+        "routines_template_customer": {
+          "name": "routines_template_customer",
+          "value": "\"routines\".\"is_template\" = (\"routines\".\"customer_id\" is null)"
+        },
+        "routines_template_not_draft": {
+          "name": "routines_template_not_draft",
+          "value": "not \"routines\".\"is_template\" or \"routines\".\"status\" <> 'draft'"
+        },
+        "routines_case_needs_customer": {
+          "name": "routines_case_needs_customer",
+          "value": "\"routines\".\"case_id\" is null or \"routines\".\"customer_id\" is not null"
+        },
         "routines_name_length": {
           "name": "routines_name_length",
           "value": "char_length(\"routines\".\"name\") between 1 and 80"
@@ -2143,6 +2195,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "is_template": {
+          "name": "is_template",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "source_template_id": {
+          "name": "source_template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "routine_status",
@@ -2209,6 +2274,33 @@
             },
             {
               "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "weekly_plans_template_idx": {
+          "name": "weekly_plans_template_idx",
+          "columns": [
+            {
+              "expression": "physio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "is_template",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2301,6 +2393,14 @@
         }
       },
       "checkConstraints": {
+        "weekly_plans_template_customer": {
+          "name": "weekly_plans_template_customer",
+          "value": "\"weekly_plans\".\"is_template\" = (\"weekly_plans\".\"customer_id\" is null)"
+        },
+        "weekly_plans_template_not_draft": {
+          "name": "weekly_plans_template_not_draft",
+          "value": "not \"weekly_plans\".\"is_template\" or \"weekly_plans\".\"status\" <> 'draft'"
+        },
         "weekly_plans_name_length": {
           "name": "weekly_plans_name_length",
           "value": "char_length(\"weekly_plans\".\"name\") between 1 and 80"

@@ -117,7 +117,13 @@ export type SaveRoutineInput = {
 };
 
 export type SaveRoutineError =
-  "notFound" | "conflict" | "caseNotFound" | "exerciseNotFound" | "needsItems" | "blockedByPlans";
+  | "notFound"
+  | "conflict"
+  | "caseNotFound"
+  | "exerciseNotFound"
+  | "needsItems"
+  | "blockedByPlans"
+  | "templateNoDraft";
 export type CreateRoutineError = "customerNotFound" | "caseNotFound";
 
 // Compile-time guard: the parsed output must match the published input types.

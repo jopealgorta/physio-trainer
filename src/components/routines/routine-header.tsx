@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { TemplateBadge } from "@/components/templates/template-badge";
 import type { HeaderErrors, HeaderField } from "@/lib/routine-validation";
 import {
   ROUTINE_NAME_MAX,
@@ -25,6 +26,7 @@ import {
   type RoutineStatus,
 } from "@/lib/routines";
 import { fromSelectValue, toSelectValue } from "@/lib/select-value";
+import { TEMPLATE_STATUSES } from "@/lib/templates";
 
 /** The editable header fields, as the inputs hold them (numbers stay strings until save). */
 export type HeaderValues = {
@@ -43,6 +45,7 @@ export function RoutineHeader({
   values,
   errors,
   onChange,
+  isTemplate,
   customerId,
   customerName,
   cases,
@@ -55,8 +58,10 @@ export function RoutineHeader({
   values: HeaderValues;
   errors: HeaderErrors;
   onChange: (patch: Partial<HeaderValues>) => void;
-  customerId: string;
-  customerName: string;
+  /** Templates are active or archived and have no customer or case. */
+  isTemplate: boolean;
+  customerId: string | null;
+  customerName: string | null;
   cases: { id: string; title: string }[];
   dirty: boolean;
   saving: boolean;
@@ -95,6 +100,7 @@ export function RoutineHeader({
     );
   };
 
+  const statuses = isTemplate ? TEMPLATE_STATUSES : ROUTINE_STATUSES;
   const caseTitles = new Map(cases.map((item) => [item.id, item.title]));
   const indicator = saving ? "" : dirty ? t("unsaved") : saved ? t("saved") : "";
 
@@ -112,15 +118,21 @@ export function RoutineHeader({
             className="h-auto min-w-0 px-2 py-1 text-2xl font-semibold tracking-tight md:text-2xl"
           />
           {errorText("name")}
-          <p className="text-muted-foreground text-sm">
-            {t("customer")}:{" "}
-            <Link
-              href={`/customers/${customerId}`}
-              className="text-foreground rounded-sm hover:underline focus-visible:underline"
-            >
-              {customerName}
-            </Link>
-          </p>
+          {isTemplate ? (
+            <div>
+              <TemplateBadge />
+            </div>
+          ) : customerId !== null && customerName !== null ? (
+            <p className="text-muted-foreground text-sm">
+              {t("customer")}:{" "}
+              <Link
+                href={`/customers/${customerId}`}
+                className="text-foreground rounded-sm hover:underline focus-visible:underline"
+              >
+                {customerName}
+              </Link>
+            </p>
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           <p role="status" data-testid="save-status" className="text-muted-foreground text-sm">
@@ -139,7 +151,7 @@ export function RoutineHeader({
             value={values.status}
             onValueChange={(next) => {
               // "" only comes from Radix's internal <select>, never from a choice (see select-value).
-              const status = ROUTINE_STATUSES.find((candidate) => candidate === next);
+              const status = statuses.find((candidate) => candidate === next);
               if (status) onChange({ status });
             }}
           >
@@ -147,7 +159,7 @@ export function RoutineHeader({
               <SelectValue>{tStatus(values.status)}</SelectValue>
             </SelectTrigger>
             <SelectContent position="popper">
-              {ROUTINE_STATUSES.map((status) => (
+              {statuses.map((status) => (
                 <SelectItem key={status} value={status}>
                   {tStatus(status)}
                 </SelectItem>
@@ -156,7 +168,7 @@ export function RoutineHeader({
           </Select>
         </div>
 
-        {cases.length > 0 ? (
+        {!isTemplate && cases.length > 0 ? (
           <div className="grid content-start gap-2">
             <Label htmlFor={`${id}-case`}>{t("case")}</Label>
             <Select

@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PLAN_NAME_MAX, PLAN_NOTES_MAX } from "@/lib/plans";
 import { ROUTINE_STATUSES, type RoutineStatus } from "@/lib/routines";
 import { fromSelectValue, toSelectValue } from "@/lib/select-value";
+import { TEMPLATE_STATUSES } from "@/lib/templates";
 import { updatePlanAction } from "@/server/plans/actions";
 
 export type PlanDetails = {
@@ -32,6 +33,7 @@ type SaveError =
   | "caseNotFound"
   | "needsEntries"
   | "hasArchivedRoutines"
+  | "templateNoDraft"
   | "invalid"
   | "generic"
   | "nameRequired"
@@ -43,11 +45,14 @@ export function PlanDetailsForm({
   planId,
   initial,
   cases,
+  isTemplate = false,
 }: {
   planId: string;
   /** What the server held when the page loaded. The form keeps its own state after that. */
   initial: PlanDetails;
   cases: { id: string; title: string }[];
+  /** Templates are active or archived (no draft). */
+  isTemplate?: boolean;
 }) {
   const t = useTranslations("Plans.board.details");
   const tErrors = useTranslations("Plans.board.errors");
@@ -60,6 +65,7 @@ export function PlanDetailsForm({
   const [pending, startTransition] = useTransition();
 
   const dirty = JSON.stringify(values) !== JSON.stringify(saved);
+  const statuses = isTemplate ? TEMPLATE_STATUSES : ROUTINE_STATUSES;
   const nameBlank = values.name.trim() === "";
   const caseTitles = new Map(cases.map((item) => [item.id, item.title]));
 
@@ -119,7 +125,7 @@ export function PlanDetailsForm({
             value={values.status}
             onValueChange={(next) => {
               // "" only comes from Radix's internal <select>, never from a choice.
-              const status = ROUTINE_STATUSES.find((candidate) => candidate === next);
+              const status = statuses.find((candidate) => candidate === next);
               if (status) change({ status });
             }}
           >
@@ -127,7 +133,7 @@ export function PlanDetailsForm({
               <SelectValue>{tStatus(values.status)}</SelectValue>
             </SelectTrigger>
             <SelectContent position="popper">
-              {ROUTINE_STATUSES.map((status) => (
+              {statuses.map((status) => (
                 <SelectItem key={status} value={status}>
                   {tStatus(status)}
                 </SelectItem>

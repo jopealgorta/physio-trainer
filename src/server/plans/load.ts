@@ -14,9 +14,8 @@ export const loadPlan = cache(async (rawId: string) => {
   return withPhysio(async (tx, physioId) => {
     const plan = await getPlan(tx, physioId, parsed.data);
     if (!plan) return null;
-    const routines = plan.customerId
-      ? await listAttachableRoutines(tx, physioId, plan.customerId)
-      : [];
+    // Template plans (no customer) attach template routines.
+    const routines = await listAttachableRoutines(tx, physioId, plan.customerId);
     return { plan, routines };
   });
 });
