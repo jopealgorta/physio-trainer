@@ -75,7 +75,7 @@ test.describe("patient page", () => {
     const link = await insertCustomerLink(physio, customerId);
     await page.goto(link.path);
     const html = await page.content();
-    expect(html).not.toContain("Private"); // last name
+    expect(html).not.toContain("Zyxwsurname"); // last name
     expect(html).not.toContain(customerId);
   });
 

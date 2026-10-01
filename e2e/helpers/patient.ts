@@ -26,7 +26,7 @@ export async function insertCustomer(
 ): Promise<string> {
   const [row] = await sql<{ id: string }[]>`
     insert into public.customers (physio_id, first_name, last_name, locale, phone, archived_at)
-    values (${physioId}, ${values.firstName ?? "Ana"}, 'Private', ${values.locale ?? "en"},
+    values (${physioId}, ${values.firstName ?? "Ana"}, 'Zyxwsurname', ${values.locale ?? "en"},
       ${values.phone ?? null}, ${values.archived ? sql`now()` : null})
     returning id`;
   return row.id;
