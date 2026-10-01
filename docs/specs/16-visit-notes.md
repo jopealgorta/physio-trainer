@@ -15,11 +15,11 @@ full medical-records system.
 
 - Create, edit and delete visit notes on the customer page (**Notes** tab).
 - Timeline of notes, filterable by case; quick "New note" prefilled with today's date.
-- Optional link to routines/plans changed in that visit (display only).
 
 ## Non-goals
 
 - Appointment scheduling, billing codes, attachments, templates for notes, e-signatures.
+- Linking a note to the routines/plans changed in that visit (dropped for v1, see open question 2).
 - Structured outcome measures (feature K, deferred).
 
 ## Data model
@@ -80,6 +80,13 @@ Namespace `VisitNotes`.
 ## Open questions
 
 1. Is SOAP the structure you use, or would free-form notes with optional headings fit better?
+   **Answer:** SOAP as specced.
+2. The goals mention an optional link to the routines/plans changed in a visit but the data
+   model has no column for it. **Answer:** drop it for v1; the Routines and Plans tabs already
+   show what exists.
+3. Notes on archived customers? **Answer:** allowed, same as cases (archived customers stay
+   viewable and editable).
+4. Timeline pagination? **Answer:** newest 20 with a "Load more" button.
 
 ## Decisions made during implementation
 
