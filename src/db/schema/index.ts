@@ -7,3 +7,4 @@ export * from "./physios";
 export * from "./library";
 export * from "./customers";
 export * from "./routines";
+export * from "./plans";

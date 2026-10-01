@@ -85,6 +85,20 @@
       "when": 1790790799469,
       "tag": "20260930175319_drop-exercise-prescription-defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790878955019,
+      "tag": "20261001182235_weekly-plans",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790878964012,
+      "tag": "20261001182244_weekly-plans-extras",
+      "breakpoints": true
     }
   ]
 }

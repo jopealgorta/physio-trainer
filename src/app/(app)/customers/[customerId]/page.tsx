@@ -8,6 +8,7 @@ import { CustomerHeader } from "@/components/customers/customer-header";
 import { CustomerOverview } from "@/components/customers/customer-overview";
 import { CustomerTabs } from "@/components/customers/customer-tabs";
 import { TabEmpty } from "@/components/customers/tab-empty";
+import { CustomerPlans } from "@/components/plans/customer-plans";
 import { CustomerRoutines } from "@/components/routines/customer-routines";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ageInYears, todayIn } from "@/lib/calendar-date";
@@ -60,6 +61,14 @@ export default async function CustomerPage({
         <CustomerOverview customer={customer} today={todayIn(timezone)} />
       ) : tab === "routines" ? (
         <CustomerRoutines
+          customerId={customer.id}
+          customerName={customerName(customer.firstName, customer.lastName)}
+          cases={customer.cases.map(({ id, title }) => ({ id, title }))}
+          archived={customer.archivedAt !== null}
+          timeZone={timezone}
+        />
+      ) : tab === "plans" ? (
+        <CustomerPlans
           customerId={customer.id}
           customerName={customerName(customer.firstName, customer.lastName)}
           cases={customer.cases.map(({ id, title }) => ({ id, title }))}
