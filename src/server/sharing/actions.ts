@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { env } from "@/env";
 import { resolveLocale } from "@/i18n/config";
 import { withPhysio } from "@/server/auth/session";
-import { previewVersion } from "@/lib/link-preview";
+import { previewVersion as versionOf, type PreviewBranding } from "@/lib/link-preview";
 import { getBranding } from "@/server/branding/queries";
 
 import {
@@ -31,20 +31,18 @@ type Loaded = {
   link: ShareLink;
   context: ShareContext;
   clinicName: string;
-  /** `physios.updated_at`: the link-preview image URL changes with it. */
-  brandingUpdatedAt: Date;
+  /** Versions the link-preview image URL (what the card draws). */
+  previewVersion: string;
 };
 type Outcome<T> = Result<T, ShareError>;
 
 const appUrl = () => env.NEXT_PUBLIC_APP_URL;
 
+const previewVersionOf = (branding: PreviewBranding | null) =>
+  versionOf(branding ?? { clinicName: "", logoUrl: null, accentColor: null });
+
 /** Share message in the customer's language; `{url}` is filled in by `toShareState`. */
-async function stateOf({
-  link,
-  context,
-  clinicName,
-  brandingUpdatedAt,
-}: Loaded): Promise<ShareState> {
+async function stateOf({ link, context, clinicName, previewVersion }: Loaded): Promise<ShareState> {
   const locale = resolveLocale(context.customer.locale);
   const [t, meta] = await Promise.all([
     getTranslations({ locale, namespace: "Sharing.message" }),
@@ -60,7 +58,7 @@ async function stateOf({
     {
       title: meta("title", { clinic: clinicName }),
       description: meta("description", { clinic: clinicName }),
-      version: previewVersion(brandingUpdatedAt),
+      version: previewVersion,
     },
   );
 }
@@ -78,7 +76,7 @@ async function run(
       data: {
         ...outcome.data,
         clinicName: branding?.clinicName ?? "",
-        brandingUpdatedAt: branding?.updatedAt ?? new Date(0),
+        previewVersion: previewVersionOf(branding),
       },
     } as const;
   });

@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { ImageResponse } from "next/og";
+import { getTranslations } from "next-intl/server";
 import type { ReactElement } from "react";
 
 import { ACTIVITY_PATH } from "@/lib/app-icon-image";
@@ -16,6 +17,8 @@ import { loadLink } from "./load";
 /** What the card shows: branding only (spec 11). Never anything about the patient. */
 export type PreviewCardInput = {
   clinicName: string;
+  /** "Powered by Physio Trainer" in the customer's language. */
+  footer: string;
   /** A `data:` URI the card can embed, or null for the initial circle. */
   logoSrc: string | null;
   tokens: BrandTokens | null;
@@ -27,9 +30,16 @@ const FOREGROUND = "#171717";
 const MUTED = "#737373";
 const FONT = "Outfit";
 
-let font: Promise<Buffer> | null = null;
+let font: Buffer | null = null;
 /** Bundled, so rendering never needs the network; read once per server instance. */
-const outfit = () => (font ??= readFile(FONT_FILE));
+async function outfit(): Promise<Buffer> {
+  // Cache the bytes, not the promise: a failed read must not poison every later request.
+  return (font ??= await readFile(FONT_FILE));
+}
+
+const LOGO_CACHE_SIZE = 50;
+/** Logo data URIs by URL. A new upload gets a new URL, so entries never go stale. */
+const logoCache = new Map<string, string>();
 
 /**
  * The clinic's logo as a data URI. Satori cannot fetch for us reliably, so it is fetched here:
@@ -41,14 +51,22 @@ export async function loadLogoDataUri(
   fetchImpl: typeof fetch = fetch,
 ): Promise<string | null> {
   if (!url) return null;
+  const cached = logoCache.get(url);
+  if (cached) return cached;
   try {
     const response = await fetchImpl(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!response.ok) return null;
+    // Refuse oversized files before buffering them: this endpoint is public.
+    const declared = Number(response.headers.get("content-length"));
+    if (declared > LOGO_MAX_BYTES) return null;
     const bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.length === 0 || bytes.length > LOGO_MAX_BYTES) return null;
     const type = sniffImageType(bytes);
     if (type !== "png" && type !== "jpeg") return null;
-    return `data:${LOGO_CONTENT_TYPES[type]};base64,${Buffer.from(bytes).toString("base64")}`;
+    const dataUri = `data:${LOGO_CONTENT_TYPES[type]};base64,${Buffer.from(bytes).toString("base64")}`;
+    if (logoCache.size >= LOGO_CACHE_SIZE) logoCache.delete(logoCache.keys().next().value!);
+    logoCache.set(url, dataUri);
+    return dataUri;
   } catch {
     return null;
   }
@@ -58,7 +76,7 @@ export async function loadLogoDataUri(
 export const nameFontSize = (name: string): number =>
   name.length <= 24 ? 96 : name.length <= 48 ? 72 : 56;
 
-function Card({ clinicName, logoSrc, tokens }: PreviewCardInput) {
+function Card({ clinicName, footer, logoSrc, tokens }: PreviewCardInput) {
   const { accent, onAccent, tint } = cardColors(tokens);
   const initial = Array.from(clinicName.trim())[0]?.toLocaleUpperCase() ?? "";
   return (
@@ -125,7 +143,7 @@ function Card({ clinicName, logoSrc, tokens }: PreviewCardInput) {
             {clinicName}
           </div>
         </div>
-        <div style={{ display: "flex", fontSize: 28, color: MUTED }}>Powered by Physio Trainer</div>
+        <div style={{ display: "flex", fontSize: 28, color: MUTED }}>{footer}</div>
       </div>
     </div>
   );
@@ -177,19 +195,25 @@ function GenericCard() {
   );
 }
 
-/** Public, branding-only and identical for every link status, so it can be cached by anyone. */
+/**
+ * Public, branding-only and identical for every link status, so shared caches may keep it. Not
+ * under the patient pages' `no-store` (spec 10): that is for the page, which holds health data.
+ * `noindex` keeps the image (whose URL carries the link code) out of image search.
+ */
 const CACHE_CONTROL = "public, max-age=3600";
+/** A card drawn without its logo because loading it failed: retry soon instead of pinning it. */
+const DEGRADED_CACHE_CONTROL = "public, max-age=60";
 
-async function render(element: ReactElement) {
+async function render(element: ReactElement, cacheControl = CACHE_CONTROL) {
   return new ImageResponse(element, {
     ...PREVIEW_IMAGE_SIZE,
     fonts: [{ name: FONT, data: await outfit(), style: "normal", weight: 700 }],
-    headers: { "Cache-Control": CACHE_CONTROL },
+    headers: { "Cache-Control": cacheControl, "X-Robots-Tag": "noindex, nofollow" },
   });
 }
 
-export async function renderPreviewCard(input: PreviewCardInput) {
-  return render(<Card {...input} />);
+export async function renderPreviewCard(input: PreviewCardInput, cacheControl?: string) {
+  return render(<Card {...input} />, cacheControl);
 }
 
 /**
@@ -200,10 +224,19 @@ export async function renderPreviewCard(input: PreviewCardInput) {
 export async function renderLinkPreview(code: string) {
   const resolved = await loadLink(code);
   if (resolved.status === "not_found") return render(<GenericCard />);
-  const { branding } = resolved.shell;
-  return renderPreviewCard({
-    clinicName: branding.clinicName,
-    logoSrc: await loadLogoDataUri(branding.logoUrl),
-    tokens: branding.tokens,
-  });
+  const { branding, locale } = resolved.shell;
+  const [logoSrc, t] = await Promise.all([
+    loadLogoDataUri(branding.logoUrl),
+    getTranslations({ locale, namespace: "Branding" }),
+  ]);
+  const degraded = branding.logoUrl !== null && logoSrc === null;
+  return renderPreviewCard(
+    {
+      clinicName: branding.clinicName,
+      footer: t("poweredBy"),
+      logoSrc,
+      tokens: branding.tokens,
+    },
+    degraded ? DEGRADED_CACHE_CONTROL : CACHE_CONTROL,
+  );
 }

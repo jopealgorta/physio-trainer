@@ -66,6 +66,7 @@ test.describe("link previews", () => {
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe("image/png");
     expect(response.headers()["cache-control"]).toContain("public");
+    expect(response.headers()["x-robots-tag"]).toBe("noindex, nofollow");
     expect(pngSize(bytes)).toEqual({ width: 1200, height: 630 });
     expect(metaContent(html, "property", "og:image:width")).toBe("1200");
     expect(metaContent(html, "property", "og:image:height")).toBe("630");

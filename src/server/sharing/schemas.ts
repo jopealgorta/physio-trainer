@@ -66,7 +66,7 @@ export type SharePreview = {
 /** What the popover needs besides the link: ready-made share URLs in the customer's language. */
 export type ShareState = {
   link: ShareLinkView | null;
-  /** Null while there is no usable link: a revoked link opens nothing, so nothing unfurls. */
+  /** Null without a link and once it is revoked (the panel then offers "Create new link"). */
   preview: SharePreview | null;
   /** Draft or archived items show nothing to the patient yet; customers have no status. */
   itemStatus: "draft" | "active" | "archived" | null;

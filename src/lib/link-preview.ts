@@ -16,11 +16,25 @@ const NEUTRAL_ACCENT = "#171717";
 const NEUTRAL_ON_ACCENT = "#fafafa";
 const TINT_AMOUNT = 0.07;
 
+/** What the card draws: a change to any of these changes the image. */
+export type PreviewBranding = {
+  clinicName: string;
+  logoUrl: string | null;
+  accentColor: string | null;
+};
+
 /**
- * Cache-busting token for the image URL: it changes whenever the physio row changes (logo,
- * clinic name, accent), so a new share gets a fresh image instead of a cached one.
+ * Cache-busting token for the image URL: a 32-bit FNV-1a hash of what the card draws, so a new
+ * logo, name or accent gives new shares a fresh image, and unrelated profile edits (time zone,
+ * handle) do not invalidate every cached card. The logo URL carries a new uuid per upload.
  */
-export const previewVersion = (updatedAt: Date): string => updatedAt.getTime().toString(36);
+export function previewVersion({ clinicName, logoUrl, accentColor }: PreviewBranding): string {
+  let hash = 0x811c9dc5;
+  for (const char of [clinicName, logoUrl ?? "", accentColor ?? ""].join("\n")) {
+    hash = Math.imul(hash ^ char.codePointAt(0)!, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
 
 /** `path` is the canonical `/{handle}/{slug}-{code}`. */
 export const previewImagePath = (path: string, version: string): string =>

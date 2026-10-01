@@ -4,12 +4,7 @@ import type { ShareLink } from "@/db/schema";
 import { lastDayBefore, todayIn } from "@/lib/calendar-date";
 import { qrCode } from "@/lib/qr";
 import { previewImagePath } from "@/lib/link-preview";
-import {
-  buildShareUrl,
-  buildSharePath,
-  mailtoShareHref,
-  whatsappShareHref,
-} from "@/lib/share-links";
+import { buildShareUrl, mailtoShareHref, whatsappShareHref } from "@/lib/share-links";
 
 import type { ShareContext } from "./mutations";
 import type { ShareLinkStatus, ShareLinkView, SharePreview, ShareState } from "./schemas";
@@ -58,10 +53,7 @@ export function toShareState(
   const body = view ? message.body.replace("{url}", view.url) : message.body;
   return {
     link: view,
-    preview:
-      view && view.status !== "revoked" && preview
-        ? toPreview(link!, context, appUrl, preview)
-        : null,
+    preview: view && view.status !== "revoked" && preview ? toPreview(view, appUrl, preview) : null,
     itemStatus: context.itemStatus,
     whatsappHref: whatsappShareHref(body, context.customer.phone),
     mailtoHref: mailtoShareHref(context.customer.email, message.subject, body),
@@ -69,15 +61,9 @@ export function toShareState(
   };
 }
 
-function toPreview(
-  link: ShareLink,
-  context: ShareContext,
-  appUrl: string,
-  copy: PreviewCopy,
-): SharePreview {
-  const path = buildSharePath(context.handle, link.slug, link.code);
+function toPreview(link: ShareLinkView, appUrl: string, copy: PreviewCopy): SharePreview {
   return {
-    imagePath: previewImagePath(path, copy.version),
+    imagePath: previewImagePath(new URL(link.url).pathname, copy.version),
     title: copy.title,
     description: copy.description,
     host: new URL(appUrl).host,

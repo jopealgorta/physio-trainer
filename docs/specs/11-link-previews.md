@@ -70,9 +70,9 @@ None.
   vary, and it injects its own `og:image` tag. Behaviour 4 (a logo change refreshes previews)
   needs a URL that carries the branding version, so the image is a plain route handler at
   `{link path}/og` and `generateMetadata` emits the `og:image`/`twitter:image` tags itself:
-  `…/og?v={physios.updated_at in base36}` (`previewVersion`, `src/lib/link-preview.ts`). The
-  version changes on any change to the physio row (logo, name, accent, contact), which is
-  coarser than needed but cheap. Messaging apps cache hard, so it only helps new shares.
+  `…/og?v={hash}`. The hash (`previewVersion`, `src/lib/link-preview.ts`, FNV-1a in base36) covers
+  what the card draws (clinic name, logo URL, accent), so unrelated profile edits do not
+  invalidate cached cards. Messaging apps cache hard, so it only helps new shares.
 - **Metadata lives in the patient layout**, not the page, so the PIN gate and the unavailable
   page unfurl identically. `buildPreviewMetadata` (pure) builds title, description, Open Graph,
   Twitter (`summary_large_image`) and robots; the layout adds referrer, manifest and
@@ -84,7 +84,8 @@ None.
   crawlers cannot tell the cases apart. Neither the metadata nor the image calls `touchLink`.
 - **The card** is branding only: logo (or the clinic's initial), clinic name (type shrinks for
   long names), a 28 px accent bar, an 7 % accent tint and "Powered by Physio Trainer" (spec 09).
-  No text is localised (the clinic name is the only copy). Colours come from the light brand tokens
+  The footer is the existing `Branding.poweredBy` copy in the customer's language; the generic card
+  only has the product name. Colours come from the light brand tokens
   (`cardColors`); no accent means the app's neutral colours.
 - **Logo** is fetched server-side with a 3 s timeout, accepted only as PNG or JPEG (magic bytes)
   up to 2 MB, and inlined as a data URI. Any failure draws the initial instead of failing the card.
@@ -92,8 +93,13 @@ None.
   instance; `outputFileTracingIncludes` in `next.config.ts` ships it with the route on Vercel
   (verified in the route's `.nft.json`). Only the Latin glyphs Outfit has render: a clinic name
   in CJK or emoji would show blanks.
-- **Caching:** `Cache-Control: public, max-age=3600` on the image. Safe because it holds only
-  branding and is the same for every status; a stale `?v=` simply gets the current card.
+- **Caching and headers:** `Cache-Control: public, max-age=3600` on the image, deliberately not the
+  patient page's `no-store` (`isPatientPath` only matches the two-segment page URL): it holds only
+  branding and is the same for every status, and a stale `?v=` simply gets the current card. A card
+  drawn without its logo because the logo failed to load gets `max-age=60` so it is not pinned.
+  `X-Robots-Tag: noindex, nofollow` keeps the image (whose URL has the link code) out of image
+  search. Logo data URIs are kept in a 50-entry in-memory map (a new upload has a new URL), and a
+  logo that declares more than 2 MB is refused before it is read.
 - **Share popover** shows the real image (same-origin, lazy) with the host, title and description
   under it, in the customer's language (`ShareState.preview`, built from the same
   `Patient.meta` keys), and hides it once the link is revoked. The Settings branding link-card

@@ -30,12 +30,12 @@ export async function generateMetadata({
   const shell = await shellOf((await params).slug);
   if (!shell) return { robots: { index: false, follow: false } };
   const path = buildSharePath(shell.handle, shell.slug, shell.code);
-  const { clinicName, updatedAt } = shell.branding;
+  const { clinicName } = shell.branding;
   const t = await getTranslations({ locale: shell.locale, namespace: "Patient.meta" });
   return {
     ...buildPreviewMetadata({
       path,
-      version: previewVersion(updatedAt),
+      version: previewVersion(shell.branding),
       title: t("title", { clinic: clinicName }),
       description: t("description", { clinic: clinicName }),
       clinicName,

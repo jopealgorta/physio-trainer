@@ -30,6 +30,23 @@ describe("loadLogoDataUri", () => {
     );
   });
 
+  it("serves a repeated logo from memory", async () => {
+    const fetchImpl = respond(PNG);
+    await loadLogoDataUri("https://x/cached.png", fetchImpl);
+    await loadLogoDataUri("https://x/cached.png", fetchImpl);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a file that declares itself too large without reading it", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(PNG as BodyInit, {
+          headers: { "content-length": String(3 * 1024 * 1024) },
+        }),
+    ) as unknown as typeof fetch;
+    expect(await loadLogoDataUri("https://x/big.png", fetchImpl)).toBeNull();
+  });
+
   it("returns null without a logo, for other types, errors and oversized files", async () => {
     expect(await loadLogoDataUri(null, respond(PNG))).toBeNull();
     expect(await loadLogoDataUri("https://x", respond(WEBP))).toBeNull();

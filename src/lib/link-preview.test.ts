@@ -19,11 +19,23 @@ const base = {
 };
 
 describe("previewVersion", () => {
-  it("changes when the branding row changes and is stable otherwise", () => {
-    const a = previewVersion(new Date("2026-10-01T10:00:00Z"));
-    expect(previewVersion(new Date("2026-10-01T10:00:00Z"))).toBe(a);
-    expect(previewVersion(new Date("2026-10-01T10:00:01Z"))).not.toBe(a);
-    expect(a).toMatch(/^[0-9a-z]+$/);
+  const branding = {
+    clinicName: "Kine Sur",
+    logoUrl: "https://x/logo-1.png",
+    accentColor: "#0f766e",
+  };
+
+  it("is stable for the same branding", () => {
+    expect(previewVersion(branding)).toBe(previewVersion({ ...branding }));
+    expect(previewVersion(branding)).toMatch(/^[0-9a-z]+$/);
+  });
+
+  it("changes with the name, the logo and the accent", () => {
+    const base = previewVersion(branding);
+    expect(previewVersion({ ...branding, clinicName: "Kine Norte" })).not.toBe(base);
+    expect(previewVersion({ ...branding, logoUrl: "https://x/logo-2.png" })).not.toBe(base);
+    expect(previewVersion({ ...branding, logoUrl: null })).not.toBe(base);
+    expect(previewVersion({ ...branding, accentColor: null })).not.toBe(base);
   });
 });
 
