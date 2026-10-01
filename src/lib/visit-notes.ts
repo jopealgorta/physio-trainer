@@ -13,6 +13,30 @@ export const PAIN_MAX = 10;
 export const PAGE_SIZE = 20;
 export const MAX_NOTES_LIMIT = 500;
 
+/** The editable fields of a note as form strings ("" = empty; `caseId` "" = no case). */
+export type NoteFields = {
+  visitedOn: string;
+  caseId: string;
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+  pain: string;
+};
+export const NOTE_FIELD_KEYS = [
+  "visitedOn",
+  "caseId",
+  "subjective",
+  "objective",
+  "assessment",
+  "plan",
+  "pain",
+] as const satisfies readonly (keyof NoteFields)[];
+
+export function sameFields(a: NoteFields, b: NoteFields): boolean {
+  return NOTE_FIELD_KEYS.every((key) => a[key] === b[key]);
+}
+
 /** `updated_at` must be later than `created_at` by more than this to show "edited". */
 const EDITED_AFTER_MS = 60_000;
 
@@ -31,6 +55,33 @@ export function wasEdited(createdAt: Date, updatedAt: Date): boolean {
 /** True when at least one SOAP section has non-blank text. */
 export function hasSoapContent(values: Partial<Record<SoapField, string | null>>): boolean {
   return SOAP_FIELDS.some((field) => (values[field] ?? "").trim() !== "");
+}
+
+/** Collapsed cards show about this many characters per section before offering "show more". */
+const COLLAPSED_CHARS = 160;
+const COLLAPSED_LINES = 2;
+
+/** True when a collapsed card would hide part of a section (it is long or has many lines). */
+export function needsExpand(values: Partial<Record<SoapField, string | null>>): boolean {
+  return SOAP_FIELDS.some((field) => {
+    const text = (values[field] ?? "").trim();
+    return text.length > COLLAPSED_CHARS || text.split("\n").length > COLLAPSED_LINES;
+  });
+}
+
+/**
+ * The one-line excerpt for summaries: the assessment, or else the first non-empty section.
+ * Null when every section is blank.
+ */
+export function summarize(
+  values: Partial<Record<SoapField, string | null>>,
+  max: number,
+): { field: SoapField; text: string } | null {
+  for (const field of ["assessment", "subjective", "objective", "plan"] as const) {
+    const text = excerpt(values[field], max);
+    if (text) return { field, text };
+  }
+  return null;
 }
 
 /** localStorage key for the unsaved draft of a new note (`noteId` null) or an edit. */

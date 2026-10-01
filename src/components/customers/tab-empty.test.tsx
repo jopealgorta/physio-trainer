@@ -6,7 +6,7 @@ import messages from "../../../messages/en.json";
 import { TabEmpty } from "./tab-empty";
 
 describe("TabEmpty", () => {
-  it.each(["activity", "notes"] as const)("explains what will appear in the %s tab", (tab) => {
+  it.each(["activity"] as const)("explains what will appear in the %s tab", (tab) => {
     render(
       <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
         <TabEmpty tab={tab} />

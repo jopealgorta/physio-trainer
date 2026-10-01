@@ -7,6 +7,8 @@ import {
   draftKey,
   excerpt,
   hasSoapContent,
+  needsExpand,
+  summarize,
   notesHref,
   parseNotesParams,
   wasEdited,
@@ -93,5 +95,42 @@ describe("notesHref", () => {
     expect(notesHref("c1", filters, { caseId: null, limit: PAGE_SIZE })).toBe(
       "/customers/c1?tab=notes",
     );
+  });
+});
+
+describe("needsExpand", () => {
+  it("is false for short single-line sections", () => {
+    expect(needsExpand({ subjective: "Knee pain", plan: "Squats" })).toBe(false);
+    expect(needsExpand({})).toBe(false);
+  });
+
+  it("is true when any section is long or runs past two lines", () => {
+    expect(needsExpand({ objective: "x".repeat(200) })).toBe(true);
+    expect(needsExpand({ assessment: "a\nb\nc" })).toBe(true);
+    expect(needsExpand({ assessment: "a\nb" })).toBe(false);
+  });
+});
+
+describe("summarize", () => {
+  it("prefers the assessment", () => {
+    expect(
+      summarize({ subjective: "Pain", assessment: "Improving   well", plan: "Squats" }, 80),
+    ).toEqual({ field: "assessment", text: "Improving well" });
+  });
+
+  it("falls back to the first non-empty section in S, O, P order", () => {
+    expect(summarize({ subjective: " ", objective: "ROM 120", plan: "Squats" }, 80)).toEqual({
+      field: "objective",
+      text: "ROM 120",
+    });
+    expect(summarize({ plan: "Squats" }, 80)).toEqual({ field: "plan", text: "Squats" });
+  });
+
+  it("truncates and returns null when empty", () => {
+    expect(summarize({ assessment: "abcdefghij" }, 5)).toEqual({
+      field: "assessment",
+      text: "abcde…",
+    });
+    expect(summarize({}, 5)).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 # 16 · Visit notes
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** J (session / clinical notes)
 - **Depends on:** 04
 
@@ -90,4 +90,37 @@ Namespace `VisitNotes`.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Case consistency in the database**: `visit_notes (physio_id, customer_id, case_id)` references
+  `cases (physio_id, customer_id, id)` with `ON DELETE SET NULL (case_id)` (custom migration), so
+  a note can never point at another customer's or physio's case and deleting a case only clears
+  `case_id`. The mutations map that FK violation to a `caseNotFound` error. Checks also back the
+  rules: pain 0–10, each SOAP field ≤ 10 000 characters, and at least one non-blank SOAP field.
+  Blank SOAP fields are stored as `null` (text is trimmed on write).
+- **Dates**: `visited_on` defaults to today in the physio's time zone (the editor prefills it and
+  the action fills it in when blank on create); a blank date on edit keeps the current one.
+- **Timeline**: `?tab=notes&case=<id>&notes=<n>`. Newest visit first (ties by creation time),
+  20 at a time; "Load more" is a link that raises `notes` by 20 (capped at 500). A `case` that
+  isn't one of the customer's cases is ignored. Collapsed cards clamp each section to two lines
+  and offer "Show full note" only when something is hidden.
+- **Editor**: a right-hand sheet that is full width on mobile. The four S/O/A/P fields are
+  auto-growing text areas (`field-sizing-content`). Pain is a numeric text input like the case's
+  initial pain.
+- **Drafts**: every change is written to `localStorage` (per customer and per note; none while the
+  form equals the saved values) and restored, with a "Discard draft" option, when the editor
+  reopens. Storage failures are swallowed; a successful save clears the draft.
+- **Shortcuts**: `N` opens a new note only from the Notes tab, and is ignored while typing, with
+  modifiers, or while any dialog is open. `Cmd/Ctrl+Enter` submits the form.
+- **"Edited"** shows when `updated_at` is more than a minute after `created_at`; the date comes
+  from the physio's time zone.
+- **Overview card** shows the latest note's date and its assessment excerpt (200 characters),
+  falling back to the first non-empty of S, O, P when there is no assessment.
+- **Patient boundary test** (`patient-boundary.test.ts`) is an allow-list: only `db/`, the notes
+  server and component folders, the overview, the customer page and `i18n/` may mention visit
+  notes, and `server/patient/`, `app/(patient)/`, `app/api/` and anything named `*export*` may not.
+  Any new file elsewhere that mentions them fails the test.
+- **Archived customers** can still have notes added, edited and deleted (same as cases).
+- **Routine/plan links dropped for v1**: see open question 2; the goal line was removed.
+- **Side effect**: `Customers.tabEmpty.notes` and the `notes` branch of `TabEmpty` were removed
+  because the tab is built. Adding messages pushed `category-manager.tsx` over TypeScript's
+  type-instantiation depth limit (its context typed the translator as the un-namespaced
+  `useTranslations`), so it now types it as `useTranslations<"Library.categories">`.
