@@ -34,7 +34,7 @@ Changes to `routines` and `weekly_plans`:
 Template routines used inside a template plan have `is_standalone = false`. Templates have no
 `case_id`, status is `active` or `archived` only (no draft), and never get share links.
 
-Optional: `template_tags text[]` to group templates (see open questions).
+No template tags in v1 (see "Open questions"): name search is the only way to narrow a list.
 
 ## Routes and UI
 
@@ -52,8 +52,7 @@ Optional: `template_tags text[]` to group templates (see open questions).
 1. Copying is a deep copy in one transaction: routine + items; plan + entries + each
    distinct referenced routine (shared references stay shared inside the copy).
 2. Copies record `source_template_id`; the UI shows "From template: X".
-3. Deleting a template is allowed when unused; otherwise archive. Copies are unaffected either
-   way.
+3. Templates are archived, never deleted (no hard delete in v1). Copies are unaffected.
 4. Template editors skip customer-only features (sharing, logs, phases).
 
 ## Security and privacy
@@ -81,7 +80,14 @@ Namespace `Templates`.
 
 ## Open questions
 
-1. Do you want template folders/tags (e.g. "Knee", "Post-op") in v1, or is search enough?
+Answered 2026-10-01:
+
+1. **Tags/folders in v1?** No: search is enough. No `template_tags` column.
+2. **Delete templates?** No: archive only (archive/unarchive through the status select). The
+   rule "delete when unused" is dropped.
+3. **Notes when saving a customer routine/plan as a template** (routine/plan notes, item notes,
+   entry labels may hold patient info): copy everything verbatim; the dialog warns the physio
+   to review the template.
 
 ## Decisions made during implementation
 
