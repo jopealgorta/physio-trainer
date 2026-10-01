@@ -126,7 +126,7 @@ export async function saveRoutine(
   if (input.status === "active" && input.items.length === 0) return fail("needsItems");
   if (input.status === "archived" && routine.status !== "archived") {
     const plans = await listPlansUsingRoutine(tx, physioId, input.id);
-    if (plans.length > 0) return fail("blockedByPlans");
+    if (plans.length > 0) return { ok: false, error: "blockedByPlans", plans } as const;
   }
 
   // Items first: their group FK is NO ACTION. Sets cascade with their item.
@@ -195,4 +195,99 @@ export async function saveRoutine(
     .where(and(eq(routines.physioId, physioId), eq(routines.id, input.id)))
     .returning({ version: routines.version });
   return ok({ version: saved.version });
+}
+
+/**
+ * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
+ * status and customer. Used by "Make a separate copy" on a weekly plan (spec 06).
+ */
+export async function duplicateRoutine(
+  tx: Tx,
+  physioId: string,
+  sourceId: string,
+  options: { name: string; isStandalone: boolean },
+): Promise<Result<{ id: string }, "notFound">> {
+  if (!isUuid(sourceId)) return fail("notFound");
+  const [source] = await tx
+    .select()
+    .from(routines)
+    .where(and(eq(routines.physioId, physioId), eq(routines.id, sourceId)));
+  if (!source) return fail("notFound");
+
+  const [copy] = await tx
+    .insert(routines)
+    .values({
+      physioId,
+      customerId: source.customerId,
+      caseId: source.caseId,
+      name: options.name,
+      notes: source.notes,
+      isStandalone: options.isStandalone,
+      sessionsPerWeek: source.sessionsPerWeek,
+      sessionsPerDay: source.sessionsPerDay,
+      status: source.status,
+    })
+    .returning({ id: routines.id });
+
+  const groups = await tx
+    .select()
+    .from(routineGroups)
+    .where(and(eq(routineGroups.physioId, physioId), eq(routineGroups.routineId, sourceId)));
+  const groupIds = new Map(groups.map((group) => [group.id, crypto.randomUUID()]));
+  if (groups.length > 0) {
+    await tx.insert(routineGroups).values(
+      groups.map((group) => ({
+        id: groupIds.get(group.id)!,
+        physioId,
+        routineId: copy.id,
+        restSeconds: group.restSeconds,
+      })),
+    );
+  }
+
+  const items = await tx
+    .select()
+    .from(routineItems)
+    .where(and(eq(routineItems.physioId, physioId), eq(routineItems.routineId, sourceId)));
+  const itemIds = new Map(items.map((row) => [row.id, crypto.randomUUID()]));
+  if (items.length > 0) {
+    await tx.insert(routineItems).values(
+      items.map((row) => ({
+        id: itemIds.get(row.id)!,
+        physioId,
+        routineId: copy.id,
+        exerciseId: row.exerciseId,
+        position: row.position,
+        groupId: row.groupId === null ? null : (groupIds.get(row.groupId) ?? null),
+        holdSeconds: row.holdSeconds,
+        restSeconds: row.restSeconds,
+        side: row.side,
+        notes: row.notes,
+      })),
+    );
+    const sets = await tx
+      .select()
+      .from(routineItemSets)
+      .where(
+        and(
+          eq(routineItemSets.physioId, physioId),
+          inArray(routineItemSets.routineItemId, [...itemIds.keys()]),
+        ),
+      );
+    if (sets.length > 0) {
+      await tx.insert(routineItemSets).values(
+        sets.map((row) => ({
+          id: crypto.randomUUID(),
+          physioId,
+          routineItemId: itemIds.get(row.routineItemId)!,
+          position: row.position,
+          reps: row.reps,
+          repsMax: row.repsMax,
+          durationSeconds: row.durationSeconds,
+          load: row.load,
+        })),
+      );
+    }
+  }
+  return ok({ id: copy.id });
 }

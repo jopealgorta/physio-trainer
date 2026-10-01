@@ -1,17 +1,37 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- placeholder until spec 06 fills it in */
 import "server-only";
 
+import { and, asc, eq } from "drizzle-orm";
+
 import type { Tx } from "@/db/rls";
+import { weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+
+import type { PlanRef } from "./schemas";
 
 /**
- * Plans that schedule this routine. Spec 06 (weekly plans) reads plan_days here so a routine that
- * plans use cannot be archived; until then no plan can reference a routine.
+ * Active weekly plans that schedule this routine (spec 06). A routine they use cannot be
+ * archived; the save path names them in the error.
  */
 export async function listPlansUsingRoutine(
-  _tx: Tx,
-  _physioId: string,
-  _routineId: string,
-): Promise<{ id: string; name: string }[]> {
-  // TODO(spec 06): query the plans that use this routine.
-  return [];
+  tx: Tx,
+  physioId: string,
+  routineId: string,
+): Promise<PlanRef[]> {
+  return tx
+    .selectDistinct({ id: weeklyPlans.id, name: weeklyPlans.name })
+    .from(weeklyPlanEntries)
+    .innerJoin(
+      weeklyPlans,
+      and(
+        eq(weeklyPlans.physioId, weeklyPlanEntries.physioId),
+        eq(weeklyPlans.id, weeklyPlanEntries.weeklyPlanId),
+      ),
+    )
+    .where(
+      and(
+        eq(weeklyPlanEntries.physioId, physioId),
+        eq(weeklyPlanEntries.routineId, routineId),
+        eq(weeklyPlans.status, "active"),
+      ),
+    )
+    .orderBy(asc(weeklyPlans.name), asc(weeklyPlans.id));
 }

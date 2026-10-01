@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { PlusIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -83,6 +83,8 @@ export function RoutineEditor({
   const [snapshot, setSnapshot] = useState(() => snapshotOf(routine.header, initialBlocks));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<SaveError | null>(null);
+  const [blockedBy, setBlockedBy] = useState<string[]>([]);
+  const format = useFormatter();
   const [fieldErrors, setFieldErrors] = useState<HeaderErrors>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
@@ -195,6 +197,7 @@ export function RoutineEditor({
         setSavedAt(Date.now());
       } else {
         setError(result.error);
+        setBlockedBy(result.plans?.map((plan) => plan.name) ?? []);
       }
     } catch {
       setError("generic");
@@ -236,7 +239,11 @@ export function RoutineEditor({
         </Alert>
       ) : error ? (
         <Alert variant="destructive">
-          <AlertDescription>{t(`errors.${error}`)}</AlertDescription>
+          <AlertDescription>
+            {error === "blockedByPlans"
+              ? t("errors.blockedByPlans", { plans: format.list(blockedBy) })
+              : t(`errors.${error}`)}
+          </AlertDescription>
         </Alert>
       ) : null}
 

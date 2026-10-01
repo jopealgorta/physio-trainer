@@ -666,7 +666,7 @@
         "caseNotFound": "Ese caso no pertenece a este cliente.",
         "exerciseNotFound": "Uno de los ejercicios ya no existe. Quitalo y guardá de nuevo.",
         "needsItems": "Agregá al menos un ejercicio antes de activarla.",
-        "blockedByPlans": "Esta rutina se usa en un plan semanal activo.",
+        "blockedByPlans": "Esta rutina se usa en un plan semanal activo: {plans}. Quitala del plan primero.",
         "invalid": "Revisá el formulario y probá de nuevo.",
         "sets": "Algunas series tienen repeticiones inválidas. Revisá los ejercicios resaltados.",
         "generic": "No se pudo guardar. Probá de nuevo.",

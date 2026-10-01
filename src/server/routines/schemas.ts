@@ -14,8 +14,12 @@ import {
   type RoutineStatus,
 } from "@/lib/routines";
 
-/** Mutation/action result. Errors are i18n keys. */
-export type Result<T, E extends string> = { ok: true; data: T } | { ok: false; error: E };
+/** Plans named by a `blockedByPlans` failure (spec 06 rule: archiving is blocked while they use it). */
+export type PlanRef = { id: string; name: string };
+
+/** Mutation/action result. Errors are i18n keys; `plans` accompanies `blockedByPlans`. */
+export type Result<T, E extends string> =
+  { ok: true; data: T } | { ok: false; error: E; plans?: PlanRef[] };
 
 export const idSchema = z.uuid();
 

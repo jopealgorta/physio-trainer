@@ -666,7 +666,7 @@
         "caseNotFound": "That case doesn't belong to this customer.",
         "exerciseNotFound": "One of the exercises no longer exists. Remove it and save again.",
         "needsItems": "Add at least one exercise before activating.",
-        "blockedByPlans": "This routine is used in an active weekly plan.",
+        "blockedByPlans": "This routine is used in an active weekly plan: {plans}. Remove it from the plan first.",
         "invalid": "Check the form and try again.",
         "sets": "Some sets have invalid reps. Check the highlighted exercises.",
         "generic": "Couldn't save. Try again.",
