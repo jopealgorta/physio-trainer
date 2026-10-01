@@ -24,3 +24,16 @@ Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
+
+// jsdom has no matchMedia. Default to a desktop-sized screen (nothing matches, so `useIsMobile`
+// is false); tests that need a phone override `window.matchMedia`.
+window.matchMedia ??= ((query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  addListener: () => {},
+  removeListener: () => {},
+  dispatchEvent: () => false,
+})) as typeof window.matchMedia;

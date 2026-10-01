@@ -59,6 +59,11 @@ test("a physio copies a routine into the next phase and sees the timeline", asyn
 
   // A reversed window is refused before it reaches the server.
   await page.getByRole("button", { name: "Edit phase" }).click();
+  // On a phone the popover is a bottom sheet; on desktop it floats and stays on screen.
+  await expect(popover(page)).toHaveAttribute("data-presentation", isMobile ? "sheet" : "popover");
+  const box = (await popover(page).boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.getByLabel("Ends on (optional)").fill(dateIn(-9));
   await popover(page).getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("The end date can't be before the start date.")).toBeVisible();

@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import { PHASE_LABEL_MAX, validateWindow } from "@/lib/phases";
 import { setPhaseAction } from "@/server/phases/actions";
 import type { PhaseActionError, PhaseKind } from "@/server/phases/schemas";
@@ -90,6 +90,7 @@ export function PhasePopover({
         </Button>
       </PopoverTrigger>
       <PopoverContent>
+        <PopoverTitle className="sr-only">{hasPhase ? t("edit") : t("set")}</PopoverTitle>
         <form onSubmit={onSubmit} noValidate className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor={`${fieldId}-label`}>{t("label")}</Label>
