@@ -88,5 +88,8 @@ always takes the "push and open a PR" option instead of offering the menu.
   hidden `<input name>` for form fields; `onValueChange` must ignore `""` (Radix's internal select
   reports it when a value and its option arrive in one commit). Unit/e2e tests pick options with `chooseOption`
   (`src/test/select.ts`, `e2e/helpers/select.ts`).
+- **Popovers**: use `Popover` from `src/components/ui/popover.tsx` (a bottom sheet on phones, a
+  popover from `sm` up). Give it a `PopoverTitle` and put desktop sizing under `sm:`; see
+  `docs/architecture.md` Conventions.
 - shadcn/ui primitives live in `src/components/ui`; add more with `pnpm dlx shadcn@latest add <name>`
   (if the registry is unreachable, write the component source by hand in the same style).

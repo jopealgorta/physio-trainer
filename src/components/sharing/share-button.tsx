@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import {
   loadShareAction,
   renewShareLinkAction,
@@ -83,10 +83,12 @@ export function ShareButton({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="max-h-(--radix-popover-content-available-height) w-96 gap-4 overflow-y-auto p-4 text-sm"
+        className="gap-4 p-4 text-sm sm:max-h-(--radix-popover-content-available-height) sm:w-96 sm:overflow-y-auto"
       >
         <div className="grid gap-1">
-          <h2 className="text-base font-semibold">{t(`title.${target.target}`)}</h2>
+          <PopoverTitle className="text-base font-semibold">
+            {t(`title.${target.target}`)}
+          </PopoverTitle>
           <p className="text-muted-foreground text-xs">{t(`description.${target.target}`)}</p>
         </div>
         {state?.link ? (

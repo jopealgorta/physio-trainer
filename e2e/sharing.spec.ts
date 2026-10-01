@@ -288,6 +288,32 @@ test.describe("sharing from the physio's side", () => {
     await patient.close();
   });
 
+  test("the share popover is a bottom sheet on a phone and a popover on desktop", async ({
+    physioPage: page,
+    physio,
+  }, testInfo) => {
+    const isMobile = testInfo.project.name === "mobile";
+    const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
+    await insertRoutine(physio.id, customerId, "Knee routine");
+    await page.goto(`/customers/${customerId}`);
+    await page.getByRole("button", { name: "Share" }).click();
+    await expect(page.getByLabel("Link", { exact: true })).toBeVisible();
+
+    const content = page.locator('[data-slot="popover-content"]');
+    await expect(content).toHaveAttribute("data-presentation", isMobile ? "sheet" : "popover");
+
+    // The last control is reachable (the sheet scrolls) and nothing spills off the screen.
+    const revoke = page.getByRole("button", { name: "Revoke link" });
+    await revoke.scrollIntoViewIfNeeded();
+    const viewport = page.viewportSize()!;
+    for (const box of [await content.boundingBox(), await revoke.boundingBox()]) {
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+    }
+    if (isMobile) expect((await content.boundingBox())!.width).toBe(viewport.width);
+  });
+
   test("archiving the customer revokes their link", async ({
     physioPage: page,
     physio,
