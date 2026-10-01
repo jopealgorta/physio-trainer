@@ -962,6 +962,30 @@
       "create": "Crear plantilla",
       "creating": "Creando…",
       "cancel": "Cancelar"
+    },
+    "badge": "Plantilla",
+    "from": "Desde la plantilla: <link></link>",
+    "assign": {
+      "title": "Asignar a un cliente",
+      "description": "“{name}” se copia para el cliente. La copia es independiente: editarla nunca cambia la plantilla.",
+      "customer": "Cliente",
+      "noCustomer": "Elegí un cliente",
+      "case": "Caso",
+      "noCase": "Sin caso",
+      "name": "Nombre",
+      "status": "Estado",
+      "submit": "Asignar",
+      "submitting": "Asignando…",
+      "cancel": "Cancelar"
+    },
+    "save": {
+      "button": "Guardar como plantilla…",
+      "title": "Guardar como plantilla",
+      "name": "Nombre de la plantilla",
+      "notesWarning": "Las notas y las etiquetas se copian tal cual. Revisalas por si incluyen datos del paciente.",
+      "submit": "Guardar plantilla",
+      "submitting": "Guardando…",
+      "cancel": "Cancelar"
     }
   },
   "Branding": {

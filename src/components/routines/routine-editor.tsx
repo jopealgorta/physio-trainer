@@ -45,6 +45,8 @@ export type RoutineEditorProps = {
     version: number;
     customerId: string | null;
     customerName: string | null;
+    /** A template belongs to no customer: no case, and it may be active while empty. */
+    isTemplate: boolean;
     header: HeaderValues;
     cases: { id: string; title: string }[];
   };
@@ -172,7 +174,7 @@ export function RoutineEditor({
       setExpanded((previous) => new Set([...previous, ...badItems]));
       return;
     }
-    if (header.status === "active" && flatItems(blocks).length === 0) {
+    if (!routine.isTemplate && header.status === "active" && flatItems(blocks).length === 0) {
       setError("needsItems");
       return;
     }
@@ -212,6 +214,7 @@ export function RoutineEditor({
         values={header}
         errors={fieldErrors}
         onChange={changeHeader}
+        isTemplate={routine.isTemplate}
         customerId={routine.customerId}
         customerName={routine.customerName}
         cases={routine.cases}

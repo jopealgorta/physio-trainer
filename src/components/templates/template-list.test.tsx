@@ -10,7 +10,11 @@ const { duplicateTemplateAction, push } = vi.hoisted(() => ({
   duplicateTemplateAction: vi.fn(),
   push: vi.fn(),
 }));
-vi.mock("@/server/templates/actions", () => ({ duplicateTemplateAction }));
+vi.mock("@/server/templates/actions", () => ({
+  duplicateTemplateAction,
+  assignTemplateAction: vi.fn(),
+  listCasesAction: vi.fn().mockResolvedValue([]),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh: vi.fn() }) }));
 
 const routineRows: TemplateRow[] = [
@@ -88,6 +92,22 @@ describe("TemplateList", () => {
     await user.click(within(table).getByRole("button", { name: "Actions for ACL phase 1" }));
     expect(await screen.findByRole("menuitem", { name: "Duplicate" })).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Assign to customer…" })).not.toBeInTheDocument();
+  });
+
+  it("offers Assign when there are customers, and opens the dialog for that template", async () => {
+    const user = userEvent.setup();
+    wrap(
+      <TemplateList
+        kind="routine"
+        rows={routineRows}
+        customers={[{ id: "c1", name: "Ana Pérez" }]}
+      />,
+    );
+    const table = screen.getByRole("table", { name: "Routine templates" });
+    await user.click(within(table).getByRole("button", { name: "Actions for ACL phase 1" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Assign to customer…" }));
+    expect(await screen.findByRole("dialog", { name: "Assign to a customer" })).toBeVisible();
+    expect(screen.getByLabelText("Name")).toHaveValue("ACL phase 1");
   });
 
   it("duplicates and opens the copy", async () => {

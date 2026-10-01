@@ -962,6 +962,30 @@
       "create": "Create template",
       "creating": "Creating…",
       "cancel": "Cancel"
+    },
+    "badge": "Template",
+    "from": "From template: <link></link>",
+    "assign": {
+      "title": "Assign to a customer",
+      "description": "“{name}” is copied for the customer. The copy is independent: editing it never changes the template.",
+      "customer": "Customer",
+      "noCustomer": "Choose a customer",
+      "case": "Case",
+      "noCase": "No case",
+      "name": "Name",
+      "status": "Status",
+      "submit": "Assign",
+      "submitting": "Assigning…",
+      "cancel": "Cancel"
+    },
+    "save": {
+      "button": "Save as template…",
+      "title": "Save as template",
+      "name": "Template name",
+      "notesWarning": "Notes and labels are copied as they are. Review them for patient information.",
+      "submit": "Save template",
+      "submitting": "Saving…",
+      "cancel": "Cancel"
     }
   },
   "Branding": {

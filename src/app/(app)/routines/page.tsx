@@ -28,18 +28,22 @@ export default async function RoutinesPage({ searchParams }: PageProps<"/routine
   const isTemplates = filters.tab === "templates";
   const t = await getTranslations("Routines");
   const tTemplates = await getTranslations("Templates");
-  const { list, customers, timeZone } = await withPhysio(async (tx, physioId) => {
+  const { list, customers, assignable, timeZone } = await withPhysio(async (tx, physioId) => {
     const everyone = { q: "", sort: "name", archived: false } as const;
-    // Templates have no customer, so that tab has no customer filter to feed.
+    // Templates have no customer filter; the active customers are who a template can be assigned to.
     const [routineList, active, archived, profile] = await Promise.all([
       listRoutines(tx, physioId, filters),
-      isTemplates ? null : listCustomers(tx, physioId, everyone),
+      listCustomers(tx, physioId, everyone),
       isTemplates ? null : listCustomers(tx, physioId, { ...everyone, archived: true }),
       getProfile(tx, physioId),
     ]);
     return {
       list: routineList,
-      customers: [...(active?.customers ?? []), ...(archived?.customers ?? [])].map((customer) => ({
+      customers: [...active.customers, ...(archived?.customers ?? [])].map((customer) => ({
+        id: customer.id,
+        name: customerName(customer.firstName, customer.lastName),
+      })),
+      assignable: active.customers.map((customer) => ({
         id: customer.id,
         name: customerName(customer.firstName, customer.lastName),
       })),
@@ -79,6 +83,7 @@ export default async function RoutinesPage({ searchParams }: PageProps<"/routine
                 <TemplateList
                   kind="routine"
                   timeZone={timeZone}
+                  customers={assignable}
                   rows={routines.map((routine) => ({
                     id: routine.id,
                     name: routine.name,

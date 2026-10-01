@@ -4,7 +4,9 @@ import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 
 import type { Tx } from "@/db/rls";
 import { cases, routines, weeklyPlans } from "@/db/schema";
+import { customerName } from "@/lib/customers";
 import { escapeLike } from "@/lib/sql-like";
+import { listCustomers } from "@/server/customers/queries";
 
 import { isUuid } from "./schemas";
 
@@ -101,4 +103,16 @@ export async function listCustomerCases(
       desc(cases.openedOn),
       asc(cases.id),
     );
+}
+
+/** The customers a template can be assigned to (not archived), by name. */
+export async function listAssignableCustomers(
+  tx: Tx,
+  physioId: string,
+): Promise<{ id: string; name: string }[]> {
+  const { customers } = await listCustomers(tx, physioId, { q: "", sort: "name", archived: false });
+  return customers.map((customer) => ({
+    id: customer.id,
+    name: customerName(customer.firstName, customer.lastName),
+  }));
 }

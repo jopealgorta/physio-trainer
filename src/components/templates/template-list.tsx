@@ -17,6 +17,7 @@ import type { RoutineStatus } from "@/lib/routines";
 import type { TemplateKind } from "@/lib/templates";
 import { duplicateTemplateAction } from "@/server/templates/actions";
 
+import { AssignTemplateDialog } from "./assign-template-dialog";
 import { NewTemplateDialog } from "./new-template-dialog";
 import { TemplateRowMenu } from "./template-row-menu";
 
@@ -39,10 +40,13 @@ const PATHS = { routine: "/routines", plan: "/plans" } as const;
 export function TemplateList({
   kind,
   rows,
+  customers = [],
   timeZone,
 }: {
   kind: TemplateKind;
   rows: TemplateRow[];
+  /** Active customers a template can be assigned to; with none, the row menu has no Assign. */
+  customers?: { id: string; name: string }[];
   /** The physio's time zone, so "Updated" shows their calendar day. */
   timeZone?: string;
 }) {
@@ -52,6 +56,8 @@ export function TemplateList({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState(false);
+  const [assigning, setAssigning] = useState<TemplateRow | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const updated = (row: TemplateRow) =>
     format.dateTime(row.updatedAt, { dateStyle: "medium", timeZone });
@@ -72,7 +78,19 @@ export function TemplateList({
   };
 
   const menu = (row: TemplateRow) => (
-    <TemplateRowMenu name={row.name} onDuplicate={() => duplicate(row)} disabled={pending} />
+    <TemplateRowMenu
+      name={row.name}
+      onAssign={
+        customers.length > 0
+          ? () => {
+              setAssigning(row);
+              setAssignOpen(true);
+            }
+          : undefined
+      }
+      onDuplicate={() => duplicate(row)}
+      disabled={pending}
+    />
   );
   const link = (row: TemplateRow) => (
     <Link
@@ -142,6 +160,16 @@ export function TemplateList({
           </li>
         ))}
       </ul>
+      {assigning ? (
+        <AssignTemplateDialog
+          key={assigning.id}
+          kind={kind}
+          template={{ id: assigning.id, name: assigning.name }}
+          customers={customers}
+          open={assignOpen}
+          onOpenChange={setAssignOpen}
+        />
+      ) : null}
     </div>
   );
 }

@@ -7,8 +7,14 @@ import { getTranslations } from "next-intl/server";
 import { PlanBoard } from "@/components/plans/plan-board";
 import { PlanDetailsForm } from "@/components/plans/plan-details-form";
 import { StatusBadge } from "@/components/routines/status-badge";
+import { FromTemplate } from "@/components/templates/from-template";
+import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-dialog";
+import { TemplateActions } from "@/components/templates/template-actions";
+import { TemplateBadge } from "@/components/templates/template-badge";
 import { customerName } from "@/lib/customers";
+import { withPhysio } from "@/server/auth/session";
 import { loadPlan } from "@/server/plans/load";
+import { listAssignableCustomers } from "@/server/templates/queries";
 
 export async function generateMetadata({
   params,
@@ -33,7 +39,10 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
         href: `/customers/${plan.customerId}?tab=plans` as Route,
         label: t("customerBack", { name: owner ?? "" }),
       }
-    : { href: "/plans" as Route, label: t("back") };
+    : { href: "/plans?tab=templates" as Route, label: t("back") };
+  const customers = plan.isTemplate
+    ? await withPhysio((tx, physioId) => listAssignableCustomers(tx, physioId))
+    : [];
 
   return (
     <div className="grid gap-6">
@@ -47,7 +56,24 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{plan.name}</h1>
         <StatusBadge status={plan.status} />
+        {plan.isTemplate ? <TemplateBadge /> : null}
       </div>
+      {plan.isTemplate ? (
+        <TemplateActions
+          kind="plan"
+          template={{ id: plan.id, name: plan.name }}
+          customers={customers}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {plan.sourceTemplate ? (
+            <FromTemplate kind="plan" template={plan.sourceTemplate} />
+          ) : (
+            <span />
+          )}
+          <SaveAsTemplateDialog kind="plan" sourceId={plan.id} defaultName={plan.name} />
+        </div>
+      )}
       <PlanDetailsForm
         planId={plan.id}
         initial={{
@@ -57,13 +83,9 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
           status: plan.status,
         }}
         cases={plan.cases.map(({ id, title }) => ({ id, title }))}
+        isTemplate={plan.isTemplate}
       />
-      <PlanBoard
-        planId={plan.id}
-        entries={plan.entries}
-        routines={routines}
-        canAdd={plan.customerId !== null}
-      />
+      <PlanBoard planId={plan.id} entries={plan.entries} routines={routines} />
     </div>
   );
 }

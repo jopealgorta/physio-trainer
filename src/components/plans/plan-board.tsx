@@ -105,14 +105,11 @@ export function PlanBoard({
   planId,
   entries: serverEntries,
   routines,
-  canAdd,
 }: {
   planId: string;
   entries: PlanEntryDetail[];
-  /** The customer's routines that can be attached. */
+  /** The routines that can be attached: the customer's, or the template routines for a template. */
   routines: AttachableRoutine[];
-  /** False for a plan without a customer (nothing to attach). */
-  canAdd: boolean;
 }) {
   const t = useTranslations("Plans.board");
   const locale = useLocale();
@@ -287,7 +284,6 @@ export function PlanBoard({
                 name={dayName(weekday)}
                 count={dayEntries.length}
                 full={fullDays.has(weekday)}
-                canAdd={canAdd}
                 onAddExisting={() => setDialog({ kind: "attach", weekday })}
                 onAddNew={() => setDialog({ kind: "new", weekday })}
               >
@@ -415,7 +411,6 @@ function DayColumn({
   name,
   count,
   full,
-  canAdd,
   onAddExisting,
   onAddNew,
   children,
@@ -424,7 +419,6 @@ function DayColumn({
   name: string;
   count: number;
   full: boolean;
-  canAdd: boolean;
   onAddExisting: () => void;
   onAddNew: () => void;
   children: React.ReactNode;
@@ -451,26 +445,24 @@ function DayColumn({
             {count === 0 ? t("rest") : t("count", { count })}
           </p>
         </div>
-        {canAdd ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                disabled={full}
-                aria-label={t("add", { day: name })}
-                title={full ? t("full", { max: MAX_ENTRIES_PER_DAY }) : t("add", { day: name })}
-              >
-                <PlusIcon aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={onAddExisting}>{t("addExisting")}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={onAddNew}>{t("addNew")}</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              disabled={full}
+              aria-label={t("add", { day: name })}
+              title={full ? t("full", { max: MAX_ENTRIES_PER_DAY }) : t("add", { day: name })}
+            >
+              <PlusIcon aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onAddExisting}>{t("addExisting")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onAddNew}>{t("addNew")}</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
       {/* The droppable covers the whole list so an empty day can still receive a card. */}
       <div ref={setNodeRef} className="min-h-10 rounded-md">

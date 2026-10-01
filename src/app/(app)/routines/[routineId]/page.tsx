@@ -5,6 +5,9 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { RoutineEditor } from "@/components/routines/routine-editor";
+import { FromTemplate } from "@/components/templates/from-template";
+import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-dialog";
+import { TemplateActions } from "@/components/templates/template-actions";
 import { customerName } from "@/lib/customers";
 import { DEFAULT_LIBRARY_FILTERS } from "@/lib/library-params";
 import { fromLoaded } from "@/lib/routine-editor";
@@ -14,6 +17,7 @@ import { listCategoryTree, listExercises } from "@/server/library/queries";
 import { idSchema } from "@/server/routines/schemas";
 import { loadRoutine } from "@/server/routines/load";
 import { listRecentExercises } from "@/server/routines/queries";
+import { listAssignableCustomers } from "@/server/templates/queries";
 
 /** Exercises shown in the picker before the physio searches. */
 const PICKER_INITIAL_LIMIT = 60;
@@ -35,13 +39,19 @@ export default async function RoutinePage({
   if (!routine) notFound();
   const t = await getTranslations("Routines.editor");
 
-  const { categories, recent, exercises } = await withPhysio(async (tx, physioId) => {
-    const [tree, recentlyUsed, initial] = await Promise.all([
+  const { categories, recent, exercises, customers } = await withPhysio(async (tx, physioId) => {
+    const [tree, recentlyUsed, initial, assignable] = await Promise.all([
       listCategoryTree(tx, physioId),
       listRecentExercises(tx, physioId),
       listExercises(tx, physioId, DEFAULT_LIBRARY_FILTERS, PICKER_INITIAL_LIMIT),
+      routine.isTemplate ? listAssignableCustomers(tx, physioId) : [],
     ]);
-    return { categories: tree, recent: recentlyUsed, exercises: initial.exercises };
+    return {
+      categories: tree,
+      recent: recentlyUsed,
+      exercises: initial.exercises,
+      customers: assignable,
+    };
   });
 
   // Coming from a plan board ("New routine" on a day): offer the way back to that plan.
@@ -65,10 +75,31 @@ export default async function RoutinePage({
         <ArrowLeftIcon aria-hidden className="size-4" />
         {back.label}
       </Link>
+      {routine.isTemplate ? (
+        // A template routine of a plan is edited through the plan: only standalone ones are
+        // assigned or duplicated from here.
+        fromPlan.success ? null : (
+          <TemplateActions
+            kind="routine"
+            template={{ id: routine.id, name: routine.name }}
+            customers={customers}
+          />
+        )
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {routine.sourceTemplate ? (
+            <FromTemplate kind="routine" template={routine.sourceTemplate} />
+          ) : (
+            <span />
+          )}
+          <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
+        </div>
+      )}
       <RoutineEditor
         routine={{
           id: routine.id,
           version: routine.version,
+          isTemplate: routine.isTemplate,
           customerId: routine.customerId,
           customerName: routine.customerFirstName
             ? customerName(routine.customerFirstName, routine.customerLastName)

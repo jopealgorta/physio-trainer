@@ -46,7 +46,7 @@ function setup(
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <PlanBoard planId={PLAN} entries={entries} routines={routines} canAdd {...props} />
+      <PlanBoard planId={PLAN} entries={entries} routines={routines} {...props} />
     </NextIntlClientProvider>,
   );
 }
@@ -133,11 +133,6 @@ describe("PlanBoard layout", () => {
     expect(within(day("Tuesday")).getByText("Draft")).toBeInTheDocument();
     expect(within(day("Wednesday")).getByText("Evening")).toBeInTheDocument();
     expect(within(day("Wednesday")).getByText("No exercises yet")).toBeInTheDocument();
-  });
-
-  it("has no add buttons without a customer", () => {
-    setup([], { canAdd: false });
-    expect(screen.queryByRole("button", { name: /^Add routine to/ })).not.toBeInTheDocument();
   });
 });
 

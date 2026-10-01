@@ -9,7 +9,12 @@ import { addNewRoutineEntry } from "@/server/plans/mutations";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
 import { createTemplate } from "./mutations";
-import { getTemplateName, listCustomerCases, listTemplates } from "./queries";
+import {
+  getTemplateName,
+  listAssignableCustomers,
+  listCustomerCases,
+  listTemplates,
+} from "./queries";
 
 describe("template queries", () => {
   const created: TestPhysio[] = [];
@@ -218,6 +223,20 @@ describe("template queries", () => {
       ]);
       expect(await as(b, (tx, pid) => listCustomerCases(tx, pid, customerId))).toEqual([]);
       expect(await as(who, (tx, pid) => listCustomerCases(tx, pid, "nope"))).toEqual([]);
+    });
+  });
+
+  describe("listAssignableCustomers", () => {
+    it("lists the physio's active customers by name, leaving out archived and foreign ones", async () => {
+      const who = await fresh();
+      await db.insert(customers).values([
+        { physioId: who.id, firstName: "Zoe", lastName: "Ruiz", locale: "en" },
+        { physioId: who.id, firstName: "Ana", locale: "en" },
+        { physioId: who.id, firstName: "Old", locale: "en", archivedAt: new Date() },
+      ]);
+      const list = await as(who, (tx, pid) => listAssignableCustomers(tx, pid));
+      expect(list.map((row) => row.name)).toEqual(["Ana", "Zoe Ruiz"]);
+      expect(await as(b, (tx, pid) => listAssignableCustomers(tx, pid))).toEqual([]);
     });
   });
 });
