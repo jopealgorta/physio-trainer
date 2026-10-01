@@ -13,7 +13,9 @@ import {
   normalizeEntries,
   type PlacedEntry,
 } from "@/lib/plans";
-import { createRoutine, duplicateRoutine } from "@/server/routines/mutations";
+import type { RoutineStatus } from "@/lib/routines";
+import { distinctRoutineIds, remapEntries } from "@/lib/templates";
+import { copyRoutine, createRoutine, duplicateRoutine } from "@/server/routines/mutations";
 
 import {
   isUuid,
@@ -487,4 +489,83 @@ export async function makeSeparateCopy(
     .where(and(eq(weeklyPlanEntries.physioId, physioId), eq(weeklyPlanEntries.id, entry.id)));
   await bump(tx, physioId, plan.id);
   return ok({ routineId: copy.data.id });
+}
+
+export type PlanCopyTarget = {
+  name: string;
+  customerId: string | null;
+  caseId: string | null;
+  status: RoutineStatus;
+  isTemplate: boolean;
+  /** Status given to every copied routine. */
+  routineStatus: RoutineStatus;
+  /** Record provenance: plan.source_template_id = source plan, each routine copy's = its source routine. */
+  linkSource: boolean;
+};
+
+/**
+ * Deep-copies a plan (notes, entries with weekday/position/label) and each DISTINCT routine it
+ * references exactly once, so routines shared across days stay shared inside the copy. Copied
+ * routines are never standalone. The plan is locked `for share` (board actions lock `for update`),
+ * and each routine is locked the same way by `copyRoutine`, so the copy sees a consistent plan.
+ */
+export async function copyPlan(
+  tx: Tx,
+  physioId: string,
+  sourceId: string,
+  target: PlanCopyTarget,
+): Promise<Result<{ id: string }, "notFound">> {
+  if (!isUuid(sourceId)) return fail("notFound");
+  const [source] = await tx
+    .select()
+    .from(weeklyPlans)
+    .where(and(eq(weeklyPlans.physioId, physioId), eq(weeklyPlans.id, sourceId)))
+    .for("share");
+  if (!source) return fail("notFound");
+
+  const entries = await loadEntries(tx, physioId, source.id);
+  const routineIds = new Map<string, string>();
+  for (const routineId of distinctRoutineIds(entries)) {
+    const copy = await copyRoutine(tx, physioId, routineId, (routine) => ({
+      name: routine.name,
+      customerId: target.customerId,
+      caseId: target.caseId,
+      isStandalone: false,
+      status: target.routineStatus,
+      isTemplate: target.isTemplate,
+      sourceTemplateId: target.linkSource ? routine.id : null,
+    }));
+    if (!copy.ok) return fail("notFound");
+    routineIds.set(routineId, copy.data.id);
+  }
+
+  const [plan] = await tx
+    .insert(weeklyPlans)
+    .values({
+      physioId,
+      customerId: target.customerId,
+      caseId: target.caseId,
+      name: target.name,
+      notes: source.notes,
+      isTemplate: target.isTemplate,
+      sourceTemplateId: target.linkSource ? source.id : null,
+      status: target.status,
+    })
+    .returning({ id: weeklyPlans.id });
+
+  const copied = remapEntries(entries, routineIds);
+  if (copied.length > 0) {
+    await tx.insert(weeklyPlanEntries).values(
+      copied.map((entry) => ({
+        id: crypto.randomUUID(),
+        physioId,
+        weeklyPlanId: plan.id,
+        weekday: entry.weekday,
+        routineId: entry.routineId,
+        position: entry.position,
+        label: entry.label,
+      })),
+    );
+  }
+  return ok({ id: plan.id });
 }

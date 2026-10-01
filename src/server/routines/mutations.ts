@@ -26,6 +26,8 @@ import {
   type SaveRoutineInput,
 } from "./schemas";
 
+type Routine = typeof routines.$inferSelect;
+
 const ok = <T>(data: T) => ({ ok: true, data }) as const;
 const fail = <E extends string>(error: E) => ({ ok: false, error }) as const;
 
@@ -201,35 +203,52 @@ export async function saveRoutine(
   return ok({ version: saved.version });
 }
 
+export type RoutineCopyTarget = {
+  name: string;
+  customerId: string | null;
+  caseId: string | null;
+  isStandalone: boolean;
+  status: RoutineStatus;
+  isTemplate: boolean;
+  sourceTemplateId: string | null;
+};
+
 /**
- * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
- * status and customer. Used by "Make a separate copy" on a weekly plan (spec 06).
+ * Copies a routine's header, groups, items and sets into a new routine described by `target`
+ * (given the source row). The source is locked `for share`, so a concurrent `saveRoutine` (which
+ * locks `for update` and then replaces items) can never leave the copy with half-replaced items.
+ * Callers decide the copy's owner/provenance; the DB checks keep `is_template` and `customer_id`
+ * consistent.
  */
-export async function duplicateRoutine(
+export async function copyRoutine(
   tx: Tx,
   physioId: string,
   sourceId: string,
-  options: { name: string; isStandalone: boolean; status?: RoutineStatus },
+  target: (source: Routine) => RoutineCopyTarget,
 ): Promise<Result<{ id: string }, "notFound">> {
   if (!isUuid(sourceId)) return fail("notFound");
   const [source] = await tx
     .select()
     .from(routines)
-    .where(and(eq(routines.physioId, physioId), eq(routines.id, sourceId)));
+    .where(and(eq(routines.physioId, physioId), eq(routines.id, sourceId)))
+    .for("share");
   if (!source) return fail("notFound");
+  const to = target(source);
 
   const [copy] = await tx
     .insert(routines)
     .values({
       physioId,
-      customerId: source.customerId,
-      caseId: source.caseId,
-      name: options.name,
+      customerId: to.customerId,
+      caseId: to.caseId,
+      name: to.name,
       notes: source.notes,
-      isStandalone: options.isStandalone,
+      isTemplate: to.isTemplate,
+      sourceTemplateId: to.sourceTemplateId,
+      isStandalone: to.isStandalone,
       sessionsPerWeek: source.sessionsPerWeek,
       sessionsPerDay: source.sessionsPerDay,
-      status: options.status ?? source.status,
+      status: to.status,
     })
     .returning({ id: routines.id });
 
@@ -294,4 +313,25 @@ export async function duplicateRoutine(
     }
   }
   return ok({ id: copy.id });
+}
+
+/**
+ * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
+ * status and customer. Used by "Make a separate copy" on a weekly plan (spec 06).
+ */
+export function duplicateRoutine(
+  tx: Tx,
+  physioId: string,
+  sourceId: string,
+  options: { name: string; isStandalone: boolean; status?: RoutineStatus },
+): Promise<Result<{ id: string }, "notFound">> {
+  return copyRoutine(tx, physioId, sourceId, (source) => ({
+    name: options.name,
+    customerId: source.customerId,
+    caseId: source.caseId,
+    isStandalone: options.isStandalone,
+    status: options.status ?? source.status,
+    isTemplate: source.isTemplate,
+    sourceTemplateId: source.sourceTemplateId,
+  }));
 }
