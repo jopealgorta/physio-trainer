@@ -1300,6 +1300,61 @@
       "title": "Your exercise plan · {clinic}",
       "description": "Open your routine from {clinic}.",
       "imageAlt": "{clinic}"
+    },
+    "startWorkout": "Start workout"
+  },
+  "Workout": {
+    "label": "Workout: {name}",
+    "progress": "Exercise {current, number} of {total, number}",
+    "setOf": "Set {current, number} of {total, number}",
+    "superset": "Superset",
+    "side": {
+      "left": "Left side",
+      "right": "Right side",
+      "both": "Both sides"
+    },
+    "target": {
+      "reps": "{count, plural, one {# rep} other {# reps}}",
+      "range": "{min, number}–{max, number} reps",
+      "duration": "{value, number} s",
+      "load": "Load: {value}"
+    },
+    "exit": "Exit workout",
+    "exitDialog": {
+      "title": "Leave this workout?",
+      "description": "Your progress in this workout will be lost.",
+      "stay": "Keep going",
+      "leave": "Leave"
+    },
+    "previous": "Previous",
+    "next": "Next",
+    "setDone": "Set done",
+    "startTimer": "Start timer",
+    "startHold": "Hold {value, number} s",
+    "hold": "Hold",
+    "timeLeft": "Time left",
+    "rest": "Rest",
+    "upNext": "Up next",
+    "skip": "Skip",
+    "addTime": "+15 s",
+    "addTimeLabel": "Add 15 seconds",
+    "notes": "Note",
+    "instructions": "How to do it",
+    "noVideo": "No video for this exercise",
+    "sound": {
+      "on": "Sound on",
+      "off": "Sound off"
+    },
+    "announce": {
+      "holdDone": "Hold finished.",
+      "timeUp": "Time's up.",
+      "restOver": "Rest over. Next: {name}.",
+      "finished": "Workout finished."
+    },
+    "finished": {
+      "title": "Well done!",
+      "description": "You finished {name}.",
+      "back": "Back to my plan"
     }
   }
 }

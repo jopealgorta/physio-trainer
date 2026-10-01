@@ -108,3 +108,39 @@ export async function setBranding(
       contact_phone = ${values.contactPhone ?? null}
     where id = ${physioId}`;
 }
+
+/**
+ * A standalone routine for workout mode: "Bridge" (2 sets of 8 reps, hold 5 s, rest 20 s) then
+ * "Plank" (one timed set of 30 s).
+ */
+export async function insertWorkoutRoutine(
+  physioId: string,
+  customerId: string,
+  name = "Knee rehab",
+): Promise<string> {
+  const [routine] = await sql<{ id: string }[]>`
+    insert into public.routines (physio_id, customer_id, name, status, is_standalone)
+    values (${physioId}, ${customerId}, ${name}, 'active', true) returning id`;
+  const exercise = async (
+    title: string,
+    position: number,
+    hold: number | null,
+    rest: number | null,
+  ) => {
+    const [ex] = await sql<{ id: string }[]>`
+      insert into public.exercises (physio_id, name) values (${physioId}, ${title}) returning id`;
+    const [item] = await sql<{ id: string }[]>`
+      insert into public.routine_items (physio_id, routine_id, exercise_id, position, hold_seconds, rest_seconds)
+      values (${physioId}, ${routine.id}, ${ex.id}, ${position}, ${hold}, ${rest}) returning id`;
+    return item.id;
+  };
+  const bridge = await exercise("Bridge", 0, 5, 20);
+  await sql`
+    insert into public.routine_item_sets (physio_id, routine_item_id, position, reps)
+    select ${physioId}, ${bridge}, n, 8 from generate_series(0, 1) n`;
+  const plank = await exercise("Plank", 1, null, null);
+  await sql`
+    insert into public.routine_item_sets (physio_id, routine_item_id, position, duration_seconds)
+    values (${physioId}, ${plank}, 0, 30)`;
+  return routine.id;
+}

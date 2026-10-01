@@ -71,9 +71,13 @@ export default async function PatientLayout({ children, params }: LayoutProps<"/
   if (!shell) notFound();
   const { locale, branding } = shell;
 
-  // The client components on this page (PIN form, video preview) get only what they use.
+  // The client components on this page (PIN form, video preview, workout) get only what they use.
   const all = await getMessages({ locale });
-  const messages: IntlMessages = { Patient: all.Patient, Library: { media: all.Library.media } };
+  const messages: IntlMessages = {
+    Patient: all.Patient,
+    Library: { media: all.Library.media },
+    Workout: all.Workout,
+  };
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>

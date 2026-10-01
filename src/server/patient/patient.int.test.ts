@@ -19,7 +19,7 @@ import { setCustomerArchived } from "@/server/customers/mutations";
 import { pinCookieName, pinToken } from "./pin-cookie";
 import { hasLinkAccess, resolveLink } from "./resolve-link";
 import { TOUCH_INTERVAL_MINUTES, touchLink } from "./touch";
-import { getPatientView } from "./view";
+import { getPatientView, getReachableRoutine } from "./view";
 
 // Wednesday 7 Oct 2026, in the test physio's time zone (UTC, the column default).
 const NOW = new Date("2026-10-07T10:00:00Z");
@@ -549,6 +549,153 @@ describe("patient data layer", () => {
       expect(results.filter(Boolean)).toHaveLength(1);
       const [row] = await db.select().from(shareLinks).where(eq(shareLinks.id, link.id));
       expect(row!.openCount).toBe(1);
+    });
+  });
+
+  describe("getReachableRoutine", () => {
+    const reach = async (code: string, routineId: string) => {
+      const { shell, link } = await resolved(code);
+      return getReachableRoutine(shell, link, routineId, NOW);
+    };
+
+    it("opens the customer's standalone routines and routines of their active plans", async () => {
+      const customerId = await insertCustomer(physio.id);
+      const ex = await insertExercise(physio.id, { name: "Squat", youtubeId: "dQw4w9WgXcQ" });
+      const standalone = await insertRoutine(physio.id, customerId, {
+        name: "Daily",
+        status: "active",
+        items: [{ exerciseId: ex, reps: 12, sets: 3 }],
+      });
+      const inPlan = await insertRoutine(physio.id, customerId, {
+        name: "Gym",
+        status: "active",
+        isStandalone: false,
+        items: [{ exerciseId: ex }],
+      });
+      await insertPlan(physio.id, customerId, {
+        name: "Week",
+        status: "active",
+        entries: [{ weekday: 5, routineId: inPlan }],
+      });
+      const { code } = await customerLink(physio, customerId);
+
+      const daily = await reach(code, standalone);
+      expect(daily).toMatchObject({ id: standalone, name: "Daily" });
+      expect(daily!.blocks).toHaveLength(1);
+      // Any weekday of the plan: the patient may do Friday's routine on Wednesday.
+      expect(await reach(code, inPlan)).toMatchObject({ id: inPlan, name: "Gym" });
+    });
+
+    it("returns null for anything the link cannot reach", async () => {
+      const customerId = await insertCustomer(physio.id);
+      const otherCustomer = await insertCustomer(physio.id, { firstName: "Other" });
+      const theirs = await insertCustomer(other.id);
+      const ex = await insertExercise(physio.id);
+      const otherEx = await insertExercise(other.id);
+      const base = { status: "active" as const, items: [{ exerciseId: ex }] };
+      const draft = await insertRoutine(physio.id, customerId, { ...base, status: "draft" });
+      const archived = await insertRoutine(physio.id, customerId, {
+        ...base,
+        status: "archived",
+      });
+      const ended = await insertRoutine(physio.id, customerId, { ...base, endsOn: "2026-10-06" });
+      const unplanned = await insertRoutine(physio.id, customerId, {
+        ...base,
+        isStandalone: false,
+      });
+      const foreign = await insertRoutine(physio.id, otherCustomer, base);
+      const foreignInPlan = await insertRoutine(physio.id, otherCustomer, {
+        ...base,
+        isStandalone: false,
+      });
+      const otherPhysio = await insertRoutine(other.id, theirs, {
+        status: "active",
+        items: [{ exerciseId: otherEx }],
+      });
+      const inDraftPlan = await insertRoutine(physio.id, customerId, {
+        ...base,
+        isStandalone: false,
+      });
+      await insertPlan(physio.id, customerId, {
+        name: "Draft plan",
+        status: "draft",
+        entries: [{ weekday: 1, routineId: inDraftPlan }],
+      });
+      // Cannot happen through the app, but this layer must not trust it.
+      await insertPlan(physio.id, customerId, {
+        name: "Week",
+        status: "active",
+        entries: [
+          { weekday: 1, routineId: foreignInPlan },
+          { weekday: 2, routineId: draft },
+        ],
+      });
+      const { code } = await customerLink(physio, customerId);
+
+      for (const id of [
+        draft,
+        archived,
+        ended,
+        unplanned,
+        foreign,
+        foreignInPlan,
+        otherPhysio,
+        inDraftPlan,
+        "00000000-0000-4000-8000-000000000000",
+      ]) {
+        expect(await reach(code, id), id).toBeNull();
+      }
+    });
+
+    it("a routine link reaches only its routine, a plan link only that plan's routines", async () => {
+      const customerId = await insertCustomer(physio.id);
+      const ex = await insertExercise(physio.id);
+      const one = await insertRoutine(physio.id, customerId, {
+        name: "One",
+        status: "active",
+        items: [{ exerciseId: ex }],
+      });
+      const two = await insertRoutine(physio.id, customerId, {
+        name: "Two",
+        status: "active",
+        items: [{ exerciseId: ex }],
+      });
+      const inPlanA = await insertRoutine(physio.id, customerId, {
+        name: "In A",
+        status: "active",
+        isStandalone: false,
+        items: [{ exerciseId: ex }],
+      });
+      const inPlanB = await insertRoutine(physio.id, customerId, {
+        name: "In B",
+        status: "active",
+        isStandalone: false,
+        items: [{ exerciseId: ex }],
+      });
+      const planA = await insertPlan(physio.id, customerId, {
+        name: "A",
+        status: "active",
+        entries: [{ weekday: 1, routineId: inPlanA }],
+      });
+      await insertPlan(physio.id, customerId, {
+        name: "B",
+        status: "active",
+        entries: [{ weekday: 1, routineId: inPlanB }],
+      });
+
+      const routineLink = (await linkFor(physio, { target: "routine", routineId: one })).code;
+      expect(await reach(routineLink, one)).toMatchObject({ name: "One" });
+      expect(await reach(routineLink, two)).toBeNull();
+      expect(await reach(routineLink, inPlanA)).toBeNull();
+
+      const planLink = (await linkFor(physio, { target: "weekly_plan", weeklyPlanId: planA })).code;
+      expect(await reach(planLink, inPlanA)).toMatchObject({ name: "In A" });
+      expect(await reach(planLink, inPlanB)).toBeNull();
+      expect(await reach(planLink, one)).toBeNull();
+
+      // A routine that only lives in a plan can be shared on its own and then opens.
+      const inPlanLink = (await linkFor(physio, { target: "routine", routineId: inPlanB })).code;
+      expect(await reach(inPlanLink, inPlanB)).toMatchObject({ name: "In B" });
     });
   });
 });

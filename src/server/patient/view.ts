@@ -70,22 +70,16 @@ export type PatientView = {
   nextStart: string | null;
 };
 
-const isWeekdayNumber = (value: number) => Number.isInteger(value) && value >= 1 && value <= 7;
-
-export async function getPatientView(
-  shell: Pick<LinkShell, "physioId" | "timeZone">,
+/**
+ * What a link may reach, as SQL: the plans and routines of its customer (narrowed to the one
+ * routine or plan for a single-target link). Shared by the page and the workout route so both
+ * answer "can this link see it?" the same way.
+ */
+function linkScopes(
+  shell: Pick<LinkShell, "physioId">,
   link: Pick<ActiveLink, "target" | "customerId" | "routineId" | "weeklyPlanId">,
-  requestedWeekday: number | null = null,
-  now: Date = new Date(),
-): Promise<PatientView> {
-  const today = todayIn(shell.timeZone, now);
-  const todayWeekday = isoWeekday(today);
-  const weekday =
-    requestedWeekday !== null && isWeekdayNumber(requestedWeekday)
-      ? requestedWeekday
-      : todayWeekday;
-
-  // Every id below comes from the resolved link; the request only ever chose a weekday.
+  today: string,
+) {
   const planScope = (extra: SQL | undefined) =>
     and(
       eq(weeklyPlans.physioId, shell.physioId),
@@ -110,6 +104,27 @@ export async function getPatientView(
           and(eq(routines.isStandalone, false), eq(routines.status, "active")),
         )
       : scheduleFilter(routines, "active", today);
+
+  return { planScope, routineScope, routineActive };
+}
+
+const isWeekdayNumber = (value: number) => Number.isInteger(value) && value >= 1 && value <= 7;
+
+export async function getPatientView(
+  shell: Pick<LinkShell, "physioId" | "timeZone">,
+  link: Pick<ActiveLink, "target" | "customerId" | "routineId" | "weeklyPlanId">,
+  requestedWeekday: number | null = null,
+  now: Date = new Date(),
+): Promise<PatientView> {
+  const today = todayIn(shell.timeZone, now);
+  const todayWeekday = isoWeekday(today);
+  const weekday =
+    requestedWeekday !== null && isWeekdayNumber(requestedWeekday)
+      ? requestedWeekday
+      : todayWeekday;
+
+  // Every id below comes from the resolved link; the request only ever chose a weekday.
+  const { planScope, routineScope, routineActive } = linkScopes(shell, link, today);
 
   const [planRows, routineRows] = await Promise.all([
     link.target === "routine"
@@ -220,6 +235,66 @@ export async function getPatientView(
     routines: shownRoutines,
     nextStart: upcoming,
   };
+}
+
+/**
+ * The routine behind a workout link, or null when this link cannot reach it (spec 12): one of the
+ * customer's active standalone routines, a routine in an active plan entry of the link's
+ * customer, or the single routine or plan the link points at. The id comes from the request, so
+ * it is only ever matched against what the link itself can reach.
+ */
+export async function getReachableRoutine(
+  shell: Pick<LinkShell, "physioId" | "timeZone">,
+  link: Pick<ActiveLink, "target" | "customerId" | "routineId" | "weeklyPlanId">,
+  routineId: string,
+  now: Date = new Date(),
+): Promise<PatientRoutine | null> {
+  const today = todayIn(shell.timeZone, now);
+  const { planScope, routineScope, routineActive } = linkScopes(shell, link, today);
+
+  const [standalone, inPlan] = await Promise.all([
+    link.target === "weekly_plan"
+      ? []
+      : db
+          .select({ id: routines.id })
+          .from(routines)
+          .where(routineScope(and(eq(routines.id, routineId), routineActive)))
+          .limit(1),
+    link.target === "routine"
+      ? []
+      : db
+          .select({ id: weeklyPlanEntries.id })
+          .from(weeklyPlanEntries)
+          .innerJoin(
+            weeklyPlans,
+            and(
+              eq(weeklyPlans.physioId, weeklyPlanEntries.physioId),
+              eq(weeklyPlans.id, weeklyPlanEntries.weeklyPlanId),
+            ),
+          )
+          .innerJoin(
+            routines,
+            and(
+              eq(routines.physioId, weeklyPlanEntries.physioId),
+              eq(routines.id, weeklyPlanEntries.routineId),
+            ),
+          )
+          .where(
+            and(
+              eq(weeklyPlanEntries.physioId, shell.physioId),
+              eq(weeklyPlanEntries.routineId, routineId),
+              planScope(scheduleFilter(weeklyPlans, "active", today)),
+              // The same rule as the page: the plan's routine must be the customer's and finished.
+              eq(routines.customerId, link.customerId),
+              eq(routines.status, "active"),
+            ),
+          )
+          .limit(1),
+  ]);
+  if (standalone.length === 0 && inPlan.length === 0) return null;
+
+  const content = await loadRoutines(shell.physioId, link.customerId, [routineId]);
+  return content.get(routineId) ?? null;
 }
 
 /** Routines with their exercises, grouped into supersets, for the given (already scoped) ids. */

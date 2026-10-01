@@ -1,5 +1,5 @@
 import type { Route } from "next";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { after } from "next/server";
 
@@ -9,10 +9,8 @@ import { Unavailable } from "@/components/patient/unavailable";
 import { isLinkPreviewBot } from "@/lib/link-preview-bots";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { firstParam } from "@/lib/search-params";
-import { getSessionPhysio } from "@/server/auth/session";
+import { getLinkAccess } from "@/server/patient/access";
 import { loadLink } from "@/server/patient/load";
-import { pinCookieName } from "@/server/patient/pin-cookie";
-import { hasLinkAccess } from "@/server/patient/resolve-link";
 import { touchLink } from "@/server/patient/touch";
 import { getPatientView } from "@/server/patient/view";
 
@@ -47,12 +45,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
   }
 
   const { link } = resolved;
-  const [session, cookieStore] = await Promise.all([getSessionPhysio(), cookies()]);
-  const owner = session?.physioId === shell.physioId;
-  const unlocked = hasLinkAccess(shell, link, {
-    pinToken: cookieStore.get(pinCookieName(shell.code))?.value,
-    sessionPhysioId: session?.physioId ?? null,
-  });
+  const { owner, unlocked } = await getLinkAccess(shell, link);
   if (!unlocked) return <PinGate code={shell.code} clinicName={shell.branding.clinicName} />;
 
   const day = Number(firstParam(sp.day));
