@@ -53,9 +53,21 @@ export type ShareLinkView = {
   qr: { size: number; path: string };
 };
 
+/** The card the link unfurls into (spec 11), in the customer's language. Branding only. */
+export type SharePreview = {
+  /** Same-origin path of the Open Graph image, versioned by the branding. */
+  imagePath: string;
+  title: string;
+  description: string;
+  /** The app's host, as the chat app shows it under the card. */
+  host: string;
+};
+
 /** What the popover needs besides the link: ready-made share URLs in the customer's language. */
 export type ShareState = {
   link: ShareLinkView | null;
+  /** Null without a link and once it is revoked (the panel then offers "Create new link"). */
+  preview: SharePreview | null;
   /** Draft or archived items show nothing to the patient yet; customers have no status. */
   itemStatus: "draft" | "active" | "archived" | null;
   whatsappHref: string;

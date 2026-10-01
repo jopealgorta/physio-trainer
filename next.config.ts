@@ -10,6 +10,10 @@ const buildId =
 const nextConfig: NextConfig = {
   typedRoutes: true,
   env: { NEXT_PUBLIC_BUILD_ID: buildId },
+  // The link-preview image reads its font at runtime (spec 11); tracing cannot see that.
+  outputFileTracingIncludes: {
+    "/\\[handle\\]/\\[slug\\]/og": ["./src/assets/fonts/**/*"],
+  },
   experimental: {
     // Branding logos are posted to a Server Action (≤ 2 MB after the browser resizes them,
     // plus multipart overhead). Default is 1 MB.

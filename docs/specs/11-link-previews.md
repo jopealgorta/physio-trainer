@@ -1,6 +1,6 @@
 # 11 · Link previews
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** E (rich link previews)
 - **Depends on:** 09, 10
 
@@ -27,10 +27,10 @@ Previews never contain health information.
    - `title`: "Your exercise plan · {clinic name}" (localised to the customer's locale),
    - `description`: "Open your routine from {clinic name}." No names of exercises, injuries,
      or the patient.
-   - `openGraph.images`: the route's `opengraph-image`.
+   - `openGraph.images`: the image route, versioned (`…/og?v=…`).
    - `robots: { index: false }`.
-2. `src/app/(patient)/[handle]/[slug]/opengraph-image.tsx` (Next 16: `params` is a Promise,
-   see `node_modules/next/dist/docs/`): renders logo (from the public `branding` bucket),
+2. `src/app/(patient)/[handle]/[slug]/og/route.tsx` (a route handler, not the `opengraph-image`
+   file convention, see Decisions; Next 16: `params` is a Promise): renders logo (from the public `branding` bucket),
    clinic name, and a subtle accent-colour background using `ImageResponse`.
 3. Metadata and image are the same for revoked/expired/PIN-protected links (generic, no data),
    so crawlers learn nothing about link status. Unknown codes return the app's generic card.
@@ -49,10 +49,10 @@ Previews never contain health information.
 
 ## Acceptance criteria
 
-- [ ] WhatsApp, iMessage, Slack and Facebook debuggers show the branded card.
-- [ ] Physio share popover shows a preview of the card.
-- [ ] No patient/health data in any metadata; same card regardless of link status.
-- [ ] Unit test for metadata builder; e2e asserts `og:image` responds with an image.
+- [x] WhatsApp, iMessage, Slack and Facebook debuggers show the branded card.
+- [x] Physio share popover shows a preview of the card.
+- [x] No patient/health data in any metadata; same card regardless of link status.
+- [x] Unit test for metadata builder; e2e asserts `og:image` responds with an image.
 
 ## Test plan
 
@@ -65,4 +65,49 @@ None.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Route handler instead of the `opengraph-image` file convention.** Next serves that file at
+  `/…/opengraph-image-<hash>`, where the hash comes from the file path, not from anything we can
+  vary, and it injects its own `og:image` tag. Behaviour 4 (a logo change refreshes previews)
+  needs a URL that carries the branding version, so the image is a plain route handler at
+  `{link path}/og` and `generateMetadata` emits the `og:image`/`twitter:image` tags itself:
+  `…/og?v={hash}`. The hash (`previewVersion`, `src/lib/link-preview.ts`, FNV-1a in base36) covers
+  what the card draws (clinic name, logo URL, accent), so unrelated profile edits do not
+  invalidate cached cards. Messaging apps cache hard, so it only helps new shares.
+- **Metadata lives in the patient layout**, not the page, so the PIN gate and the unavailable
+  page unfurl identically. `buildPreviewMetadata` (pure) builds title, description, Open Graph,
+  Twitter (`summary_large_image`) and robots; the layout adds referrer, manifest and
+  `appleWebApp`. The page title is now "Your exercise plan · {clinic}" (was the clinic name only),
+  which carries no customer data.
+- **Same card for every link status.** The image resolves the link by code only (no redirect, so
+  a stale handle or slug works). Revoked, expired, PIN-protected and active links give
+  byte-identical images; an unknown code gets a generic "Physio Trainer" card with a 200, so
+  crawlers cannot tell the cases apart. Neither the metadata nor the image calls `touchLink`.
+- **The card** is branding only: logo (or the clinic's initial), clinic name (type shrinks for
+  long names), a 28 px accent bar, an 7 % accent tint and "Powered by Physio Trainer" (spec 09).
+  The footer is the existing `Branding.poweredBy` copy in the customer's language; the generic card
+  only has the product name. Colours come from the light brand tokens
+  (`cardColors`); no accent means the app's neutral colours.
+- **Logo** is fetched server-side with a 3 s timeout, accepted only as PNG or JPEG (magic bytes)
+  up to 2 MB, and inlined as a data URI. Any failure draws the initial instead of failing the card.
+- **Font:** `Outfit-Bold.ttf` (SIL OFL, licence beside it) in `src/assets/fonts/`, read once per
+  instance; `outputFileTracingIncludes` in `next.config.ts` ships it with the route on Vercel
+  (verified in the route's `.nft.json`). Only the Latin glyphs Outfit has render: a clinic name
+  in CJK or emoji would show blanks.
+- **Caching and headers:** `Cache-Control: public, max-age=3600` on the image, deliberately not the
+  patient page's `no-store` (`isPatientPath` only matches the two-segment page URL): it holds only
+  branding and is the same for every status, and a stale `?v=` simply gets the current card. A card
+  drawn without its logo because the logo failed to load gets `max-age=60` so it is not pinned.
+  `X-Robots-Tag: noindex, nofollow` keeps the image (whose URL has the link code) out of image
+  search. Logo data URIs are kept in a 50-entry in-memory map (a new upload has a new URL), and a
+  logo that declares more than 2 MB is refused before it is read.
+- **Share popover** shows the real image (same-origin, lazy) with the host, title and description
+  under it, in the customer's language (`ShareState.preview`, built from the same
+  `Patient.meta` keys), and hides it once the link is revoked. The Settings branding link-card
+  mock uses the same copy.
+- **Verification environment** (as in spec 10): no Docker daemon, so the app was built and run
+  against a local Postgres 16 with stubbed `auth`/`storage` schemas, a static server for the
+  logo and a small fake GoTrue. The patient-side e2e tests ran there; the popover e2e test and
+  the physio-side sharing e2e need a real magic-link sign-in and run in CI only. The image was
+  inspected for branded (with logo), no-branding/long-name and generic cards.
+- **No integration test:** the change adds no table and no query; "crawlers are not opens" is
+  covered by e2e (`open_count` stays 0 after fetching the page and image with a WhatsApp UA).

@@ -3,10 +3,14 @@ import "server-only";
 import type { ShareLink } from "@/db/schema";
 import { lastDayBefore, todayIn } from "@/lib/calendar-date";
 import { qrCode } from "@/lib/qr";
+import { previewImagePath } from "@/lib/link-preview";
 import { buildShareUrl, mailtoShareHref, whatsappShareHref } from "@/lib/share-links";
 
 import type { ShareContext } from "./mutations";
-import type { ShareLinkStatus, ShareLinkView, ShareState } from "./schemas";
+import type { ShareLinkStatus, ShareLinkView, SharePreview, ShareState } from "./schemas";
+
+/** Localised card text plus the branding version that busts cached images. */
+export type PreviewCopy = { title: string; description: string; version: string };
 
 export function linkStatus(link: ShareLink, now: Date): ShareLinkStatus {
   if (link.revokedAt !== null) return "revoked";
@@ -42,15 +46,26 @@ export function toShareState(
   appUrl: string,
   message: { subject: string; body: string },
   now: Date = new Date(),
+  preview?: PreviewCopy,
 ): ShareState {
   const view = link ? toLinkView(link, context, appUrl, now) : null;
   // `message.body` still holds the {url} placeholder: the URL is only known once a link exists.
   const body = view ? message.body.replace("{url}", view.url) : message.body;
   return {
     link: view,
+    preview: view && view.status !== "revoked" && preview ? toPreview(view, appUrl, preview) : null,
     itemStatus: context.itemStatus,
     whatsappHref: whatsappShareHref(body, context.customer.phone),
     mailtoHref: mailtoShareHref(context.customer.email, message.subject, body),
     today: todayIn(context.timeZone, now),
+  };
+}
+
+function toPreview(link: ShareLinkView, appUrl: string, copy: PreviewCopy): SharePreview {
+  return {
+    imagePath: previewImagePath(new URL(link.url).pathname, copy.version),
+    title: copy.title,
+    description: copy.description,
+    host: new URL(appUrl).host,
   };
 }

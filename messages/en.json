@@ -138,8 +138,8 @@
         "email": "Email",
         "website": "Website",
         "pdfTitle": "Routine for {name}",
-        "linkTitle": "Your exercises from {clinic}",
-        "linkDescription": "Open your routine, follow the videos and log your sessions."
+        "linkTitle": "Your exercise plan · {clinic}",
+        "linkDescription": "Open your routine from {clinic}."
       },
       "errors": {
         "clinicNameTooLong": "Use 80 characters or fewer.",
@@ -1172,6 +1172,11 @@
     "copy": "Copy link",
     "copied": "Copied",
     "preview": "Preview as patient",
+    "linkCard": {
+      "label": "How the link looks in chats",
+      "hint": "Anyone the link is forwarded to sees this card. It shows only your clinic, never patient details.",
+      "imageAlt": "Link preview image"
+    },
     "whatsapp": "WhatsApp",
     "email": "Email",
     "qrLabel": "QR code for the link",
@@ -1290,6 +1295,11 @@
       "email": "Email",
       "website": "Website"
     },
-    "install": "Tip: add this page to your home screen to open it like an app."
+    "install": "Tip: add this page to your home screen to open it like an app.",
+    "meta": {
+      "title": "Your exercise plan · {clinic}",
+      "description": "Open your routine from {clinic}.",
+      "imageAlt": "{clinic}"
+    }
   }
 }

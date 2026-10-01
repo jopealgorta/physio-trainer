@@ -2,11 +2,12 @@ import type { Metadata, Viewport } from "next";
 import type { ComponentProps } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
 
 import { BrandingStyle } from "@/components/branding/branding-style";
 import { ClinicMark } from "@/components/patient/clinic-mark";
 import { PatientFooter } from "@/components/patient/patient-footer";
+import { buildPreviewMetadata, previewVersion } from "@/lib/link-preview";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { loadLink } from "@/server/patient/load";
 
@@ -18,21 +19,32 @@ async function shellOf(slug: string) {
   return resolved && resolved.status !== "not_found" ? resolved.shell : null;
 }
 
-/** Everything about a patient page that must not leak or be indexed (spec 10 rule 9). */
+/**
+ * Everything about a patient page that must not leak or be indexed (spec 10 rule 9), and the card
+ * it unfurls into (spec 11): the same for every link status, branding only, in the customer's
+ * language. Resolving a link here never counts as an open (only `page.tsx` does).
+ */
 export async function generateMetadata({
   params,
 }: LayoutProps<"/[handle]/[slug]">): Promise<Metadata> {
   const shell = await shellOf((await params).slug);
   if (!shell) return { robots: { index: false, follow: false } };
   const path = buildSharePath(shell.handle, shell.slug, shell.code);
+  const { clinicName } = shell.branding;
+  const t = await getTranslations({ locale: shell.locale, namespace: "Patient.meta" });
   return {
-    // The clinic, never the customer: titles end up in history and bookmarks.
-    title: { absolute: shell.branding.clinicName },
-    robots: { index: false, follow: false },
+    ...buildPreviewMetadata({
+      path,
+      version: previewVersion(shell.branding),
+      title: t("title", { clinic: clinicName }),
+      description: t("description", { clinic: clinicName }),
+      clinicName,
+      imageAlt: t("imageAlt", { clinic: clinicName }),
+    }),
     referrer: "no-referrer",
     // Replaces the physio app's manifest (spec 18) so "Add to home screen" installs this link.
     manifest: `${path}/manifest.webmanifest`,
-    appleWebApp: { capable: true, title: shell.branding.clinicName, statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: clinicName, statusBarStyle: "default" },
   };
 }
 

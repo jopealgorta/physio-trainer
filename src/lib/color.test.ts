@@ -6,6 +6,7 @@ import {
   DARK_SURFACE,
   hexToOklch,
   LIGHT_SURFACE,
+  mixOnWhite,
   normalizeHex,
   oklchToHex,
 } from "./color";
@@ -103,5 +104,16 @@ describe("brandTokens", () => {
             4.5,
           );
         }
+  });
+});
+
+describe("mixOnWhite", () => {
+  it("returns white at 0 and the colour at 1", () => {
+    expect(mixOnWhite("#0f766e", 0)).toBe("#ffffff");
+    expect(mixOnWhite("#0f766e", 1)).toBe("#0f766e");
+  });
+
+  it("blends linearly per channel", () => {
+    expect(mixOnWhite("#000000", 0.5)).toBe("#808080");
   });
 });

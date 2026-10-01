@@ -138,8 +138,8 @@
         "email": "Email",
         "website": "Sitio web",
         "pdfTitle": "Rutina para {name}",
-        "linkTitle": "Tus ejercicios de {clinic}",
-        "linkDescription": "Abrí tu rutina, seguí los videos y registrá tus sesiones."
+        "linkTitle": "Tu plan de ejercicios · {clinic}",
+        "linkDescription": "Abrí tu rutina de {clinic}."
       },
       "errors": {
         "clinicNameTooLong": "Usá 80 caracteres o menos.",
@@ -1172,6 +1172,11 @@
     "copy": "Copiar enlace",
     "copied": "Copiado",
     "preview": "Ver como paciente",
+    "linkCard": {
+      "label": "Cómo se ve el enlace en los chats",
+      "hint": "Quien reciba el enlace ve esta tarjeta. Muestra solo tu consultorio, nunca datos del paciente.",
+      "imageAlt": "Imagen de la vista previa del enlace"
+    },
     "whatsapp": "WhatsApp",
     "email": "Correo",
     "qrLabel": "Código QR del enlace",
@@ -1290,6 +1295,11 @@
       "email": "Correo",
       "website": "Sitio web"
     },
-    "install": "Tip: agregá esta página a tu pantalla de inicio para abrirla como una app."
+    "install": "Tip: agregá esta página a tu pantalla de inicio para abrirla como una app.",
+    "meta": {
+      "title": "Tu plan de ejercicios · {clinic}",
+      "description": "Abrí tu rutina de {clinic}.",
+      "imageAlt": "{clinic}"
+    }
   }
 }

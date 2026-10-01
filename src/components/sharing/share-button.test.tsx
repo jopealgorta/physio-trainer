@@ -44,6 +44,12 @@ const state = (
   linkPatch: Partial<ShareLinkView> = {},
 ): ShareState => ({
   link: link(linkPatch),
+  preview: {
+    imagePath: "/maria/ana-7k2m9qpx/og?v=abc",
+    title: "Your exercise plan · Maria Physio",
+    description: "Open your routine from Maria Physio.",
+    host: "app.example",
+  },
   itemStatus: null,
   whatsappHref: "https://wa.me/59899123456?text=Hi",
   mailtoHref: "mailto:ana@example.com?subject=S&body=B",
@@ -93,6 +99,29 @@ describe("ShareButton", () => {
     expect(screen.getByRole("img", { name: "QR code for the link" })).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(screen.getByText("Not opened yet")).toBeInTheDocument();
+  });
+
+  it("previews the card the link unfurls into", async () => {
+    setup();
+    await open();
+    await screen.findByLabelText("Link");
+    const card = screen.getByRole("group", { name: "How the link looks in chats" });
+    expect(within(card).getByRole("img", { name: "Link preview image" })).toHaveAttribute(
+      "src",
+      "/maria/ana-7k2m9qpx/og?v=abc",
+    );
+    expect(within(card).getByText("app.example")).toBeInTheDocument();
+    expect(within(card).getByText("Your exercise plan · Maria Physio")).toBeInTheDocument();
+    expect(within(card).getByText("Open your routine from Maria Physio.")).toBeInTheDocument();
+    expect(screen.getByText(/never patient details/)).toBeInTheDocument();
+  });
+
+  it("shows no preview when the link has none (revoked)", async () => {
+    m.load.mockResolvedValue(ok(state({ preview: null }, { status: "revoked" })));
+    setup();
+    await open();
+    await screen.findByText("Revoked");
+    expect(screen.queryByRole("group", { name: "How the link looks in chats" })).toBeNull();
   });
 
   it("titles the popover for a routine and a plan", async () => {
