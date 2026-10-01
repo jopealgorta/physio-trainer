@@ -506,8 +506,7 @@
       "notes": "Notas"
     },
     "tabEmpty": {
-      "activity": "Acá van a aparecer su actividad y su progreso.",
-      "notes": "Acá van a aparecer las notas de sesión de este cliente."
+      "activity": "Acá van a aparecer su actividad y su progreso."
     },
     "overview": {
       "basicInfo": "Información básica",
@@ -893,6 +892,80 @@
         "hasArchivedRoutines": "Quitá las rutinas archivadas del plan antes de activarlo.",
         "notShared": "Ninguna otra entrada usa esta rutina, así que no hay de qué separarla."
       }
+    }
+  },
+  "VisitNotes": {
+    "title": "Notas de visita",
+    "tabDescription": "Solo las ves vos. Los pacientes nunca ven estas notas.",
+    "new": "Nueva nota",
+    "edit": "Editar",
+    "editFor": "Editar la nota del {date}",
+    "sheetTitleNew": "Nueva nota de visita",
+    "sheetTitleEdit": "Editar nota de visita",
+    "sheetDescription": "Notas privadas de {name}. Los pacientes nunca las ven.",
+    "empty": "{name} todavía no tiene notas de visita. Apretá N para escribir la primera.",
+    "emptyFiltered": "Todavía no hay notas para este caso.",
+    "filter": {
+      "label": "Filtrar por caso",
+      "all": "Todos los casos"
+    },
+    "visitedOn": "Fecha de la visita",
+    "case": "Caso",
+    "caseNone": "Sin caso",
+    "pain": "Dolor (0–10)",
+    "painHint": "Número entero de 0 (sin dolor) a 10 (el peor).",
+    "painValue": "Dolor {value, number}/10",
+    "soap": {
+      "subjective": {
+        "label": "S · Subjetivo",
+        "hint": "Lo que cuenta el paciente: síntomas, antecedentes, objetivos."
+      },
+      "objective": {
+        "label": "O · Objetivo",
+        "hint": "Lo que mediste u observaste: rango de movimiento, fuerza, tests."
+      },
+      "assessment": {
+        "label": "A · Evaluación",
+        "hint": "Tu impresión clínica y la evolución."
+      },
+      "plan": {
+        "label": "P · Plan",
+        "hint": "Tratamiento realizado y próximos pasos."
+      }
+    },
+    "edited": "Editada el {date}",
+    "expand": "Ver la nota completa",
+    "collapse": "Ver menos",
+    "delete": "Eliminar",
+    "deleteFor": "Eliminar la nota del {date}",
+    "deleteTitle": "¿Eliminar esta nota?",
+    "deleteBody": "La nota se elimina para siempre. No se puede deshacer.",
+    "deleteConfirm": "Eliminar nota",
+    "cancel": "Cancelar",
+    "loadMore": "Ver más",
+    "create": "Guardar nota",
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "saveHint": "Apretá Ctrl o ⌘ + Enter para guardar.",
+    "draftRestored": "Recuperamos tu borrador sin guardar.",
+    "discardDraft": "Descartar borrador",
+    "latest": {
+      "heading": "Última nota de visita",
+      "visitOn": "Visita del {date}",
+      "viewAll": "Ver todas las notas",
+      "empty": "Todavía no hay notas de visita."
+    },
+    "errors": {
+      "soapRequired": "Escribí algo en al menos uno de S, O, A o P.",
+      "tooLong": "Usá como máximo {max, number} caracteres.",
+      "dateInvalid": "Ingresá una fecha válida.",
+      "painOutOfRange": "Ingresá un número entero de 0 a 10.",
+      "invalid": "Revisá este campo.",
+      "notFound": "Esta nota ya no existe.",
+      "customerNotFound": "Este cliente ya no existe.",
+      "caseNotFound": "Ese caso ya no existe o pertenece a otro cliente.",
+      "unknown": "Algo salió mal. Probá de nuevo.",
+      "dateInFuture": "La fecha de la visita no puede ser futura."
     }
   },
   "Branding": {

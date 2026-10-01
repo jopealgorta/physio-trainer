@@ -506,8 +506,7 @@
       "notes": "Notes"
     },
     "tabEmpty": {
-      "activity": "Their activity and progress will appear here.",
-      "notes": "Session notes for this customer will appear here."
+      "activity": "Their activity and progress will appear here."
     },
     "overview": {
       "basicInfo": "Basic information",
@@ -893,6 +892,80 @@
         "hasArchivedRoutines": "Remove archived routines from the plan before activating it.",
         "notShared": "Nothing else uses this routine, so there is nothing to separate it from."
       }
+    }
+  },
+  "VisitNotes": {
+    "title": "Visit notes",
+    "tabDescription": "Private to you. Patients never see these notes.",
+    "new": "New note",
+    "edit": "Edit",
+    "editFor": "Edit note from {date}",
+    "sheetTitleNew": "New visit note",
+    "sheetTitleEdit": "Edit visit note",
+    "sheetDescription": "Private notes for {name}. Patients never see them.",
+    "empty": "No visit notes for {name} yet. Press N to write the first one.",
+    "emptyFiltered": "No notes for this case yet.",
+    "filter": {
+      "label": "Filter by case",
+      "all": "All cases"
+    },
+    "visitedOn": "Visit date",
+    "case": "Case",
+    "caseNone": "No case",
+    "pain": "Pain (0–10)",
+    "painHint": "Whole number from 0 (no pain) to 10 (worst).",
+    "painValue": "Pain {value, number}/10",
+    "soap": {
+      "subjective": {
+        "label": "S · Subjective",
+        "hint": "What the patient reports: symptoms, history, goals."
+      },
+      "objective": {
+        "label": "O · Objective",
+        "hint": "What you measured or observed: range of motion, strength, tests."
+      },
+      "assessment": {
+        "label": "A · Assessment",
+        "hint": "Your clinical impression and progress."
+      },
+      "plan": {
+        "label": "P · Plan",
+        "hint": "Treatment given and next steps."
+      }
+    },
+    "edited": "Edited {date}",
+    "expand": "Show full note",
+    "collapse": "Show less",
+    "delete": "Delete",
+    "deleteFor": "Delete note from {date}",
+    "deleteTitle": "Delete this note?",
+    "deleteBody": "The note is permanently removed. This can't be undone.",
+    "deleteConfirm": "Delete note",
+    "cancel": "Cancel",
+    "loadMore": "Load more",
+    "create": "Save note",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saveHint": "Press Ctrl or ⌘ + Enter to save.",
+    "draftRestored": "We restored your unsaved draft.",
+    "discardDraft": "Discard draft",
+    "latest": {
+      "heading": "Latest visit note",
+      "visitOn": "Visit on {date}",
+      "viewAll": "View all notes",
+      "empty": "No visit notes yet."
+    },
+    "errors": {
+      "soapRequired": "Write something in at least one of S, O, A or P.",
+      "tooLong": "Use at most {max, number} characters.",
+      "dateInvalid": "Enter a valid date.",
+      "painOutOfRange": "Enter a whole number from 0 to 10.",
+      "invalid": "Check this field.",
+      "notFound": "This note no longer exists.",
+      "customerNotFound": "This customer no longer exists.",
+      "caseNotFound": "That case no longer exists or belongs to another customer.",
+      "unknown": "Something went wrong. Try again.",
+      "dateInFuture": "The visit date can't be in the future."
     }
   },
   "Branding": {

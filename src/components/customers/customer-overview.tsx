@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
 import { languageOptions } from "@/i18n/config";
 import { customerName } from "@/lib/customers";
+import { LatestNote, type LatestNoteView } from "@/components/visit-notes/latest-note";
 import type { CustomerDetail } from "@/server/customers/queries";
 
 import { CaseCard } from "./case-card";
@@ -25,8 +26,11 @@ function Field({ label, value, notSet }: { label: string; value: string | null; 
 export function CustomerOverview({
   customer,
   today,
+  latestNote,
 }: {
   customer: CustomerDetail;
+  /** The customer's most recent visit note (spec 16), or null. */
+  latestNote: LatestNoteView | null;
   /** The physio's calendar day (`YYYY-MM-DD`), used as the default closing date. */
   today: string;
 }) {
@@ -95,6 +99,8 @@ export function CustomerOverview({
           <p className="text-sm wrap-anywhere whitespace-pre-line">{medicalHistory}</p>
         </section>
       ) : null}
+
+      <LatestNote customerId={customer.id} note={latestNote} />
 
       <section aria-labelledby="open-cases" className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">

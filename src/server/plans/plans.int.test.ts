@@ -582,16 +582,19 @@ describe("weekly plans server layer", () => {
       expect(items).toHaveLength(2);
       expect(items.every((row) => row.groupId === groups[0].id)).toBe(true);
       expect(items[0]).toMatchObject({ holdSeconds: 5, side: "left", notes: "n" });
+      // Both items have sets at positions 0 and 1, so order by the item's position as well: sorting
+      // by set position alone leaves the tie between items up to Postgres.
       const sets = await db
-        .select()
+        .select({
+          reps: routineItemSets.reps,
+          repsMax: routineItemSets.repsMax,
+          durationSeconds: routineItemSets.durationSeconds,
+          load: routineItemSets.load,
+        })
         .from(routineItemSets)
-        .where(
-          inArray(
-            routineItemSets.routineItemId,
-            items.map((row) => row.id),
-          ),
-        )
-        .orderBy(routineItemSets.position);
+        .innerJoin(routineItems, eq(routineItemSets.routineItemId, routineItems.id))
+        .where(eq(routineItems.routineId, copyId))
+        .orderBy(routineItemSets.position, routineItems.position);
       expect(sets.map((row) => [row.reps, row.repsMax, row.durationSeconds, row.load])).toEqual([
         [12, null, null, "5 kg"],
         [8, 12, null, null],
