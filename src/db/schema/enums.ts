@@ -5,6 +5,7 @@ import { BODY_AREAS, BODY_SIDES } from "../../lib/body-areas";
 import { CASE_STATUSES, CUSTOMER_SEXES } from "../../lib/customers";
 import { PRESCRIPTION_SIDES } from "../../lib/prescription";
 import { ROUTINE_STATUSES } from "../../lib/routines";
+import { SHARE_TARGETS } from "../../lib/share-links";
 
 /** Body areas and sides (spec 02). Values come from src/lib/body-areas.ts. */
 export const bodyAreaEnum = pgEnum("body_area", BODY_AREAS);
@@ -23,3 +24,6 @@ export const caseStatusEnum = pgEnum("case_status", CASE_STATUSES);
 
 /** Routine lifecycle (spec 05). Values come from src/lib/routines.ts. */
 export const routineStatusEnum = pgEnum("routine_status", ROUTINE_STATUSES);
+
+/** What a share link opens (spec 10). Values come from src/lib/share-links.ts. */
+export const shareTargetEnum = pgEnum("share_target", SHARE_TARGETS);

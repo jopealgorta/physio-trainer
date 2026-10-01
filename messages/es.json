@@ -959,5 +959,88 @@
       "noDates": "Sin fechas",
       "untitled": "Fase sin nombre"
     }
+  },
+  "Sharing": {
+    "message": {
+      "subject": "Tus ejercicios de {clinic}",
+      "body": "¡Hola {name}! Acá están tus ejercicios de {clinic}: {url}"
+    },
+    "trigger": "Compartir",
+    "title": {
+      "customer": "Compartir con el paciente",
+      "routine": "Compartir esta rutina",
+      "weekly_plan": "Compartir este plan"
+    },
+    "description": {
+      "customer": "Un solo enlace que siempre muestra lo que está activo hoy.",
+      "routine": "Un enlace que muestra solo esta rutina.",
+      "weekly_plan": "Un enlace que muestra solo este plan."
+    },
+    "loading": "Preparando el enlace…",
+    "linkLabel": "Enlace",
+    "copy": "Copiar enlace",
+    "copied": "Copiado",
+    "preview": "Ver como paciente",
+    "whatsapp": "WhatsApp",
+    "email": "Correo",
+    "qrLabel": "Código QR del enlace",
+    "status": {
+      "active": "Activo",
+      "expired": "Vencido",
+      "revoked": "Revocado"
+    },
+    "usage": {
+      "never": "Todavía no se abrió",
+      "opened": "{count, plural, one {Se abrió # vez} other {Se abrió # veces}}",
+      "last": "última {date}"
+    },
+    "notActive": {
+      "draft": "Todavía es un borrador: el paciente no va a ver nada hasta que lo actives.",
+      "archived": "Está archivado: el paciente no va a ver nada."
+    },
+    "slug": {
+      "label": "Nombre del enlace",
+      "hint": "La parte legible de la dirección. Cambiarla nunca rompe el enlace.",
+      "save": "Guardar nombre"
+    },
+    "expiry": {
+      "label": "Vence",
+      "hint": "El enlace funciona hasta el final de este día.",
+      "none": "No vence",
+      "clear": "Quitar vencimiento"
+    },
+    "pin": {
+      "label": "Pedir un PIN",
+      "hint": "Un PIN de 4 dígitos es un candado liviano, no una seguridad fuerte. Pasáselo al paciente por separado.",
+      "shown": "PIN: {pin}",
+      "shownOnce": "Se muestra solo ahora. Anotalo o mandáselo al paciente.",
+      "regenerate": "Nuevo PIN"
+    },
+    "regenerate": {
+      "action": "Regenerar enlace",
+      "hint": "Crea un enlace nuevo. El actual deja de funcionar.",
+      "confirmTitle": "¿Regenerar este enlace?",
+      "confirmBody": "Quien use el enlace actual va a ver una página que dice que no está disponible. Mandale el enlace nuevo al paciente.",
+      "confirm": "Regenerar"
+    },
+    "revoke": {
+      "action": "Revocar enlace",
+      "confirmTitle": "¿Revocar este enlace?",
+      "confirmBody": "El enlace deja de funcionar enseguida. Después podés crear uno nuevo.",
+      "confirm": "Revocar"
+    },
+    "revoked": {
+      "note": "Este enlace fue revocado y ya no funciona.",
+      "createNew": "Crear enlace nuevo"
+    },
+    "cancel": "Cancelar",
+    "errors": {
+      "notFound": "Esto ya no se puede compartir.",
+      "customerArchived": "Los clientes archivados no se pueden compartir. Restaurá al cliente primero.",
+      "slugRequired": "Ingresá un nombre para el enlace.",
+      "expiryInPast": "Elegí hoy o un día posterior.",
+      "invalid": "Revisá los valores e intentá de nuevo.",
+      "generic": "Algo salió mal. Intentá de nuevo."
+    }
   }
 }

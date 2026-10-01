@@ -10,6 +10,50 @@ export function todayIn(timeZone: string, now: Date = new Date()): string {
   }).format(now);
 }
 
+/** Milliseconds `timeZone` is ahead of UTC at `instant`. */
+function zoneOffsetMs(timeZone: string, instant: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+  }).formatToParts(instant);
+  const part = (type: string) => Number(parts.find((p) => p.type === type)!.value);
+  const asUtc = Date.UTC(
+    part("year"),
+    part("month") - 1,
+    part("day"),
+    part("hour"),
+    part("minute"),
+    part("second"),
+  );
+  // formatToParts drops milliseconds, so compare against the instant truncated to seconds.
+  return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+/**
+ * The instant a calendar day ends in `timeZone`: midnight at the start of the following day.
+ * Used for "expires on" dates, which stay valid through the whole chosen day.
+ */
+export function endOfDay(timeZone: string, day: string): Date {
+  const [year, month, date] = day.split("-").map(Number) as [number, number, number];
+  const wallClock = Date.UTC(year, month - 1, date + 1);
+  // The offset depends on the instant, which depends on the offset: two passes settle it
+  // (a third would only matter for zones that change offset within a day of midnight).
+  let instant = wallClock - zoneOffsetMs(timeZone, new Date(wallClock));
+  instant = wallClock - zoneOffsetMs(timeZone, new Date(instant));
+  return new Date(instant);
+}
+
+/** The calendar day in `timeZone` that ends at `end` (inverse of `endOfDay`). */
+export function lastDayBefore(timeZone: string, end: Date): string {
+  return todayIn(timeZone, new Date(end.getTime() - 1));
+}
+
 /** A real calendar day written `YYYY-MM-DD`, year 1900 or later. */
 export function isCalendarDate(value: string): boolean {
   const match = DATE_RE.exec(value);

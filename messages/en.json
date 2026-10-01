@@ -959,5 +959,88 @@
       "noDates": "No dates",
       "untitled": "Untitled phase"
     }
+  },
+  "Sharing": {
+    "message": {
+      "subject": "Your exercises from {clinic}",
+      "body": "Hi {name}! Here are your exercises from {clinic}: {url}"
+    },
+    "trigger": "Share",
+    "title": {
+      "customer": "Share with the patient",
+      "routine": "Share this routine",
+      "weekly_plan": "Share this plan"
+    },
+    "description": {
+      "customer": "One link that always shows what is active today.",
+      "routine": "A link that shows only this routine.",
+      "weekly_plan": "A link that shows only this plan."
+    },
+    "loading": "Preparing the link…",
+    "linkLabel": "Link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "preview": "Preview as patient",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "qrLabel": "QR code for the link",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "usage": {
+      "never": "Not opened yet",
+      "opened": "{count, plural, one {Opened # time} other {Opened # times}}",
+      "last": "last {date}"
+    },
+    "notActive": {
+      "draft": "This is still a draft: the patient will see nothing until you activate it.",
+      "archived": "This is archived: the patient will see nothing."
+    },
+    "slug": {
+      "label": "Link name",
+      "hint": "The readable part of the address. Changing it never breaks the link.",
+      "save": "Save name"
+    },
+    "expiry": {
+      "label": "Expires",
+      "hint": "The link works through the end of this day.",
+      "none": "Never expires",
+      "clear": "Remove expiry"
+    },
+    "pin": {
+      "label": "Require a PIN",
+      "hint": "A 4-digit PIN is a light lock, not strong security. Give it to your patient separately.",
+      "shown": "PIN: {pin}",
+      "shownOnce": "Shown only now. Write it down or send it to your patient.",
+      "regenerate": "New PIN"
+    },
+    "regenerate": {
+      "action": "Regenerate link",
+      "hint": "Creates a new link. The current one stops working.",
+      "confirmTitle": "Regenerate this link?",
+      "confirmBody": "Anyone using the current link will see a page saying it is unavailable. Send the new link to your patient.",
+      "confirm": "Regenerate"
+    },
+    "revoke": {
+      "action": "Revoke link",
+      "confirmTitle": "Revoke this link?",
+      "confirmBody": "The link stops working right away. You can create a new one afterwards.",
+      "confirm": "Revoke"
+    },
+    "revoked": {
+      "note": "This link was revoked and no longer works.",
+      "createNew": "Create new link"
+    },
+    "cancel": "Cancel",
+    "errors": {
+      "notFound": "This can no longer be shared.",
+      "customerArchived": "Archived customers cannot be shared. Restore the customer first.",
+      "slugRequired": "Enter a link name.",
+      "expiryInPast": "Pick today or a later day.",
+      "invalid": "Check the values and try again.",
+      "generic": "Something went wrong. Try again."
+    }
   }
 }
