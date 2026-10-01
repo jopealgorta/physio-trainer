@@ -506,7 +506,6 @@
       "notes": "Notas"
     },
     "tabEmpty": {
-      "plans": "Acá van a aparecer los planes semanales de este cliente.",
       "activity": "Acá van a aparecer su actividad y su progreso.",
       "notes": "Acá van a aparecer las notas de sesión de este cliente."
     },
@@ -674,7 +673,8 @@
         "nameTooLong": "Usá como máximo {max, number} caracteres.",
         "notesTooLong": "Usá como máximo {max, number} caracteres.",
         "outOfRange": "Ingresá un número entero de {min, number} a {max, number}."
-      }
+      },
+      "backToPlan": "Volver al plan"
     },
     "items": {
       "empty": "Todavía no hay ejercicios. Elegí algunos de la lista.",
@@ -728,6 +728,170 @@
       "error": "No se pudo buscar. Probá de nuevo.",
       "open": "Agregar ejercicios",
       "close": "Listo"
+    }
+  },
+  "Plans": {
+    "title": "Planes semanales",
+    "list": {
+      "columns": {
+        "name": "Nombre",
+        "customer": "Cliente",
+        "case": "Caso",
+        "status": "Estado",
+        "week": "Semana",
+        "updated": "Actualizado"
+      },
+      "empty": {
+        "title": "Todavía no hay planes semanales",
+        "body": "Abrí un cliente para armar su primer plan semanal.",
+        "cta": "Ir a clientes"
+      },
+      "noResults": "Ningún plan coincide con estos filtros.",
+      "clearFilters": "Borrar filtros",
+      "truncated": "Mostrando los primeros {count, number}. Afiná la búsqueda.",
+      "weekDay": "{day}: {count, plural, =0 {descanso} one {# rutina} other {# rutinas}}",
+      "weekLabel": "Rutinas por día"
+    },
+    "filters": {
+      "search": "Buscar planes",
+      "status": "Estado",
+      "allStatuses": "Todos los estados",
+      "customer": "Cliente",
+      "allCustomers": "Todos los clientes"
+    },
+    "customerTab": {
+      "title": "Planes semanales",
+      "empty": "Todavía no hay planes semanales para {name}."
+    },
+    "new": {
+      "button": "Nuevo plan",
+      "title": "Nuevo plan semanal para {name}",
+      "name": "Nombre",
+      "case": "Caso",
+      "noCase": "Sin caso",
+      "create": "Crear plan",
+      "creating": "Creando…",
+      "cancel": "Cancelar",
+      "errors": {
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "customerNotFound": "Este cliente ya no existe.",
+        "caseNotFound": "Ese caso no pertenece a este cliente.",
+        "invalid": "Revisá el formulario y probá de nuevo."
+      }
+    },
+    "board": {
+      "back": "Volver a planes",
+      "customerBack": "Volver a {name}",
+      "summary": {
+        "routines": "{count, plural, one {# rutina} other {# rutinas}} por semana",
+        "exercises": "{count, plural, one {# ejercicio} other {# ejercicios}} en total",
+        "days": "{count, plural, one {# día de entrenamiento} other {# días de entrenamiento}}"
+      },
+      "details": {
+        "title": "Detalles del plan",
+        "name": "Nombre",
+        "status": "Estado",
+        "case": "Caso",
+        "noCase": "Sin caso",
+        "notes": "Notas para el paciente",
+        "notesHint": "Se muestran al principio del plan.",
+        "save": "Guardar detalles",
+        "saving": "Guardando…",
+        "saved": "Guardado",
+        "unsaved": "Cambios sin guardar"
+      },
+      "week": "Semana",
+      "day": {
+        "rest": "Día de descanso",
+        "count": "{count, plural, one {# rutina} other {# rutinas}}",
+        "add": "Agregar rutina al {day}",
+        "addShort": "Agregar",
+        "addExisting": "Rutina existente…",
+        "addNew": "Nueva rutina…",
+        "full": "Este día está completo ({max, number} rutinas)."
+      },
+      "entry": {
+        "exercises": "{count, plural, one {# ejercicio} other {# ejercicios}}",
+        "noExercises": "Todavía sin ejercicios",
+        "draft": "Borrador",
+        "shared": "Compartida ×{count, number}",
+        "sharedHint": "Si editás esta rutina, cambia en todos los días donde aparece.",
+        "menu": "Acciones para {routine}",
+        "editLabel": "Editar etiqueta…",
+        "moveTo": "Mover a…",
+        "copyTo": "Copiar a…",
+        "moveUp": "Subir",
+        "moveDown": "Bajar",
+        "separateCopy": "Hacer una copia separada",
+        "open": "Abrir rutina",
+        "remove": "Quitar del plan",
+        "copyName": "{name} (copia)",
+        "dayFull": "Completo"
+      },
+      "labelDialog": {
+        "title": "Etiqueta para {routine}",
+        "label": "Etiqueta",
+        "hint": "Opcional, por ejemplo “Mañana”.",
+        "save": "Guardar etiqueta",
+        "cancel": "Cancelar",
+        "clear": "Borrar"
+      },
+      "attach": {
+        "title": "Agregar una rutina existente al {day}",
+        "routine": "Rutina",
+        "choose": "Elegí una rutina",
+        "none": "Este cliente todavía no tiene rutinas para agregar.",
+        "label": "Etiqueta",
+        "labelHint": "Opcional, por ejemplo “Mañana”.",
+        "standalone": "Mostrar también por separado",
+        "standaloneHint": "El paciente también puede abrir esta rutina por sí sola.",
+        "add": "Agregar al plan",
+        "adding": "Agregando…",
+        "cancel": "Cancelar",
+        "meta": "{count, plural, one {# ejercicio} other {# ejercicios}}"
+      },
+      "newRoutine": {
+        "title": "Nueva rutina para el {day}",
+        "name": "Nombre",
+        "hint": "Empieza como borrador y se abre en el editor.",
+        "create": "Crear y editar",
+        "creating": "Creando…",
+        "cancel": "Cancelar"
+      },
+      "remove": {
+        "title": "¿Quitar “{routine}” del plan?",
+        "body": "Solo se quita del {day}.",
+        "deleteRoutine": "Eliminar también la rutina",
+        "deleteHint": "Nada más la usa, así que quedaría sin uso.",
+        "confirm": "Quitar",
+        "cancel": "Cancelar"
+      },
+      "dnd": {
+        "instructions": "Para levantar una rutina, apretá espacio o enter. Movela con las flechas y apretá espacio o enter para soltarla, o escape para cancelar.",
+        "picked": "Levantaste {item}.",
+        "moved": "{item} movida al {day}, posición {position} de {total}.",
+        "dropped": "{item} soltada en el {day}, posición {position} de {total}.",
+        "cancelled": "Se canceló el movimiento de {item}.",
+        "handle": "Mover {item}"
+      },
+      "errors": {
+        "notFound": "Este plan ya no existe.",
+        "entryNotFound": "Esa entrada ya no existe. Se actualizó el tablero.",
+        "routineNotFound": "Esa rutina no está disponible para este cliente.",
+        "routineArchived": "No se pueden agregar rutinas archivadas a un plan.",
+        "customerNotFound": "Este cliente ya no existe.",
+        "caseNotFound": "Ese caso no pertenece a este cliente.",
+        "dayFull": "Un día admite como máximo {max, number} rutinas.",
+        "needsEntries": "Agregá al menos una rutina antes de activar el plan.",
+        "needsCustomer": "Este plan no tiene cliente.",
+        "invalid": "Revisá el formulario y probá de nuevo.",
+        "generic": "Algo salió mal. Probá de nuevo.",
+        "nameRequired": "Ingresá un nombre.",
+        "nameTooLong": "Usá como máximo {max, number} caracteres.",
+        "notesTooLong": "Usá como máximo {max, number} caracteres.",
+        "labelTooLong": "Usá como máximo {max, number} caracteres."
+      }
     }
   },
   "Branding": {

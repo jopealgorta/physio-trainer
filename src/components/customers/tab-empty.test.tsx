@@ -6,15 +6,12 @@ import messages from "../../../messages/en.json";
 import { TabEmpty } from "./tab-empty";
 
 describe("TabEmpty", () => {
-  it.each(["plans", "activity", "notes"] as const)(
-    "explains what will appear in the %s tab",
-    (tab) => {
-      render(
-        <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-          <TabEmpty tab={tab} />
-        </NextIntlClientProvider>,
-      );
-      expect(screen.getByText(messages.Customers.tabEmpty[tab])).toBeInTheDocument();
-    },
-  );
+  it.each(["activity", "notes"] as const)("explains what will appear in the %s tab", (tab) => {
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <TabEmpty tab={tab} />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByText(messages.Customers.tabEmpty[tab])).toBeInTheDocument();
+  });
 });

@@ -4,7 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { CustomerTab } from "@/lib/customers";
 
 /** Placeholder for hub tabs whose content arrives with later specs. */
-export function TabEmpty({ tab }: { tab: Exclude<CustomerTab, "overview" | "routines"> }) {
+export function TabEmpty({
+  tab,
+}: {
+  tab: Exclude<CustomerTab, "overview" | "routines" | "plans">;
+}) {
   const t = useTranslations("Customers.tabEmpty");
   return (
     <Card>
