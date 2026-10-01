@@ -87,3 +87,9 @@ export function calendarDateToDate(value: string): Date {
 
 /** Intl options for displaying a `calendarDateToDate` value. */
 export const CALENDAR_DATE_FORMAT = { dateStyle: "medium", timeZone: "UTC" } as const;
+
+/** ISO weekday of a `YYYY-MM-DD` day: 1 = Monday … 7 = Sunday. */
+export function isoWeekday(day: string): number {
+  const weekday = calendarDateToDate(day).getUTCDay();
+  return weekday === 0 ? 7 : weekday;
+}

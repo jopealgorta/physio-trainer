@@ -6,6 +6,7 @@ import {
   calendarDateToDate,
   endOfDay,
   isCalendarDate,
+  isoWeekday,
   lastDayBefore,
   todayIn,
 } from "./calendar-date";
@@ -102,5 +103,14 @@ describe("lastDayBefore", () => {
     for (const zone of ["UTC", "America/Montevideo", "Pacific/Auckland", "America/New_York"]) {
       expect(lastDayBefore(zone, endOfDay(zone, "2026-10-05"))).toBe("2026-10-05");
     }
+  });
+});
+
+describe("isoWeekday", () => {
+  it("numbers Monday 1 to Sunday 7", () => {
+    expect(isoWeekday("2026-10-05")).toBe(1); // Monday
+    expect(isoWeekday("2026-10-08")).toBe(4);
+    expect(isoWeekday("2026-10-11")).toBe(7); // Sunday
+    expect(isoWeekday("2024-02-29")).toBe(4);
   });
 });
