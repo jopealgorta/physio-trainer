@@ -14,7 +14,7 @@ const PATHS = { routine: "/routines", plan: "/plans" } as const;
 export function ListTabs({ kind, active }: { kind: TemplateKind; active: ListTab }) {
   const t = useTranslations("Templates.tabs");
   return (
-    <nav aria-label={t("label")} className="-mx-1 overflow-x-auto border-b px-1">
+    <nav aria-label={t("label")} className="-mx-1 overflow-x-auto overflow-y-hidden border-b px-1">
       <ul className="flex min-w-max gap-1">
         {LIST_TABS.map((tab) => {
           const current = tab === active;
@@ -25,7 +25,7 @@ export function ListTabs({ kind, active }: { kind: TemplateKind; active: ListTab
                 href={href as Route}
                 aria-current={current ? "page" : undefined}
                 className={cn(
-                  "focus-visible:ring-ring/30 -mb-px inline-block rounded-t-md border-b-2 px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset",
+                  "focus-visible:ring-ring/30 inline-block rounded-t-md border-b-2 px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset",
                   current
                     ? "border-primary text-foreground"
                     : "text-muted-foreground hover:text-foreground border-transparent",
