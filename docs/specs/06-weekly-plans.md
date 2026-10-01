@@ -1,6 +1,6 @@
 # 06 · Weekly plans
 
-- **Status:** Not started
+- **Status:** In progress
 - **Feature:** Core
 - **Depends on:** 05
 
@@ -110,8 +110,17 @@ Namespace `Plans`; weekday names via `Intl.DateTimeFormat` for the active locale
 ## Open questions
 
 1. Should the week start on Monday for everyone, or follow the locale (Sunday in the US)?
+   **Answer (2026-10-01):** Monday for everyone (matches ISO weekdays and both shipped
+   locales); a locale-aware start can come later without a migration.
 2. Do you want per-day notes (e.g. "Rest day: 20 min walk") in v1? They could be entries
-   without a routine.
+   without a routine. **Answer:** no, deferred. `routine_id` stays NOT NULL; a day with no
+   entries reads as rest.
+3. How does "New routine" from a day start? **Answer:** a small dialog (name) creates a
+   non-standalone draft, attaches it to the day and opens the routine editor with a "Back to
+   plan" link; the editor is not embedded in a sheet.
+4. How much drag-and-drop? **Answer:** drag within a day and between days (move) on the
+   desktop board with dnd-kit (keyboard included), plus an entry menu everywhere (move to day,
+   copy to day, move up/down). Copy is menu-only.
 
 ## Decisions made during implementation
 
