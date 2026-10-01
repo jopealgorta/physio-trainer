@@ -14,7 +14,7 @@ import {
   weeklyPlanEntries,
   weeklyPlans,
 } from "@/db/schema";
-import { addEntry, createPlan, updatePlan } from "@/server/plans/mutations";
+import { addEntry, addNewRoutineEntry, createPlan, updatePlan } from "@/server/plans/mutations";
 import { createRoutine, saveRoutine } from "@/server/routines/mutations";
 import { saveRoutineSchema } from "@/server/routines/schemas";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
@@ -716,6 +716,45 @@ describe("templates server layer", () => {
       await expect(run(a, plain)).resolves.toEqual({ ok: false, error: "templateNotFound" });
       await expect(run(b, template)).resolves.toEqual({ ok: false, error: "templateNotFound" });
       await expect(run(a, RANDOM_ID)).resolves.toEqual({ ok: false, error: "templateNotFound" });
+    });
+  });
+
+  describe("a template plan's own routines", () => {
+    /** A template plan with one routine created from its board (not standalone). */
+    const privateRoutine = async (who: TestPhysio) => {
+      const plan = await as(who, (tx, pid) =>
+        createTemplate(tx, pid, { kind: "plan", name: "Plan" }),
+      );
+      if (!plan.ok) throw new Error(plan.error);
+      const added = await as(who, (tx, pid) =>
+        addNewRoutineEntry(tx, pid, { planId: plan.data.id, weekday: 1, name: "Inner" }),
+      );
+      if (!added.ok) throw new Error(added.error);
+      return added.data.routineId;
+    };
+
+    it("cannot be assigned on its own", async () => {
+      const inner = await privateRoutine(a);
+      const customerId = await customer(a);
+      const result = await as(a, (tx, pid) =>
+        assignTemplate(tx, pid, {
+          kind: "routine",
+          templateId: inner,
+          customerId,
+          caseId: null,
+          name: "Inner for Ana",
+          status: "draft",
+        }),
+      );
+      expect(result).toMatchObject({ ok: false, error: "templateNotFound" });
+    });
+
+    it("cannot be duplicated on its own", async () => {
+      const inner = await privateRoutine(a);
+      const result = await as(a, (tx, pid) =>
+        duplicateTemplate(tx, pid, { kind: "routine", templateId: inner, name: "Inner copy" }),
+      );
+      expect(result).toMatchObject({ ok: false, error: "templateNotFound" });
     });
   });
 });

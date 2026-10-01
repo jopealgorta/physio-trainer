@@ -1,15 +1,13 @@
 import { z } from "zod";
 
-import { PLAN_NAME_MAX } from "@/lib/plans";
-import { ROUTINE_NAME_MAX } from "@/lib/routines";
-import { ASSIGN_STATUSES } from "@/lib/templates";
+import { ASSIGN_STATUSES, NAME_MAX } from "@/lib/templates";
 import { idSchema, isUuid, type Result } from "@/server/routines/schemas";
 
 export { idSchema, isUuid, type Result };
 
 const kind = z.enum(["routine", "plan"]);
 export const templateKindSchema = kind;
-export const NAME_MAX = { routine: ROUTINE_NAME_MAX, plan: PLAN_NAME_MAX } as const;
+export { NAME_MAX };
 
 const blankToNull = (value: unknown) => {
   const text = typeof value === "string" ? value.trim() : value;

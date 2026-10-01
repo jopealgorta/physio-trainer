@@ -83,7 +83,15 @@ export async function getTemplateName(
   const [row] = await tx
     .select({ name: table.name })
     .from(table)
-    .where(and(eq(table.physioId, physioId), eq(table.id, id), eq(table.isTemplate, true)));
+    .where(
+      and(
+        eq(table.physioId, physioId),
+        eq(table.id, id),
+        eq(table.isTemplate, true),
+        // A template plan's own routines are not templates in their own right.
+        kind === "routine" ? eq(routines.isStandalone, true) : undefined,
+      ),
+    );
   return row?.name ?? null;
 }
 

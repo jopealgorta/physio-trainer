@@ -1,3 +1,6 @@
+import { PLAN_NAME_MAX } from "./plans";
+import { ROUTINE_NAME_MAX } from "./routines";
+
 export const TEMPLATE_STATUSES = ["active", "archived"] as const;
 export type TemplateStatus = (typeof TEMPLATE_STATUSES)[number];
 
@@ -36,3 +39,6 @@ export function withSuffix(name: string, suffix: string, max: number): string {
 
 /** Most templates the "From template…" picker shows at once. */
 export const TEMPLATE_PICKER_LIMIT = 50;
+
+/** The name limit per kind (routine and plan names share 80 today, but not by contract). */
+export const NAME_MAX = { routine: ROUTINE_NAME_MAX, plan: PLAN_NAME_MAX } as const;

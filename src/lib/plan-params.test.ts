@@ -32,6 +32,12 @@ describe("parsePlanParams", () => {
     expect(parsePlanParams({ tab: "bogus" }).tab).toBe("customers");
   });
 
+  it("drops the draft status on the templates tab, where nothing is a draft", () => {
+    expect(parsePlanParams({ tab: "templates", status: "draft" }).status).toBe("all");
+    expect(parsePlanParams({ tab: "templates", status: "archived" }).status).toBe("archived");
+    expect(parsePlanParams({ status: "draft" }).status).toBe("draft");
+  });
+
   it("falls back to defaults for junk and takes the first of repeated params", () => {
     expect(parsePlanParams({ status: "bogus", customer: "nope" })).toEqual(DEFAULT_PLAN_FILTERS);
     expect(parsePlanParams({ q: ["a", "b"] }).q).toBe("a");

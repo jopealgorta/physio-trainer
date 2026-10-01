@@ -175,6 +175,17 @@ describe("template queries", () => {
       expect(await as(b, (tx, pid) => getTemplateName(tx, pid, "plan", id))).toBeNull();
     });
 
+    it("returns null for a template plan's own routine", async () => {
+      const planId = await make(a, "plan", "Plan with inner");
+      const added = await as(a, (tx, pid) =>
+        addNewRoutineEntry(tx, pid, { planId, weekday: 1, name: "Inner" }),
+      );
+      if (!added.ok) throw new Error(added.error);
+      expect(
+        await as(a, (tx, pid) => getTemplateName(tx, pid, "routine", added.data.routineId)),
+      ).toBeNull();
+    });
+
     it("returns null for a malformed id", async () => {
       expect(await as(a, (tx, pid) => getTemplateName(tx, pid, "plan", "nope"))).toBeNull();
     });

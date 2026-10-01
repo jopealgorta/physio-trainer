@@ -29,9 +29,11 @@ function parseStatus(value: string | undefined): RoutineFilters["status"] {
 export function parseRoutineParams(params: Params): RoutineFilters {
   const customer = firstParam(params.customer);
   const tab = parseListTab(firstParam(params.tab));
+  const status = parseStatus(firstParam(params.status));
   return {
     q: (firstParam(params.q) ?? "").trim().slice(0, ROUTINE_SEARCH_MAX_LENGTH),
-    status: parseStatus(firstParam(params.status)),
+    // Templates are never drafts, so that filter would only ever show nothing.
+    status: tab === "templates" && status === "draft" ? "all" : status,
     customerId:
       tab === "customers" && customer && z.uuid().safeParse(customer).success ? customer : null,
     tab,

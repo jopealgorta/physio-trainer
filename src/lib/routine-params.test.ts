@@ -38,6 +38,11 @@ describe("parseRoutineParams", () => {
     });
     expect(parseRoutineParams({ tab: "bogus" }).tab).toBe("customers");
   });
+  it("drops the draft status on the templates tab, where nothing is a draft", () => {
+    expect(parseRoutineParams({ tab: "templates", status: "draft" }).status).toBe("all");
+    expect(parseRoutineParams({ tab: "templates", status: "archived" }).status).toBe("archived");
+    expect(parseRoutineParams({ status: "draft" }).status).toBe("draft");
+  });
   it("caps q at 100 characters", () => {
     expect(parseRoutineParams({ q: "x".repeat(300) }).q).toHaveLength(100);
   });

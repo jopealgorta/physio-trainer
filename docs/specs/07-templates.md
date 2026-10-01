@@ -124,6 +124,15 @@ Answered 2026-10-01:
   Shared error copy lives in `Templates.errors` (one place for the list, picker and dialogs).
   `PlanBoard`'s `canAdd` flag was dropped (always true). The picker shows the newest templates as
   soon as it opens. "Assign to customer…" is hidden when the physio has no active customers.
+- **Only standalone routine templates are assignable/duplicable.** A template plan's own routines
+  (`is_standalone = false`) are edited through the plan: `assignTemplate`, `duplicateTemplate` and
+  `getTemplateName` treat them as not found, and their editor page shows no Assign/Duplicate.
+  `assignTemplate` takes the template (and, for a plan, its routines) `for share` before checking
+  status and content, so a concurrent save can't slip between the checks and the copy.
+- **Known, unchanged:** a template plan's "existing routine" picker lists every non-archived
+  template routine, other plans' private ones included, exactly like customer plans list all of the
+  customer's routines (spec 06); sharing a routine between plans is the intended behaviour there.
+- **Template list URLs** drop `status=draft` on the templates tab (nothing there is a draft).
 - **Typecheck depth.** Adding messages tipped `category-manager.tsx` over TypeScript's instantiation
   depth limit (its `t` prop was typed without a namespace, so every call was checked against all
   message keys); the prop is now typed `useTranslations<"Library.categories">`.

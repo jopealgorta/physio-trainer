@@ -31,16 +31,39 @@ type TemplateResult = Result<{ id: string }, TemplateError>;
 
 const tableFor = (kind: "routine" | "plan") => (kind === "routine" ? routines : weeklyPlans);
 
-/** The physio's row of this kind (template or not), or null. Malformed ids never reach SQL. */
-async function findRow(tx: Tx, physioId: string, kind: "routine" | "plan", id: string) {
+/**
+ * The physio's row of this kind (template or not), or null. Malformed ids never reach SQL.
+ * `lock` takes the row `for share` (saves lock it `for update`), so what the caller then checks
+ * is still true when it copies. `standalone` is false for a routine that only lives in a plan.
+ */
+async function findRow(
+  tx: Tx,
+  physioId: string,
+  kind: "routine" | "plan",
+  id: string,
+  { lock = false }: { lock?: boolean } = {},
+) {
   if (!isUuid(id)) return null;
   const table = tableFor(kind);
-  const [row] = await tx
-    .select({ id: table.id, isTemplate: table.isTemplate, status: table.status })
+  const query = tx
+    .select({
+      id: table.id,
+      isTemplate: table.isTemplate,
+      status: table.status,
+      standalone: kind === "routine" ? routines.isStandalone : sql<boolean>`true`,
+    })
     .from(table)
     .where(and(eq(table.physioId, physioId), eq(table.id, id)));
+  const [row] = await (lock ? query.for("share") : query);
   return row ?? null;
 }
+
+/**
+ * Whether the row is a template that can be assigned or duplicated on its own: a plan template,
+ * or a standalone routine template. A template plan's own routines are edited through the plan.
+ */
+const isUsableTemplate = (row: Awaited<ReturnType<typeof findRow>>) =>
+  row !== null && row.isTemplate && row.standalone;
 
 /** An empty, active template that belongs to no customer. Routine templates are standalone. */
 export async function createTemplate(
@@ -136,9 +159,24 @@ export async function assignTemplate(
   physioId: string,
   input: AssignTemplateInput,
 ): Promise<TemplateResult> {
-  const template = await findRow(tx, physioId, input.kind, input.templateId);
-  if (!template || !template.isTemplate) return fail("templateNotFound");
+  // Locked before anything is checked: a concurrent save (archive, last exercise removed) either
+  // lands first and is seen here, or waits until the copy is done.
+  const template = await findRow(tx, physioId, input.kind, input.templateId, { lock: true });
+  if (!template || !isUsableTemplate(template)) return fail("templateNotFound");
   if (template.status === "archived") return fail("templateArchived");
+  if (input.kind === "plan") {
+    // The routines' items are checked below and copied after: hold them still in between.
+    await tx
+      .select({ id: routines.id })
+      .from(routines)
+      .where(
+        and(
+          eq(routines.physioId, physioId),
+          sql`${routines.id} in (select routine_id from weekly_plan_entries where physio_id = ${physioId} and weekly_plan_id = ${template.id})`,
+        ),
+      )
+      .for("share");
+  }
 
   if (!isUuid(input.customerId)) return fail("customerNotFound");
   const [customer] = await tx
@@ -213,8 +251,8 @@ export async function duplicateTemplate(
   physioId: string,
   input: DuplicateTemplateInput,
 ): Promise<TemplateResult> {
-  const template = await findRow(tx, physioId, input.kind, input.templateId);
-  if (!template || !template.isTemplate) return fail("templateNotFound");
+  const template = await findRow(tx, physioId, input.kind, input.templateId, { lock: true });
+  if (!template || !isUsableTemplate(template)) return fail("templateNotFound");
 
   const copy =
     input.kind === "routine"

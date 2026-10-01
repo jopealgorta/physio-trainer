@@ -24,11 +24,13 @@ type Params = Record<string, string | string[] | undefined>;
 
 export function parsePlanParams(params: Params): PlanFilters {
   const customer = firstParam(params.customer);
-  const status = firstParam(params.status);
+  const raw = firstParam(params.status);
   const tab = parseListTab(firstParam(params.tab));
+  const status = ROUTINE_STATUSES.find((candidate) => candidate === raw) ?? "all";
   return {
     q: (firstParam(params.q) ?? "").trim().slice(0, ROUTINE_SEARCH_MAX_LENGTH),
-    status: ROUTINE_STATUSES.find((candidate) => candidate === status) ?? "all",
+    // Templates are never drafts, so that filter would only ever show nothing.
+    status: tab === "templates" && status === "draft" ? "all" : status,
     customerId:
       tab === "customers" && customer && z.uuid().safeParse(customer).success ? customer : null,
     tab,

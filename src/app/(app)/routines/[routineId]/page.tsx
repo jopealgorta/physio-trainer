@@ -76,9 +76,9 @@ export default async function RoutinePage({
         {back.label}
       </Link>
       {routine.isTemplate ? (
-        // A template routine of a plan is edited through the plan: only standalone ones are
+        // A template plan's own routine is edited through the plan: only standalone ones are
         // assigned or duplicated from here.
-        fromPlan.success ? null : (
+        !routine.isStandalone ? null : (
           <TemplateActions
             kind="routine"
             template={{ id: routine.id, name: routine.name }}

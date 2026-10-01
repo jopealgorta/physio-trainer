@@ -22,10 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PLAN_NAME_MAX } from "@/lib/plans";
-import { ROUTINE_NAME_MAX } from "@/lib/routines";
 import { fromSelectValue, toSelectValue } from "@/lib/select-value";
-import { ASSIGN_STATUSES, type AssignStatus, type TemplateKind } from "@/lib/templates";
+import { ASSIGN_STATUSES, NAME_MAX, type AssignStatus, type TemplateKind } from "@/lib/templates";
 import {
   assignTemplateAction,
   listCasesAction,
@@ -34,7 +32,6 @@ import {
 
 const initialState: TemplateFormState = { status: "idle" };
 
-const NAME_MAX = { routine: ROUTINE_NAME_MAX, plan: PLAN_NAME_MAX } as const;
 const NAME_ERRORS = ["nameRequired", "nameTooLong"] as const;
 const FORM_ERRORS = [
   "templateNotFound",

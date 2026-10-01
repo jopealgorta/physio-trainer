@@ -160,16 +160,17 @@ function PickerBody({
           <ul className="grid gap-2">
             {options.map((option) => (
               <li key={option.id}>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setChosen(option)}
-                  className="hover:bg-muted focus-visible:ring-ring/30 flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm outline-none focus-visible:ring-2"
+                  className="h-auto w-full justify-between gap-3 px-3 py-2 text-left whitespace-normal"
                 >
                   <span className="min-w-0 truncate font-medium">{option.name}</span>
-                  <span className="text-muted-foreground shrink-0 text-xs">
+                  <span className="text-muted-foreground shrink-0 text-xs font-normal">
                     {t(`detail.${kind}`, { count: option.detail })}
                   </span>
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

@@ -18,14 +18,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PLAN_NAME_MAX } from "@/lib/plans";
-import { ROUTINE_NAME_MAX } from "@/lib/routines";
-import type { TemplateKind } from "@/lib/templates";
+import { NAME_MAX, type TemplateKind } from "@/lib/templates";
 import { saveAsTemplateAction, type TemplateFormState } from "@/server/templates/actions";
 
 const initialState: TemplateFormState = { status: "idle" };
 
-const NAME_MAX = { routine: ROUTINE_NAME_MAX, plan: PLAN_NAME_MAX } as const;
 const NAME_ERRORS = ["nameRequired", "nameTooLong"] as const;
 const FORM_ERRORS = ["notFound", "alreadyTemplate", "invalid"] as const;
 

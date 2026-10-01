@@ -204,6 +204,7 @@ describe("templates in routine and plan queries and mutations", () => {
       const routine = await as(a, (tx, pid) => getRoutine(tx, pid, routineId));
       expect(routine).toMatchObject({
         isTemplate: true,
+        isStandalone: true,
         customerId: null,
         customerFirstName: null,
         sourceTemplate: null,
@@ -215,6 +216,19 @@ describe("templates in routine and plan queries and mutations", () => {
         customerId: null,
         sourceTemplate: null,
         cases: [],
+      });
+    });
+
+    it("reports a template plan's own routine as not standalone", async () => {
+      const planId = await template(a, "plan", "Plan with inner");
+      const { routineId } = unwrap(
+        await as(a, (tx, pid) =>
+          addNewRoutineEntry(tx, pid, { planId, weekday: 1, name: "Inner" }),
+        ),
+      );
+      expect(await as(a, (tx, pid) => getRoutine(tx, pid, routineId))).toMatchObject({
+        isTemplate: true,
+        isStandalone: false,
       });
     });
 

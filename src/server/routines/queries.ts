@@ -101,6 +101,8 @@ export type RoutineDetail = {
   customerFirstName: string | null;
   customerLastName: string | null;
   isTemplate: boolean;
+  /** False for a routine that only exists inside a weekly plan (spec 06 rule 1). */
+  isStandalone: boolean;
   /** The template this routine was copied from, while that template still exists. */
   sourceTemplate: { id: string; name: string } | null;
   name: string;
@@ -134,6 +136,7 @@ export async function getRoutine(
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       isTemplate: routines.isTemplate,
+      isStandalone: routines.isStandalone,
       sourceTemplateId: source.id,
       sourceTemplateName: source.name,
       name: routines.name,
