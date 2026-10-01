@@ -99,6 +99,34 @@ describe("patient data layer", () => {
       }
     });
 
+    it("exposes the routine or plan name for the link preview, whatever the link's status", async () => {
+      const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
+      const ex = await insertExercise(physio.id);
+      const routineId = await insertRoutine(physio.id, customerId, {
+        name: "Knee rehab",
+        status: "active",
+        items: [{ exerciseId: ex }],
+      });
+      const planId = await insertPlan(physio.id, customerId, {
+        name: "Back plan",
+        status: "active",
+      });
+
+      const routineLink = await linkFor(physio, { target: "routine", routineId });
+      const planLink = await linkFor(physio, { target: "weekly_plan", weeklyPlanId: planId });
+      const customerLinkRow = await customerLink(physio, customerId);
+
+      expect((await resolved(routineLink.code)).shell.title).toBe("Knee rehab");
+      expect((await resolved(planLink.code)).shell.title).toBe("Back plan");
+      // A customer link has no single item: its card stays the clinic's, never the patient's name.
+      expect((await resolved(customerLinkRow.code)).shell.title).toBeNull();
+
+      await as(physio, (tx, id) => revokeShareLink(tx, id, routineLink.id));
+      const revoked = await resolveLink(routineLink.code, NOW);
+      expect(revoked).toMatchObject({ status: "unavailable", reason: "revoked" });
+      if (revoked.status === "unavailable") expect(revoked.shell.title).toBe("Knee rehab");
+    });
+
     it("reports revoked links as unavailable, with the shell for the friendly page", async () => {
       const customerId = await insertCustomer(physio.id);
       const link = await customerLink(physio, customerId);

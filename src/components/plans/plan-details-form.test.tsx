@@ -26,6 +26,16 @@ beforeEach(() => {
 });
 
 describe("PlanDetailsForm", () => {
+  it("tells the physio the name is the link preview's title, except on a template", () => {
+    const hint = "Shown as the title in the link preview when you share it.";
+    const { unmount } = setup();
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveAccessibleDescription(hint);
+    unmount();
+    setup({ isTemplate: true });
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+  });
+
   it("offers every status for a customer's plan", async () => {
     const user = userEvent.setup();
     setup();

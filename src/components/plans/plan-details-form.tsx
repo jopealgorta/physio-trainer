@@ -116,8 +116,14 @@ export function PlanDetailsForm({
             autoComplete="off"
             required
             aria-invalid={error === "nameRequired"}
+            aria-describedby={isTemplate ? undefined : `${id}-name-hint`}
             onChange={(event) => change({ name: event.target.value })}
           />
+          {isTemplate ? null : (
+            <p id={`${id}-name-hint`} className="text-muted-foreground text-sm">
+              {t("nameHint")}
+            </p>
+          )}
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`${id}-status`}>{t("status")}</Label>

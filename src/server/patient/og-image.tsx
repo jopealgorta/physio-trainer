@@ -14,9 +14,14 @@ import type { BrandTokens } from "@/lib/color";
 
 import { loadLink } from "./load";
 
-/** What the card shows: branding only (spec 11). Never anything about the patient. */
+/**
+ * What the card shows (spec 11): branding and the shared routine's or plan's name. Never anything
+ * about the patient.
+ */
 export type PreviewCardInput = {
   clinicName: string;
+  /** The routine's or plan's name; null draws the clinic name as the headline. */
+  title: string | null;
   /** "Powered by Physio Trainer" in the customer's language. */
   footer: string;
   /** A `data:` URI the card can embed, or null for the initial circle. */
@@ -28,6 +33,7 @@ const FETCH_TIMEOUT_MS = 3000;
 const FONT_FILE = join(process.cwd(), "src/assets/fonts/Outfit-Bold.ttf");
 const FOREGROUND = "#171717";
 const MUTED = "#737373";
+const SECONDARY = "#525252";
 const FONT = "Outfit";
 
 let font: Buffer | null = null;
@@ -76,7 +82,38 @@ export async function loadLogoDataUri(
 export const nameFontSize = (name: string): number =>
   name.length <= 24 ? 96 : name.length <= 48 ? 72 : 56;
 
-function Card({ clinicName, footer, logoSrc, tokens }: PreviewCardInput) {
+/** Routine and plan names go up to 80 characters; they get two lines at most. */
+export const titleFontSize = (title: string): number =>
+  title.length <= 28 ? 88 : title.length <= 56 ? 68 : 54;
+
+/** A headline of at most `lines` lines: Satori only clamps text in a block, not in a flex item. */
+function Clamped({
+  lines,
+  style,
+  children,
+}: {
+  lines: number;
+  style: Record<string, string | number>;
+  children: string;
+}) {
+  return (
+    <div style={{ display: "flex" }}>
+      <div
+        style={{
+          display: "block",
+          lineClamp: lines,
+          textOverflow: "ellipsis",
+          wordBreak: "break-word",
+          ...style,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Card({ clinicName, title, footer, logoSrc, tokens }: PreviewCardInput) {
   const { accent, onAccent, tint } = cardColors(tokens);
   const initial = Array.from(clinicName.trim())[0]?.toLocaleUpperCase() ?? "";
   return (
@@ -130,18 +167,32 @@ function Card({ clinicName, footer, logoSrc, tokens }: PreviewCardInput) {
               initial
             )}
           </div>
-          <div
-            style={{
-              display: "flex",
-              flex: 1,
-              fontSize: nameFontSize(clinicName),
-              lineHeight: 1.1,
-              letterSpacing: -2,
-              wordBreak: "break-word",
-            }}
-          >
-            {clinicName}
-          </div>
+          {title ? (
+            <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: 24 }}>
+              <Clamped
+                lines={2}
+                style={{ fontSize: titleFontSize(title), lineHeight: 1.1, letterSpacing: -2 }}
+              >
+                {title}
+              </Clamped>
+              <Clamped lines={1} style={{ fontSize: 40, color: SECONDARY }}>
+                {clinicName}
+              </Clamped>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                flex: 1,
+                fontSize: nameFontSize(clinicName),
+                lineHeight: 1.1,
+                letterSpacing: -2,
+                wordBreak: "break-word",
+              }}
+            >
+              {clinicName}
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", fontSize: 28, color: MUTED }}>{footer}</div>
       </div>
@@ -218,7 +269,7 @@ export async function renderPreviewCard(input: PreviewCardInput, cacheControl?: 
 
 /**
  * The image for a link code. Revoked, expired and PIN-protected links get the same card as an
- * active one, so a crawler learns nothing about the link's status; an unknown code gets the
+ * active one (title included), so a crawler learns nothing about the link's status; an unknown code gets the
  * generic app card. Never touches `open_count` (crawler hits are not patient opens).
  */
 export async function renderLinkPreview(code: string) {
@@ -233,6 +284,7 @@ export async function renderLinkPreview(code: string) {
   return renderPreviewCard(
     {
       clinicName: branding.clinicName,
+      title: resolved.shell.title,
       footer: t("poweredBy"),
       logoSrc,
       tokens: branding.tokens,
