@@ -43,8 +43,8 @@ export type RoutineEditorProps = {
   routine: {
     id: string;
     version: number;
-    customerId: string;
-    customerName: string;
+    customerId: string | null;
+    customerName: string | null;
     header: HeaderValues;
     cases: { id: string; title: string }[];
   };

@@ -665,6 +665,7 @@
         "caseNotFound": "Ese caso no pertenece a este cliente.",
         "exerciseNotFound": "Uno de los ejercicios ya no existe. Quitalo y guardá de nuevo.",
         "needsItems": "Agregá al menos un ejercicio antes de activarla.",
+        "templateNoDraft": "Las plantillas están activas o archivadas.",
         "blockedByPlans": "Esta rutina se usa en un plan semanal activo: {plans}. Quitala del plan primero.",
         "invalid": "Revisá el formulario y probá de nuevo.",
         "sets": "Algunas series tienen repeticiones inválidas. Revisá los ejercicios resaltados.",
@@ -883,7 +884,6 @@
         "caseNotFound": "Ese caso no pertenece a este cliente.",
         "dayFull": "Un día admite como máximo {max, number} rutinas.",
         "needsEntries": "Agregá al menos una rutina antes de activar el plan.",
-        "needsCustomer": "Este plan no tiene cliente.",
         "invalid": "Revisá el formulario y probá de nuevo.",
         "generic": "Algo salió mal. Probá de nuevo.",
         "nameRequired": "Ingresá un nombre.",
@@ -891,6 +891,7 @@
         "notesTooLong": "Usá como máximo {max, number} caracteres.",
         "labelTooLong": "Usá como máximo {max, number} caracteres.",
         "hasArchivedRoutines": "Quitá las rutinas archivadas del plan antes de activarlo.",
+        "templateNoDraft": "Las plantillas están activas o archivadas.",
         "notShared": "Ninguna otra entrada usa esta rutina, así que no hay de qué separarla."
       }
     }

@@ -48,7 +48,13 @@ export default async function RoutinePage({
   const fromPlan = idSchema.safeParse(firstParam(sp.plan));
   const back = fromPlan.success
     ? { href: `/plans/${fromPlan.data}` as Route, label: t("backToPlan") }
-    : { href: `/customers/${routine.customerId}?tab=routines` as Route, label: t("back") };
+    : {
+        // Templates have no customer page to go back to (spec 07).
+        href: (routine.customerId === null
+          ? "/routines?tab=templates"
+          : `/customers/${routine.customerId}?tab=routines`) as Route,
+        label: t("back"),
+      };
 
   return (
     <div className="grid gap-6">
@@ -64,7 +70,9 @@ export default async function RoutinePage({
           id: routine.id,
           version: routine.version,
           customerId: routine.customerId,
-          customerName: customerName(routine.customerFirstName, routine.customerLastName),
+          customerName: routine.customerFirstName
+            ? customerName(routine.customerFirstName, routine.customerLastName)
+            : null,
           header: {
             name: routine.name,
             notes: routine.notes ?? "",

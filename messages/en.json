@@ -665,6 +665,7 @@
         "caseNotFound": "That case doesn't belong to this customer.",
         "exerciseNotFound": "One of the exercises no longer exists. Remove it and save again.",
         "needsItems": "Add at least one exercise before activating.",
+        "templateNoDraft": "Templates are either active or archived.",
         "blockedByPlans": "This routine is used in an active weekly plan: {plans}. Remove it from the plan first.",
         "invalid": "Check the form and try again.",
         "sets": "Some sets have invalid reps. Check the highlighted exercises.",
@@ -883,7 +884,6 @@
         "caseNotFound": "That case doesn't belong to this customer.",
         "dayFull": "A day holds at most {max, number} routines.",
         "needsEntries": "Add at least one routine before activating the plan.",
-        "needsCustomer": "This plan has no customer.",
         "invalid": "Check the form and try again.",
         "generic": "Something went wrong. Try again.",
         "nameRequired": "Enter a name.",
@@ -891,6 +891,7 @@
         "notesTooLong": "Use at most {max, number} characters.",
         "labelTooLong": "Use at most {max, number} characters.",
         "hasArchivedRoutines": "Remove archived routines from the plan before activating it.",
+        "templateNoDraft": "Templates are either active or archived.",
         "notShared": "Nothing else uses this routine, so there is nothing to separate it from."
       }
     }

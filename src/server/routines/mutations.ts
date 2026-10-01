@@ -95,6 +95,7 @@ export async function saveRoutine(
   const [routine] = await tx
     .select({
       customerId: routines.customerId,
+      isTemplate: routines.isTemplate,
       version: routines.version,
       status: routines.status,
     })
@@ -103,6 +104,8 @@ export async function saveRoutine(
     .for("update");
   if (!routine) return fail("notFound");
   if (routine.version !== input.version) return fail("conflict");
+  // Templates are active or archived (a DB check too); say so before the check does.
+  if (routine.isTemplate && input.status === "draft") return fail("templateNoDraft");
 
   if (input.caseId !== null) {
     // Templates (no customer) never have a case.
@@ -129,7 +132,10 @@ export async function saveRoutine(
     if (found !== exerciseIds.length) return fail("exerciseNotFound");
   }
 
-  if (input.status === "active" && input.items.length === 0) return fail("needsItems");
+  // A template can be active while empty: it is a blank to fill in, and is checked when assigned.
+  if (!routine.isTemplate && input.status === "active" && input.items.length === 0) {
+    return fail("needsItems");
+  }
   if (input.status === "archived" && routine.status !== "archived") {
     const plans = await listPlansUsingRoutine(tx, physioId, input.id);
     if (plans.length > 0) return { ok: false, error: "blockedByPlans", plans } as const;

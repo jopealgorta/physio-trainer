@@ -55,8 +55,8 @@ export function RoutineHeader({
   values: HeaderValues;
   errors: HeaderErrors;
   onChange: (patch: Partial<HeaderValues>) => void;
-  customerId: string;
-  customerName: string;
+  customerId: string | null;
+  customerName: string | null;
   cases: { id: string; title: string }[];
   dirty: boolean;
   saving: boolean;
@@ -112,15 +112,17 @@ export function RoutineHeader({
             className="h-auto min-w-0 px-2 py-1 text-2xl font-semibold tracking-tight md:text-2xl"
           />
           {errorText("name")}
-          <p className="text-muted-foreground text-sm">
-            {t("customer")}:{" "}
-            <Link
-              href={`/customers/${customerId}`}
-              className="text-foreground rounded-sm hover:underline focus-visible:underline"
-            >
-              {customerName}
-            </Link>
-          </p>
+          {customerId !== null && customerName !== null ? (
+            <p className="text-muted-foreground text-sm">
+              {t("customer")}:{" "}
+              <Link
+                href={`/customers/${customerId}`}
+                className="text-foreground rounded-sm hover:underline focus-visible:underline"
+              >
+                {customerName}
+              </Link>
+            </p>
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           <p role="status" data-testid="save-status" className="text-muted-foreground text-sm">

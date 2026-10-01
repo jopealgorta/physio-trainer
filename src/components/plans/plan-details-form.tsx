@@ -32,6 +32,7 @@ type SaveError =
   | "caseNotFound"
   | "needsEntries"
   | "hasArchivedRoutines"
+  | "templateNoDraft"
   | "invalid"
   | "generic"
   | "nameRequired"

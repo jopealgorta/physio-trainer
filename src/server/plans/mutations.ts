@@ -29,6 +29,7 @@ import {
   type Result,
   type SeparateCopyInput,
   type SetLabelInput,
+  type UpdatePlanError,
   type UpdatePlanInput,
 } from "./schemas";
 
@@ -88,6 +89,7 @@ async function lockPlan(tx: Tx, physioId: string, planId: string) {
       customerId: weeklyPlans.customerId,
       caseId: weeklyPlans.caseId,
       status: weeklyPlans.status,
+      isTemplate: weeklyPlans.isTemplate,
     })
     .from(weeklyPlans)
     .where(and(eq(weeklyPlans.physioId, physioId), eq(weeklyPlans.id, planId)))
@@ -142,11 +144,11 @@ export async function updatePlan(
   tx: Tx,
   physioId: string,
   input: UpdatePlanInput,
-): Promise<
-  Result<{ version: number }, "notFound" | "caseNotFound" | "needsEntries" | "hasArchivedRoutines">
-> {
+): Promise<Result<{ version: number }, UpdatePlanError>> {
   const plan = await lockPlan(tx, physioId, input.id);
   if (!plan) return fail("notFound");
+  // Templates are active or archived (a DB check too); say so before the check does.
+  if (plan.isTemplate && input.status === "draft") return fail("templateNoDraft");
 
   if (input.caseId !== null) {
     if (!plan.customerId || !(await caseBelongs(tx, physioId, plan.customerId, input.caseId))) {
@@ -160,7 +162,8 @@ export async function updatePlan(
       .where(
         and(eq(weeklyPlanEntries.physioId, physioId), eq(weeklyPlanEntries.weeklyPlanId, plan.id)),
       );
-    if (count === 0) return fail("needsEntries");
+    // A template can be active while empty: it is a blank to fill in, and is checked when assigned.
+    if (count === 0 && !plan.isTemplate) return fail("needsEntries");
     // An active plan never schedules an archived routine (a draft plan can hold one, since only
     // active plans block archiving).
     const [{ archived }] = await tx
@@ -200,7 +203,10 @@ export async function updatePlan(
 
 type BoardResult<T = Record<string, never>> = Result<T, PlanError>;
 
-/** Attaches an existing routine of the plan's customer to a day. */
+/**
+ * Attaches an existing routine to a day: one of the plan's customer, or for a template plan a
+ * template routine.
+ */
 export async function addEntry(
   tx: Tx,
   physioId: string,
@@ -208,13 +214,13 @@ export async function addEntry(
 ): Promise<BoardResult<{ entryId: string }>> {
   const plan = await lockPlan(tx, physioId, input.planId);
   if (!plan) return fail("notFound");
-  if (!plan.customerId) return fail("needsCustomer");
 
   const [routine] = await tx
     .select({ id: routines.id, customerId: routines.customerId, status: routines.status })
     .from(routines)
     .where(and(eq(routines.physioId, physioId), eq(routines.id, input.routineId)));
-  // The routine must be the same physio's *and* the same customer's.
+  // The routine must be the same physio's *and* the same customer's; null equals null, so a
+  // template plan takes template routines, and the two sets never mix.
   if (!routine || routine.customerId !== plan.customerId) return fail("routineNotFound");
   if (routine.status === "archived") return fail("routineArchived");
 
@@ -249,7 +255,10 @@ export async function addEntry(
   return ok({ entryId });
 }
 
-/** Creates a draft routine (not standalone) for the plan's customer and attaches it to a day. */
+/**
+ * Creates a routine (not standalone) for the plan and attaches it to a day: a draft for the
+ * plan's customer, or an active template routine for a template plan.
+ */
 export async function addNewRoutineEntry(
   tx: Tx,
   physioId: string,
@@ -257,7 +266,6 @@ export async function addNewRoutineEntry(
 ): Promise<BoardResult<{ entryId: string; routineId: string }>> {
   const plan = await lockPlan(tx, physioId, input.planId);
   if (!plan) return fail("notFound");
-  if (!plan.customerId) return fail("needsCustomer");
 
   const entries = await loadEntries(tx, physioId, plan.id);
   const entryId = crypto.randomUUID();
@@ -271,27 +279,44 @@ export async function addNewRoutineEntry(
   if (!next) return fail("dayFull");
   const { position } = next.find((entry) => entry.id === entryId)!;
 
-  const created = await createRoutine(tx, physioId, {
-    customerId: plan.customerId,
-    name: input.name,
-    caseId: plan.caseId,
-  });
-  if (!created.ok) return fail(created.error);
-  await tx
-    .update(routines)
-    .set({ isStandalone: false })
-    .where(and(eq(routines.physioId, physioId), eq(routines.id, created.data.id)));
+  let routineId: string;
+  if (plan.customerId === null) {
+    const [template] = await tx
+      .insert(routines)
+      .values({
+        physioId,
+        customerId: null,
+        name: input.name,
+        isTemplate: true,
+        status: "active",
+        isStandalone: false,
+      })
+      .returning({ id: routines.id });
+    routineId = template.id;
+  } else {
+    const created = await createRoutine(tx, physioId, {
+      customerId: plan.customerId,
+      name: input.name,
+      caseId: plan.caseId,
+    });
+    if (!created.ok) return fail(created.error);
+    routineId = created.data.id;
+    await tx
+      .update(routines)
+      .set({ isStandalone: false })
+      .where(and(eq(routines.physioId, physioId), eq(routines.id, routineId)));
+  }
   await tx.insert(weeklyPlanEntries).values({
     id: entryId,
     physioId,
     weeklyPlanId: plan.id,
     weekday: input.weekday,
-    routineId: created.data.id,
+    routineId,
     position,
     label: null,
   });
   await bump(tx, physioId, plan.id);
-  return ok({ entryId, routineId: created.data.id });
+  return ok({ entryId, routineId });
 }
 
 /** Moves an entry to a weekday at an index (reorder when the weekday is unchanged). */
@@ -457,6 +482,7 @@ export async function makeSeparateCopy(
       name: routines.name,
       status: routines.status,
       isStandalone: routines.isStandalone,
+      isTemplate: routines.isTemplate,
     })
     .from(routines)
     .where(and(eq(routines.physioId, physioId), eq(routines.id, entry.routineId)));
@@ -479,8 +505,9 @@ export async function makeSeparateCopy(
   const copy = await duplicateRoutine(tx, physioId, entry.routineId, {
     name: copyName(source.name),
     isStandalone: false,
-    // An archived routine cannot sit on a plan: the copy starts as a draft.
-    status: source.status === "archived" ? "draft" : source.status,
+    // An archived routine cannot sit on a plan: the copy starts as a draft (templates have no
+    // drafts, so a template copy starts active).
+    status: source.status === "archived" ? (source.isTemplate ? "active" : "draft") : source.status,
   });
   if (!copy.ok) return fail("routineNotFound");
   await tx

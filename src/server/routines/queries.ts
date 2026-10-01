@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import type { Tx } from "@/db/rls";
 import {
@@ -25,8 +26,9 @@ export type RoutineSummary = {
   id: string;
   name: string;
   status: RoutineStatus;
-  customerId: string;
-  customerFirstName: string;
+  /** Null for templates (spec 07). */
+  customerId: string | null;
+  customerFirstName: string | null;
   customerLastName: string | null;
   caseTitle: string | null;
   itemCount: number;
@@ -40,7 +42,16 @@ export async function listRoutines(
   filters: RoutineFilters,
   limit = ROUTINES_LIST_LIMIT,
 ): Promise<{ routines: RoutineSummary[]; truncated: boolean }> {
-  const conditions: SQL[] = [eq(routines.physioId, physioId)];
+  // Customers tab: every customer routine. Templates tab: standalone templates only (a template
+  // plan's own routines are edited through the plan).
+  const conditions: SQL[] =
+    filters.tab === "templates"
+      ? [
+          eq(routines.physioId, physioId),
+          eq(routines.isTemplate, true),
+          eq(routines.isStandalone, true),
+        ]
+      : [eq(routines.physioId, physioId), eq(routines.isTemplate, false)];
   if (filters.status !== "all") conditions.push(eq(routines.status, filters.status));
   if (filters.customerId) {
     // A malformed id can never match (and must not reach a uuid comparison).
@@ -58,8 +69,7 @@ export async function listRoutines(
       id: routines.id,
       name: routines.name,
       status: routines.status,
-      // From the inner join: routines.customerId is null only for templates (spec 07).
-      customerId: customers.id,
+      customerId: routines.customerId,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       caseTitle: cases.title,
@@ -71,7 +81,7 @@ export async function listRoutines(
         where i.physio_id = routines.physio_id and i.routine_id = routines.id)`,
     })
     .from(routines)
-    .innerJoin(
+    .leftJoin(
       customers,
       and(eq(customers.physioId, routines.physioId), eq(customers.id, routines.customerId)),
     )
@@ -86,9 +96,13 @@ export async function listRoutines(
 export type RoutineDetail = {
   id: string;
   version: number;
-  customerId: string;
-  customerFirstName: string;
+  /** Null for templates (spec 07). */
+  customerId: string | null;
+  customerFirstName: string | null;
   customerLastName: string | null;
+  isTemplate: boolean;
+  /** The template this routine was copied from, while that template still exists. */
+  sourceTemplate: { id: string; name: string } | null;
   name: string;
   notes: string | null;
   caseId: string | null;
@@ -111,14 +125,17 @@ export async function getRoutine(
   id: string,
 ): Promise<RoutineDetail | null> {
   if (!isUuid(id)) return null;
-  const [header] = await tx
+  const source = alias(routines, "source_template");
+  const [row] = await tx
     .select({
       id: routines.id,
       version: routines.version,
-      // From the inner join: routines.customerId is null only for templates (spec 07).
-      customerId: customers.id,
+      customerId: routines.customerId,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
+      isTemplate: routines.isTemplate,
+      sourceTemplateId: source.id,
+      sourceTemplateName: source.name,
       name: routines.name,
       notes: routines.notes,
       caseId: routines.caseId,
@@ -127,12 +144,17 @@ export async function getRoutine(
       status: routines.status,
     })
     .from(routines)
-    .innerJoin(
+    .leftJoin(
       customers,
       and(eq(customers.physioId, routines.physioId), eq(customers.id, routines.customerId)),
     )
+    .leftJoin(
+      source,
+      and(eq(source.physioId, routines.physioId), eq(source.id, routines.sourceTemplateId)),
+    )
     .where(and(eq(routines.physioId, physioId), eq(routines.id, id)));
-  if (!header) return null;
+  if (!row) return null;
+  const { sourceTemplateId, sourceTemplateName, ...header } = row;
 
   const [groups, itemRows, customerCases] = await Promise.all([
     tx
@@ -166,11 +188,14 @@ export async function getRoutine(
       )
       .where(and(eq(routineItems.physioId, physioId), eq(routineItems.routineId, id)))
       .orderBy(asc(routineItems.position)),
-    tx
-      .select({ id: cases.id, title: cases.title, status: cases.status })
-      .from(cases)
-      .where(and(eq(cases.physioId, physioId), eq(cases.customerId, header.customerId)))
-      .orderBy(desc(cases.openedOn), asc(cases.id)),
+    // Templates have no customer, so no cases.
+    header.customerId
+      ? tx
+          .select({ id: cases.id, title: cases.title, status: cases.status })
+          .from(cases)
+          .where(and(eq(cases.physioId, physioId), eq(cases.customerId, header.customerId)))
+          .orderBy(desc(cases.openedOn), asc(cases.id))
+      : Promise.resolve([]),
   ]);
 
   const setsByItem = new Map<string, LoadedItem["sets"]>();
@@ -201,6 +226,10 @@ export async function getRoutine(
 
   return {
     ...header,
+    sourceTemplate:
+      sourceTemplateId !== null && sourceTemplateName !== null
+        ? { id: sourceTemplateId, name: sourceTemplateName }
+        : null,
     groups,
     items: itemRows.map(({ exerciseArchivedAt, coverUrl, ...row }) => ({
       ...row,
