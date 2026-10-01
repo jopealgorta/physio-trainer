@@ -29,12 +29,14 @@ export async function setPhase(
 
   if (input.kind === "routine") {
     const [routine] = await tx
-      .select({ isStandalone: routines.isStandalone })
+      .select({ isStandalone: routines.isStandalone, customerId: routines.customerId })
       .from(routines)
       .where(and(eq(routines.physioId, physioId), eq(routines.id, input.id)))
       .for("update");
     if (!routine) return fail("notFound");
     if (!routine.isStandalone) return fail("notStandalone");
+    // A standalone template routine has no customer either (spec 07).
+    if (routine.customerId === null) return fail("needsCustomer");
     await tx
       .update(routines)
       .set(values)
@@ -90,6 +92,7 @@ async function copyRoutinePhase(
       name: routines.name,
       status: routines.status,
       isStandalone: routines.isStandalone,
+      customerId: routines.customerId,
       startsOn: routines.startsOn,
       endsOn: routines.endsOn,
       itemCount: sql<number>`(
@@ -101,6 +104,7 @@ async function copyRoutinePhase(
     .for("update");
   if (!source) return fail("notFound");
   if (!source.isStandalone) return fail("notStandalone");
+  if (source.customerId === null) return fail("needsCustomer");
 
   const predecessor =
     input.endCurrent && source.status === "active" ? endPredecessor(source, input.startsOn) : null;

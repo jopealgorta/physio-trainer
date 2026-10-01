@@ -22,14 +22,7 @@ import { addNewRoutineEntryAction, type AddNewRoutineFormState } from "@/server/
 const initialState: AddNewRoutineFormState = { status: "idle" };
 
 const NAME_ERRORS = ["nameRequired", "nameTooLong"] as const;
-const FORM_ERRORS = [
-  "notFound",
-  "customerNotFound",
-  "caseNotFound",
-  "dayFull",
-  "needsCustomer",
-  "invalid",
-] as const;
+const FORM_ERRORS = ["notFound", "customerNotFound", "caseNotFound", "dayFull", "invalid"] as const;
 
 /**
  * "New routine" on a day: asks for a name, creates the draft, attaches it to the day and (from

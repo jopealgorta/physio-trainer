@@ -58,6 +58,7 @@ const PROPS: RoutineEditorProps = {
     version: 3,
     customerId: "cust-1",
     customerName: "Ana Pérez",
+    isTemplate: false,
     header: {
       name: "Knee rehab",
       notes: "",
@@ -464,5 +465,50 @@ describe("RoutineEditor", () => {
   it("hides the case select when the customer has no cases", () => {
     setup({ ...PROPS, routine: { ...PROPS.routine, cases: [] } });
     expect(screen.queryByRole("combobox", { name: "Case" })).not.toBeInTheDocument();
+  });
+});
+
+describe("RoutineEditor in template mode", () => {
+  const TEMPLATE: RoutineEditorProps = {
+    ...PROPS,
+    routine: {
+      ...PROPS.routine,
+      customerId: null,
+      customerName: null,
+      isTemplate: true,
+      cases: [],
+      header: { ...PROPS.routine.header, status: "active" },
+    },
+  };
+
+  it("shows the Template badge, with no customer link and no case select", () => {
+    setup(TEMPLATE);
+    expect(screen.getByText("Template")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Ana Pérez" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Case" })).not.toBeInTheDocument();
+  });
+
+  it("offers only the active and archived statuses", async () => {
+    const user = userEvent.setup();
+    setup(TEMPLATE);
+    await user.click(screen.getByRole("combobox", { name: "Status" }));
+    const options = (await screen.findAllByRole("option")).map((option) => option.textContent);
+    expect(options).toEqual(["Active", "Archived"]);
+  });
+
+  it("does not show the Template badge on a customer's routine", () => {
+    setup();
+    expect(screen.queryByText("Template")).not.toBeInTheDocument();
+  });
+
+  it("saves an active template without exercises", async () => {
+    const user = userEvent.setup();
+    setup({ ...TEMPLATE, initialBlocks: [] });
+    await user.type(nameInput(), " v2");
+    await user.click(save());
+    await waitFor(() => expect(saveRoutineAction).toHaveBeenCalledTimes(1));
+    expect(saveRoutineAction).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "active", items: [] }),
+    );
   });
 });

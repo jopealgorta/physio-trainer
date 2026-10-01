@@ -87,7 +87,7 @@ test("a physio builds a routine with per-set reps and a superset, and it persist
     .poll(() => handleNames(page))
     .toEqual(["Reorder Superset", "Reorder Lunge", "Reorder Bridge", "Reorder Squat"]);
 
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(status(page)).toHaveText("Saved");
 
   const assertPersisted = async () => {
@@ -129,13 +129,13 @@ test("a routine needs an exercise to be activated, and shows in the list once ac
   await createRoutine(page, "Ankle plan");
 
   await chooseOption(page, page.getByRole("combobox", { name: "Status" }), "Active");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   // Next's route announcer is also role=alert, so match on the message.
   const alert = page.getByRole("alert").filter({ hasText: "Add at least one exercise" });
   await expect(alert).toHaveText("Add at least one exercise before activating.");
 
   await addExercises(page, isMobile, ["Calf raise"]);
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(status(page)).toHaveText("Saved");
   await expect(alert).toBeHidden();
 
@@ -158,7 +158,7 @@ test("an exercise used by a routine cannot be deleted, and archiving hides it fr
   for (const name of ["Step-up", "Plank"]) await createExercise(page, name);
   await createRoutine(page, "Strength block");
   await addExercises(page, isMobile, ["Step-up", "Plank"]);
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(status(page)).toHaveText("Saved");
   const routineUrl = page.url();
 

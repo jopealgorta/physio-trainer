@@ -18,6 +18,7 @@ describe("parseRoutineParams", () => {
       q: "knee",
       status: "active",
       customerId: CUSTOMER,
+      tab: "customers",
     });
     expect(parseRoutineParams({ status: "draft" }).status).toBe("draft");
     expect(parseRoutineParams({ status: "archived" }).status).toBe("archived");
@@ -28,6 +29,19 @@ describe("parseRoutineParams", () => {
     );
     expect(parseRoutineParams({ status: "all" }).status).toBe("all");
     expect(parseRoutineParams({ q: ["a", "b"] }).q).toBe("a");
+  });
+  it("reads the tab and drops the customer filter on the templates tab", () => {
+    expect(parseRoutineParams({ tab: "templates", customer: CUSTOMER })).toEqual({
+      ...DEFAULT_ROUTINE_FILTERS,
+      tab: "templates",
+      customerId: null,
+    });
+    expect(parseRoutineParams({ tab: "bogus" }).tab).toBe("customers");
+  });
+  it("drops the draft status on the templates tab, where nothing is a draft", () => {
+    expect(parseRoutineParams({ tab: "templates", status: "draft" }).status).toBe("all");
+    expect(parseRoutineParams({ tab: "templates", status: "archived" }).status).toBe("archived");
+    expect(parseRoutineParams({ status: "draft" }).status).toBe("draft");
   });
   it("caps q at 100 characters", () => {
     expect(parseRoutineParams({ q: "x".repeat(300) }).q).toHaveLength(100);
@@ -40,8 +54,16 @@ describe("routinesHref / hasActiveRoutineFilters", () => {
     expect(
       routinesHref(DEFAULT_ROUTINE_FILTERS, { q: "knee", status: "active", customerId: CUSTOMER }),
     ).toBe(`/routines?q=knee&status=active&customer=${CUSTOMER}`);
-    expect(routinesHref({ q: "knee", status: "all", customerId: null }, { q: "" })).toBe(
-      "/routines",
+    expect(
+      routinesHref({ q: "knee", status: "all", customerId: null, tab: "customers" }, { q: "" }),
+    ).toBe("/routines");
+  });
+  it("writes tab=templates only for templates and never a customer", () => {
+    expect(routinesHref(DEFAULT_ROUTINE_FILTERS, { tab: "templates", q: "acl" })).toBe(
+      "/routines?tab=templates&q=acl",
+    );
+    expect(routinesHref(DEFAULT_ROUTINE_FILTERS, { tab: "templates", customerId: CUSTOMER })).toBe(
+      "/routines?tab=templates",
     );
   });
   it("flags active filters", () => {
@@ -51,5 +73,6 @@ describe("routinesHref / hasActiveRoutineFilters", () => {
     expect(hasActiveRoutineFilters({ ...DEFAULT_ROUTINE_FILTERS, customerId: CUSTOMER })).toBe(
       true,
     );
+    expect(hasActiveRoutineFilters({ ...DEFAULT_ROUTINE_FILTERS, tab: "templates" })).toBe(false);
   });
 });

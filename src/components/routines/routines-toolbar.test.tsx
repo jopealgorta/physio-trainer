@@ -60,4 +60,32 @@ describe("RoutinesToolbar", () => {
     await chooseOption(user, screen.getByRole("combobox", { name: "Customer" }), "All customers");
     expect(replace).toHaveBeenCalledWith("/routines", { scroll: false });
   });
+
+  describe("on the templates tab", () => {
+    it("has no customer filter and no draft status", async () => {
+      setup({ tab: "templates" });
+      expect(screen.queryByRole("combobox", { name: "Customer" })).not.toBeInTheDocument();
+      const user = fakeTimerUser();
+      await user.click(screen.getByRole("combobox", { name: "Status" }));
+      const options = (await screen.findAllByRole("option")).map((option) => option.textContent);
+      expect(options).toEqual(["All statuses", "Active", "Archived"]);
+    });
+
+    it("keeps the tab when searching and filtering", async () => {
+      setup({ tab: "templates" });
+      fireEvent.change(screen.getByRole("searchbox", { name: "Search routines" }), {
+        target: { value: "acl" },
+      });
+      act(() => void vi.advanceTimersByTime(300));
+      expect(replace).toHaveBeenCalledWith("/routines?tab=templates&q=acl", { scroll: false });
+      await chooseOption(
+        fakeTimerUser(),
+        screen.getByRole("combobox", { name: "Status" }),
+        "Archived",
+      );
+      expect(replace).toHaveBeenLastCalledWith("/routines?tab=templates&status=archived", {
+        scroll: false,
+      });
+    });
+  });
 });
