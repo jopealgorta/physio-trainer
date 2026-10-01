@@ -1,5 +1,5 @@
 {
-  "id": "93781a0a-f0a7-4b72-9acd-57f104a4a57a",
+  "id": "3216cd6d-7c29-4515-8dcd-d45cb6f97b12",
   "prevId": "f579759e-236e-4024-8d2a-e204eaf34e6d",
   "version": "7",
   "dialect": "postgresql",
@@ -2328,8 +2328,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.share_links": {
-      "name": "share_links",
+    "public.visit_notes": {
+      "name": "visit_notes",
       "schema": "",
       "columns": {
         "id": {
@@ -2351,67 +2351,48 @@
           "primaryKey": false,
           "notNull": true
         },
-        "target": {
-          "name": "target",
-          "type": "share_target",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "routine_id": {
-          "name": "routine_id",
+        "case_id": {
+          "name": "case_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "weekly_plan_id": {
-          "name": "weekly_plan_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pin_hash": {
-          "name": "pin_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_opened_at": {
-          "name": "last_opened_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "open_count": {
-          "name": "open_count",
-          "type": "integer",
+        "visited_on": {
+          "name": "visited_on",
+          "type": "date",
           "primaryKey": false,
           "notNull": true,
-          "default": 0
+          "default": "current_date"
+        },
+        "subjective": {
+          "name": "subjective",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "objective": {
+          "name": "objective",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assessment": {
+          "name": "assessment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "plan": {
+          "name": "plan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pain": {
+          "name": "pain",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -2429,23 +2410,8 @@
         }
       },
       "indexes": {
-        "share_links_code_unique": {
-          "name": "share_links_code_unique",
-          "columns": [
-            {
-              "expression": "code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "share_links_customer_idx": {
-          "name": "share_links_customer_idx",
+        "visit_notes_customer_idx": {
+          "name": "visit_notes_customer_idx",
           "columns": [
             {
               "expression": "physio_id",
@@ -2458,66 +2424,24 @@
               "isExpression": false,
               "asc": true,
               "nulls": "last"
+            },
+            {
+              "expression": "visited_on",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
             }
           ],
           "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "share_links_live_customer_unique": {
-          "name": "share_links_live_customer_unique",
-          "columns": [
-            {
-              "expression": "customer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"share_links\".\"target\" = 'customer' and \"share_links\".\"revoked_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "share_links_live_routine_unique": {
-          "name": "share_links_live_routine_unique",
-          "columns": [
-            {
-              "expression": "routine_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"share_links\".\"target\" = 'routine' and \"share_links\".\"revoked_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "share_links_live_weekly_plan_unique": {
-          "name": "share_links_live_weekly_plan_unique",
-          "columns": [
-            {
-              "expression": "weekly_plan_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"share_links\".\"target\" = 'weekly_plan' and \"share_links\".\"revoked_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
-        "share_links_physio_id_physios_id_fk": {
-          "name": "share_links_physio_id_physios_id_fk",
-          "tableFrom": "share_links",
+        "visit_notes_physio_id_physios_id_fk": {
+          "name": "visit_notes_physio_id_physios_id_fk",
+          "tableFrom": "visit_notes",
           "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
@@ -2528,43 +2452,13 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "share_links_customer_fk": {
-          "name": "share_links_customer_fk",
-          "tableFrom": "share_links",
+        "visit_notes_customer_fk": {
+          "name": "visit_notes_customer_fk",
+          "tableFrom": "visit_notes",
           "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
-          ],
-          "columnsTo": [
-            "physio_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "share_links_routine_fk": {
-          "name": "share_links_routine_fk",
-          "tableFrom": "share_links",
-          "tableTo": "routines",
-          "columnsFrom": [
-            "physio_id",
-            "routine_id"
-          ],
-          "columnsTo": [
-            "physio_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "share_links_weekly_plan_fk": {
-          "name": "share_links_weekly_plan_fk",
-          "tableFrom": "share_links",
-          "tableTo": "weekly_plans",
-          "columnsFrom": [
-            "physio_id",
-            "weekly_plan_id"
           ],
           "columnsTo": [
             "physio_id",
@@ -2577,33 +2471,41 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "share_links_own": {
-          "name": "share_links_own",
+        "visit_notes_own": {
+          "name": "visit_notes_own",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "authenticated"
           ],
-          "using": "\"share_links\".\"physio_id\" = (select auth.uid())",
-          "withCheck": "\"share_links\".\"physio_id\" = (select auth.uid())"
+          "using": "\"visit_notes\".\"physio_id\" = (select auth.uid())",
+          "withCheck": "\"visit_notes\".\"physio_id\" = (select auth.uid())"
         }
       },
       "checkConstraints": {
-        "share_links_target_ids": {
-          "name": "share_links_target_ids",
-          "value": "(\"share_links\".\"target\" = 'customer' and \"share_links\".\"routine_id\" is null and \"share_links\".\"weekly_plan_id\" is null)\n        or (\"share_links\".\"target\" = 'routine' and \"share_links\".\"routine_id\" is not null and \"share_links\".\"weekly_plan_id\" is null)\n        or (\"share_links\".\"target\" = 'weekly_plan' and \"share_links\".\"routine_id\" is null and \"share_links\".\"weekly_plan_id\" is not null)"
+        "visit_notes_subjective_length": {
+          "name": "visit_notes_subjective_length",
+          "value": "char_length(\"visit_notes\".\"subjective\") <= 10000"
         },
-        "share_links_code_format": {
-          "name": "share_links_code_format",
-          "value": "\"share_links\".\"code\" ~ '^[0-9a-hjkmnp-tv-z]{8}$'"
+        "visit_notes_objective_length": {
+          "name": "visit_notes_objective_length",
+          "value": "char_length(\"visit_notes\".\"objective\") <= 10000"
         },
-        "share_links_slug_format": {
-          "name": "share_links_slug_format",
-          "value": "char_length(\"share_links\".\"slug\") between 1 and 40\n        and \"share_links\".\"slug\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'"
+        "visit_notes_assessment_length": {
+          "name": "visit_notes_assessment_length",
+          "value": "char_length(\"visit_notes\".\"assessment\") <= 10000"
         },
-        "share_links_open_count": {
-          "name": "share_links_open_count",
-          "value": "\"share_links\".\"open_count\" >= 0"
+        "visit_notes_plan_length": {
+          "name": "visit_notes_plan_length",
+          "value": "char_length(\"visit_notes\".\"plan\") <= 10000"
+        },
+        "visit_notes_pain_range": {
+          "name": "visit_notes_pain_range",
+          "value": "\"visit_notes\".\"pain\" between 0 and 10"
+        },
+        "visit_notes_has_content": {
+          "name": "visit_notes_has_content",
+          "value": "btrim(coalesce(\"visit_notes\".\"subjective\", '') || coalesce(\"visit_notes\".\"objective\", '') || coalesce(\"visit_notes\".\"assessment\", '') || coalesce(\"visit_notes\".\"plan\", '')) <> ''"
         }
       },
       "isRLSEnabled": false
@@ -2684,15 +2586,6 @@
         "draft",
         "active",
         "archived"
-      ]
-    },
-    "public.share_target": {
-      "name": "share_target",
-      "schema": "public",
-      "values": [
-        "customer",
-        "routine",
-        "weekly_plan"
       ]
     }
   },

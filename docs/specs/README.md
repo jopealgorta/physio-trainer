@@ -26,7 +26,7 @@ feature list agreed in the initial brainstorm.
 | 13  | [Session logging and dashboard](./13-session-logging-and-dashboard.md) | D       | 10 (12 optional) | Not started |
 | 14  | [PDF and Excel export](./14-export-pdf-and-excel.md)                   | Core    | 05, 06, 09, 10   | Not started |
 | 15  | [Version history](./15-version-history.md)                             | I       | 05, 06           | Not started |
-| 16  | [Visit notes](./16-visit-notes.md)                                     | J       | 04               | Not started |
+| 16  | [Visit notes](./16-visit-notes.md)                                     | J       | 04               | Done        |
 | 17  | [Spanish locale](./17-spanish-locale.md)                               | Core    | 01               | Done        |
 | 18  | [Installable physio app (PWA)](./18-pwa.md)                            | Core    | 01, 17           | Done        |
 

@@ -8,4 +8,5 @@ export * from "./library";
 export * from "./customers";
 export * from "./routines";
 export * from "./plans";
+export * from "./visit-notes";
 export * from "./sharing";
