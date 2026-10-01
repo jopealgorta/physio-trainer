@@ -154,6 +154,16 @@ Namespace `Plans`; weekday names via `Intl.DateTimeFormat` for the active locale
 - **Spec 05 hook filled in.** `listPlansUsingRoutine` returns the **active** plans that use a
   routine; archiving it is refused with `blockedByPlans` and the failure now carries the plan
   names (`Result` gained an optional `plans`), which the editor lists in its message.
+- **Activation and archived routines.** A draft plan may hold a routine that is archived later
+  (only active plans block archiving), so activating a plan refuses while any of its routines is
+  archived (`hasArchivedRoutines`). Removing the last entry of an already-active plan is allowed
+  and leaves an empty active plan; rule 4 is only about activating.
+- **Separate copy needs something to diverge from.** `makeSeparateCopy` refuses (`notShared`)
+  when the routine is plan-only and this is its only entry (the original would be orphaned);
+  the menu hides the item then. A copy of an archived routine starts as a draft.
+- **Copy is not optimistic** (the server assigns the new entry's id); move, reorder, label and
+  remove are. Deleting the last-use routine runs in a savepoint, so a concurrent attach from
+  another plan keeps the routine instead of failing the removal.
 - **Case FK.** `weekly_plans_case_fk` (composite, `ON DELETE SET NULL (case_id)`) and a check
   that a case needs a customer live in the custom migration, with the `updated_at` triggers.
 - **"New routine" from a day** is a form action (`addNewRoutineEntryAction`) that creates the

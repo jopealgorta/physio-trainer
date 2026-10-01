@@ -114,6 +114,8 @@ export type PlanError =
   | "entryNotFound"
   | "dayFull"
   | "needsEntries"
+  | "hasArchivedRoutines"
+  | "notShared"
   | "needsCustomer";
 export type PlanActionError = PlanError | "invalid";
 

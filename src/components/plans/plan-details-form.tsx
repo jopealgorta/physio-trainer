@@ -31,6 +31,7 @@ type SaveError =
   | "notFound"
   | "caseNotFound"
   | "needsEntries"
+  | "hasArchivedRoutines"
   | "invalid"
   | "generic"
   | "nameRequired"
@@ -44,7 +45,7 @@ export function PlanDetailsForm({
   cases,
 }: {
   planId: string;
-  /** What the server holds now; a newer save from elsewhere re-keys the form via the page. */
+  /** What the server held when the page loaded. The form keeps its own state after that. */
   initial: PlanDetails;
   cases: { id: string; title: string }[];
 }) {

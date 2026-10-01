@@ -447,6 +447,32 @@ describe("weekly plans server layer", () => {
       expect(await exists(shared.r)).toBe(true);
     });
 
+    it("keeps the routine instead of failing when another plan attaches it meanwhile", async () => {
+      const { c, planId, r } = await setup(false);
+      const entryId = await attach(a, planId, r, 1);
+      const otherPlan = await plan(a, c);
+      // The other plan's entry appears after this transaction's count: simulate it by inserting
+      // from inside the transaction, between the entry delete and the routine delete.
+      const result = await as(a, async (tx, id) => {
+        const real = tx.transaction.bind(tx);
+        (tx as unknown as { transaction: typeof tx.transaction }).transaction = (async (
+          fn: Parameters<typeof tx.transaction>[0],
+        ) => {
+          await db.insert(weeklyPlanEntries).values({
+            physioId: a.id,
+            weeklyPlanId: otherPlan,
+            weekday: 2,
+            routineId: r,
+            position: 0,
+          });
+          return real(fn);
+        }) as typeof tx.transaction;
+        return removeEntry(tx, id, { planId, entryId, deleteRoutine: true });
+      });
+      expect(result).toEqual({ ok: true, data: { deletedRoutine: false } });
+      expect(await exists(r)).toBe(true);
+    });
+
     it("does not delete a routine that another plan still uses", async () => {
       const { c, planId, r } = await setup(false);
       const otherPlan = await plan(a, c);
@@ -583,6 +609,39 @@ describe("weekly plans server layer", () => {
       expect(reload.some((row) => copyItemIds.has(row.id))).toBe(false);
     });
 
+    it("refuses a plan-only routine nothing else uses, but not a standalone one", async () => {
+      const c = await customer(a);
+      const planId = await plan(a, c);
+      const planOnly = await routine(a, c, "Only here", { isStandalone: false });
+      const standalone = await routine(a, c, "On its own");
+      const e1 = await attach(a, planId, planOnly, 1);
+      const e2 = await attach(a, planId, standalone, 2);
+      const copyName = (name: string) => `${name} (copy)`;
+      await expect(
+        as(a, (tx, id) => makeSeparateCopy(tx, id, { planId, entryId: e1 }, copyName)),
+      ).resolves.toEqual({ ok: false, error: "notShared" });
+      expect((await db.select().from(routines).where(eq(routines.customerId, c))).length).toBe(2);
+      await expect(
+        as(a, (tx, id) => makeSeparateCopy(tx, id, { planId, entryId: e2 }, copyName)),
+      ).resolves.toMatchObject({ ok: true });
+    });
+
+    it("an archived routine is copied as a draft", async () => {
+      const c = await customer(a);
+      const planA = await plan(a, c);
+      const planB = await plan(a, c);
+      const r = await routine(a, c, "Soon archived");
+      await attach(a, planA, r, 1);
+      const entry = await attach(a, planB, r, 1);
+      await db.update(routines).set({ status: "archived" }).where(eq(routines.id, r));
+      const result = await as(a, (tx, id) =>
+        makeSeparateCopy(tx, id, { planId: planB, entryId: entry }, (name) => `${name} (copy)`),
+      );
+      if (!result.ok) throw new Error(result.error);
+      const [copy] = await db.select().from(routines).where(eq(routines.id, result.data.routineId));
+      expect(copy.status).toBe("draft");
+    });
+
     it("refuses an unknown entry and another physio's plan", async () => {
       const c = await customer(a);
       const planId = await plan(a, c);
@@ -633,6 +692,39 @@ describe("weekly plans server layer", () => {
       });
       const [routineRow] = await db.select().from(routines).where(eq(routines.id, r));
       expect(routineRow.status).toBe("draft");
+    });
+
+    it("activating refuses a plan that holds an archived routine", async () => {
+      const c = await customer(a);
+      const planId = await plan(a, c);
+      const r = await routine(a, c, "Gone", { status: "archived" });
+      // A draft plan can hold it: only active plans block archiving, so it may be archived later.
+      await db
+        .insert(weeklyPlanEntries)
+        .values({ physioId: a.id, weeklyPlanId: planId, weekday: 1, routineId: r, position: 0 });
+      await expect(
+        as(a, (tx, id) =>
+          updatePlan(tx, id, {
+            id: planId,
+            name: "W",
+            notes: null,
+            caseId: null,
+            status: "active",
+          }),
+        ),
+      ).resolves.toEqual({ ok: false, error: "hasArchivedRoutines" });
+      await db.update(routines).set({ status: "active" }).where(eq(routines.id, r));
+      await expect(
+        as(a, (tx, id) =>
+          updatePlan(tx, id, {
+            id: planId,
+            name: "W",
+            notes: null,
+            caseId: null,
+            status: "active",
+          }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
     });
 
     it("is not found for another physio's plan", async () => {

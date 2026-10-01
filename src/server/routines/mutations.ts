@@ -14,6 +14,8 @@ import {
   routines,
 } from "@/db/schema";
 
+import type { RoutineStatus } from "@/lib/routines";
+
 import { listPlansUsingRoutine } from "./hooks";
 import {
   isUuid,
@@ -205,7 +207,7 @@ export async function duplicateRoutine(
   tx: Tx,
   physioId: string,
   sourceId: string,
-  options: { name: string; isStandalone: boolean },
+  options: { name: string; isStandalone: boolean; status?: RoutineStatus },
 ): Promise<Result<{ id: string }, "notFound">> {
   if (!isUuid(sourceId)) return fail("notFound");
   const [source] = await tx
@@ -225,7 +227,7 @@ export async function duplicateRoutine(
       isStandalone: options.isStandalone,
       sessionsPerWeek: source.sessionsPerWeek,
       sessionsPerDay: source.sessionsPerDay,
-      status: source.status,
+      status: options.status ?? source.status,
     })
     .returning({ id: routines.id });
 

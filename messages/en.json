@@ -889,7 +889,9 @@
         "nameRequired": "Enter a name.",
         "nameTooLong": "Use at most {max, number} characters.",
         "notesTooLong": "Use at most {max, number} characters.",
-        "labelTooLong": "Use at most {max, number} characters."
+        "labelTooLong": "Use at most {max, number} characters.",
+        "hasArchivedRoutines": "Remove archived routines from the plan before activating it.",
+        "notShared": "Nothing else uses this routine, so there is nothing to separate it from."
       }
     }
   },

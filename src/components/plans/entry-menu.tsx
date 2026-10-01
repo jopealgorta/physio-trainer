@@ -39,6 +39,7 @@ export function EntryMenu({
   fullDays,
   canMoveUp,
   canMoveDown,
+  canSeparateCopy,
   actions,
 }: {
   routineName: string;
@@ -48,6 +49,8 @@ export function EntryMenu({
   fullDays: ReadonlySet<number>;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  /** Only a routine used elsewhere (or on its own) has something to diverge from. */
+  canSeparateCopy: boolean;
   actions: EntryMenuActions;
 }) {
   const t = useTranslations("Plans.board.entry");
@@ -106,7 +109,9 @@ export function EntryMenu({
         <DropdownMenuItem disabled={!canMoveDown} onSelect={actions.moveDown}>
           {t("moveDown")}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={actions.separateCopy}>{t("separateCopy")}</DropdownMenuItem>
+        {canSeparateCopy ? (
+          <DropdownMenuItem onSelect={actions.separateCopy}>{t("separateCopy")}</DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem asChild>
           <Link href={routineHref}>{t("open")}</Link>
         </DropdownMenuItem>

@@ -147,10 +147,3 @@ export function summarizeWeek(
     activeDays: sessionsPerDay.filter((count) => count > 0).length,
   };
 }
-
-/** How many entries use each routine (the board shows "shared ×N" when N > 1). */
-export function routineUseCounts(entries: readonly { routineId: string }[]): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const { routineId } of entries) counts.set(routineId, (counts.get(routineId) ?? 0) + 1);
-  return counts;
-}

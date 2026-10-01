@@ -889,7 +889,9 @@
         "nameRequired": "Ingresá un nombre.",
         "nameTooLong": "Usá como máximo {max, number} caracteres.",
         "notesTooLong": "Usá como máximo {max, number} caracteres.",
-        "labelTooLong": "Usá como máximo {max, number} caracteres."
+        "labelTooLong": "Usá como máximo {max, number} caracteres.",
+        "hasArchivedRoutines": "Quitá las rutinas archivadas del plan antes de activarlo.",
+        "notShared": "Ninguna otra entrada usa esta rutina, así que no hay de qué separarla."
       }
     }
   },

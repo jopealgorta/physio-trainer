@@ -34,12 +34,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  copyEntry,
   dayHasRoom,
   groupByDay,
   MAX_ENTRIES_PER_DAY,
   moveEntry,
-  routineUseCounts,
   summarizeWeek,
   WEEKDAYS,
   weekdayName,
@@ -66,7 +64,6 @@ type Entry = PlanEntryDetail;
 
 type OptimisticChange =
   | { type: "move"; id: string; weekday: number; index: number }
-  | { type: "copy"; id: string; weekday: number; newId: string }
   | { type: "label"; id: string; label: string | null }
   | { type: "remove"; id: string };
 
@@ -74,8 +71,6 @@ function applyChange(entries: Entry[], change: OptimisticChange): Entry[] {
   switch (change.type) {
     case "move":
       return moveEntry(entries, change.id, change.weekday, change.index) ?? entries;
-    case "copy":
-      return copyEntry(entries, change.id, change.weekday, change.newId) ?? entries;
     case "label":
       return entries.map((entry) =>
         entry.id === change.id ? { ...entry, label: change.label } : entry,
@@ -130,7 +125,6 @@ export function PlanBoard({
 
   const days = groupByDay(entries);
   const summary = summarizeWeek(entries);
-  const localUses = routineUseCounts(entries);
   const fullDays = new Set(
     WEEKDAYS.filter((weekday) => !dayHasRoom(entries, weekday)),
   ) as ReadonlySet<number>;
@@ -233,7 +227,7 @@ export function PlanBoard({
     routineName: entry.routineName,
     routineStatus: entry.routineStatus,
     exerciseCount: entry.exerciseCount,
-    shared: Math.max(entry.routineEntryCount, localUses.get(entry.routineId) ?? 0),
+    shared: entry.routineEntryCount,
   });
 
   function requestRemove(entry: Entry) {
@@ -321,15 +315,16 @@ export function PlanBoard({
                                 fullDays={fullDays}
                                 canMoveUp={index > 0}
                                 canMoveDown={index < dayEntries.length - 1}
+                                canSeparateCopy={
+                                  entry.routineEntryCount > 1 || entry.routineIsStandalone
+                                }
                                 actions={{
                                   editLabel: () => setDialog({ kind: "label", entryId: entry.id }),
                                   moveTo: (to) => move(entry.id, to, MAX_ENTRIES_PER_DAY),
-                                  copyTo: (to) => {
-                                    const newId = crypto.randomUUID();
-                                    run({ type: "copy", id: entry.id, weekday: to, newId }, () =>
+                                  copyTo: (to) =>
+                                    run(null, () =>
                                       copyEntryAction({ planId, entryId: entry.id, weekday: to }),
-                                    );
-                                  },
+                                    ),
                                   moveUp: () => shiftWithinDay(entry, -1),
                                   moveDown: () => shiftWithinDay(entry, 1),
                                   separateCopy: () =>

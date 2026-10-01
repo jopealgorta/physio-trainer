@@ -135,14 +135,6 @@ describe("PlanBoard layout", () => {
     expect(within(day("Wednesday")).getByText("No exercises yet")).toBeInTheDocument();
   });
 
-  it("counts a routine repeated in this plan as shared even before the server says so", () => {
-    setup([
-      entry({ id: "a", routineId: "same" }),
-      entry({ id: "b", weekday: 2, routineId: "same" }),
-    ]);
-    expect(within(day("Tuesday")).getByText("Shared ×2")).toBeInTheDocument();
-  });
-
   it("has no add buttons without a customer", () => {
     setup([], { canAdd: false });
     expect(screen.queryByRole("button", { name: /^Add routine to/ })).not.toBeInTheDocument();
@@ -208,17 +200,12 @@ describe("entry menu", () => {
     await waitFor(() => expect(namesIn("Friday")).toEqual(["Routine a"]));
   });
 
-  it("copies to another day and shows the copy at once", async () => {
+  it("copies to another day", async () => {
     const user = userEvent.setup();
-    let release!: (value: unknown) => void;
-    a.copyEntryAction.mockReturnValue(new Promise((resolve) => (release = resolve)));
     setup([entry({ id: "a" })]);
     await user.click(menuFor("Routine a"));
     await chooseFromSubmenu(user, "Copy to…", "Wednesday");
     expect(a.copyEntryAction).toHaveBeenCalledWith({ planId: PLAN, entryId: "a", weekday: 3 });
-    await waitFor(() => expect(namesIn("Wednesday")).toEqual(["Routine a"]));
-    expect(within(day("Wednesday")).getByText("Shared ×2")).toBeInTheDocument();
-    release({ ok: true, data: { entryId: "z" } });
   });
 
   it("disables full days as targets", async () => {
@@ -269,6 +256,26 @@ describe("entry menu", () => {
       entryId: "a",
       label: null,
     });
+  });
+
+  it("offers a separate copy only when there is something to diverge from", async () => {
+    const user = userEvent.setup();
+    setup([
+      entry({ id: "a", routineIsStandalone: false, routineEntryCount: 1 }),
+      entry({ id: "b", weekday: 2, routineIsStandalone: true, routineEntryCount: 1 }),
+      entry({ id: "c", weekday: 3, routineIsStandalone: false, routineEntryCount: 2 }),
+    ]);
+    await user.click(menuFor("Routine a"));
+    await screen.findByRole("menuitem", { name: "Open routine" });
+    expect(
+      screen.queryByRole("menuitem", { name: "Make a separate copy" }),
+    ).not.toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    for (const name of ["Routine b", "Routine c"]) {
+      await user.click(menuFor(name));
+      expect(await screen.findByRole("menuitem", { name: "Make a separate copy" })).toBeVisible();
+      await user.keyboard("{Escape}");
+    }
   });
 
   it("makes a separate copy", async () => {

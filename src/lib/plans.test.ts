@@ -10,7 +10,6 @@ import {
   MAX_ENTRIES_PER_DAY,
   moveEntry,
   normalizeEntries,
-  routineUseCounts,
   summarizeWeek,
   weekdayName,
   type PlacedEntry,
@@ -162,17 +161,5 @@ describe("summarizeWeek", () => {
       totalExercises: 0,
       activeDays: 0,
     });
-  });
-});
-
-describe("routineUseCounts", () => {
-  it("counts entries per routine", () => {
-    const counts = routineUseCounts([
-      { routineId: "r1" },
-      { routineId: "r2" },
-      { routineId: "r1" },
-    ]);
-    expect(counts.get("r1")).toBe(2);
-    expect(counts.get("r2")).toBe(1);
   });
 });

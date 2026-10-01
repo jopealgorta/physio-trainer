@@ -2,13 +2,13 @@ import "server-only";
 
 import { and, eq, sql } from "drizzle-orm";
 
+import { isForeignKeyViolation } from "@/db/errors";
 import type { Tx } from "@/db/rls";
 import { cases, customers, routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
 import {
   appendEntry,
   changedEntries,
   copyEntry as copyEntryTo,
-  dayHasRoom,
   moveEntry as moveEntryTo,
   normalizeEntries,
   type PlacedEntry,
@@ -140,7 +140,9 @@ export async function updatePlan(
   tx: Tx,
   physioId: string,
   input: UpdatePlanInput,
-): Promise<Result<{ version: number }, "notFound" | "caseNotFound" | "needsEntries">> {
+): Promise<
+  Result<{ version: number }, "notFound" | "caseNotFound" | "needsEntries" | "hasArchivedRoutines">
+> {
   const plan = await lockPlan(tx, physioId, input.id);
   if (!plan) return fail("notFound");
 
@@ -157,6 +159,26 @@ export async function updatePlan(
         and(eq(weeklyPlanEntries.physioId, physioId), eq(weeklyPlanEntries.weeklyPlanId, plan.id)),
       );
     if (count === 0) return fail("needsEntries");
+    // An active plan never schedules an archived routine (a draft plan can hold one, since only
+    // active plans block archiving).
+    const [{ archived }] = await tx
+      .select({ archived: sql<number>`count(*)::int` })
+      .from(weeklyPlanEntries)
+      .innerJoin(
+        routines,
+        and(
+          eq(routines.physioId, weeklyPlanEntries.physioId),
+          eq(routines.id, weeklyPlanEntries.routineId),
+        ),
+      )
+      .where(
+        and(
+          eq(weeklyPlanEntries.physioId, physioId),
+          eq(weeklyPlanEntries.weeklyPlanId, plan.id),
+          eq(routines.status, "archived"),
+        ),
+      );
+    if (archived > 0) return fail("hasArchivedRoutines");
   }
 
   const [saved] = await tx
@@ -236,9 +258,16 @@ export async function addNewRoutineEntry(
   if (!plan.customerId) return fail("needsCustomer");
 
   const entries = await loadEntries(tx, physioId, plan.id);
-  if (!dayHasRoom(entries, input.weekday)) return fail("dayFull");
   const entryId = crypto.randomUUID();
-  const position = entries.filter((entry) => entry.weekday === input.weekday).length;
+  const next = appendEntry(entries, {
+    id: entryId,
+    weekday: input.weekday,
+    position: 0,
+    routineId: "",
+    label: null,
+  });
+  if (!next) return fail("dayFull");
+  const { position } = next.find((entry) => entry.id === entryId)!;
 
   const created = await createRoutine(tx, physioId, {
     customerId: plan.customerId,
@@ -379,10 +408,18 @@ export async function removeEntry(
         ),
       );
     if (routine && !routine.isStandalone && uses === 0) {
-      await tx
-        .delete(routines)
-        .where(and(eq(routines.physioId, physioId), eq(routines.id, entry.routineId)));
-      deletedRoutine = true;
+      try {
+        // A savepoint: another plan may attach the routine between the count and the delete, and
+        // the restrict FK then refuses; the entry is still removed, the routine stays.
+        await tx.transaction((savepoint) =>
+          savepoint
+            .delete(routines)
+            .where(and(eq(routines.physioId, physioId), eq(routines.id, entry.routineId))),
+        );
+        deletedRoutine = true;
+      } catch (error) {
+        if (!isForeignKeyViolation(error, "weekly_plan_entries_routine_fk")) throw error;
+      }
     }
   }
   await bump(tx, physioId, plan.id);
@@ -414,14 +451,34 @@ export async function makeSeparateCopy(
   if (!entry) return fail("entryNotFound");
 
   const [source] = await tx
-    .select({ name: routines.name })
+    .select({
+      name: routines.name,
+      status: routines.status,
+      isStandalone: routines.isStandalone,
+    })
     .from(routines)
     .where(and(eq(routines.physioId, physioId), eq(routines.id, entry.routineId)));
   if (!source) return fail("routineNotFound");
 
+  // Something has to remain to diverge from: another entry, or the routine on its own. Otherwise
+  // the original would be left with no use at all.
+  const [{ others }] = await tx
+    .select({ others: sql<number>`count(*)::int` })
+    .from(weeklyPlanEntries)
+    .where(
+      and(
+        eq(weeklyPlanEntries.physioId, physioId),
+        eq(weeklyPlanEntries.routineId, entry.routineId),
+        sql`${weeklyPlanEntries.id} <> ${entry.id}`,
+      ),
+    );
+  if (others === 0 && !source.isStandalone) return fail("notShared");
+
   const copy = await duplicateRoutine(tx, physioId, entry.routineId, {
     name: copyName(source.name),
     isStandalone: false,
+    // An archived routine cannot sit on a plan: the copy starts as a draft.
+    status: source.status === "archived" ? "draft" : source.status,
   });
   if (!copy.ok) return fail("routineNotFound");
   await tx
