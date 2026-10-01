@@ -66,7 +66,7 @@ export const routines = pgTable(
     status: routineStatusEnum().notNull().default("draft"),
     version: integer().notNull().default(1),
     // Phases (spec 08). routines_previous_fk (ON DELETE SET NULL (previous_id)) lives in the
-    // custom migration; same-customer is checked by the copy mutation.
+    // custom migration; the copy mutation only links a clone to its own source.
     phaseLabel: text(),
     startsOn: date({ mode: "string" }),
     endsOn: date({ mode: "string" }),
