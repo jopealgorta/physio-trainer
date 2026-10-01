@@ -5,8 +5,11 @@ import { useFormatter, useTranslations } from "next-intl";
 import { StatusBadge } from "@/components/routines/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PhaseChips } from "@/components/phases/phase-chips";
+import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
 import { DEFAULT_PLAN_FILTERS, plansHref } from "@/lib/plan-params";
+import { scheduleState } from "@/lib/schedule";
 import type { PlanSummary } from "@/server/plans/queries";
 
 import { WeekStrip } from "./week-strip";
@@ -19,6 +22,17 @@ function PlanLink({ plan }: { plan: PlanSummary }) {
     >
       {plan.name}
     </Link>
+  );
+}
+
+function PlanChips({ plan, today }: { plan: PlanSummary; today: string }) {
+  return (
+    <PhaseChips
+      phaseLabel={plan.phaseLabel}
+      startsOn={plan.startsOn}
+      endsOn={plan.endsOn}
+      state={scheduleState(plan, today)}
+    />
   );
 }
 
@@ -38,6 +52,7 @@ export function PlanList({
 }) {
   const t = useTranslations("Plans");
   const format = useFormatter();
+  const today = todayIn(timeZone ?? "UTC");
   const updated = (plan: PlanSummary) =>
     format.dateTime(plan.updatedAt, { dateStyle: "medium", timeZone });
   const owner = (plan: PlanSummary) =>
@@ -76,6 +91,7 @@ export function PlanList({
             <tr key={plan.id}>
               <td className="min-w-0 py-2 pr-3">
                 <PlanLink plan={plan} />
+                <PlanChips plan={plan} today={today} />
               </td>
               {showCustomer ? (
                 <td className="min-w-0 truncate py-2 pr-3">{owner(plan) ?? dash}</td>
@@ -99,6 +115,7 @@ export function PlanList({
               <PlanLink plan={plan} />
               <StatusBadge status={plan.status} />
             </div>
+            <PlanChips plan={plan} today={today} />
             {showCustomer && owner(plan) ? <p className="text-sm">{owner(plan)}</p> : null}
             {plan.caseTitle ? (
               <p className="text-muted-foreground text-sm">{plan.caseTitle}</p>

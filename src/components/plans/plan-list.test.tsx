@@ -16,6 +16,10 @@ const base: PlanSummary = {
   customerLastName: "Pérez",
   caseTitle: "ACL rehab",
   sessionsPerDay: [1, 0, 1, 0, 1, 0, 0],
+  phaseLabel: null,
+  startsOn: null,
+  endsOn: null,
+  previousId: null,
   updatedAt: new Date("2026-03-05T12:00:00Z"),
 };
 const plans: PlanSummary[] = [
@@ -100,5 +104,20 @@ describe("empty states", () => {
     unmount();
     wrap(<NoPlanResults canClear={false} />);
     expect(screen.queryByRole("link", { name: "Clear filters" })).not.toBeInTheDocument();
+  });
+});
+
+describe("PlanList phases", () => {
+  it("shows a plan's phase label, dates and state", () => {
+    wrap(
+      <PlanList
+        plans={[{ ...base, phaseLabel: "Phase 1", startsOn: "2020-01-01", endsOn: "2020-01-31" }]}
+        showCustomer={false}
+      />,
+    );
+    const table = screen.getByRole("table", { name: "Weekly plans" });
+    expect(within(table).getByText("Phase 1")).toBeInTheDocument();
+    expect(within(table).getByText(/Jan 1\s*–\s*31, 2020/)).toBeInTheDocument();
+    expect(within(table).getByText("Ended")).toBeInTheDocument();
   });
 });

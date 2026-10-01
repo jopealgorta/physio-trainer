@@ -21,6 +21,11 @@ export type PlanSummary = {
   caseTitle: string | null;
   /** Routines scheduled on each weekday, index 0 = Monday. */
   sessionsPerDay: number[];
+  /** Phase (spec 08): label, inclusive window and the plan this one continues. */
+  phaseLabel: string | null;
+  startsOn: string | null;
+  endsOn: string | null;
+  previousId: string | null;
   updatedAt: Date;
 };
 
@@ -52,6 +57,10 @@ export async function listPlans(
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       caseTitle: cases.title,
+      phaseLabel: weeklyPlans.phaseLabel,
+      startsOn: weeklyPlans.startsOn,
+      endsOn: weeklyPlans.endsOn,
+      previousId: weeklyPlans.previousId,
       updatedAt: weeklyPlans.updatedAt,
     })
     .from(weeklyPlans)
@@ -127,6 +136,9 @@ export type PlanDetail = {
   notes: string | null;
   caseId: string | null;
   status: RoutineStatus;
+  phaseLabel: string | null;
+  startsOn: string | null;
+  endsOn: string | null;
   entries: PlanEntryDetail[];
   cases: { id: string; title: string; status: "open" | "closed" }[];
 };
@@ -144,6 +156,9 @@ export async function getPlan(tx: Tx, physioId: string, id: string): Promise<Pla
       notes: weeklyPlans.notes,
       caseId: weeklyPlans.caseId,
       status: weeklyPlans.status,
+      phaseLabel: weeklyPlans.phaseLabel,
+      startsOn: weeklyPlans.startsOn,
+      endsOn: weeklyPlans.endsOn,
     })
     .from(weeklyPlans)
     .leftJoin(

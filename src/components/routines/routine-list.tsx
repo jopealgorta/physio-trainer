@@ -4,8 +4,11 @@ import { DumbbellIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PhaseChips } from "@/components/phases/phase-chips";
+import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
 import { DEFAULT_ROUTINE_FILTERS, routinesHref } from "@/lib/routine-params";
+import { scheduleState } from "@/lib/schedule";
 import type { RoutineSummary } from "@/server/routines/queries";
 
 import { StatusBadge } from "./status-badge";
@@ -18,6 +21,19 @@ function RoutineLink({ routine }: { routine: RoutineSummary }) {
     >
       {routine.name}
     </Link>
+  );
+}
+
+/** Phase label, dates and state of a standalone routine (plan-owned ones follow their plan). */
+function RoutineChips({ routine, today }: { routine: RoutineSummary; today: string }) {
+  if (!routine.isStandalone) return null;
+  return (
+    <PhaseChips
+      phaseLabel={routine.phaseLabel}
+      startsOn={routine.startsOn}
+      endsOn={routine.endsOn}
+      state={scheduleState(routine, today)}
+    />
   );
 }
 
@@ -37,6 +53,7 @@ export function RoutineList({
 }) {
   const t = useTranslations("Routines");
   const format = useFormatter();
+  const today = todayIn(timeZone ?? "UTC");
   const updated = (routine: RoutineSummary) =>
     format.dateTime(routine.updatedAt, { dateStyle: "medium", timeZone });
   const items = (routine: RoutineSummary) => t("list.items", { count: routine.itemCount });
@@ -81,6 +98,7 @@ export function RoutineList({
             <tr key={routine.id}>
               <td className="min-w-0 py-2 pr-3">
                 <RoutineLink routine={routine} />
+                <RoutineChips routine={routine} today={today} />
               </td>
               {showCustomer ? (
                 <td className="min-w-0 truncate py-2 pr-3">{owner(routine)}</td>
@@ -103,6 +121,7 @@ export function RoutineList({
               <RoutineLink routine={routine} />
               <StatusBadge status={routine.status} />
             </div>
+            <RoutineChips routine={routine} today={today} />
             {showCustomer ? <p className="text-sm">{owner(routine)}</p> : null}
             {routine.caseTitle ? (
               <p className="text-muted-foreground text-sm">{routine.caseTitle}</p>

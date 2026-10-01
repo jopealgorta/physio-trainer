@@ -201,13 +201,25 @@ export async function saveRoutine(
 
 /**
  * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
- * status and customer. Used by "Make a separate copy" on a weekly plan (spec 06).
+ * status and customer. Phase fields are not carried over unless `options.phase` sets them. Used by
+ * "Make a separate copy" on a weekly plan (spec 06) and by "Copy into next phase" (spec 08).
  */
 export async function duplicateRoutine(
   tx: Tx,
   physioId: string,
   sourceId: string,
-  options: { name: string; isStandalone: boolean; status?: RoutineStatus },
+  options: {
+    name: string;
+    isStandalone: boolean;
+    status?: RoutineStatus;
+    /** Phase fields of the copy (spec 08); omitted = none, the source's are not carried over. */
+    phase?: {
+      phaseLabel: string | null;
+      startsOn: string | null;
+      endsOn: string | null;
+      previousId: string;
+    };
+  },
 ): Promise<Result<{ id: string }, "notFound">> {
   if (!isUuid(sourceId)) return fail("notFound");
   const [source] = await tx
@@ -228,6 +240,7 @@ export async function duplicateRoutine(
       sessionsPerWeek: source.sessionsPerWeek,
       sessionsPerDay: source.sessionsPerDay,
       status: options.status ?? source.status,
+      ...options.phase,
     })
     .returning({ id: routines.id });
 

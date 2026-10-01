@@ -155,8 +155,6 @@ function withoutKey<T extends { key: string }>(item: T): Omit<T, "key"> {
 type Editing = { kind: "rename"; id: string } | { kind: "sub"; parentId: string };
 
 type Ctx = {
-  // Namespaced: the un-namespaced translator type resolves over every message key in the app, so
-  // each new namespace pushed this file closer to TypeScript's instantiation depth limit.
   t: ReturnType<typeof useTranslations<"Library.categories">>;
   editing: Editing | null;
   setEditing: (editing: Editing | null) => void;

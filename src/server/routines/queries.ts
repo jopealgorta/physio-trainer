@@ -31,6 +31,12 @@ export type RoutineSummary = {
   caseTitle: string | null;
   itemCount: number;
   sessionsPerWeek: number | null;
+  /** Phase (spec 08): label, inclusive window and the routine this one continues. */
+  phaseLabel: string | null;
+  startsOn: string | null;
+  endsOn: string | null;
+  previousId: string | null;
+  isStandalone: boolean;
   updatedAt: Date;
 };
 
@@ -63,6 +69,11 @@ export async function listRoutines(
       customerLastName: customers.lastName,
       caseTitle: cases.title,
       sessionsPerWeek: routines.sessionsPerWeek,
+      phaseLabel: routines.phaseLabel,
+      startsOn: routines.startsOn,
+      endsOn: routines.endsOn,
+      previousId: routines.previousId,
+      isStandalone: routines.isStandalone,
       updatedAt: routines.updatedAt,
       // Written out with table aliases: Drizzle renders columns unqualified in a subquery.
       itemCount: sql<number>`(
@@ -94,6 +105,10 @@ export type RoutineDetail = {
   sessionsPerWeek: number | null;
   sessionsPerDay: number | null;
   status: RoutineStatus;
+  isStandalone: boolean;
+  phaseLabel: string | null;
+  startsOn: string | null;
+  endsOn: string | null;
   groups: LoadedGroup[];
   items: LoadedItem[];
   cases: { id: string; title: string; status: "open" | "closed" }[];
@@ -123,6 +138,10 @@ export async function getRoutine(
       sessionsPerWeek: routines.sessionsPerWeek,
       sessionsPerDay: routines.sessionsPerDay,
       status: routines.status,
+      isStandalone: routines.isStandalone,
+      phaseLabel: routines.phaseLabel,
+      startsOn: routines.startsOn,
+      endsOn: routines.endsOn,
     })
     .from(routines)
     .innerJoin(
