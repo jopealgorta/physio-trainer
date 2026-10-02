@@ -302,6 +302,16 @@
         "invalid": "Check this field.",
         "notFound": "This exercise no longer exists.",
         "unknown": "Something went wrong. Try again."
+      },
+      "newCategory": {
+        "trigger": "New category",
+        "title": "New category",
+        "description": "It's added to your library and chosen for this exercise.",
+        "parent": "Inside",
+        "noParent": "None (top level)",
+        "create": "Create category",
+        "creating": "Creating…",
+        "cancel": "Cancel"
       }
     },
     "detail": {

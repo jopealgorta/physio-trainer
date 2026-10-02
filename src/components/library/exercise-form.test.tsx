@@ -9,6 +9,11 @@ import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
 
+const createCategory = vi.fn();
+vi.mock("@/server/library/actions", () => ({
+  createCategoryAction: (...args: unknown[]) => createCategory(...args),
+}));
+
 import { ExerciseForm, type ExerciseFormValues } from "./exercise-form";
 
 const leaf = (id: string, name: string, position = 0) => ({
@@ -106,6 +111,29 @@ describe("ExerciseForm", () => {
     expect(formData.getAll("tags")).toEqual(["band"]);
     expect(formData.getAll("media")).toEqual(["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]);
     expect(formData.has("sets")).toBe(false);
+  });
+
+  it("keeps typed values while a new category is created, then submits it", async () => {
+    const user = userEvent.setup();
+    const action = idleAction();
+    createCategory.mockResolvedValue({ ok: true, data: { id: "c9" } });
+    setup(action);
+    await user.type(screen.getByLabelText("Name"), "Dead bug");
+    await user.type(screen.getByLabelText("Instructions"), "Slow.");
+    await user.click(screen.getByRole("button", { name: "New category" }));
+    const dialog = await screen.findByRole("dialog", { name: "New category" });
+    await user.type(within(dialog).getByLabelText("Category name"), "Core{Enter}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // Creating the category did not save the exercise.
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Name")).toHaveValue("Dead bug");
+    expect(screen.getByLabelText("Instructions")).toHaveValue("Slow.");
+
+    await user.click(screen.getByRole("button", { name: "Create exercise" }));
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    const formData = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
+    expect(formData.get("categoryId")).toBe("c9");
+    expect(formData.get("name")).toBe("Dead bug");
   });
 
   it("submits an empty category for Uncategorised", async () => {

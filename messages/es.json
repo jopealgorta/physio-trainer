@@ -302,6 +302,16 @@
         "invalid": "Revisá este campo.",
         "notFound": "Este ejercicio ya no existe.",
         "unknown": "Algo salió mal. Probá de nuevo."
+      },
+      "newCategory": {
+        "trigger": "Nueva categoría",
+        "title": "Nueva categoría",
+        "description": "Se agrega a tu biblioteca y queda elegida para este ejercicio.",
+        "parent": "Dentro de",
+        "noParent": "Ninguna (nivel superior)",
+        "create": "Crear categoría",
+        "creating": "Creando…",
+        "cancel": "Cancelar"
       }
     },
     "detail": {
