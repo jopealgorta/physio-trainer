@@ -19,21 +19,24 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
-// jsdom lacks the pointer-capture and scroll APIs Radix Select calls when it opens.
-Element.prototype.hasPointerCapture ??= () => false;
-Element.prototype.setPointerCapture ??= () => {};
-Element.prototype.releasePointerCapture ??= () => {};
-Element.prototype.scrollIntoView ??= () => {};
+// Tests that opt into `@vitest-environment node` have no DOM to patch.
+if (typeof window !== "undefined") {
+  // jsdom lacks the pointer-capture and scroll APIs Radix Select calls when it opens.
+  Element.prototype.hasPointerCapture ??= () => false;
+  Element.prototype.setPointerCapture ??= () => {};
+  Element.prototype.releasePointerCapture ??= () => {};
+  Element.prototype.scrollIntoView ??= () => {};
 
-// jsdom has no matchMedia. Default to a desktop-sized screen (nothing matches, so `useIsMobile`
-// is false); tests that need a phone override `window.matchMedia`.
-window.matchMedia ??= ((query: string) => ({
-  matches: false,
-  media: query,
-  onchange: null,
-  addEventListener: () => {},
-  removeEventListener: () => {},
-  addListener: () => {},
-  removeListener: () => {},
-  dispatchEvent: () => false,
-})) as typeof window.matchMedia;
+  // jsdom has no matchMedia. Default to a desktop-sized screen (nothing matches, so `useIsMobile`
+  // is false); tests that need a phone override `window.matchMedia`.
+  window.matchMedia ??= ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia;
+}
