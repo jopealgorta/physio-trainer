@@ -55,6 +55,9 @@ test.describe("workout mode", () => {
     await page.getByRole("button", { name: "Start timer" }).click();
     await expect(page.getByRole("timer")).toHaveText("30");
     await page.clock.fastForward(30_000);
+    // Finishing opens the session log sheet (spec 13); skip it and the finish screen is behind it.
+    await expect(page.getByRole("dialog", { name: "How did it go?" })).toBeVisible();
+    await page.getByRole("button", { name: "Close" }).click();
     await expect(page.getByRole("heading", { name: "Well done!" })).toBeVisible();
 
     await page.getByRole("button", { name: "Back to my plan" }).click();
