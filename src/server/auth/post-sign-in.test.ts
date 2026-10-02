@@ -88,12 +88,16 @@ describe("postSignInPath profile photo", () => {
     expect(setAvatarUrl).not.toHaveBeenCalled();
   });
 
-  it("still signs in when saving the photo fails", async () => {
+  it("still signs in when saving the photo fails, and logs why", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     profile({ locale: "es", onboardedAt: new Date(), avatarUrl: null });
-    setAvatarUrl.mockRejectedValue(new Error("db down"));
+    const failure = new Error("db down");
+    setAvatarUrl.mockRejectedValue(failure);
     const client = supabase({ avatar_url: PHOTO });
     await expect(postSignInPath(client, "token", "/customers")).resolves.toBe("/customers");
     expect(setLocaleCookie).toHaveBeenCalledWith("es");
     expect((client as { auth: { signOut: unknown } }).auth.signOut).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining("photo"), failure);
+    logged.mockRestore();
   });
 });

@@ -64,6 +64,14 @@ describe("PatientHeader", () => {
     expect(screen.getByText("Maria Lopez")).toBeInTheDocument();
   });
 
+  // No clinic name of their own: the clinic name shown is already the physio's.
+  it("adds only the photo beside a logo when the clinic name is the physio's", async () => {
+    stubImageLoading();
+    renderHeader({ logoUrl: LOGO, avatarUrl: PHOTO });
+    expect(await screen.findByRole("img", { name: "Photo of Maria Lopez" })).toBeInTheDocument();
+    expect(screen.getAllByText("Maria Lopez")).toHaveLength(1);
+  });
+
   it("shows only the clinic when a clinic physio has no photo", () => {
     renderHeader({ clinicName: "Kine Sur", logoUrl: LOGO });
     expect(screen.getByText("Kine Sur")).toBeInTheDocument();

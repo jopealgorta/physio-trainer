@@ -50,17 +50,33 @@ test("the account menu shows the Google photo and refreshes it on sign-in", asyn
   }
 });
 
-test("without a photo, or when it fails to load, the menu shows the initial", async ({ page }) => {
+test("without a photo the menu shows the initial", async ({ page }) => {
+  const physio = await createPhysio({ onboarded: true, displayName: "Nora Nophoto" });
+  try {
+    await signIn(page, physio);
+    const trigger = page.getByRole("button", { name: "Account menu" }).filter({ visible: true });
+    await expect(trigger).toContainText("N");
+    await expect(page.getByRole("img", { name: "Photo of Nora Nophoto" })).toHaveCount(0);
+  } finally {
+    await deletePhysio(physio);
+  }
+});
+
+test("a photo that fails to load falls back to the initial", async ({ page }) => {
   const physio = await createPhysio({
     onboarded: true,
     displayName: "Ines Initial",
     userMetadata: { avatar_url: OLD_PHOTO },
   });
   try {
+    const requested = page.waitForRequest((request) =>
+      request.url().startsWith("https://lh3.googleusercontent.com/"),
+    );
     await page.route("https://lh3.googleusercontent.com/**", (route) =>
       route.fulfill({ status: 403 }),
     );
     await signIn(page, physio);
+    await requested;
     const trigger = page.getByRole("button", { name: "Account menu" }).filter({ visible: true });
     await expect(trigger).toContainText("I");
     await expect(page.getByRole("img", { name: "Photo of Ines Initial" })).toHaveCount(0);

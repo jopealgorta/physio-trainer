@@ -1,8 +1,9 @@
 -- Physio avatar extras: things Drizzle can't express.
 
 -- Same as 20260928021325_physios-auth.sql, plus the provider's profile photo (Google sends
--- `avatar_url` and `picture`). Only an https URL within the column's check is copied, so a bad
--- value never blocks a sign-up; the post-sign-in step refreshes it later (src/server/auth).
+-- `avatar_url` and `picture`). Only a URL the column's check accepts is copied (Google's photo host,
+-- the same pattern as AVATAR_URL_PATTERN in src/lib/avatar.ts), so a bad value never blocks a
+-- sign-up; the post-sign-in step refreshes it later (src/server/auth).
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -22,7 +23,8 @@ declare
       trim(new.raw_user_meta_data ->> 'avatar_url'),
       trim(new.raw_user_meta_data ->> 'picture')
     ]) with ordinality as photo(candidate, position)
-    where photo.candidate ~ '^https://' and char_length(photo.candidate) <= 2048
+    where photo.candidate ~ '^https://([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+googleusercontent\.com(/[!-~]*)?$'
+      and char_length(photo.candidate) <= 2048
     order by photo.position
     limit 1
   );

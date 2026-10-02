@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { boolean, check, pgPolicy, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { authenticatedRole, authUid, authUsers } from "drizzle-orm/supabase";
 
+import { AVATAR_URL_MAX_LENGTH, AVATAR_URL_PATTERN } from "../../lib/avatar";
 import { timestamps } from "./_columns";
 
 /** One row per physio, 1:1 with auth.users. Created by the handle_new_user() trigger. */
@@ -35,9 +36,10 @@ export const physios = pgTable(
       sql`${table.handle} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(${table.handle}) between 3 and 30`,
     ),
     check("physios_display_name_length", sql`char_length(${table.displayName}) between 1 and 80`),
+    // Google's photo host only (src/lib/avatar.ts explains why); the trigger uses the same rule.
     check(
       "physios_avatar_url_format",
-      sql`${table.avatarUrl} ~ '^https://' and char_length(${table.avatarUrl}) <= 2048`,
+      sql`${table.avatarUrl} ~ ${sql.raw(`'${AVATAR_URL_PATTERN}'`)} and char_length(${table.avatarUrl}) <= ${sql.raw(String(AVATAR_URL_MAX_LENGTH))}`,
     ),
     check("physios_clinic_name_length", sql`char_length(${table.clinicName}) between 1 and 80`),
     check("physios_accent_color_format", sql`${table.accentColor} ~ '^#[0-9a-f]{6}$'`),

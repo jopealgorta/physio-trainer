@@ -148,6 +148,24 @@ describe("CategorySelect new category", () => {
     );
   });
 
+  it("cannot be closed while the category is being created", async () => {
+    const user = userEvent.setup();
+    let finish: (result: unknown) => void = () => {};
+    create.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    const { hidden } = setup();
+    const dialog = await openDialog(user);
+    await user.type(within(dialog).getByLabelText("Category name"), "Core{Enter}");
+
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    expect(screen.getByRole("dialog", { name: "New category" })).toBeInTheDocument();
+
+    finish({ ok: true, data: { id: "new-3" } });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(hidden()).toHaveValue("new-3");
+  });
+
   it("starts empty again after cancelling", async () => {
     const user = userEvent.setup();
     create.mockResolvedValue({ ok: false, error: "nameRequired" });

@@ -1,2 +1,0 @@
-ALTER TABLE "physios" ADD COLUMN "avatar_url" text;--> statement-breakpoint
-ALTER TABLE "physios" ADD CONSTRAINT "physios_avatar_url_format" CHECK ("physios"."avatar_url" ~ '^https://' and char_length("physios"."avatar_url") <= 2048);

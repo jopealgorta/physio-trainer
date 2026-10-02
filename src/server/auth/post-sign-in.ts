@@ -32,7 +32,9 @@ export async function postSignInPath(
     const avatarUrl = avatarFromMetadata(data.claims.user_metadata);
     if (avatarUrl && avatarUrl !== profile.avatarUrl) {
       await runAsPhysio(data.claims, (tx, physioId) => setAvatarUrl(tx, physioId, avatarUrl)).catch(
-        () => {},
+        (error: unknown) => {
+          console.error(`Failed to refresh the profile photo of physio ${profile.id}`, error);
+        },
       );
     }
 

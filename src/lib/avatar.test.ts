@@ -6,7 +6,8 @@ const GOOGLE = "https://lh3.googleusercontent.com/a/ACg8ocK=s96-c";
 
 describe("avatarFromMetadata", () => {
   it("prefers Google's avatar_url", () => {
-    expect(avatarFromMetadata({ avatar_url: GOOGLE, picture: "https://x.test/p" })).toBe(GOOGLE);
+    const other = "https://lh4.googleusercontent.com/p";
+    expect(avatarFromMetadata({ avatar_url: GOOGLE, picture: other })).toBe(GOOGLE);
   });
 
   it("falls back to picture", () => {
@@ -30,16 +31,38 @@ describe("avatarFromMetadata", () => {
     ["upper-case scheme", { avatar_url: "HTTPS://x.test/a.png" }],
     ["not a URL", { avatar_url: "https://" }],
     ["a number", { avatar_url: 42 }],
-    ["too long", { avatar_url: `https://x.test/${"a".repeat(AVATAR_URL_MAX_LENGTH)}` }],
+    ["another host", { avatar_url: "https://x.test/a.png" }],
+    ["too long", { avatar_url: `${GOOGLE}/${"a".repeat(AVATAR_URL_MAX_LENGTH)}` }],
   ])("returns null for %s", (_label, metadata) => {
     expect(avatarFromMetadata(metadata)).toBeNull();
   });
 });
 
 describe("isAvatarUrl", () => {
-  it("accepts https only, like the database check", () => {
-    expect(isAvatarUrl(GOOGLE)).toBe(true);
-    expect(isAvatarUrl("http://x.test/a.png")).toBe(false);
-    expect(isAvatarUrl("https://user:pass@x.test/a.png")).toBe(false);
+  it.each([
+    GOOGLE,
+    "https://lh3.googleusercontent.com",
+    "https://lh6.googleusercontent.com/-abc/AAAA/photo.jpg?sz=96",
+  ])("accepts Google's photo host: %s", (url) => {
+    expect(isAvatarUrl(url)).toBe(true);
+  });
+
+  // Patients' browsers load this URL: only Google's photo host, exactly as the database check.
+  it.each([
+    "http://lh3.googleusercontent.com/a/x",
+    "https://googleusercontent.com/a/x",
+    "https://lh3.googleusercontent.com.evil.test/a/x",
+    "https://evilgoogleusercontent.com/a/x",
+    "https://lh3.googleusercontent.com@evil.test/a/x",
+    "https://user:pass@lh3.googleusercontent.com/a/x",
+    "https://lh3.googleusercontent.com:8443/a/x",
+    "https://LH3.googleusercontent.com/a/x",
+    "https://-lh3.googleusercontent.com/a/x",
+    "https://lh3..googleusercontent.com/a/x",
+    "https://lh3.googleusercontent.com/a b",
+    "https://lh3.googleusercontent.com?sz=96",
+    "https://x.test/a.png",
+  ])("rejects %s", (url) => {
+    expect(isAvatarUrl(url)).toBe(false);
   });
 });

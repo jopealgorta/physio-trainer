@@ -2,7 +2,13 @@
 
 import { PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId, useState, useTransition, type FormEvent } from "react";
+import {
+  useId,
+  useState,
+  useTransition,
+  type FormEvent,
+  type TransitionStartFunction,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -59,10 +65,18 @@ export function NewCategoryDialog({
   const [open, setOpen] = useState(false);
   // A fresh form (empty name, no error) every time the dialog opens.
   const [formKey, setFormKey] = useState(0);
+  // Owned here so the dialog cannot be dismissed mid-request: a create that finishes after a
+  // cancel would otherwise still select its category.
+  const [pending, startTransition] = useTransition();
+
+  function close() {
+    setOpen(false);
+    setFormKey((key) => key + 1);
+  }
 
   function onOpenChange(next: boolean) {
-    setOpen(next);
-    if (!next) setFormKey((key) => key + 1);
+    if (next) setOpen(true);
+    else if (!pending) close();
   }
 
   return (
@@ -73,7 +87,10 @@ export function NewCategoryDialog({
           {t("trigger")}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent
+        onEscapeKeyDown={(event) => pending && event.preventDefault()}
+        onInteractOutside={(event) => pending && event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
@@ -81,9 +98,11 @@ export function NewCategoryDialog({
         <NewCategoryForm
           key={formKey}
           parents={parents}
+          pending={pending}
+          startTransition={startTransition}
           onCreated={(category) => {
             onCreated(category);
-            onOpenChange(false);
+            close();
           }}
         />
       </DialogContent>
@@ -93,9 +112,13 @@ export function NewCategoryDialog({
 
 function NewCategoryForm({
   parents,
+  pending,
+  startTransition,
   onCreated,
 }: {
   parents: CategoryNode[];
+  pending: boolean;
+  startTransition: TransitionStartFunction;
   onCreated: (category: CreatedCategory) => void;
 }) {
   const t = useTranslations("Library.form.newCategory");
@@ -105,7 +128,6 @@ function NewCategoryForm({
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
   const [error, setError] = useState<CategoryErrorKey | null>(null);
-  const [pending, startTransition] = useTransition();
   const field = error ? FIELD_OF[error] : null;
   const errorId = `${id}-error`;
 
@@ -184,7 +206,7 @@ function NewCategoryForm({
       {message("form")}
       <DialogFooter>
         <DialogClose asChild>
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" disabled={pending}>
             {t("cancel")}
           </Button>
         </DialogClose>

@@ -1,5 +1,5 @@
 {
-  "id": "f84ccd5f-2ffc-4c38-b911-54a7ca08a317",
+  "id": "dd56a5db-8d54-4654-a1cf-a39cf271c5be",
   "prevId": "2bffdb51-f893-4d95-9b5d-e9abfc4c00fa",
   "version": "7",
   "dialect": "postgresql",
@@ -175,7 +175,7 @@
         },
         "physios_avatar_url_format": {
           "name": "physios_avatar_url_format",
-          "value": "\"physios\".\"avatar_url\" ~ '^https://' and char_length(\"physios\".\"avatar_url\") <= 2048"
+          "value": "\"physios\".\"avatar_url\" ~ '^https://([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+googleusercontent\\.com(/[!-~]*)?$' and char_length(\"physios\".\"avatar_url\") <= 2048"
         },
         "physios_clinic_name_length": {
           "name": "physios_clinic_name_length",
