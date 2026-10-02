@@ -5,6 +5,7 @@ import { PlusIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
+import { HistorySheet } from "@/components/history/history-sheet";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,7 +97,7 @@ export function RoutineEditor({
   const [checkSets, setCheckSets] = useState(false);
   const [reloadRequested, setReloadRequested] = useState(false);
 
-  // Reload (after a conflict) asks the page for fresh data. Only once the user asked, and only
+  // Reload (after a conflict or a restore) asks the page for fresh data. Only once the user asked, and only
   // when the page holds a newer version than ours, does it replace local state (someone else's
   // change, which the user chose to load). A newer version without a request is either our own
   // save (the action revalidates this page) or background data: edits in progress are kept.
@@ -223,6 +224,7 @@ export function RoutineEditor({
         saved={savedAt !== null}
         onSave={save}
         focusToken={focusToken}
+        actions={<HistorySheet kind="routine" id={routine.id} dirty={dirty} onRestored={reload} />}
       />
 
       {invalidItems.size > 0 ? (

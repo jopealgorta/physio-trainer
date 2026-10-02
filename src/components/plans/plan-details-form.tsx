@@ -48,7 +48,10 @@ export function PlanDetailsForm({
   isTemplate = false,
 }: {
   planId: string;
-  /** What the server held when the page loaded. The form keeps its own state after that. */
+  /**
+   * What the server holds. The form keeps its own state, and takes these again only when they
+   * differ from what it last saved (a restored version, spec 15).
+   */
   initial: PlanDetails;
   cases: { id: string; title: string }[];
   /** Templates are active or archived (no draft). */
@@ -63,6 +66,19 @@ export function PlanDetailsForm({
   const [error, setError] = useState<SaveError | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [server, setServer] = useState(initial);
+
+  // The page re-renders with every board action and after this form's own save; only details
+  // that changed elsewhere (a restore) replace what the form holds.
+  if (JSON.stringify(initial) !== JSON.stringify(server)) {
+    setServer(initial);
+    if (JSON.stringify(initial) !== JSON.stringify(saved)) {
+      setValues(initial);
+      setSaved(initial);
+      setError(null);
+      setJustSaved(false);
+    }
+  }
 
   const dirty = JSON.stringify(values) !== JSON.stringify(saved);
   const statuses = isTemplate ? TEMPLATE_STATUSES : ROUTINE_STATUSES;

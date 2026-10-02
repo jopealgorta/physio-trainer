@@ -69,4 +69,31 @@ describe("PlanDetailsForm", () => {
       "Templates are either active or archived.",
     );
   });
+
+  it("takes the server's details when they change (a restore), not when its own save lands", async () => {
+    const user = userEvent.setup();
+    const { rerender } = setup();
+    const rerenderWith = (initial: typeof INITIAL) =>
+      rerender(
+        <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+          <PlanDetailsForm planId="p1" initial={initial} cases={[]} />
+        </NextIntlClientProvider>,
+      );
+    const name = screen.getByLabelText("Name");
+
+    await user.type(name, " v2");
+    await user.click(screen.getByRole("button", { name: "Save details" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    rerenderWith({ ...INITIAL, name: "Week A v2" });
+    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+
+    // A board action re-renders the page with the same details: edits in progress stay.
+    await user.type(name, "!");
+    rerenderWith({ ...INITIAL, name: "Week A v2" });
+    expect(name).toHaveValue("Week A v2!");
+
+    rerenderWith({ ...INITIAL, name: "Restored" });
+    expect(name).toHaveValue("Restored");
+    expect(screen.getByRole("button", { name: "Save details" })).toBeDisabled();
+  });
 });
