@@ -88,10 +88,17 @@ Namespace `Export`; dates/units localised to the customer's locale.
 - Integration: route handlers return correct content types and deny other physios' ids.
 - E2E: click "Export PDF" → download event with `.pdf`; patient "Download PDF" works.
 
-## Open questions
+## Open questions (answered 2026-10-02)
 
 1. Should the paper checkbox tracking column be included by default?
+   **Yes, as a toggle**: the physio's export menu has "Include tracking boxes", checked by
+   default. The patient's "Download PDF" always includes them.
 2. A4 vs Letter: follow locale automatically, or a physio setting?
+   **Always A4.** No setting and no locale heuristic (locales carry no region).
+3. QR target when the customer has no live link yet? **Create it** (`ensureShareLink` for the
+   customer link, as opening Share does). A revoked or expired customer link stays that way and
+   the PDF has no QR; same for an archived customer.
+4. Templates (no customer)? **Not exported**, like the Share button.
 
 ## Decisions made during implementation
 
