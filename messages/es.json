@@ -1500,7 +1500,15 @@
       "trigger": "Exportar",
       "pdf": "Descargar PDF",
       "xlsx": "Descargar Excel",
-      "tracking": "Incluir casillas de seguimiento"
+      "tracking": "Incluir casillas de seguimiento",
+      "exporting": "Exportando…",
+      "error": "No se pudo exportar. Probá de nuevo.",
+      "ready": {
+        "title": "Tu archivo está listo",
+        "body": "{name} está listo para compartir.",
+        "share": "Compartir",
+        "cancel": "Cancelar"
+      }
     },
     "patient": {
       "download": "Descargá el PDF"

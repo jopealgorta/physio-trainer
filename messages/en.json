@@ -1500,7 +1500,15 @@
       "trigger": "Export",
       "pdf": "Download PDF",
       "xlsx": "Download Excel",
-      "tracking": "Include tracking boxes"
+      "tracking": "Include tracking boxes",
+      "exporting": "Exporting…",
+      "error": "Couldn't export. Try again.",
+      "ready": {
+        "title": "Your file is ready",
+        "body": "{name} is ready to share.",
+        "share": "Share",
+        "cancel": "Cancel"
+      }
     },
     "patient": {
       "download": "Download PDF"

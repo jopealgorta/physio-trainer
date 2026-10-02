@@ -1,10 +1,19 @@
 "use client";
 
-import { DownloadIcon } from "lucide-react";
+import { DownloadIcon, Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -13,44 +22,145 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { deliverFile, fetchExportFile, prefersShareSheet, shareFile } from "@/lib/export-file";
+
+type ExportFormat = "pdf" | "xlsx";
+type ExportTarget = { kind: "routines" | "plans" | "customers"; id: string };
+
+/**
+ * Fetches an export and hands it over (see `src/lib/export-file`): one at a time, with an error
+ * to show when it fails and, when the share sheet needed a fresh tap, the file to offer again.
+ */
+function useExport(target: ExportTarget) {
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState<File | null>(null);
+  // State lands a render late; a second tap in between must not start a second export.
+  const busy = useRef(false);
+
+  async function run(format: ExportFormat, tracking: boolean) {
+    if (busy.current) return;
+    busy.current = true;
+    setPending(true);
+    setFailed(false);
+    const query = format === "pdf" && !tracking ? "&tracking=0" : "";
+    try {
+      const file = await fetchExportFile(
+        `/api/export/${target.kind}/${target.id}?format=${format}${query}`,
+        `export.${format}`,
+      );
+      const outcome = await deliverFile(file, { share: prefersShareSheet() });
+      if (outcome === "needsTap") setReady(file);
+    } catch {
+      setFailed(true);
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
+  }
+
+  async function shareReady() {
+    if (!ready) return;
+    // Called from the tap on "Share", so the browser allows it now.
+    const outcome = await shareFile(ready);
+    if (outcome === "failed") setFailed(true);
+    setReady(null);
+  }
+
+  return { pending, failed, ready, run, shareReady, dismissReady: () => setReady(null) };
+}
 
 /** "Export" dropdown (spec 14): PDF or Excel of a routine, plan or customer; tracking boxes optional. */
-export function ExportMenu({
-  target,
-}: {
-  target: { kind: "routines" | "plans" | "customers"; id: string };
-}) {
+export function ExportMenu({ target }: { target: ExportTarget }) {
   const t = useTranslations("Export.menu");
   const [tracking, setTracking] = useState(true);
-  const base = `/api/export/${target.kind}/${target.id}`;
+  const exporter = useExport(target);
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline">
-          <DownloadIcon aria-hidden />
-          {t("trigger")}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-52">
-        <DropdownMenuItem asChild>
-          <a href={`${base}?format=pdf${tracking ? "" : "&tracking=0"}`} download>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={exporter.pending}
+            aria-busy={exporter.pending}
+          >
+            {exporter.pending ? (
+              <Loader2Icon aria-hidden className="animate-spin motion-reduce:animate-none" />
+            ) : (
+              <DownloadIcon aria-hidden />
+            )}
+            {t("trigger")}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-52">
+          <DropdownMenuItem onSelect={() => void exporter.run("pdf", tracking)}>
             {t("pdf")}
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={`${base}?format=xlsx`} download>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void exporter.run("xlsx", tracking)}>
             {t("xlsx")}
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuCheckboxItem
-          checked={tracking}
-          onCheckedChange={(value) => setTracking(value === true)}
-          onSelect={(event) => event.preventDefault()}
-        >
-          {t("tracking")}
-        </DropdownMenuCheckboxItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            checked={tracking}
+            onCheckedChange={(value) => setTracking(value === true)}
+            onSelect={(event) => event.preventDefault()}
+          >
+            {t("tracking")}
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {exporter.pending ? (
+        <span role="status" className="sr-only">
+          {t("exporting")}
+        </span>
+      ) : null}
+      {exporter.failed ? (
+        <p role="alert" className="text-destructive text-sm">
+          {t("error")}
+        </p>
+      ) : null}
+      <ExportReadyDialog
+        file={exporter.ready}
+        onShare={() => void exporter.shareReady()}
+        onDismiss={exporter.dismissReady}
+      />
+    </>
+  );
+}
+
+/** Offers the fetched file again when the share sheet needed a fresh tap (iOS after a slow export). */
+function ExportReadyDialog({
+  file,
+  onShare,
+  onDismiss,
+}: {
+  file: File | null;
+  onShare: () => void;
+  onDismiss: () => void;
+}) {
+  const t = useTranslations("Export.menu.ready");
+  return (
+    <Dialog open={file !== null} onOpenChange={(open) => (open ? undefined : onDismiss())}>
+      <DialogContent showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogDescription className="wrap-anywhere">
+            {t("body", { name: file?.name ?? "" })}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              {t("cancel")}
+            </Button>
+          </DialogClose>
+          <Button type="button" onClick={onShare}>
+            {t("share")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
