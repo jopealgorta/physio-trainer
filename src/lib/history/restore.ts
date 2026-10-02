@@ -61,12 +61,22 @@ export function routineRestoreInput(
   };
 }
 
-/** The snapshot's entries whose routine is still usable, renumbered 0.. within each weekday. */
+/**
+ * The snapshot's entries whose routine is still usable, renumbered 0.. within each weekday. They
+ * keep their snapshot ids (the plan's current entries are deleted first, and nothing references
+ * an entry id), so a diff across a restore matches entries instead of showing them all replaced.
+ */
 export function planRestoreEntries(
   snapshot: PlanSnapshot,
   usable: ReadonlySet<string>,
 ): {
-  entries: { weekday: number; position: number; routineId: string; label: string | null }[];
+  entries: {
+    id: string;
+    weekday: number;
+    position: number;
+    routineId: string;
+    label: string | null;
+  }[];
   dropped: number;
 } {
   const kept = snapshot.entries
@@ -79,7 +89,8 @@ export function planRestoreEntries(
       label: entry.label,
     }));
   return {
-    entries: normalizeEntries(kept).map(({ weekday, position, routineId, label }) => ({
+    entries: normalizeEntries(kept).map(({ id, weekday, position, routineId, label }) => ({
+      id,
       weekday,
       position,
       routineId,

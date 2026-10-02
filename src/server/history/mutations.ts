@@ -142,7 +142,6 @@ export async function restorePlanVersion(
   if (entries.length > 0) {
     await tx.insert(weeklyPlanEntries).values(
       entries.map((entry) => ({
-        id: crypto.randomUUID(),
         physioId,
         weeklyPlanId: plan.id,
         ...entry,

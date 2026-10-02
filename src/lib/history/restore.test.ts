@@ -174,12 +174,12 @@ const plan = (entries: Entry[]): PlanSnapshot => ({
 });
 
 describe("planRestoreEntries", () => {
-  it("keeps every entry whose routine is usable", () => {
+  it("keeps every entry whose routine is usable, with its id", () => {
     const snapshot = plan([entry("e1", 1, 0, "r1"), entry("e2", 3, 0, "r2")]);
     expect(planRestoreEntries(snapshot, new Set(["r1", "r2"]))).toEqual({
       entries: [
-        { weekday: 1, position: 0, routineId: "r1", label: "AM" },
-        { weekday: 3, position: 0, routineId: "r2", label: null },
+        { id: "e1", weekday: 1, position: 0, routineId: "r1", label: "AM" },
+        { id: "e2", weekday: 3, position: 0, routineId: "r2", label: null },
       ],
       dropped: 0,
     });
@@ -195,9 +195,9 @@ describe("planRestoreEntries", () => {
     ]);
     expect(planRestoreEntries(snapshot, new Set(["r1", "r2"]))).toEqual({
       entries: [
-        { weekday: 1, position: 0, routineId: "r1", label: null },
-        { weekday: 1, position: 1, routineId: "r2", label: null },
-        { weekday: 2, position: 0, routineId: "r2", label: null },
+        { id: "e2", weekday: 1, position: 0, routineId: "r1", label: null },
+        { id: "e3", weekday: 1, position: 1, routineId: "r2", label: null },
+        { id: "e5", weekday: 2, position: 0, routineId: "r2", label: null },
       ],
       dropped: 2,
     });

@@ -15,7 +15,13 @@ import {
 } from "@/db/schema";
 import type { RoutineSnapshot } from "@/lib/history/snapshot";
 import type { SaveItem } from "@/lib/routine-editor";
-import { addEntry, createPlan, removeEntry, updatePlan } from "@/server/plans/mutations";
+import {
+  addEntry,
+  createPlan,
+  removeEntry,
+  setEntryLabel,
+  updatePlan,
+} from "@/server/plans/mutations";
 import { createRoutine, saveRoutine } from "@/server/routines/mutations";
 import type { SaveRoutineInput } from "@/server/routines/schemas";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
@@ -310,6 +316,42 @@ describe("version history: list, compare and restore", () => {
         listVersions(tx, physioId, { kind: "plan", id: planId }),
       );
       expect(versions?.map((v) => v.version)).toEqual([7, 6, 5, 4, 3, 2, 1]);
+    });
+
+    it("keeps the snapshot's entry ids, so a diff across a restore shows only what differs", async () => {
+      const routineId = await newRoutine(a, customerId);
+      const planId = await newPlan(a, customerId);
+      const add = (weekday: number) =>
+        as(a, (tx, id) => addEntry(tx, id, { planId, weekday, routineId, label: null }));
+      const monday = data(await add(1)).entryId; // v2
+      const tuesday = data(await add(2)).entryId; // v3
+      data(
+        await as(a, (tx, id) => setEntryLabel(tx, id, { planId, entryId: monday, label: "AM" })),
+      ); // v4
+
+      const restored = await as(a, (tx, physioId) =>
+        restorePlanVersion(tx, physioId, { id: planId, version: 3 }),
+      );
+      expect(restored).toEqual({ ok: true, data: { version: 5, dropped: 0 } });
+      const ids = await db
+        .select({ id: weeklyPlanEntries.id })
+        .from(weeklyPlanEntries)
+        .where(eq(weeklyPlanEntries.weeklyPlanId, planId))
+        .orderBy(asc(weeklyPlanEntries.weekday));
+      expect(ids.map((row) => row.id)).toEqual([monday, tuesday]);
+
+      const versions = await as(a, (tx, physioId) =>
+        listVersions(tx, physioId, { kind: "plan", id: planId }),
+      );
+      expect(versions?.[0]).toMatchObject({ version: 5, kind: "restored" });
+      expect(versions?.[0].summary).toEqual({
+        added: 0,
+        removed: 0,
+        moved: 0,
+        changed: 1,
+        fields: { label: 1 },
+        header: [],
+      });
     });
 
     it("refuses to leave an active plan without entries", async () => {
