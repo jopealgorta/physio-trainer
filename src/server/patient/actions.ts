@@ -44,3 +44,27 @@ export async function verifyPinAction(
   });
   redirect(linkPath);
 }
+
+export type LogActionResult =
+  | { ok: true; data: PatientLog }
+  | { ok: false; error: "invalid" | "unavailable" | "date" | "unreachable" | "preview" };
+
+/**
+ * Saves a patient's log (spec 13). Only the link's `code` identifies who is asking: the link is
+ * resolved and its PIN gate applied exactly as for the page, and the rest of the input is
+ * validated and matched against what that link can reach inside `logSession`. The signed-in
+ * physio previewing their own link never writes a log.
+ */
+export async function logSessionAction(code: string, raw: unknown): Promise<LogActionResult> {
+  const parsed = logSessionSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+
+  const resolved = await resolveLink(code);
+  if (resolved.status !== "ok") return { ok: false, error: "unavailable" };
+  const { shell, link } = resolved;
+  const { owner, unlocked } = await getLinkAccess(shell, link);
+  if (!unlocked) return { ok: false, error: "unavailable" };
+  if (owner) return { ok: false, error: "preview" };
+
+  return logSession(shell, link, parsed.data);
+}
