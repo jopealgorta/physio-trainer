@@ -200,7 +200,11 @@ export function HistorySheet({
         {restored ? (
           <>
             {t("restored")}{" "}
-            {restored.dropped > 0 ? t("restoredDropped", { count: restored.dropped }) : null}
+            {restored.dropped > 0
+              ? t(kind === "routine" ? "restoredDroppedExercises" : "restoredDroppedRoutines", {
+                  count: restored.dropped,
+                })
+              : null}
           </>
         ) : null}
       </p>

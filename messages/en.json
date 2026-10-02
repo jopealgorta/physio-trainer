@@ -1612,10 +1612,11 @@
     "restoring": "Restoring…",
     "cancel": "Cancel",
     "restored": "Version restored.",
-    "restoredDropped": "{count, plural, other {# left out (no longer available).}}",
+    "restoredDroppedExercises": "{count, plural, one {# exercise was left out because it no longer exists.} other {# exercises were left out because they no longer exist.}}",
+    "restoredDroppedRoutines": "{count, plural, one {# routine was left out because it is archived or no longer exists.} other {# routines were left out because they are archived or no longer exist.}}",
     "errors": {
-      "needsItems": "An active routine needs at least one exercise, and this version has none.",
-      "needsEntries": "An active plan needs at least one routine, and this version has none.",
+      "needsItems": "An active routine needs at least one exercise, and this version would have none left (deleted exercises are left out).",
+      "needsEntries": "An active plan needs at least one routine, and this version would have none left (archived or deleted routines are left out).",
       "conflict": "This changed while you were looking. Open the history again and retry.",
       "generic": "Something went wrong. Try again."
     }

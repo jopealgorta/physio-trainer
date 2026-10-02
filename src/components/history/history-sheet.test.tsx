@@ -81,6 +81,34 @@ const VERSIONS: VersionMeta[] = [
   },
 ];
 
+const plan = (entries: PlanSnapshot["entries"]): PlanSnapshot => ({
+  schema: 1,
+  plan: {
+    name: "Week",
+    notes: null,
+    status: "draft",
+    caseId: null,
+    phaseLabel: null,
+    startsOn: null,
+    endsOn: null,
+  },
+  entries,
+});
+
+const entry = (id: string, weekday: number, name: string) => ({
+  id,
+  weekday,
+  position: 0,
+  label: null,
+  routine: { id: `r-${id}`, name, version: 1 },
+});
+
+/** Versions 1 and 2 of a plan (list them with VERSIONS.slice(1)). */
+const PLAN_SNAPSHOTS: Record<number, PlanSnapshot> = {
+  1: plan([entry("e1", 1, "Mobility")]),
+  2: plan([entry("e1", 1, "Mobility"), entry("e2", 3, "Strength")]),
+};
+
 function snapshotsFrom(source: Record<number, RoutineSnapshot | PlanSnapshot>) {
   return async ({ versions }: { versions: number[] }) => ({
     ok: true,
@@ -197,9 +225,27 @@ describe("HistorySheet", () => {
     expect(a.restoreVersionAction).toHaveBeenCalledWith({ kind: "routine", id: ID, version: 2 });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Version restored. 1 left out (no longer available).",
+      "Version restored. 1 exercise was left out because it no longer exists.",
     );
     expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("says how many routines a plan restore left out", async () => {
+    a.listVersionsAction.mockResolvedValue({ ok: true, data: VERSIONS.slice(1) });
+    a.getSnapshotsAction.mockImplementation(snapshotsFrom(PLAN_SNAPSHOTS));
+    a.restoreVersionAction.mockResolvedValue({ ok: true, data: { version: 3, dropped: 2 } });
+    const { user } = setup({ kind: "plan" });
+    const sheet = await open(user);
+    await user.click(within(sheet).getByRole("button", { name: /Created/ }));
+    await user.click(within(sheet).getByRole("button", { name: "Restore this version" }));
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Restore" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Version restored. 2 routines were left out because they are archived or no longer exist.",
+      ),
+    );
   });
 
   it("refreshes the page when no onRestored is given", async () => {
@@ -236,7 +282,7 @@ describe("HistorySheet", () => {
 
     expect(
       await within(sheet).findByText(
-        "An active routine needs at least one exercise, and this version has none.",
+        "An active routine needs at least one exercise, and this version would have none left (deleted exercises are left out).",
       ),
     ).toBeInTheDocument();
     expect(onRestored).not.toHaveBeenCalled();
@@ -310,33 +356,8 @@ describe("HistorySheet", () => {
   });
 
   it("groups plan entries by weekday", async () => {
-    const plan = (entries: PlanSnapshot["entries"]): PlanSnapshot => ({
-      schema: 1,
-      plan: {
-        name: "Week",
-        notes: null,
-        status: "draft",
-        caseId: null,
-        phaseLabel: null,
-        startsOn: null,
-        endsOn: null,
-      },
-      entries,
-    });
-    const entry = (id: string, weekday: number, name: string) => ({
-      id,
-      weekday,
-      position: 0,
-      label: null,
-      routine: { id: `r-${id}`, name, version: 1 },
-    });
     a.listVersionsAction.mockResolvedValue({ ok: true, data: VERSIONS.slice(1) });
-    a.getSnapshotsAction.mockImplementation(
-      snapshotsFrom({
-        1: plan([entry("e1", 1, "Mobility")]),
-        2: plan([entry("e1", 1, "Mobility"), entry("e2", 3, "Strength")]),
-      }),
-    );
+    a.getSnapshotsAction.mockImplementation(snapshotsFrom(PLAN_SNAPSHOTS));
     const { user } = setup({ kind: "plan" });
     const sheet = await open(user);
     await user.click(within(sheet).getByRole("button", { name: /Created/ }));

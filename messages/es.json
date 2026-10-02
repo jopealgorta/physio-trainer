@@ -1612,10 +1612,11 @@
     "restoring": "Restaurando…",
     "cancel": "Cancelar",
     "restored": "Versión restaurada.",
-    "restoredDropped": "{count, plural, one {# quedó afuera (ya no está disponible).} other {# quedaron afuera (ya no están disponibles).}}",
+    "restoredDroppedExercises": "{count, plural, one {# ejercicio quedó afuera porque ya no existe.} other {# ejercicios quedaron afuera porque ya no existen.}}",
+    "restoredDroppedRoutines": "{count, plural, one {# rutina quedó afuera porque está archivada o ya no existe.} other {# rutinas quedaron afuera porque están archivadas o ya no existen.}}",
     "errors": {
-      "needsItems": "Una rutina activa necesita al menos un ejercicio, y esta versión no tiene ninguno.",
-      "needsEntries": "Un plan activo necesita al menos una rutina, y esta versión no tiene ninguna.",
+      "needsItems": "Una rutina activa necesita al menos un ejercicio, y esta versión se quedaría sin ninguno (los ejercicios eliminados quedan afuera).",
+      "needsEntries": "Un plan activo necesita al menos una rutina, y esta versión se quedaría sin ninguna (las rutinas archivadas o eliminadas quedan afuera).",
       "conflict": "Esto cambió mientras lo mirabas. Abrí el historial de nuevo y volvé a intentar.",
       "generic": "Algo salió mal. Volvé a intentar."
     }
