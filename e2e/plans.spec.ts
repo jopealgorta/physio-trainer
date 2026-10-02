@@ -235,3 +235,18 @@ test("dragging a card to another day moves it (desktop)", async ({
   await page.reload();
   await expectDay(page, "Wednesday", ["Drag me"]);
 });
+
+test("a plan is renamed from its title and saves at once", async ({ physioPage: page }) => {
+  const customer = await createCustomer(page, "Eli");
+  await createPlanFor(page, customer, "Week A");
+  // The details card has no name field any more: the title is the name.
+  await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Rename plan" }).click();
+  const input = page.getByRole("textbox", { name: "Plan name" });
+  await input.fill("Week B");
+  await input.press("Enter");
+  await expect(page.getByRole("heading", { name: "Week B", level: 1 })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Week B", level: 1 })).toBeVisible();
+});
