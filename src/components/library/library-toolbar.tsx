@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { LinkPendingHint, usePendingNavigation } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,6 +117,7 @@ export function LibraryToolbar({
 }) {
   const t = useTranslations("Library.filters");
   const router = useRouter();
+  const { navigate: startNavigation } = usePendingNavigation();
   const [sheetOpen, setSheetOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -134,7 +136,10 @@ export function LibraryToolbar({
     const pending = (flushSearch || timer.current !== null) && searchRef.current;
     const q = pending ? searchRef.current!.value.trim() : latest.current.q;
     cancelTimer();
-    router.replace(libraryHref({ ...latest.current, q }, changes), { scroll: false });
+    // A transition, so the results show they are updating until the new ones arrive.
+    startNavigation(() =>
+      router.replace(libraryHref({ ...latest.current, q }, changes), { scroll: false }),
+    );
   };
   useEffect(() => cancelTimer, []);
   // Keep the box in step when the URL changes elsewhere (e.g. "Clear filters"), but never
@@ -161,11 +166,12 @@ export function LibraryToolbar({
         replace
         scroll={false}
         className={cn(
-          "focus-visible:ring-ring/30 flex size-7 items-center justify-center rounded-sm outline-none focus-visible:ring-2",
+          "focus-visible:ring-ring/30 relative flex size-7 items-center justify-center rounded-sm outline-none focus-visible:ring-2",
           active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50",
         )}
       >
         {icon}
+        <LinkPendingHint className="inset-x-1 bottom-0" />
       </Link>
     );
   };
