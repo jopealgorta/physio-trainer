@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { parseYouTubeUrl, youtubeEmbedUrl, youtubeThumbnailUrl } from "./youtube";
+import {
+  parseYouTubeUrl,
+  youtubeCoverUrl,
+  youtubeEmbedUrl,
+  youtubeThumbnailUrl,
+  youtubeWatchUrl,
+} from "./youtube";
 
 const ID = "dQw4w9WgXcQ";
 
@@ -77,5 +83,18 @@ describe("YouTube URLs", () => {
       playsinline: "1",
       rel: "0",
     });
+  });
+});
+
+describe("youtubeWatchUrl and youtubeCoverUrl", () => {
+  it("builds the canonical URL that parseYouTubeUrl produces", () => {
+    expect(youtubeWatchUrl(ID, false)).toBe(parseYouTubeUrl(`https://youtu.be/${ID}`)!.url);
+    expect(youtubeWatchUrl(ID, true)).toBe(
+      parseYouTubeUrl(`https://youtube.com/shorts/${ID}`)!.url,
+    );
+  });
+
+  it("points the cover at the 16:9 mqdefault image", () => {
+    expect(youtubeCoverUrl(ID)).toBe(`https://i.ytimg.com/vi/${ID}/mqdefault.jpg`);
   });
 });
