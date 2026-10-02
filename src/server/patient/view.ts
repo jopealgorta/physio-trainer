@@ -47,9 +47,9 @@ export type PatientView = {
 /**
  * What a link may reach, as SQL: the plans and routines of its customer (narrowed to the one
  * routine or plan for a single-target link). Shared by the page and the workout route so both
- * answer "can this link see it?" the same way.
+ * answer "can this link see it?" the same way (and the export, spec 14).
  */
-function linkScopes(
+export function linkScopes(
   shell: Pick<LinkShell, "physioId">,
   link: Pick<ActiveLink, "target" | "customerId" | "routineId" | "weeklyPlanId">,
   today: string,
