@@ -49,6 +49,7 @@ schema-convention tests, and an e2e sign-in helper.
 | `locale`                   | text not null default `'en'`  | one of `locales` in `src/i18n/config.ts`                             |
 | `timezone`                 | text not null default `'UTC'` | IANA name, validated with `isValidTimeZone` (`src/lib/timezones.ts`) |
 | `onboarded_at`             | timestamptz null              | null until onboarding is completed                                   |
+| `avatar_url`               | text null                     | provider photo (Google); https only, ≤ 2048 chars; see below         |
 | `created_at`, `updated_at` | timestamptz                   | from the shared `timestamps` column helper                           |
 
 - **Check constraints** (defense in depth; the app validates first): `handle` matches
@@ -65,11 +66,11 @@ schema-convention tests, and an e2e sign-in helper.
 Drizzle cannot express these, so they live in one migration created with
 `drizzle-kit generate --custom`, separate from generated SQL.
 
-| Object                             | Kind                                                           | Behaviour                                                                                                                                                                                                                                              |
-| ---------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `public.set_updated_at()`          | trigger function                                               | Sets `new.updated_at = now()`. Attached `before update ... for each row` to `physios`, and to **every** later table with an `updated_at` column (each spec adds it in its own custom migration).                                                       |
-| `public.handle_new_user()`         | trigger function, `security definer`, `set search_path = ''`   | `after insert on auth.users`: inserts the `physios` row. Handle = `physio-` + 8 hex chars. `display_name` = metadata `full_name`, else `name`, else the email local part, trimmed and truncated to 80.                                                 |
-| `public.is_handle_available(text)` | function, `security definer`, `stable`, `set search_path = ''` | Returns `true` when no physio other than `auth.uid()` has that handle. Needed because RLS hides other physios' rows. Execute revoked from `public`/`anon`, granted to `authenticated`. Leaks only a boolean; handles are public in share links anyway. |
+| Object                             | Kind                                                           | Behaviour                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public.set_updated_at()`          | trigger function                                               | Sets `new.updated_at = now()`. Attached `before update ... for each row` to `physios`, and to **every** later table with an `updated_at` column (each spec adds it in its own custom migration).                                                                                                                                                            |
+| `public.handle_new_user()`         | trigger function, `security definer`, `set search_path = ''`   | `after insert on auth.users`: inserts the `physios` row. Handle = `physio-` + 8 hex chars. `display_name` = metadata `full_name`, else `name`, else the email local part, trimmed and truncated to 80. `avatar_url` = metadata `avatar_url`, else `picture`, when it is an https URL of at most 2048 chars (replaced in migration `physios-avatar-extras`). |
+| `public.is_handle_available(text)` | function, `security definer`, `stable`, `set search_path = ''` | Returns `true` when no physio other than `auth.uid()` has that handle. Needed because RLS hides other physios' rows. Execute revoked from `public`/`anon`, granted to `authenticated`. Leaks only a boolean; handles are public in share links anyway.                                                                                                      |
 
 The unique index on `handle` stays the real guard: a `23505` on save maps to `handleTaken`, so
 two physios racing for the same handle is safe.
@@ -464,3 +465,20 @@ Decide before launch (not blocking this spec):
   can run Google-only while Supabase uses its built-in sender (which only delivers to project
   team members). `/login` ignores it when Google is off too, so there is always a way in. The
   `oauthFailed` message no longer suggests "use an email link".
+- **Profile photo from Google** (added 2026-10-02, after the spec was done): `physios.avatar_url`
+  (nullable, check: `^https://` and ≤ 2048 chars). The sign-up trigger copies metadata
+  `avatar_url`, else `picture`, when usable. The post-sign-in step refreshes it on every sign-in
+  from the verified claims' `user_metadata` (`avatarFromMetadata` in `src/lib/avatar.ts`), in its
+  own `runAsPhysio` transaction with the same claims (not `withPhysio`: the route handler already
+  holds the verified claims, the same reason the profile read uses `runAsPhysio`). It writes only
+  when the URL changed (`is distinct from`, so `updated_at`, which versions link previews, does
+  not move on every sign-in), never clears it when the metadata has no photo (magic-link
+  sign-ins), and swallows errors so a photo never blocks sign-in. There is no UI to change or
+  remove it. `UserMenu` and the patient header render it with the shadcn `Avatar` (Radix
+  preloads the image and shows the initial when it is missing or fails) and
+  `referrerPolicy="no-referrer"`, because Google's `lh3` URLs can refuse requests with a
+  referrer. Not `next/image`, so no `remotePatterns`. **Patient page** (spec 10): when the physio
+  is the clinic (no logo, no clinic name of their own) the photo replaces the initial beside
+  their name; otherwise it sits at the end of the header with their name (name from `sm` up).
+  Always shown when present, no setting. `resolveLink` now selects only the physio columns the
+  patient surfaces use (`brandingColumns` + handle, timezone, photo), not the whole row.

@@ -180,3 +180,13 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
   copy a default prescription, and the prescription lives on routine items. The unused database
   columns were dropped afterwards (migration `drop-exercise-prescription-defaults`). Delete now returns `inUse` (and offers archive)
   once a routine item references the exercise.
+- **New category from the exercise form** (added 2026-10-02): a "New category" button beside the
+  category picker (on new and edit pages) opens a dialog with the name and an optional parent
+  ("Inside", top-level categories only, "None" by default) and calls `createCategoryAction`. On
+  success the picker adds it locally (`withCategory` in `src/lib/category-tree.ts`, which skips it
+  once the revalidated tree already has it) and selects it; the rest of the form keeps its
+  values. Errors reuse `Library.categories.errors` (helpers shared in `category-errors.ts`):
+  name errors under the name, `notFound`/`tooDeep` under the parent, anything else below both.
+  An adjacent button rather than a Select item, which would fight the Select's focus return
+  when the dialog opens. The dialog's form calls `stopPropagation()` on submit: it is portalled
+  out of the exercise form in the DOM but React still bubbles the submit to it.
