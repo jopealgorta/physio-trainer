@@ -191,4 +191,11 @@ describe("filenames", () => {
       `attachment; filename="rodilla-n-2026-10-02.pdf"; filename*=UTF-8''${encodeURIComponent("Rodilla ñ-2026-10-02.pdf")}`,
     );
   });
+  it("percent-encodes the characters RFC 5987 does not allow raw", () => {
+    const header = contentDisposition("Rodilla's (fase 2)*", "2026-10-02", "pdf");
+    expect(header).toBe(
+      `attachment; filename="rodilla-s-fase-2-2026-10-02.pdf"; filename*=UTF-8''Rodilla%27s%20%28fase%202%29%2A-2026-10-02.pdf`,
+    );
+    expect(header.split("filename*=UTF-8''")[1]).toMatch(/^[A-Za-z0-9!#$&+.^_`|~%-]+$/);
+  });
 });

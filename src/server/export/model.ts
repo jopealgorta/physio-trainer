@@ -235,11 +235,19 @@ export function exportFilename(
   };
 }
 
+/** RFC 5987 `ext-value` encoding: encodeURIComponent leaves `'()*` raw, which the grammar forbids. */
+function encodeRfc5987(value: string): string {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase(),
+  );
+}
+
 export function contentDisposition(
   name: string,
   generatedOn: string,
   format: ExportFormat,
 ): string {
   const { ascii, utf8 } = exportFilename(name, generatedOn, format);
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(utf8)}`;
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeRfc5987(utf8)}`;
 }
