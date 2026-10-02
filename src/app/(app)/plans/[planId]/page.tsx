@@ -17,9 +17,7 @@ import { TemplateActions } from "@/components/templates/template-actions";
 import { TemplateBadge } from "@/components/templates/template-badge";
 import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
-import { requirePhysio, withPhysio } from "@/server/auth/session";
 import { loadPlan } from "@/server/plans/load";
-import { listAssignableCustomers } from "@/server/templates/queries";
 
 export async function generateMetadata({
   params,
@@ -33,9 +31,8 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
   const { planId } = await params;
   const loaded = await loadPlan(planId);
   if (!loaded) notFound();
-  const { plan, routines } = loaded;
+  const { plan, routines, customers, timeZone } = loaded;
   const t = await getTranslations("Plans.board");
-  const { profile } = await requirePhysio();
 
   const owner = plan.customerFirstName
     ? customerName(plan.customerFirstName, plan.customerLastName)
@@ -46,9 +43,6 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
         label: t("customerBack", { name: owner ?? "" }),
       }
     : { href: "/plans?tab=templates" as Route, label: t("back") };
-  const customers = plan.isTemplate
-    ? await withPhysio((tx, physioId) => listAssignableCustomers(tx, physioId))
-    : [];
 
   return (
     <div className="grid gap-6">
@@ -101,7 +95,7 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
           phaseLabel={plan.phaseLabel}
           startsOn={plan.startsOn}
           endsOn={plan.endsOn}
-          today={todayIn(profile.timezone)}
+          today={todayIn(timeZone)}
         />
       ) : null}
       <PlanDetailsForm
