@@ -117,6 +117,12 @@ export function buildSteps(blocks: WorkoutBlock[]): WorkoutStep[] {
   return steps;
 }
 
+/** True when no later step does the same exercise: finishing step `index` ends that exercise. */
+export function isLastSetOfExercise(steps: WorkoutStep[], index: number): boolean {
+  const itemId = steps[index]?.itemId;
+  return itemId !== undefined && steps.slice(index + 1).every((step) => step.itemId !== itemId);
+}
+
 export const initialState = (): WorkoutState => ({ stepIndex: 0, phase: "ready", endsAt: null });
 
 const ready = (stepIndex: number): WorkoutState => ({ stepIndex, phase: "ready", endsAt: null });

@@ -1358,6 +1358,8 @@
       "off": "Sonido desactivado"
     },
     "announce": {
+      "setDone": "Serie {current, number} de {total, number} lista.",
+      "exerciseDone": "Terminaste {name}.",
       "holdDone": "Terminó el sostén.",
       "timeUp": "Se acabó el tiempo.",
       "restOver": "Terminó el descanso. Sigue: {name}.",

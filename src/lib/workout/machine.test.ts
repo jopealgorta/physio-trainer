@@ -8,6 +8,7 @@ import {
   completeSet,
   goTo,
   initialState,
+  isLastSetOfExercise,
   nextStep,
   remainingMs,
   skipTimer,
@@ -222,5 +223,24 @@ describe("transitions", () => {
     expect(remainingMs(resting, T0 + 5_000)).toBe(15_000);
     expect(remainingMs(resting, T0 + 99_000)).toBe(0);
     expect(remainingMs(initialState(), T0)).toBe(0);
+  });
+});
+
+describe("isLastSetOfExercise", () => {
+  it("is true only on an exercise's final set", () => {
+    const steps = buildSteps([single(item("a")), single(item("b"))]);
+    expect(steps.map((_, i) => isLastSetOfExercise(steps, i))).toEqual([false, true, false, true]);
+  });
+
+  it("looks at the exercise, not the position, inside a superset", () => {
+    const steps = buildSteps([
+      { kind: "group", key: "g", restSeconds: 30, items: [item("a"), item("b")] },
+    ]);
+    // a0 b0 a1 b1: a ends at index 2, b at index 3.
+    expect(steps.map((_, i) => isLastSetOfExercise(steps, i))).toEqual([false, false, true, true]);
+  });
+
+  it("is false past the end", () => {
+    expect(isLastSetOfExercise(buildSteps([single(item("a"))]), 5)).toBe(false);
   });
 });

@@ -118,9 +118,20 @@ Namespace `Workout`.
   as the step shows, since the patient already tapped Start). Exercises without video show a
   placeholder.
 - **Layout.** The player is a `fixed inset-0` overlay above the clinic header/footer of the patient
-  layout (which only hands the client provider the `Workout` messages it needs). Media takes 40 dvh in
-  portrait and the left half in landscape. No animations except the progress bar, which is
-  `motion-safe`.
+  layout (which only hands the client provider the `Workout` messages it needs). In portrait the
+  video fills the whole stage under the header and the exercise name, targets, timer and buttons sit
+  in a bottom panel over a gradient (`max-h-[60%]`, scrolls inside; notes clamp to two lines). In
+  landscape the media keeps the left half and the details the right half, with no overlay. YouTube
+  Shorts (9:16) fill the stage height. A 16:9 video is only as tall as the phone is wide, so it is
+  scaled to cover a 4:3 window (`WIDE_VIDEO_WINDOW`) and loses about a quarter off the sides.
+- **Set-done effects.** Finishing a set (tapping "Set done", or a timed set running out, or skipping
+  one) pops a check over the video with a ring pulse (`SetDoneBurst`), flashes the progress bar's
+  leading edge and bumps the "Set x of y" / "Exercise x of y" counters. The last set of an exercise
+  (`isLastSetOfExercise`) gets a bigger check, confetti and a longer effect. Tapping plays a short
+  rising chime (`set`) or arpeggio (`exercise`) and vibrates; a timed set that ends keeps its single
+  `end` beep (no chime on top). Everything decorative is `aria-hidden`; a screen-reader-only live
+  region says "Set 1 of 3 done." / "Squat done." Under `prefers-reduced-motion` the check only
+  shows and fades (no scale, pulse, bump or confetti). The finish screen reuses the confetti.
 - **PIN gate.** If a patient opens a workout URL cold on a PIN-protected link, they unlock it and land
   on the patient page (the PIN action always returns to the link's main page), not the workout.
 - **Spec 13 hand-off.** The finish screen is "Well done" + "Back to my plan"; spec 13 replaces it with
