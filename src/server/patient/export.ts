@@ -1,16 +1,16 @@
 import "server-only";
 
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 
 import { db } from "@/db";
-import { routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+import { routines, weeklyPlans } from "@/db/schema";
 import { todayIn } from "@/lib/calendar-date";
 import type { ExportSourceData, SourcePlan, SourceRoutine } from "@/server/export/model";
 import { loadRoutineContent } from "@/server/routines/content";
 import { scheduleFilter } from "@/server/schedule/active";
 
 import type { ActiveLink, LinkShell } from "./resolve-link";
-import { linkScopes } from "./view";
+import { linkPlanEntries, linkScopes } from "./view";
 
 export type PatientExportData = Omit<ExportSourceData, "customer"> & { today: string };
 
@@ -53,36 +53,12 @@ export async function getPatientExport(
         : [],
   ]);
 
-  const entryRows = planRows.length
-    ? await db
-        .select({
-          planId: weeklyPlanEntries.weeklyPlanId,
-          weekday: weeklyPlanEntries.weekday,
-          label: weeklyPlanEntries.label,
-          routineId: weeklyPlanEntries.routineId,
-        })
-        .from(weeklyPlanEntries)
-        .innerJoin(
-          routines,
-          and(
-            eq(routines.physioId, weeklyPlanEntries.physioId),
-            eq(routines.id, weeklyPlanEntries.routineId),
-          ),
-        )
-        .where(
-          and(
-            eq(weeklyPlanEntries.physioId, shell.physioId),
-            inArray(
-              weeklyPlanEntries.weeklyPlanId,
-              planRows.map((plan) => plan.id),
-            ),
-            // The same rule as the page: the customer's own, finished routines only.
-            eq(routines.customerId, link.customerId),
-            eq(routines.status, "active"),
-          ),
-        )
-        .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position))
-    : [];
+  // The page's rule, every weekday: the customer's own, finished routines only.
+  const entryRows = await linkPlanEntries(
+    shell,
+    link,
+    planRows.map((plan) => plan.id),
+  );
 
   const routineIds = routineRows.map((row) => row.id);
   const planRoutineIds = [...new Set(entryRows.map((entry) => entry.routineId))].filter(

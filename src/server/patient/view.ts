@@ -82,6 +82,53 @@ export function linkScopes(
   return { planScope, routineScope, routineActive };
 }
 
+export type LinkPlanEntry = {
+  id: string;
+  planId: string;
+  weekday: number;
+  label: string | null;
+  routineId: string;
+};
+
+/**
+ * The entries of the given plans (already scoped by `linkScopes`) that a link may show, every
+ * weekday, ordered by weekday then position. The routine must be the same customer's and
+ * finished: a draft or archived routine is never shown, the same rule as when it is shared on
+ * its own. Shared by the page (one weekday) and the export (all of them).
+ */
+export async function linkPlanEntries(
+  shell: Pick<LinkShell, "physioId">,
+  link: Pick<ActiveLink, "customerId">,
+  planIds: string[],
+): Promise<LinkPlanEntry[]> {
+  if (planIds.length === 0) return [];
+  return db
+    .select({
+      id: weeklyPlanEntries.id,
+      planId: weeklyPlanEntries.weeklyPlanId,
+      weekday: weeklyPlanEntries.weekday,
+      label: weeklyPlanEntries.label,
+      routineId: weeklyPlanEntries.routineId,
+    })
+    .from(weeklyPlanEntries)
+    .innerJoin(
+      routines,
+      and(
+        eq(routines.physioId, weeklyPlanEntries.physioId),
+        eq(routines.id, weeklyPlanEntries.routineId),
+      ),
+    )
+    .where(
+      and(
+        eq(weeklyPlanEntries.physioId, shell.physioId),
+        inArray(weeklyPlanEntries.weeklyPlanId, planIds),
+        eq(routines.customerId, link.customerId),
+        eq(routines.status, "active"),
+      ),
+    )
+    .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position));
+}
+
 const isWeekdayNumber = (value: number) => Number.isInteger(value) && value >= 1 && value <= 7;
 
 export async function getPatientView(
@@ -117,38 +164,11 @@ export async function getPatientView(
           .orderBy(asc(routines.name), asc(routines.id)),
   ]);
 
-  const entryRows = planRows.length
-    ? await db
-        .select({
-          id: weeklyPlanEntries.id,
-          planId: weeklyPlanEntries.weeklyPlanId,
-          weekday: weeklyPlanEntries.weekday,
-          label: weeklyPlanEntries.label,
-          routineId: weeklyPlanEntries.routineId,
-        })
-        .from(weeklyPlanEntries)
-        .innerJoin(
-          routines,
-          and(
-            eq(routines.physioId, weeklyPlanEntries.physioId),
-            eq(routines.id, weeklyPlanEntries.routineId),
-          ),
-        )
-        .where(
-          and(
-            eq(weeklyPlanEntries.physioId, shell.physioId),
-            inArray(
-              weeklyPlanEntries.weeklyPlanId,
-              planRows.map((plan) => plan.id),
-            ),
-            // The routine must be the same customer's and finished: a draft or archived routine
-            // is never shown, the same rule as when it is shared on its own.
-            eq(routines.customerId, link.customerId),
-            eq(routines.status, "active"),
-          ),
-        )
-        .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position))
-    : [];
+  const entryRows = await linkPlanEntries(
+    shell,
+    link,
+    planRows.map((plan) => plan.id),
+  );
 
   const weekdaysWithContent = [...new Set(entryRows.map((entry) => entry.weekday))].sort(
     (a, b) => a - b,

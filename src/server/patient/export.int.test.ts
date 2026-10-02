@@ -128,4 +128,37 @@ describe("getPatientExport", () => {
     expect(data.title).toBe("Monday");
     expect(data.routines.map((routine) => routine.id)).toEqual([monday]);
   });
+
+  it("leaves out draft and archived routines, in a plan or standalone", async () => {
+    const mixedCustomer = await insertCustomer(physio.id, { firstName: "Mixed" });
+    const ex = await insertExercise(physio.id);
+    const items = [{ exerciseId: ex }];
+    const routineOf = (name: string, status: "active" | "draft" | "archived") =>
+      insertRoutine(physio.id, mixedCustomer, { name, status, isStandalone: false, items });
+    const active = await routineOf("Active", "active");
+    const draft = await routineOf("Draft", "draft");
+    const archived = await routineOf("Archived", "archived");
+    const draftStandalone = await insertRoutine(physio.id, mixedCustomer, {
+      name: "Draft standalone",
+      status: "draft",
+      items,
+    });
+    const mixedPlan = await insertPlan(physio.id, mixedCustomer, {
+      name: "Mixed week",
+      status: "active",
+      entries: [
+        { weekday: 1, routineId: draft },
+        { weekday: 1, routineId: active },
+        { weekday: 3, routineId: archived },
+      ],
+    });
+
+    const data = await exportOf({ target: "customer", customerId: mixedCustomer });
+    expect(data.plans.map((plan) => plan.id)).toEqual([mixedPlan]);
+    expect(data.plans[0]!.entries).toEqual([{ weekday: 1, label: null, routineId: active }]);
+    expect(data.planRoutines.map((routine) => routine.id)).toEqual([active]);
+    expect(data.routines).toEqual([]);
+    const ids = [...data.routines, ...data.planRoutines].map((routine) => routine.id);
+    expect(ids).not.toContain(draftStandalone);
+  });
 });
