@@ -10,3 +10,4 @@ export * from "./routines";
 export * from "./plans";
 export * from "./visit-notes";
 export * from "./sharing";
+export * from "./session-logs";
