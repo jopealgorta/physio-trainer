@@ -11,16 +11,15 @@ alter table public.session_logs
   references public.share_links (physio_id, id)
   on delete set null (share_link_id);
 
--- Deleting a link makes the FK action null share_link_id on its logs. That is not an edit, so it
--- must not bump updated_at (the dashboard orders "recently active" by it).
+-- updated_at means "the patient last changed this log" (the dashboard orders "recently active" by
+-- it), so only the patient's own columns count. Deleting a link (the FK action nulls
+-- share_link_id) and the physio marking a comment as seen are not edits.
 create trigger session_logs_set_updated_at
   before update on public.session_logs
   for each row
-  when (not (
-    old.share_link_id is not null
-    and new.share_link_id is null
-    and row(old.completed, old.pain, old.comment, old.performed_on, old.seen_by_physio_at)
-      is not distinct from
-      row(new.completed, new.pain, new.comment, new.performed_on, new.seen_by_physio_at)
-  ))
+  when (
+    row(old.completed, old.pain, old.comment, old.performed_on)
+      is distinct from
+      row(new.completed, new.pain, new.comment, new.performed_on)
+  )
   execute function public.set_updated_at();
