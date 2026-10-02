@@ -54,7 +54,7 @@ export async function CustomerActivity({
           <ActivityHeatmap weeks={activity.weeks} cells={activity.cells} />
           <PainChart overall={activity.pain.overall} routines={activity.pain.routines} />
           <CommentsFeed comments={activity.comments} />
-          <MarkCommentsSeen customerId={customerId} pending={activity.unseenCount} />
+          <MarkCommentsSeen customerId={customerId} ids={activity.unseenIds} />
         </>
       )}
     </section>

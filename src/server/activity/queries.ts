@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 
 import type { Tx } from "@/db/rls";
 import {
@@ -25,15 +25,13 @@ import {
 } from "@/lib/adherence";
 import { customerName } from "@/lib/customers";
 import { addDays } from "@/lib/phases";
-import { buildDashboard, type Dashboard, type UnseenComment } from "@/lib/dashboard";
+import { COMMENTS_LIMIT } from "@/lib/session-logs";
+import { buildDashboard, type Dashboard, type UnseenSummary } from "@/lib/dashboard";
 import { attentionWindows } from "@/lib/attention";
 
 import { isUuid } from "@/server/customers/schemas";
 
 export const ACTIVITY_WEEKS = 12;
-/** The comments feed shows this many of the newest comments. */
-export const COMMENTS_LIMIT = 50;
-const UNSEEN_LIMIT = 200;
 
 type ScheduleFacts = { plans: PlanFact[]; singles: SingleFact[] };
 
@@ -164,8 +162,10 @@ export type CustomerActivity = {
     overall: PainPoint[];
     routines: { id: string; name: string; points: PainPoint[] }[];
   };
+  /** The newest comments of all time (not just the 12 weeks), newest first. */
   comments: ActivityComment[];
-  unseenCount: number;
+  /** Ids of the unseen comments in `comments`: what the tab marks as seen once shown. */
+  unseenIds: string[];
   summary: {
     completed: number;
     lastLoggedOn: string | null;
@@ -189,7 +189,7 @@ export async function getCustomerActivity(
     cells: [],
     pain: { overall: [], routines: [] },
     comments: [],
-    unseenCount: 0,
+    unseenIds: [],
     summary: {
       completed: 0,
       lastLoggedOn: null,
@@ -198,7 +198,7 @@ export async function getCustomerActivity(
   };
   if (!isUuid(customerId)) return empty;
 
-  const [rows, facts] = await Promise.all([
+  const [rows, commentRows, facts] = await Promise.all([
     tx
       .select({
         id: sessionLogs.id,
@@ -226,14 +226,35 @@ export async function getCustomerActivity(
         ),
       )
       .orderBy(desc(sessionLogs.performedOn), desc(sessionLogs.updatedAt)),
+    tx
+      .select({
+        id: sessionLogs.id,
+        routineName: routines.name,
+        performedOn: sessionLogs.performedOn,
+        comment: sessionLogs.comment,
+        pain: sessionLogs.pain,
+        seenAt: sessionLogs.seenByPhysioAt,
+      })
+      .from(sessionLogs)
+      .innerJoin(
+        routines,
+        and(eq(routines.physioId, sessionLogs.physioId), eq(routines.id, sessionLogs.routineId)),
+      )
+      .where(
+        and(
+          eq(sessionLogs.physioId, physioId),
+          eq(sessionLogs.customerId, customerId),
+          isNotNull(sessionLogs.comment),
+        ),
+      )
+      .orderBy(desc(sessionLogs.performedOn), desc(sessionLogs.updatedAt))
+      .limit(COMMENTS_LIMIT),
     loadScheduleFacts(tx, physioId, customerId),
   ]);
-  if (rows.length === 0 && !facts.has(customerId)) return empty;
 
   const logs: LogFact[] = rows;
   const plans = facts.get(customerId)?.plans ?? [];
   const names = new Map(rows.map((row) => [row.routineId, row.routineName]));
-  const commented = rows.filter((row) => row.comment !== null);
 
   return {
     weeks,
@@ -245,7 +266,7 @@ export async function getCustomerActivity(
         .filter((routine) => routine.points.length > 0)
         .sort((a, b) => a.name.localeCompare(b.name)),
     },
-    comments: commented.slice(0, COMMENTS_LIMIT).map((row) => ({
+    comments: commentRows.map((row) => ({
       id: row.id,
       routineName: row.routineName,
       performedOn: row.performedOn,
@@ -253,10 +274,11 @@ export async function getCustomerActivity(
       pain: row.pain,
       seen: row.seenAt !== null,
     })),
-    unseenCount: commented.filter((row) => row.seenAt === null).length,
+    unseenIds: commentRows.filter((row) => row.seenAt === null).map((row) => row.id),
     summary: {
       completed: rows.filter((row) => row.completed).length,
-      lastLoggedOn: rows[0]?.performedOn ?? null,
+      // An undone session is not a log the patient made: it neither counts nor dates the last one.
+      lastLoggedOn: rows.find((row) => row.completed)?.performedOn ?? null,
       adherence: adherence(
         addDays(today, -28),
         addDays(today, -1),
@@ -294,12 +316,15 @@ export async function getDashboard(
       })
       .from(sessionLogs)
       .where(and(eq(sessionLogs.physioId, physioId), gte(sessionLogs.performedOn, since))),
+    // Newest unseen comment per customer, with how many they have: aggregated in SQL so a long
+    // backlog cannot truncate the counts.
     tx
-      .select({
+      .selectDistinctOn([sessionLogs.customerId], {
         customerId: sessionLogs.customerId,
         comment: sessionLogs.comment,
         performedOn: sessionLogs.performedOn,
         routineName: routines.name,
+        count: sql<number>`(count(*) over (partition by ${sessionLogs.customerId}))::int`,
       })
       .from(sessionLogs)
       .innerJoin(
@@ -313,8 +338,11 @@ export async function getDashboard(
           isNull(sessionLogs.seenByPhysioAt),
         ),
       )
-      .orderBy(desc(sessionLogs.performedOn))
-      .limit(UNSEEN_LIMIT),
+      .orderBy(
+        asc(sessionLogs.customerId),
+        desc(sessionLogs.performedOn),
+        desc(sessionLogs.updatedAt),
+      ),
     tx
       .selectDistinct({ customerId: shareLinks.customerId })
       .from(shareLinks)
@@ -329,6 +357,9 @@ export async function getDashboard(
   ]);
 
   const linked = new Set(linkRows.map((row) => row.customerId));
+  const logsOf = new Map<string, typeof logRows>();
+  for (const row of logRows)
+    logsOf.set(row.customerId, [...(logsOf.get(row.customerId) ?? []), row]);
   return buildDashboard({
     today,
     customers: customerRows.map((customer) => ({
@@ -336,14 +367,17 @@ export async function getDashboard(
       name: customerName(customer.firstName, customer.lastName),
       plans: facts.get(customer.id)?.plans ?? [],
       singles: facts.get(customer.id)?.singles ?? [],
-      logs: logRows.filter((row) => row.customerId === customer.id),
+      logs: logsOf.get(customer.id) ?? [],
       hasLink: linked.has(customer.id),
     })),
-    unseen: unseenRows.map((row): UnseenComment => ({
+    unseen: unseenRows.map((row): UnseenSummary => ({
       customerId: row.customerId,
-      comment: row.comment!,
-      performedOn: row.performedOn,
-      routineName: row.routineName,
+      count: row.count,
+      latest: {
+        comment: row.comment!,
+        performedOn: row.performedOn,
+        routineName: row.routineName,
+      },
     })),
   });
 }

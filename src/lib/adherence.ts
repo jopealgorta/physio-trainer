@@ -99,6 +99,7 @@ export function adherence(
  * - `done`: everything planned that day was logged. `partial`: some of it.
  * - `missed`: planned, a past day, nothing logged. `planned`: today, nothing logged yet.
  * - `upcoming`: planned, a future day. `extra`: logged with nothing planned. `none`: neither.
+ * A day's `completed` counts plan-entry logs when something is planned, every log otherwise.
  */
 export type DayState = "done" | "partial" | "missed" | "planned" | "upcoming" | "extra" | "none";
 
@@ -112,14 +113,20 @@ export function dayCells(
   plans: readonly PlanFact[],
   logs: readonly LogFact[],
 ): DayCell[] {
-  const completedOn = new Map<string, number>();
+  // Planned sessions are plan entries, so only logs made from a plan entry answer them; a
+  // standalone routine logged that day neither completes nor hides a missed entry.
+  const planDone = new Map<string, number>();
+  const anyDone = new Map<string, number>();
   for (const entry of logs) {
     if (!entry.completed) continue;
-    completedOn.set(entry.performedOn, (completedOn.get(entry.performedOn) ?? 0) + 1);
+    anyDone.set(entry.performedOn, (anyDone.get(entry.performedOn) ?? 0) + 1);
+    if (entry.entryId !== null) {
+      planDone.set(entry.performedOn, (planDone.get(entry.performedOn) ?? 0) + 1);
+    }
   }
   return datesBetween(from, to).map((date) => {
     const planned = plannedOn(date, plans);
-    const completed = completedOn.get(date) ?? 0;
+    const completed = planned > 0 ? (planDone.get(date) ?? 0) : (anyDone.get(date) ?? 0);
     let state: DayState;
     if (planned > 0) {
       state =

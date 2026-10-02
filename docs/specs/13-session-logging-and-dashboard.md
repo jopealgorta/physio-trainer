@@ -1,6 +1,6 @@
 # 13 · Session logging and dashboard
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** D (adherence + pain logging)
 - **Depends on:** 10 (integrates with 12 if present)
 
@@ -86,11 +86,11 @@ Namespaces `Patient.logging`, `Activity`, `Dashboard`.
 
 ## Acceptance criteria
 
-- [ ] Patient can log/edit today's and yesterday's sessions with pain and comment; state persists.
-- [ ] Cross-customer and unreachable-routine writes rejected (integration tests).
-- [ ] Activity tab heatmap, pain chart and comments feed; comments marked seen.
-- [ ] Dashboard "Needs attention" rules implemented and unit-tested; links to customers.
-- [ ] Workout finish screen (spec 12) opens the log sheet when both specs are done.
+- [x] Patient can log/edit today's and yesterday's sessions with pain and comment; state persists.
+- [x] Cross-customer and unreachable-routine writes rejected (integration tests).
+- [x] Activity tab heatmap, pain chart and comments feed; comments marked seen.
+- [x] Dashboard "Needs attention" rules implemented and unit-tested; links to customers.
+- [x] Workout finish screen (spec 12) opens the log sheet when both specs are done.
 
 ## Test plan
 
@@ -114,4 +114,72 @@ Namespaces `Patient.logging`, `Activity`, `Dashboard`.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **`session_logs.weekly_plan_entry_id` has no FK** (deviation). `ON DELETE SET NULL` could collide
+  with the `NULLS NOT DISTINCT` unique key (the same routine logged on its own that day) and make
+  deleting a plan entry fail. The id is validated against the link at write time; a deleted
+  entry just leaves it dangling. The `share_link_id` FK is a composite `ON DELETE SET NULL
+(share_link_id)` (needs `share_links_physio_id_id_unique`, added in the custom migration).
+- **`updated_at` means "the patient changed it".** The trigger only fires when `completed`, `pain`,
+  `comment` or `performed_on` change, so deleting a link or the physio marking a comment as seen
+  does not move a customer up "Recently active".
+- **Date comes from the page, not the device.** `performed_on` is computed from the physio's time
+  zone (spec 10: that is the patient's "today") and the server accepts only today or yesterday in
+  it, so there is no device-clock skew to tolerate (deviation from "patient's local date").
+- **Which day a card logs.** A plan day of the week strip stands for its date in the current
+  Monday-Sunday week (`dateForWeekday`); on a Monday, Sunday means yesterday so yesterday is always
+  reachable. Single routines have no day of their own: the sheet offers "Today / Yesterday".
+  Other days show their state (Done) but cannot be edited.
+- **Reachability** is `isReachable` (`src/server/patient/view.ts`), the predicate behind the
+  workout route generalised to a date and an optional plan entry, so the page, the workout and
+  logging answer "can this link reach it?" the same way. A routine link never carries an entry; an
+  entry must hold exactly that routine in an active plan of the link's customer. A made-up
+  `?entry=` on the workout URL is dropped (the log is then saved for the routine alone).
+- **Undo.** Saving with `completed = false` is the "Mark as not done" action; pain and comment are
+  kept. Only completed logs count towards adherence, the heatmap and "sessions this week".
+- **The signed-in physio previewing a link never writes**: the action refuses (`preview`) and the
+  cards show no button, only a "Done" state.
+- **Heatmap cells** compare what was planned that day (plan entries) with the logs made from a
+  plan entry; a standalone routine logged the same day neither completes nor hides a missed entry
+  (it only makes a day "extra" when nothing was planned). Adherence over a window is the combined
+  ratio, so singles' sessions and plan entries share one pool.
+- **Undone sessions are not activity**: `completed = false` logs do not date "last logged" or put
+  a customer under "Recently active" (their pain still feeds the attention rules).
+- **Adherence** (`src/lib/adherence.ts`): planned = plan entries per active weekday (`isActiveOn`
+  on the plan, so phase windows apply) + each standalone routine's `sessions_per_week / 7` per
+  active day (only `sessions_per_day` set means daily; neither set means nothing planned, its logs
+  show as "extra"). `sessions_per_day` does not multiply, since a patient leaves one log per
+  routine per day. Adherence is a window ratio (doing Friday's routine on Wednesday still
+  counts), capped at 1. Planned sessions come from plans and routines **as they are now**, so
+  editing a plan rewrites how its past weeks read (known limitation); archived or draft items
+  drop out of history.
+- **Attention rules** (`src/lib/attention.ts`, thresholds in `ATTENTION`): pain >= 7 in the last 7
+  days (today included); average pain up >= 3 on the 7 days before, only when both weeks have a
+  rating; adherence < 50 % over the 7 days that **ended yesterday** (so today's unfinished session
+  is not held against them), only when something was planned and the customer still has a live
+  link (otherwise they could not have logged).
+- **Rate limiting dropped** (answer to Q3): the upsert already caps rows.
+- **Activity tab is a read.** Comments are marked seen by `MarkCommentsSeen` (a client effect
+  calling `markCommentsSeenAction` with the ids of the unseen comments it showed) after the tab
+  rendered them, so the "New" badges show once, a comment that arrives meanwhile stays new, and
+  the dashboard's "New comments" card refreshes via `revalidatePath("/dashboard")`. The feed
+  is the 50 newest comments of all time, not limited to the 12 weeks of the heatmap.
+- **Charts.** The pain line is recharts through a hand-written `src/components/ui/chart.tsx`
+  (the shadcn registry was unreachable; same API for `ChartContainer`/`ChartTooltip`, reduced to
+  what is used). It uses the `primary` token, a dashed `destructive` line at the attention
+  threshold, a `role="img"` summary and a screen-reader table with every point. The 12-week
+  heatmap is plain markup (`ActivityHeatmap`): one named square per day, tokens only, a legend.
+  recharts is only imported by the Activity tab's client component.
+- **Dashboard** is computed in one pass (`getDashboard`: customers, 14 days of logs, unseen
+  comments aggregated per customer in SQL, live links, plans) and reduced by the pure
+  `buildDashboard`; "Recently active" lists
+  customers with a log in the last 7 days by latest `updated_at` (max 8), "New comments" the
+  newest unseen comment per customer. Archived customers are excluded everywhere.
+- **`TabEmpty` removed** (the Activity tab was its last user) with `Customers.tabEmpty`.
+- **The log sheet submits from controlled state**, not a form `action`: React 19 resets a form
+  after its action, which dropped the pain rating (and a typed comment) on a retry after a failed
+  save. Convention deviation (`useActionState` forms) noted for that reason.
+- **Pain control** is a custom widget on native radios (two rows of 0-10, tint from the
+  `destructive` token), not a shadcn control; the day toggle in the sheet is the same pattern.
+- **Verification environment.** No Docker daemon here, so integration and e2e ran against a local
+  Postgres 16 with stubbed `auth`/`storage` schemas and a small fake GoTrue (create/delete user,
+  magic link, verify, user). CI runs the suites that need real Supabase.

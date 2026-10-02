@@ -8,7 +8,6 @@ import {
   isLoggableDate,
   loggableDates,
   normalizeComment,
-  parsePain,
 } from "./session-logs";
 
 // 2026-10-02 is a Friday, 2026-10-05 a Monday.
@@ -40,18 +39,11 @@ describe("dateForWeekday", () => {
   });
 });
 
-describe("parsePain", () => {
-  it("accepts integers 0-10 and rejects the rest", () => {
+describe("PAIN_SCALE", () => {
+  it("is 0 to 10", () => {
     expect(PAIN_SCALE).toHaveLength(11);
-    expect(parsePain("0")).toBe(0);
-    expect(parsePain("10")).toBe(10);
-    expect(parsePain(7)).toBe(7);
-    expect(parsePain("")).toBeNull();
-    expect(parsePain(null)).toBeNull();
-    expect(parsePain("11")).toBeNull();
-    expect(parsePain("-1")).toBeNull();
-    expect(parsePain("3.5")).toBeNull();
-    expect(parsePain("abc")).toBeNull();
+    expect(PAIN_SCALE[0]).toBe(0);
+    expect(PAIN_SCALE.at(-1)).toBe(10);
   });
 });
 

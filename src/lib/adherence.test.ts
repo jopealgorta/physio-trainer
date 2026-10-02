@@ -155,8 +155,8 @@ describe("dayCells", () => {
 
   it("classifies each day against what was planned", () => {
     const logs = [
-      log("2026-09-28"), // Mon planned 1 done 1
-      log("2026-09-29", { routineId: "r1" }), // Tue planned 2 done 1
+      log("2026-09-28", { entryId: "e0" }), // Mon planned 1 done 1
+      log("2026-09-29", { entryId: "e1" }), // Tue planned 2 done 1
       log("2026-09-30"), // Wed nothing planned, extra
     ];
     const cells = dayCells("2026-09-28", "2026-10-02", today, [p], logs);
@@ -184,6 +184,16 @@ describe("dayCells", () => {
     );
     expect(cells[0]!.state).toBe("missed");
     expect(cells[4]!.state).toBe("upcoming");
+  });
+
+  it("does not let a standalone routine make up for a planned entry that was not done", () => {
+    // Tuesday plans two entries; one is logged along with an unrelated standalone routine.
+    const logs = [log("2026-09-29", { entryId: "e1" }), log("2026-09-29", { routineId: "solo" })];
+    const [tuesday] = dayCells("2026-09-29", "2026-09-29", today, [p], logs);
+    expect(tuesday).toMatchObject({ state: "partial", planned: 2, completed: 1 });
+    // Only a standalone log on a planned day: still missed.
+    const [monday] = dayCells("2026-09-28", "2026-09-28", today, [p], [log("2026-09-28")]);
+    expect(monday!.state).toBe("missed");
   });
 
   it("ignores logs that are not completed", () => {

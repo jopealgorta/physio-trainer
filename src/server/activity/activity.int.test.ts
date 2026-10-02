@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
-import { sessionLogs } from "@/db/schema";
+import { sessionLogs, weeklyPlanEntries } from "@/db/schema";
 import { insertCustomer, insertExercise, insertPlan, insertRoutine } from "@/test/int/content";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { ensureShareLink, revokeShareLink } from "@/server/sharing/mutations";
@@ -24,6 +24,7 @@ describe("activity", () => {
   let beto: string;
   let knee: string;
   let back: string;
+  let backMonday: string;
 
   const as = <T>(who: TestPhysio, fn: Parameters<typeof runAsPhysio<T>>[1]) =>
     runAsPhysio(who.claims, fn);
@@ -57,7 +58,7 @@ describe("activity", () => {
       items,
     });
     // Back is planned on Mondays and Thursdays.
-    await insertPlan(physio.id, ana, {
+    const plan = await insertPlan(physio.id, ana, {
       name: "Week",
       status: "active",
       entries: [
@@ -65,13 +66,22 @@ describe("activity", () => {
         { weekday: 4, routineId: back },
       ],
     });
+    const [monday] = await db
+      .select({ id: weeklyPlanEntries.id })
+      .from(weeklyPlanEntries)
+      .where(eq(weeklyPlanEntries.weeklyPlanId, plan))
+      .orderBy(weeklyPlanEntries.weekday);
+    backMonday = monday!.id;
     await as(physio, (tx, id) => ensureShareLink(tx, id, { target: "customer", customerId: ana }));
   });
   afterAll(() => deleteTestPhysios(...created));
 
   describe("getCustomerActivity", () => {
     beforeAll(async () => {
-      await addLog(physio.id, ana, back, "2026-10-05", { pain: 3 }); // Monday, planned
+      // Monday, planned (done from its plan entry) ...
+      await addLog(physio.id, ana, back, "2026-10-05", { pain: 3, weeklyPlanEntryId: backMonday });
+      // ... and a standalone routine the Thursday before, which must not count as the plan's entry.
+      await addLog(physio.id, ana, knee, "2026-10-01", { pain: 2 });
       await addLog(physio.id, ana, knee, "2026-10-06", { pain: 5, comment: "pinchy" }); // extra
       await addLog(physio.id, ana, knee, "2026-10-07", { pain: 7 });
       await addLog(physio.id, ana, back, "2026-09-10", { completed: false, pain: 9 });
@@ -84,6 +94,7 @@ describe("activity", () => {
       const state = (date: string) => activity.cells.find((cell) => cell.date === date)!.state;
       expect(state("2026-10-05")).toBe("done");
       expect(state("2026-10-06")).toBe("extra");
+      expect(state("2026-10-01")).toBe("missed"); // planned Thursday, only a standalone log
       expect(state("2026-10-08")).toBe("planned"); // Thursday today, nothing logged yet
       expect(state("2026-09-28")).toBe("missed"); // last Monday
       expect(activity.cells).toHaveLength(12 * 7);
@@ -93,6 +104,7 @@ describe("activity", () => {
       const { pain } = await as(physio, (tx, id) => getCustomerActivity(tx, id, ana, TODAY));
       expect(pain.overall.map((point) => point.date)).toEqual([
         "2026-09-10",
+        "2026-10-01",
         "2026-10-05",
         "2026-10-06",
         "2026-10-07",
@@ -100,13 +112,14 @@ describe("activity", () => {
       expect(pain.routines.map((routine) => routine.name).sort()).toEqual(["Back", "Knee"]);
       const kneeSeries = pain.routines.find((routine) => routine.id === knee)!;
       expect(kneeSeries.points).toEqual([
+        { date: "2026-10-01", pain: 2 },
         { date: "2026-10-06", pain: 5 },
         { date: "2026-10-07", pain: 7 },
       ]);
     });
 
     it("lists comments newest first with their routine and seen state", async () => {
-      const { comments, unseenCount } = await as(physio, (tx, id) =>
+      const { comments, unseenIds } = await as(physio, (tx, id) =>
         getCustomerActivity(tx, id, ana, TODAY),
       );
       expect(comments).toHaveLength(1);
@@ -116,16 +129,34 @@ describe("activity", () => {
         performedOn: "2026-10-06",
         seen: false,
       });
-      expect(unseenCount).toBe(1);
+      expect(unseenIds).toEqual([comments[0]!.id]);
     });
 
     it("sums the last 12 weeks", async () => {
       const { summary } = await as(physio, (tx, id) => getCustomerActivity(tx, id, ana, TODAY));
-      // 3 completed sessions, one logged as not completed.
-      expect(summary.completed).toBe(3);
+      // 4 completed sessions, one logged as not completed (and not counted as "last logged").
+      expect(summary.completed).toBe(4);
       expect(summary.lastLoggedOn).toBe("2026-10-07");
-      // Back is planned Mondays and Thursdays: 8 sessions between 10 Sep and 7 Oct, 3 logged.
-      expect(summary.adherence).toEqual({ planned: 8, completed: 3, ratio: 0.375 });
+      // Back is planned Mondays and Thursdays: 8 sessions between 10 Sep and 7 Oct, 4 logged.
+      expect(summary.adherence).toEqual({ planned: 8, completed: 4, ratio: 0.5 });
+    });
+
+    it("does not date the last log by a session that was undone", async () => {
+      const undoneRoutine = await insertRoutine(physio.id, beto, { status: "active" });
+      await addLog(physio.id, beto, undoneRoutine, "2026-10-07", { completed: false });
+      const { summary } = await as(physio, (tx, id) => getCustomerActivity(tx, id, beto, TODAY));
+      expect(summary.lastLoggedOn).toBeNull();
+      expect(summary.completed).toBe(0);
+    });
+
+    it("keeps comments from before the 12 weeks in the feed", async () => {
+      const old = await addLog(physio.id, ana, knee, "2026-01-05", { comment: "months ago" });
+      const { comments, unseenIds } = await as(physio, (tx, id) =>
+        getCustomerActivity(tx, id, ana, TODAY),
+      );
+      expect(comments.map((c) => c.comment)).toEqual(["pinchy", "months ago"]);
+      expect(unseenIds).toContain(old);
+      await db.delete(sessionLogs).where(eq(sessionLogs.id, old));
     });
 
     it("is empty for a customer with no logs and refuses another physio's customer", async () => {
@@ -145,18 +176,24 @@ describe("activity", () => {
   });
 
   describe("markCommentsSeen", () => {
-    it("marks a customer's unseen comments once, without counting as an edit", async () => {
+    it("marks only the given comments, once, without counting as an edit", async () => {
       const own = await insertRoutine(physio.id, beto, { status: "active" });
-      const logId = await addLog(physio.id, beto, own, "2026-10-07", { comment: "hello" });
-      const [before] = await db.select().from(sessionLogs).where(eq(sessionLogs.id, logId));
+      const shown = await addLog(physio.id, beto, own, "2026-10-07", { comment: "hello" });
+      const later = await addLog(physio.id, beto, own, "2026-10-06", { comment: "arrived since" });
+      const [before] = await db.select().from(sessionLogs).where(eq(sessionLogs.id, shown));
 
-      expect(await as(other, (tx, pid) => markCommentsSeen(tx, pid, beto, NOW))).toBe(0);
-      expect(await as(physio, (tx, pid) => markCommentsSeen(tx, pid, beto, NOW))).toBe(1);
-      expect(await as(physio, (tx, pid) => markCommentsSeen(tx, pid, beto, NOW))).toBe(0);
+      expect(await as(other, (tx, pid) => markCommentsSeen(tx, pid, beto, [shown], NOW))).toBe(0);
+      expect(await as(physio, (tx, pid) => markCommentsSeen(tx, pid, beto, [], NOW))).toBe(0);
+      // A log of another customer cannot be marked through this customer's id.
+      expect(await as(physio, (tx, pid) => markCommentsSeen(tx, pid, ana, [shown], NOW))).toBe(0);
+      expect(await as(physio, (tx, pid) => markCommentsSeen(tx, pid, beto, [shown], NOW))).toBe(1);
+      expect(await as(physio, (tx, pid) => markCommentsSeen(tx, pid, beto, [shown], NOW))).toBe(0);
 
-      const [after] = await db.select().from(sessionLogs).where(eq(sessionLogs.id, logId));
+      const [after] = await db.select().from(sessionLogs).where(eq(sessionLogs.id, shown));
       expect(after!.seenByPhysioAt).toEqual(NOW);
       expect(after!.updatedAt).toEqual(before!.updatedAt);
+      const [untouched] = await db.select().from(sessionLogs).where(eq(sessionLogs.id, later));
+      expect(untouched!.seenByPhysioAt).toBeNull();
     });
   });
 
@@ -215,11 +252,51 @@ describe("activity", () => {
       );
       if (!link.ok) throw new Error(link.error);
       await as(dash, (tx, id) => revokeShareLink(tx, id, link.data.link.id));
-      await as(dash, (tx, id) => markCommentsSeen(tx, id, cara, NOW));
+      const unseen = await db
+        .select({ id: sessionLogs.id })
+        .from(sessionLogs)
+        .where(eq(sessionLogs.customerId, cara));
+      await as(dash, (tx, id) =>
+        markCommentsSeen(
+          tx,
+          id,
+          cara,
+          unseen.map((row) => row.id),
+          NOW,
+        ),
+      );
 
       const result = await as(dash, (tx, id) => getDashboard(tx, id, TODAY, NOW));
       expect(result.attention.map((entry) => entry.name)).toEqual(["Cara"]);
       expect(result.newComments).toEqual([]);
+    });
+
+    it("counts every unseen comment per customer and does not treat undone sessions as activity", async () => {
+      const busy = await insertCustomer(dash.id, { firstName: "Busy" });
+      const quiet = await insertCustomer(dash.id, { firstName: "Quiet" });
+      const exercise = await insertExercise(dash.id);
+      const busyRoutine = await insertRoutine(dash.id, busy, {
+        status: "active",
+        items: [{ exerciseId: exercise }],
+      });
+      const quietRoutine = await insertRoutine(dash.id, quiet, { status: "active" });
+      // 250 unseen comments over distinct days: more than any fixed cap on the query.
+      await db.insert(sessionLogs).values(
+        Array.from({ length: 250 }, (_, i) => ({
+          physioId: dash.id,
+          customerId: busy,
+          routineId: busyRoutine,
+          performedOn: new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10),
+          comment: `c${i}`,
+        })),
+      );
+      await addLog(dash.id, quiet, quietRoutine, "2026-10-07", { completed: false });
+
+      const result = await as(dash, (tx, id) => getDashboard(tx, id, TODAY, NOW));
+      const entry = result.newComments.find((item) => item.customerId === busy)!;
+      expect(entry.count).toBe(250);
+      expect(entry.latest.comment).toBe("c249");
+      expect(result.recentlyActive.map((item) => item.customerId)).not.toContain(quiet);
     });
 
     it("sees nothing of another physio's customers", async () => {

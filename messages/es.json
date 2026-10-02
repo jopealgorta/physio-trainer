@@ -1341,7 +1341,7 @@
         "generic": "Algo salió mal. Probá de nuevo.",
         "invalid": "Revisá lo que ingresaste y probá de nuevo.",
         "date": "Solo podés registrar hoy o ayer.",
-        "unreachable": "Esta rutina ya no es parte de tu plan.",
+        "unreachable": "Esa rutina no era parte de tu plan ese día.",
         "unavailable": "Este enlace ya no está disponible.",
         "preview": "Estás viendo una vista previa, así que no se guardó nada."
       }
@@ -1462,6 +1462,37 @@
       "new": "Nuevo",
       "newCount": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
       "painValue": "Dolor {value, number}/10"
+    }
+  },
+  "Dashboard": {
+    "description": "Quién necesita tu atención y qué registraron tus pacientes últimamente.",
+    "totals": {
+      "customers": "Clientes activos",
+      "sessions": "Sesiones registradas esta semana"
+    },
+    "attention": {
+      "title": "Necesitan atención",
+      "description": "Dolor o muy pocas sesiones en los últimos 7 días.",
+      "empty": "Nadie necesita atención por ahora.",
+      "reasons": {
+        "highPain": "Dolor {pain, number}/10 en los últimos 7 días",
+        "painRise": "El dolor subió {delta, number} puntos respecto de la semana anterior",
+        "lowAdherence": "Solo {percent, number} % de las sesiones planificadas en los últimos 7 días"
+      }
+    },
+    "comments": {
+      "title": "Comentarios nuevos",
+      "description": "Lo que escribieron tus pacientes y todavía no abriste.",
+      "empty": "No hay comentarios nuevos.",
+      "count": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
+      "context": "{routine} · {date}"
+    },
+    "recent": {
+      "title": "Activos recientemente",
+      "description": "Pacientes que registraron una sesión en los últimos 7 días.",
+      "empty": "Nadie registró una sesión en los últimos 7 días.",
+      "sessions": "{count, plural, one {# sesión} other {# sesiones}} en los últimos 7 días",
+      "last": "Último: {date}"
     }
   }
 }

@@ -17,11 +17,11 @@ export type CustomerFacts = {
   hasLink: boolean;
 };
 
-export type UnseenComment = {
+/** A customer's unseen comments, already reduced to how many and which one is newest. */
+export type UnseenSummary = {
   customerId: string;
-  comment: string;
-  performedOn: string;
-  routineName: string;
+  count: number;
+  latest: { comment: string; performedOn: string; routineName: string };
 };
 
 export type Dashboard = {
@@ -46,7 +46,7 @@ const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompar
 export function buildDashboard(input: {
   today: string;
   customers: readonly CustomerFacts[];
-  unseen: readonly UnseenComment[];
+  unseen: readonly UnseenSummary[];
 }): Dashboard {
   const { today, customers, unseen } = input;
   const windows = attentionWindows(today);
@@ -77,13 +77,16 @@ export function buildDashboard(input: {
     if (reasons.length > 0)
       attention.push({ customerId: customer.id, name: customer.name, reasons });
 
-    const recent = customer.logs.filter((entry) => entry.performedOn >= windows.recent[0]);
+    // A session that was undone is not activity.
+    const recent = customer.logs.filter(
+      (entry) => entry.completed && entry.performedOn >= windows.recent[0],
+    );
     if (recent.length > 0) {
       recentlyActive.push({
         customerId: customer.id,
         name: customer.name,
         lastLoggedAt: new Date(Math.max(...recent.map((entry) => entry.updatedAt.getTime()))),
-        sessionsLast7: recent.filter((entry) => entry.completed).length,
+        sessionsLast7: recent.length,
       });
     }
   }
@@ -100,25 +103,14 @@ export function buildDashboard(input: {
   );
 
   const names = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const grouped = new Map<string, UnseenComment[]>();
-  for (const comment of unseen) {
-    if (!names.has(comment.customerId)) continue;
-    grouped.set(comment.customerId, [...(grouped.get(comment.customerId) ?? []), comment]);
-  }
-  const newComments: Dashboard["newComments"] = [...grouped.entries()]
-    .map(([customerId, comments]) => {
-      const latest = comments.reduce((a, b) => (b.performedOn > a.performedOn ? b : a));
-      return {
-        customerId,
-        name: names.get(customerId)!,
-        count: comments.length,
-        latest: {
-          comment: latest.comment,
-          performedOn: latest.performedOn,
-          routineName: latest.routineName,
-        },
-      };
-    })
+  const newComments: Dashboard["newComments"] = unseen
+    .filter((entry) => names.has(entry.customerId))
+    .map((entry) => ({
+      customerId: entry.customerId,
+      name: names.get(entry.customerId)!,
+      count: entry.count,
+      latest: entry.latest,
+    }))
     .sort((a, b) => b.latest.performedOn.localeCompare(a.latest.performedOn) || byName(a, b));
 
   return {

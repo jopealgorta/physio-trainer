@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { LogFact, PlanFact } from "./adherence";
-import { buildDashboard, RECENT_LIMIT, type CustomerFacts, type UnseenComment } from "./dashboard";
+import { buildDashboard, RECENT_LIMIT, type CustomerFacts, type UnseenSummary } from "./dashboard";
 
 // Thursday 2026-10-08.
 const today = "2026-10-08";
@@ -29,7 +29,7 @@ const customer = (id: string, extra: Partial<CustomerFacts> = {}): CustomerFacts
   hasLink: true,
   ...extra,
 });
-const build = (customers: CustomerFacts[], unseen: UnseenComment[] = []) =>
+const build = (customers: CustomerFacts[], unseen: UnseenSummary[] = []) =>
   buildDashboard({ today, customers, unseen });
 
 describe("buildDashboard", () => {
@@ -76,32 +76,32 @@ describe("buildDashboard", () => {
     expect(result.attention).toEqual([]);
   });
 
-  it("groups unseen comments per customer, newest first", () => {
-    const unseen: UnseenComment[] = [
-      { customerId: "a", comment: "old", performedOn: "2026-10-01", routineName: "Knee" },
-      { customerId: "b", comment: "newest", performedOn: "2026-10-07", routineName: "Back" },
-      { customerId: "a", comment: "later", performedOn: "2026-10-06", routineName: "Knee" },
-    ];
-    const { newComments } = build([customer("a"), customer("b")], unseen);
-    expect(newComments).toEqual([
-      {
-        customerId: "b",
-        name: "B",
-        count: 1,
-        latest: { comment: "newest", performedOn: "2026-10-07", routineName: "Back" },
-      },
+  it("lists customers with new comments, newest first", () => {
+    const unseen: UnseenSummary[] = [
       {
         customerId: "a",
-        name: "A",
         count: 2,
         latest: { comment: "later", performedOn: "2026-10-06", routineName: "Knee" },
       },
+      {
+        customerId: "b",
+        count: 1,
+        latest: { comment: "newest", performedOn: "2026-10-07", routineName: "Back" },
+      },
+    ];
+    expect(build([customer("a"), customer("b")], unseen).newComments).toEqual([
+      { customerId: "b", name: "B", count: 1, latest: unseen[1]!.latest },
+      { customerId: "a", name: "A", count: 2, latest: unseen[0]!.latest },
     ]);
   });
 
   it("ignores comments of customers that are not active", () => {
-    const unseen: UnseenComment[] = [
-      { customerId: "gone", comment: "hi", performedOn: "2026-10-06", routineName: "Knee" },
+    const unseen: UnseenSummary[] = [
+      {
+        customerId: "gone",
+        count: 1,
+        latest: { comment: "hi", performedOn: "2026-10-06", routineName: "Knee" },
+      },
     ];
     expect(build([customer("a")], unseen).newComments).toEqual([]);
   });
@@ -114,6 +114,15 @@ describe("buildDashboard", () => {
     ]);
     expect(result.recentlyActive.map((entry) => entry.customerId)).toEqual(["late", "early"]);
     expect(result.recentlyActive[1]).toMatchObject({ sessionsLast7: 2 });
+  });
+
+  it("does not count a session that was undone as activity", () => {
+    const result = build([
+      customer("undone", { logs: [log("2026-10-07", { completed: false })] }),
+      customer("done", { logs: [log("2026-10-07"), log("2026-10-06", { completed: false })] }),
+    ]);
+    expect(result.recentlyActive.map((entry) => entry.customerId)).toEqual(["done"]);
+    expect(result.recentlyActive[0]!.sessionsLast7).toBe(1);
   });
 
   it("caps the recently active list", () => {

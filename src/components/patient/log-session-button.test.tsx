@@ -176,6 +176,19 @@ describe("LogSessionButton", () => {
     expect(m.refresh).not.toHaveBeenCalled();
   });
 
+  it("keeps what the patient typed when saving fails", async () => {
+    m.log.mockResolvedValue({ ok: false, error: "unavailable" });
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Mark as done" }));
+    await user.click(screen.getByRole("radio", { name: "5" }));
+    await user.type(screen.getByLabelText("Comment (optional)"), "A long note about the stairs");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByLabelText("Comment (optional)")).toHaveValue("A long note about the stairs");
+    expect(screen.getByRole("radio", { name: "5" })).toBeChecked();
+  });
+
   it("can open straight away (the workout's finish screen)", () => {
     setup({ defaultOpen: true });
     expect(screen.getByRole("dialog", { name: "How did it go?" })).toBeInTheDocument();

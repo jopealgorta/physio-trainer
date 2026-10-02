@@ -1,9 +1,9 @@
 "use client";
 
 import { CircleCheckIcon, XIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useActionState, useId, useState } from "react";
+import { useId, useState, useTransition, type FormEvent } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { LOG_COMMENT_MAX, parsePain } from "@/lib/session-logs";
+import { LOG_COMMENT_MAX } from "@/lib/session-logs";
 import { cn } from "@/lib/utils";
 import { logSessionAction, type LogActionResult } from "@/server/patient/actions";
 import type { PatientLog } from "@/server/patient/log-session";
@@ -61,6 +61,7 @@ export function LogSessionButton({
   defaultOpen = false,
 }: Props) {
   const t = useTranslations("Patient.logging");
+  const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   // Saved here first so the button turns to "Done" before the refreshed page arrives.
@@ -109,6 +110,10 @@ export function LogSessionButton({
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
+          // The sheet is portalled out of the patient page, so it carries the page's branding
+          // scope (the physio's accent) and the customer's language itself.
+          data-brand="patient"
+          lang={locale}
           side="bottom"
           showCloseButton={false}
           className="mx-auto max-h-[90dvh] max-w-2xl overflow-y-auto rounded-t-2xl text-sm"
@@ -167,32 +172,44 @@ function LogForm({
   const t = useTranslations("Patient.logging");
   const id = useId();
   const [pain, setPain] = useState<number | null>(initial?.pain ?? null);
-  const [state, action, pending] = useActionState<FormState, FormData>(
-    async (_state, formData) => {
-      const undo = formData.get("intent") === "undo";
-      const comment = String(formData.get("comment") ?? "");
+  // Controlled, like the pain: React resets a form's uncontrolled fields after its action, which
+  // would wipe what the patient typed when saving fails.
+  const [comment, setComment] = useState(initial?.comment ?? "");
+  const [state, setState] = useState<FormState>({ status: "idle" });
+  const [pending, startTransition] = useTransition();
+
+  // Submitted from the controlled fields rather than a form `action`: React resets a form after
+  // its action, which would drop the pain rating on a retry after a failed save.
+  const save = (completed: boolean) =>
+    startTransition(async () => {
       let result: LogActionResult;
       try {
         result = await logSessionAction(code, {
           routineId,
           entryId,
           performedOn: day.date,
-          completed: !undo,
-          pain: parsePain(formData.get("pain")),
+          completed,
+          pain,
           comment: comment.trim() === "" ? null : comment,
         });
       } catch {
-        return { status: "error", error: "generic" };
+        setState({ status: "error", error: "generic" });
+        return;
       }
-      if (!result.ok) return { status: "error", error: result.error };
+      if (!result.ok) {
+        setState({ status: "error", error: result.error });
+        return;
+      }
+      setState({ status: "idle" });
       onSaved(result.data);
-      return { status: "idle" };
-    },
-    { status: "idle" },
-  );
+    });
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    save(true);
+  };
 
   return (
-    <form action={action} className="grid gap-5 px-6 pb-6">
+    <form onSubmit={onSubmit} className="grid gap-5 px-6 pb-6">
       {days.length > 1 ? (
         <fieldset className="grid gap-2">
           <legend className="text-sm font-medium">{t("day.label")}</legend>
@@ -231,7 +248,8 @@ function LogForm({
         <Textarea
           id={`${id}-comment`}
           name="comment"
-          defaultValue={initial?.comment ?? ""}
+          value={comment}
+          onChange={(event) => setComment(event.target.value)}
           maxLength={LOG_COMMENT_MAX}
           rows={3}
           placeholder={t("comment.placeholder")}
@@ -251,9 +269,8 @@ function LogForm({
         </Button>
         {initial?.completed ? (
           <Button
-            type="submit"
-            name="intent"
-            value="undo"
+            type="button"
+            onClick={() => save(false)}
             variant="ghost"
             size="lg"
             className="h-12 text-base"

@@ -6,6 +6,8 @@ import { WEEKDAYS } from "./plans";
 
 /** Session log limits and pure helpers shared by the schema, the action and the UI (spec 13). */
 export const LOG_COMMENT_MAX = 1000;
+/** The Activity tab's comments feed shows this many of the newest comments. */
+export const COMMENTS_LIMIT = 50;
 export const PAIN_MIN = 0;
 export const PAIN_MAX = 10;
 /** 0..10, the values of the patient's pain control. */
@@ -29,14 +31,6 @@ export function dateForWeekday(today: string, weekday: number): string {
   const date = addDays(monday, weekday - 1);
   const yesterday = addDays(today, -1);
   return date > today && weekday === isoWeekday(yesterday) ? yesterday : date;
-}
-
-/** A pain rating from a form value or number: an integer 0-10, else null (not rated). */
-export function parsePain(value: unknown): number | null {
-  if (typeof value === "string" && !/^\d{1,2}$/.test(value.trim())) return null;
-  if (typeof value !== "string" && typeof value !== "number") return null;
-  const pain = Number(value);
-  return Number.isInteger(pain) && pain >= PAIN_MIN && pain <= PAIN_MAX ? pain : null;
 }
 
 /** Trimmed comment, null when blank. Length is validated separately (`LOG_COMMENT_MAX`). */

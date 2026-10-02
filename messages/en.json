@@ -1341,7 +1341,7 @@
         "generic": "Something went wrong. Try again.",
         "invalid": "Check what you entered and try again.",
         "date": "You can only log today or yesterday.",
-        "unreachable": "This routine is not part of your plan any more.",
+        "unreachable": "This routine was not part of your plan on that day.",
         "unavailable": "This link is no longer available.",
         "preview": "You are previewing this page, so nothing was saved."
       }
@@ -1462,6 +1462,37 @@
       "new": "New",
       "newCount": "{count, plural, one {# new comment} other {# new comments}}",
       "painValue": "Pain {value, number}/10"
+    }
+  },
+  "Dashboard": {
+    "description": "Who needs your attention, and what your patients logged lately.",
+    "totals": {
+      "customers": "Active customers",
+      "sessions": "Sessions logged this week"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "description": "Pain, or too few sessions, in the last 7 days.",
+      "empty": "Nobody needs attention right now.",
+      "reasons": {
+        "highPain": "Pain {pain, number}/10 in the last 7 days",
+        "painRise": "Pain up {delta, number} points on the week before",
+        "lowAdherence": "Only {percent, number}% of planned sessions done in the last 7 days"
+      }
+    },
+    "comments": {
+      "title": "New comments",
+      "description": "What patients wrote that you haven't opened yet.",
+      "empty": "No new comments.",
+      "count": "{count, plural, one {# new comment} other {# new comments}}",
+      "context": "{routine} · {date}"
+    },
+    "recent": {
+      "title": "Recently active",
+      "description": "Patients who logged a session in the last 7 days.",
+      "empty": "Nobody has logged a session in the last 7 days.",
+      "sessions": "{count, plural, one {# session} other {# sessions}} in the last 7 days",
+      "last": "Last: {date}"
     }
   }
 }
