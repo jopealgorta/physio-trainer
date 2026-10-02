@@ -16,12 +16,13 @@ const comment = (patch: Partial<ActivityComment> = {}): ActivityComment => ({
   ...patch,
 });
 
-const setup = (comments: ActivityComment[]) =>
-  render(
-    <NextIntlClientProvider locale="en" messages={messages}>
-      <CommentsFeed comments={comments} />
-    </NextIntlClientProvider>,
-  );
+const feed = (comments: ActivityComment[]) => (
+  <NextIntlClientProvider locale="en" messages={messages}>
+    <CommentsFeed comments={comments} />
+  </NextIntlClientProvider>
+);
+
+const setup = (comments: ActivityComment[]) => render(feed(comments));
 
 describe("CommentsFeed", () => {
   it("lists each comment with its routine, day and pain, flagging new ones", () => {
@@ -35,6 +36,24 @@ describe("CommentsFeed", () => {
     expect(within(items[0]!).getByText("New")).toBeInTheDocument();
     expect(within(items[1]!).queryByText("New")).not.toBeInTheDocument();
     expect(within(items[1]!).queryByText(/Pain/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a comment new for the visit that first showed it, after the server marked it seen", () => {
+    // Marking comments seen revalidates, so the server re-renders the tab with them seen.
+    const { rerender } = setup([comment(), comment({ id: "2", comment: "Fine", seen: true })]);
+    rerender(feed([comment({ seen: true }), comment({ id: "2", comment: "Fine", seen: true })]));
+    const items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(within(items[0]!).getByText("New")).toBeInTheDocument();
+    expect(within(items[1]!).queryByText("New")).not.toBeInTheDocument();
+  });
+
+  it("flags a comment that arrives during the visit as new too", () => {
+    const { rerender } = setup([comment({ seen: true })]);
+    rerender(feed([comment({ id: "3", comment: "Later", seen: false }), comment({ seen: true })]));
+    rerender(feed([comment({ id: "3", comment: "Later", seen: true }), comment({ seen: true })]));
+    const items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(within(items[0]!).getByText("New")).toBeInTheDocument();
+    expect(within(items[1]!).queryByText("New")).not.toBeInTheDocument();
   });
 
   it("shows comments as plain text, never as markup", () => {

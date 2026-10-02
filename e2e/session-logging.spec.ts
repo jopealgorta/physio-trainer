@@ -62,8 +62,12 @@ test.describe("session logging", () => {
     await expect(attention).toContainText("Pain 8/10 in the last 7 days");
 
     // The row opens the customer's Activity tab: calendar, pain chart and the comment, marked
-    // as new once, then seen.
+    // as new for this visit (even once marking it seen re-rendered the tab), then seen.
+    const markedSeen = page.waitForResponse(
+      (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"],
+    );
     await attention.getByRole("link", { name: /Ana/ }).click();
+    await markedSeen;
     await expect(page).toHaveURL(/\/customers\/[0-9a-f-]{36}\?tab=activity$/);
     await expect(page.getByRole("heading", { name: "Sessions by day" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Pain over time" })).toBeVisible();

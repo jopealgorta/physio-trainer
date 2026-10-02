@@ -161,7 +161,10 @@ Namespaces `Patient.logging`, `Activity`, `Dashboard`.
 - **Activity tab is a read.** Comments are marked seen by `MarkCommentsSeen` (a client effect
   calling `markCommentsSeenAction` with the ids of the unseen comments it showed) after the tab
   rendered them, so the "New" badges show once, a comment that arrives meanwhile stays new, and
-  the dashboard's "New comments" card refreshes via `revalidatePath("/dashboard")`. The feed
+  the dashboard's "New comments" card refreshes via `revalidatePath("/dashboard")`. A
+  revalidating server action also re-renders the page it was called from, so the tab comes
+  back with those comments seen; `CommentsFeed` (a client component) remembers which ones it
+  showed as new and keeps their badges for the rest of the visit. The feed
   is the 50 newest comments of all time, not limited to the 12 weeks of the heatmap.
 - **Charts.** The pain line is recharts through a hand-written `src/components/ui/chart.tsx`
   (the shadcn registry was unreachable; same API for `ChartContainer`/`ChartTooltip`, reduced to
