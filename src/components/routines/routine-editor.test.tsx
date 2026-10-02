@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -55,6 +55,7 @@ const summary = (id: string, name: string): ExerciseSummary => ({
   archivedAt: null,
   cover: null,
 });
+const SQUAT = summary("00000000-0000-4000-8000-000000000001", "Squat");
 const LUNGE = summary("00000000-0000-4000-8000-000000000002", "Lunge");
 const BRIDGE = summary("00000000-0000-4000-8000-000000000003", "Bridge");
 
@@ -151,6 +152,62 @@ describe("RoutineEditor", () => {
     expect(rows[2]).toHaveTextContent("Bridge");
     expect(save()).toBeEnabled();
     expect(screen.getByTestId("picker-announcer")).toHaveTextContent("Added Bridge.");
+  });
+
+  it("marks the exercises already in the routine in the side panel", async () => {
+    const user = userEvent.setup();
+    setup({ ...PROPS, exercises: [SQUAT, LUNGE] });
+    const aside = within(screen.getByRole("complementary"));
+    expect(aside.getByRole("button", { name: "Squat" })).toHaveAccessibleDescription(
+      "In the routine",
+    );
+    expect(aside.getByRole("button", { name: "Lunge" })).not.toHaveAccessibleDescription();
+    await user.click(aside.getByRole("button", { name: "Lunge" }));
+    expect(aside.getByRole("button", { name: "Lunge" })).toHaveAccessibleDescription(
+      "In the routine",
+    );
+  });
+
+  it("counts what this sheet added, confirms each pick and marks the rows", async () => {
+    const user = userEvent.setup();
+    setup({ ...PROPS, exercises: [SQUAT, LUNGE] });
+    await user.click(screen.getByRole("button", { name: "Add exercises" }));
+    const sheet = within(await screen.findByRole("dialog", { name: "Add exercises" }));
+    expect(sheet.getByRole("button", { name: "Done" })).toBeInTheDocument();
+
+    await user.click(sheet.getByRole("button", { name: "Lunge" }));
+    expect(sheet.getByRole("button", { name: "1 added · Done" })).toBeInTheDocument();
+    expect(sheet.getByTestId("picker-flash")).toHaveTextContent("Added Lunge");
+    await user.click(sheet.getByRole("button", { name: "Squat" }));
+    expect(sheet.getByTestId("picker-flash")).toHaveTextContent("Added Squat");
+    expect(sheet.getByRole("button", { name: "Squat" })).toHaveAccessibleDescription(
+      "In the routine 2 times",
+    );
+
+    // Done closes; reopening starts a new count.
+    await user.click(sheet.getByRole("button", { name: "2 added · Done" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Add exercises" }));
+    const again = within(await screen.findByRole("dialog", { name: "Add exercises" }));
+    expect(again.getByRole("button", { name: "Done" })).toBeInTheDocument();
+    expect(again.queryByTestId("picker-flash")).not.toBeInTheDocument();
+  });
+
+  it("lets the confirmation go after a moment", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      setup({ ...PROPS, exercises: [LUNGE] });
+      await user.click(screen.getByRole("button", { name: "Add exercises" }));
+      const sheet = within(await screen.findByRole("dialog", { name: "Add exercises" }));
+      await user.click(sheet.getByRole("button", { name: "Lunge" }));
+      expect(sheet.getByTestId("picker-flash")).toHaveTextContent("Added Lunge");
+      await act(() => vi.advanceTimersByTimeAsync(3000));
+      expect(sheet.queryByTestId("picker-flash")).not.toBeInTheDocument();
+      expect(sheet.getByRole("button", { name: "1 added · Done" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("disables the picker once the routine has 50 exercises", () => {

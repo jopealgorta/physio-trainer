@@ -73,6 +73,30 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("ExercisePicker", () => {
+  it("marks exercises already in the routine, with a count from two", () => {
+    setup({ recent: [SQUAT], added: new Map([["e1", 2], ["e2", 1]]) });
+    const squat = within(list()).getByRole("button", { name: "Squat" });
+    expect(squat).toHaveAttribute("data-added", "true");
+    expect(squat).toHaveAccessibleDescription("In the routine 2 times");
+    expect(within(squat).getByText("×2")).toBeInTheDocument();
+    // The recent section shows the same state.
+    const recent = screen.getByRole("region", { name: "Recent" });
+    expect(within(recent).getByRole("button", { name: "Squat" })).toHaveAccessibleDescription(
+      "In the routine 2 times",
+    );
+
+    const lunge = within(list()).getByRole("button", { name: "Lunge" });
+    expect(lunge).toHaveAccessibleDescription("In the routine");
+    expect(within(lunge).queryByText(/×/)).not.toBeInTheDocument();
+  });
+
+  it("leaves exercises not in the routine unmarked", () => {
+    setup();
+    const squat = within(list()).getByRole("button", { name: "Squat" });
+    expect(squat).not.toHaveAttribute("data-added");
+    expect(squat).not.toHaveAccessibleDescription();
+  });
+
   it("shows the recent section and the library while idle", () => {
     setup({ recent: [BRIDGE] });
     const recent = screen.getByRole("region", { name: "Recent" });

@@ -1,6 +1,6 @@
 "use client";
 
-import { DumbbellIcon } from "lucide-react";
+import { CheckIcon, DumbbellIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
@@ -29,6 +29,7 @@ import { searchExercisesAction } from "@/server/routines/actions";
 import type { ExerciseSummary } from "@/server/library/queries";
 
 const SEARCH_DEBOUNCE_MS = 250;
+const NONE_ADDED: ReadonlyMap<string, number> = new Map();
 const MAX_AREA_BADGES = 2;
 
 export const toExerciseRef = (summary: ExerciseSummary): ExerciseRef => ({
@@ -42,13 +43,18 @@ type Fetched = { key: string; exercises: ExerciseSummary[] | null };
 
 function ExerciseButton({
   exercise,
+  count,
   disabled,
   onPick,
 }: {
   exercise: ExerciseSummary;
+  /** How many times the routine already holds it. */
+  count: number;
   disabled: boolean;
   onPick: (exercise: ExerciseSummary) => void;
 }) {
+  const t = useTranslations("Routines.picker");
+  const descriptionId = useId();
   const shown = exercise.bodyAreas.slice(0, MAX_AREA_BADGES);
   const more = exercise.bodyAreas.length - shown.length;
   return (
@@ -56,6 +62,8 @@ function ExerciseButton({
       type="button"
       variant="ghost"
       aria-label={exercise.name}
+      aria-describedby={count > 0 ? descriptionId : undefined}
+      data-added={count > 0 || undefined}
       disabled={disabled}
       onClick={() => onPick(exercise)}
       className="h-auto w-full justify-start gap-3 p-2 text-left font-normal whitespace-normal"
@@ -78,6 +86,15 @@ function ExerciseButton({
           {more > 0 ? <Badge variant="outline">+{more}</Badge> : null}
         </span>
       </span>
+      {count > 0 ? (
+        <span className="text-primary flex shrink-0 items-center gap-0.5 self-center text-xs font-semibold">
+          <CheckIcon aria-hidden className="size-4" />
+          {count > 1 ? <span aria-hidden>{t("addedCount", { count })}</span> : null}
+          <span id={descriptionId} className="sr-only">
+            {t("inRoutine", { count })}
+          </span>
+        </span>
+      ) : null}
     </Button>
   );
 }
@@ -93,11 +110,14 @@ export function ExercisePicker({
   recent,
   initial,
   disabledReason,
+  added = NONE_ADDED,
   onPick,
 }: {
   categories: CategoryNode[];
   recent: ExerciseSummary[];
   initial: ExerciseSummary[];
+  /** How many times the routine holds each exercise (by id): those rows show a check. */
+  added?: ReadonlyMap<string, number>;
   /** Set when nothing can be added (routine at its limit); shown and disables every pick. */
   disabledReason: string | null;
   onPick: (exercise: ExerciseRef) => void;
@@ -278,7 +298,12 @@ export function ExercisePicker({
               <ul className="grid gap-0.5">
                 {recent.map((exercise) => (
                   <li key={exercise.id}>
-                    <ExerciseButton exercise={exercise} disabled={disabled} onPick={pick} />
+                    <ExerciseButton
+                      exercise={exercise}
+                      count={added.get(exercise.id) ?? 0}
+                      disabled={disabled}
+                      onPick={pick}
+                    />
                   </li>
                 ))}
               </ul>
@@ -307,7 +332,12 @@ export function ExercisePicker({
                 >
                   {exercises.map((exercise) => (
                     <li key={exercise.id}>
-                      <ExerciseButton exercise={exercise} disabled={disabled} onPick={pick} />
+                      <ExerciseButton
+                        exercise={exercise}
+                        count={added.get(exercise.id) ?? 0}
+                        disabled={disabled}
+                        onPick={pick}
+                      />
                     </li>
                   ))}
                 </ul>

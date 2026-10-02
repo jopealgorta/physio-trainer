@@ -726,7 +726,10 @@
       "full": "Una rutina puede tener hasta {max, number} ejercicios.",
       "error": "No se pudo buscar. Probá de nuevo.",
       "open": "Agregar ejercicios",
-      "close": "Listo"
+      "close": "{count, plural, =0 {Listo} one {# agregado · Listo} other {# agregados · Listo}}",
+      "inRoutine": "{count, plural, one {En la rutina} other {En la rutina # veces}}",
+      "flash": "Se agregó {name}",
+      "addedCount": "×{count, number}"
     }
   },
   "Plans": {

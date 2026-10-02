@@ -726,7 +726,10 @@
       "full": "A routine can have up to {max, number} exercises.",
       "error": "Couldn't search. Try again.",
       "open": "Add exercises",
-      "close": "Done"
+      "close": "{count, plural, =0 {Done} other {# added · Done}}",
+      "inRoutine": "{count, plural, one {In the routine} other {In the routine # times}}",
+      "flash": "Added {name}",
+      "addedCount": "×{count, number}"
     }
   },
   "Plans": {
