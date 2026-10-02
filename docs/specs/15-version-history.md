@@ -1,6 +1,6 @@
 # 15 · Version history
 
-- **Status:** Not started
+- **Status:** In progress
 - **Feature:** I (routine version history)
 - **Depends on:** 05, 06
 
@@ -86,7 +86,17 @@ Namespace `History`.
 
 ## Open questions
 
-None.
+Answered 2026-10-02:
+
+1. **Does history start at creation?** Yes. Creating or copying a routine or plan (new, template
+   assign/duplicate, save as template, next phase, "separate copy") writes the version 1 snapshot,
+   so a copy's starting point is in history and can be restored.
+2. **What does restore bring back?** Content only: name, notes, sessions per week/day and the
+   groups/items/sets (plan: name, notes and entries). Status, case and the phase window stay as
+   they are now, so a restore never unpublishes or re-activates what the patient sees.
+3. **Plan restore with an archived routine?** Entries whose routine is now archived are dropped
+   with a warning, like deleted routines. The plan's status is unchanged.
+4. **"Routine updated" events on the Activity tab?** Not in this spec (follow-up).
 
 ## Decisions made during implementation
 
