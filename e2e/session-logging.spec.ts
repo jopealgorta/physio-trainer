@@ -124,4 +124,24 @@ test.describe("session logging", () => {
     await page.getByRole("button", { name: "Back to my plan" }).click();
     await expect(page.getByText("Done", { exact: true })).toBeVisible();
   });
+
+  test("Start workout and Mark as done share a row of equal buttons on a phone", async ({
+    page,
+    physio,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone layout");
+    const customerId = await insertCustomer(physio.id);
+    await insertWorkoutRoutine(physio.id, customerId);
+    const link = await insertCustomerLink(physio, customerId);
+
+    await page.goto(link.path);
+    const start = await page.getByRole("link", { name: "Start workout" }).boundingBox();
+    const done = await page.getByRole("button", { name: "Mark as done" }).boundingBox();
+    expect(start && done).toBeTruthy();
+    expect(Math.round(start!.y)).toBe(Math.round(done!.y));
+    expect(Math.round(start!.height)).toBe(48);
+    expect(Math.round(done!.height)).toBe(48);
+    expect(Math.abs(start!.width - done!.width)).toBeLessThanOrEqual(1);
+  });
 });

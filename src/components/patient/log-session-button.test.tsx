@@ -60,6 +60,25 @@ describe("LogSessionButton", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("lays its parts out in the row around it: Mark as done shares it, Edit stays compact", () => {
+    const { container, unmount } = setup();
+    // No box of its own, so it sits next to Start workout in the routine's row.
+    expect(container.firstElementChild).toHaveClass("contents");
+    expect(screen.getByRole("button", { name: "Mark as done" })).toHaveClass("h-12", "flex-1");
+    unmount();
+    setup({ logs: [log()] });
+    expect(screen.getByRole("button", { name: "Edit" })).toHaveClass("h-12", "flex-none");
+  });
+
+  it("shows only the Done state, or nothing, when the day can no longer be logged", () => {
+    const { unmount } = setup({ days: [], logs: [log()] });
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    unmount();
+    const empty = setup({ days: [] });
+    expect(empty.container).toBeEmptyDOMElement();
+  });
+
   it("saves pain and a comment for the shown day, closes and refreshes", async () => {
     const user = userEvent.setup();
     setup({ entryId: ENTRY });

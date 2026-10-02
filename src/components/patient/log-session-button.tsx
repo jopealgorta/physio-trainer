@@ -23,6 +23,7 @@ import { logSessionAction, type LogActionResult } from "@/server/patient/actions
 import type { PatientLog } from "@/server/patient/log-session";
 
 import { PainScale } from "./pain-scale";
+import { PATIENT_ROW_BUTTON } from "./row-button";
 
 export type LoggableDay = { date: string; relative: "today" | "yesterday" };
 
@@ -77,7 +78,7 @@ export function LogSessionButton({
   const canLog = days.length > 0;
 
   const doneBadge = (
-    <span className="inline-flex items-center gap-1.5 text-base font-medium">
+    <span className="inline-flex flex-none items-center gap-1.5 text-base font-medium">
       <CircleCheckIcon aria-hidden className="text-primary size-5" />
       {t("done")}
     </span>
@@ -94,13 +95,16 @@ export function LogSessionButton({
   };
   const day = days.find((d) => d.date === selected) ?? days[0]!;
 
+  // `contents`: the badge and the button are items of the row this sits in (the routine's
+  // action row, next to Start workout), not a box of their own.
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="contents">
       {done ? doneBadge : null}
       <Button
         size="lg"
         variant={done ? "outline" : "default"}
-        className="h-12 px-5 text-base"
+        // Done, the badge says it all and Edit stays compact; to do, it shares the row equally.
+        className={done ? "h-12 flex-none px-5 text-base" : PATIENT_ROW_BUTTON}
         onClick={() => {
           setSelected(days.find((d) => d.date === shownDate)?.date ?? days.at(-1)!.date);
           setOpen(true);
