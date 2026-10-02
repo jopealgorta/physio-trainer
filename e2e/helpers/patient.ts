@@ -106,6 +106,10 @@ export async function insertCustomerLink(
   return { code, slug, path: `/${physio.handle}/${slug}-${code}` };
 }
 
+export async function revokeLink(code: string) {
+  await sql`update public.share_links set revoked_at = now() where code = ${code}`;
+}
+
 export async function linkRow(code: string) {
   const [row] = await sql<{ open_count: number; revoked_at: Date | null }[]>`
     select open_count, revoked_at from public.share_links where code = ${code}`;

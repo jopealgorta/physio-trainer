@@ -78,7 +78,10 @@ export async function PatientHome({
         </h1>
         {nothing ? null : (
           <Button asChild variant="outline" size="sm">
-            <a href={`${path}/download`} download>
+            {/* No `download` attribute: the response is an attachment anyway, and when the link was
+                locked or revoked since the page loaded the browser must follow the redirect to the
+                PIN gate or Unavailable page instead of saving that HTML as a file. */}
+            <a href={`${path}/download`}>
               <DownloadIcon aria-hidden />
               {tE("download")}
             </a>

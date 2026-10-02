@@ -9,6 +9,7 @@ import {
   insertPlan,
   insertRoutine,
   isoWeekdayIn,
+  revokeLink,
 } from "./helpers/patient";
 
 async function expectFile(download: Download, ext: string, magic: string) {
@@ -64,6 +65,27 @@ test.describe("export", () => {
     const download = page.waitForEvent("download");
     await page.getByRole("link", { name: "Download PDF" }).click();
     await expectFile(await download, "pdf", "%PDF");
+  });
+
+  test("a link revoked after the page loaded leads to the Unavailable page", async ({
+    page,
+    physio,
+  }) => {
+    const customerId = await insertCustomer(physio.id);
+    await insertRoutine(physio.id, customerId, "Soon gone");
+    const link = await insertCustomerLink(physio, customerId);
+
+    await page.goto(link.path);
+    await revokeLink(link.code);
+    let downloaded = false;
+    page.on("download", () => {
+      downloaded = true;
+    });
+    await page.getByRole("link", { name: "Download PDF" }).click();
+    await expect(
+      page.getByRole("heading", { name: "This link is no longer available", exact: true }),
+    ).toBeVisible();
+    expect(downloaded).toBe(false);
   });
 
   test("a PIN-locked link redirects the download until the PIN is entered", async ({
