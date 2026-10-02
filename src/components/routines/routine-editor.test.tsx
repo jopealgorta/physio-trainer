@@ -19,6 +19,12 @@ vi.mock("@/server/routines/actions", () => ({
   searchExercisesAction: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+const history = vi.hoisted(() => ({
+  listVersionsAction: vi.fn(),
+  getSnapshotsAction: vi.fn(),
+  restoreVersionAction: vi.fn(),
+}));
+vi.mock("@/server/history/actions", () => history);
 
 const BLOCKS: EditorBlock[] = [
   {
@@ -92,9 +98,7 @@ function setup(props: RoutineEditorProps = PROPS) {
   };
 }
 
-// The drag-and-drop library keeps its own aria-live region (also role="status") in the page.
-const saveStatus = () =>
-  screen.getAllByRole("status").find((element) => !element.id.startsWith("DndLiveRegion"))!;
+const saveStatus = () => screen.getByTestId("save-status");
 const save = () => screen.getByRole("button", { name: /^Save/ });
 const nameInput = () => screen.getByRole("textbox", { name: "Routine name" });
 
@@ -262,6 +266,64 @@ describe("RoutineEditor", () => {
     expect(screen.getByText("Lunge")).toBeInTheDocument();
     expect(screen.queryByText("Squat")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(save()).toBeDisabled();
+  });
+
+  it("restores a version from History, discarding unsaved edits once the page reloads", async () => {
+    const user = userEvent.setup();
+    const snapshot = {
+      schema: 1,
+      routine: {
+        name: "Knee rehab",
+        notes: null,
+        status: "draft",
+        caseId: null,
+        sessionsPerWeek: 3,
+        sessionsPerDay: null,
+        phaseLabel: null,
+        startsOn: null,
+        endsOn: null,
+      },
+      groups: [],
+      items: [],
+    };
+    history.listVersionsAction.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          version: 3,
+          kind: "edited",
+          restoredFrom: null,
+          summary: null,
+          at: "2026-03-02T10:00:00Z",
+        },
+        {
+          version: 2,
+          kind: "created",
+          restoredFrom: null,
+          summary: null,
+          at: "2026-03-01T10:00:00Z",
+        },
+      ],
+    });
+    history.getSnapshotsAction.mockResolvedValue({ ok: true, data: { 2: snapshot, 3: snapshot } });
+    history.restoreVersionAction.mockResolvedValue({ ok: true, data: { version: 4, dropped: 0 } });
+    const { rerenderWith } = setup();
+    await user.type(nameInput(), "!");
+
+    await user.click(screen.getByRole("button", { name: "History" }));
+    await user.click(await screen.findByRole("button", { name: /Created/ }));
+    await user.click(screen.getByRole("button", { name: "Restore this version" }));
+    const confirm = await screen.findByRole("alertdialog");
+    expect(confirm).toHaveTextContent("Your unsaved changes will be discarded.");
+    await user.click(within(confirm).getByRole("button", { name: "Restore" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+
+    rerenderWith({
+      ...PROPS,
+      routine: { ...PROPS.routine, version: 4, header: { ...PROPS.routine.header, name: "Old" } },
+    });
+    await waitFor(() => expect(nameInput()).toHaveValue("Old"));
     expect(save()).toBeDisabled();
   });
 

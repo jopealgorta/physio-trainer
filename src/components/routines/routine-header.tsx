@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,7 @@ export function RoutineHeader({
   saved,
   onSave,
   focusToken,
+  actions,
 }: {
   values: HeaderValues;
   errors: HeaderErrors;
@@ -70,6 +71,8 @@ export function RoutineHeader({
   onSave: () => void;
   /** Bumped by the editor when a save is refused, to move focus to the first invalid field. */
   focusToken: number;
+  /** More controls (the History button), shown before the save state. */
+  actions?: ReactNode;
 }) {
   const t = useTranslations("Routines.editor");
   const tStatus = useTranslations("Routines.status");
@@ -107,7 +110,7 @@ export function RoutineHeader({
   return (
     <div ref={root} className="grid gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid min-w-0 flex-1 gap-1">
+        <div className="grid min-w-0 grow basis-64 gap-1">
           <Input
             value={values.name}
             onChange={(event) => onChange({ name: event.target.value })}
@@ -139,7 +142,8 @@ export function RoutineHeader({
             </p>
           ) : null}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {actions}
           <p role="status" data-testid="save-status" className="text-muted-foreground text-sm">
             {indicator}
           </p>

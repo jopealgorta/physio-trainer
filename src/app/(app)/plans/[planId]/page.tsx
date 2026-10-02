@@ -4,8 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { PhaseBar } from "@/components/phases/phase-bar";
 import { ExportMenu } from "@/components/export/export-menu";
+import { HistorySheet } from "@/components/history/history-sheet";
+import { PhaseBar } from "@/components/phases/phase-bar";
 import { ShareButton } from "@/components/sharing/share-button";
 import { PlanBoard } from "@/components/plans/plan-board";
 import { PlanDetailsForm } from "@/components/plans/plan-details-form";
@@ -59,13 +60,17 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
           <ArrowLeftIcon aria-hidden className="size-4" />
           {back.label}
         </Link>
-        {/* A template (no customer) has nobody to share with. */}
-        {plan.customerId ? (
-          <div className="flex flex-wrap gap-2">
-            <ExportMenu target={{ kind: "plans", id: plan.id }} />
-            <ShareButton target={{ target: "weekly_plan", weeklyPlanId: plan.id }} />
-          </div>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* A restore refreshes the page; the details form takes the restored values. */}
+          <HistorySheet kind="plan" id={plan.id} />
+          {/* A template (no customer) has nobody to share with or export for. */}
+          {plan.customerId ? (
+            <>
+              <ExportMenu target={{ kind: "plans", id: plan.id }} />
+              <ShareButton target={{ target: "weekly_plan", weeklyPlanId: plan.id }} />
+            </>
+          ) : null}
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{plan.name}</h1>

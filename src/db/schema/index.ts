@@ -11,3 +11,4 @@ export * from "./plans";
 export * from "./visit-notes";
 export * from "./sharing";
 export * from "./session-logs";
+export * from "./history";

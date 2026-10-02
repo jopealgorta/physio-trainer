@@ -1,6 +1,6 @@
 # 15 · Version history
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** I (routine version history)
 - **Depends on:** 05, 06
 
@@ -73,10 +73,10 @@ Namespace `History`.
 
 ## Acceptance criteria
 
-- [ ] Every routine save and plan change creates (or coalesces) a snapshot in the same transaction.
-- [ ] History list with human-readable summaries; diff between any two versions.
-- [ ] Restore works and is itself a new version.
-- [ ] Unit tests for the diff; integration tests for transactional writes and RLS.
+- [x] Every routine save and plan change creates (or coalesces) a snapshot in the same transaction.
+- [x] History list with human-readable summaries; diff between any two versions.
+- [x] Restore works and is itself a new version.
+- [x] Unit tests for the diff; integration tests for transactional writes and RLS.
 
 ## Test plan
 
@@ -86,8 +86,45 @@ Namespace `History`.
 
 ## Open questions
 
-None.
+Answered 2026-10-02:
+
+1. **Does history start at creation?** Yes. Creating or copying a routine or plan (new, template
+   assign/duplicate, save as template, next phase, "separate copy") writes the version 1 snapshot,
+   so a copy's starting point is in history and can be restored.
+2. **What does restore bring back?** Content only: name, notes, sessions per week/day and the
+   groups/items/sets (plan: name, notes and entries). Status, case and the phase window stay as
+   they are now, so a restore never unpublishes or re-activates what the patient sees.
+3. **Plan restore with an archived routine?** Entries whose routine is now archived are dropped
+   with a warning, like deleted routines. The plan's status is unchanged.
+4. **"Routine updated" events on the Activity tab?** Not in this spec (follow-up).
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- `summary` is structured jsonb rendered per locale, not text.
+- Snapshot types live in `src/lib/history/snapshot.ts` (the client diff needs them), not under
+  `src/server/`. `VERSION_KINDS` lives in alias-free `src/lib/history/kinds.ts`, because
+  drizzle-kit loads the schema without the `@/` alias.
+- `weekly_plan_versions` has an update policy (for coalescing) plus `session_id` and
+  `updated_at`; both tables have `kind` and `restored_from` columns. Entries carry their id.
+- Coalescing never folds into created or restored rows. Coalesced plan edits that cancel out
+  leave a version whose summary reads "No changes".
+- Versions created before this spec are not backfilled; the first recorded version is shown
+  without a summary.
+- Phase label and dates stay in snapshots and diffs although `setPhase` (schedule metadata,
+  spec 08) records no version; a later version's diff then shows the date change.
+- Restoring a superset that loses members below the minimum ungroups the survivor and gives it
+  the group's rest, as the editor does when a superset shrinks.
+- Plan restore re-inserts the snapshot's entries with their snapshot ids: the current entries
+  are deleted first in the same transaction and nothing references an entry id, so the ids
+  never collide, and a diff across a restore matches entries instead of showing every entry
+  removed and re-added. Plan-only routines no longer referenced stay in place, like removing an
+  entry without deleting its routine; restoring a plan to before a "separate copy" therefore
+  leaves the copy routine in place.
+- A plan entry counts as moved when its weekday changed or, on the same day, it falls outside
+  the longest run of the day's kept entries that kept their relative order (the same rule
+  routine items follow). Positions alone don't count: the board renumbers a day on every add,
+  remove or move, so removing the first of three entries moves nothing.
+- The plan page's details form adopts restored values when the server's name/notes differ from
+  what it last saved (not keyed by version, so board actions don't drop unsaved details
+  edits); the plan page shows no unsaved-changes warning in the restore dialog.
+- Version activity events on the customer Activity tab are deferred (Open question 4).

@@ -15,6 +15,7 @@ import {
 } from "@/lib/plans";
 import type { RoutineStatus } from "@/lib/routines";
 import { distinctRoutineIds, remapEntries } from "@/lib/templates";
+import { recordPlanVersion, recordRoutineVersion } from "@/server/history/record";
 import { copyRoutine, createRoutine, duplicateRoutine } from "@/server/routines/mutations";
 
 import {
@@ -73,6 +74,7 @@ export async function createPlan(
       name: input.name,
     })
     .returning({ id: weeklyPlans.id });
+  await recordPlanVersion(tx, physioId, row.id, { kind: "created" });
   return ok(row);
 }
 
@@ -81,7 +83,7 @@ export async function createPlan(
  * snapshot of the entries), and returns what the actions need. Null when the plan is not the
  * physio's.
  */
-async function lockPlan(tx: Tx, physioId: string, planId: string) {
+export async function lockPlan(tx: Tx, physioId: string, planId: string) {
   if (!isUuid(planId)) return null;
   const [plan] = await tx
     .select({
@@ -111,12 +113,14 @@ const loadEntries = (tx: Tx, physioId: string, planId: string): Promise<Entry[]>
       and(eq(weeklyPlanEntries.physioId, physioId), eq(weeklyPlanEntries.weeklyPlanId, planId)),
     );
 
-/** Every board action bumps the plan's version (spec 15 snapshots build on it). */
-const bump = (tx: Tx, physioId: string, planId: string) =>
-  tx
+/** Every board action bumps the plan's version and records (or coalesces) a snapshot (spec 15). */
+async function bumpAndRecord(tx: Tx, physioId: string, planId: string) {
+  await tx
     .update(weeklyPlans)
     .set({ version: sql`${weeklyPlans.version} + 1`, updatedAt: new Date() })
     .where(and(eq(weeklyPlans.physioId, physioId), eq(weeklyPlans.id, planId)));
+  await recordPlanVersion(tx, physioId, planId, { kind: "edited" });
+}
 
 /** Writes the weekday/position of every entry that differs between two arrangements. */
 async function persistArrangement(
@@ -198,6 +202,7 @@ export async function updatePlan(
     })
     .where(and(eq(weeklyPlans.physioId, physioId), eq(weeklyPlans.id, plan.id)))
     .returning({ version: weeklyPlans.version });
+  await recordPlanVersion(tx, physioId, plan.id, { kind: "edited" });
   return ok({ version: saved.version });
 }
 
@@ -251,7 +256,7 @@ export async function addEntry(
       .set({ isStandalone: input.standalone })
       .where(and(eq(routines.physioId, physioId), eq(routines.id, routine.id)));
   }
-  await bump(tx, physioId, plan.id);
+  await bumpAndRecord(tx, physioId, plan.id);
   return ok({ entryId });
 }
 
@@ -293,6 +298,7 @@ export async function addNewRoutineEntry(
       })
       .returning({ id: routines.id });
     routineId = template.id;
+    await recordRoutineVersion(tx, physioId, routineId, { kind: "created" });
   } else {
     const created = await createRoutine(tx, physioId, {
       customerId: plan.customerId,
@@ -315,7 +321,7 @@ export async function addNewRoutineEntry(
     position,
     label: null,
   });
-  await bump(tx, physioId, plan.id);
+  await bumpAndRecord(tx, physioId, plan.id);
   return ok({ entryId, routineId });
 }
 
@@ -334,7 +340,7 @@ export async function moveEntry(
   if (!next) return fail("dayFull");
   if (changedEntries(entries, next).length > 0) {
     await persistArrangement(tx, physioId, plan.id, entries, next);
-    await bump(tx, physioId, plan.id);
+    await bumpAndRecord(tx, physioId, plan.id);
   }
   return ok({});
 }
@@ -365,7 +371,7 @@ export async function copyEntry(
     position: added.position,
     label: source.label,
   });
-  await bump(tx, physioId, plan.id);
+  await bumpAndRecord(tx, physioId, plan.id);
   return ok({ entryId });
 }
 
@@ -388,7 +394,7 @@ export async function setEntryLabel(
     )
     .returning({ id: weeklyPlanEntries.id });
   if (updated.length === 0) return fail("entryNotFound");
-  await bump(tx, physioId, plan.id);
+  await bumpAndRecord(tx, physioId, plan.id);
   return ok({});
 }
 
@@ -449,7 +455,7 @@ export async function removeEntry(
       }
     }
   }
-  await bump(tx, physioId, plan.id);
+  await bumpAndRecord(tx, physioId, plan.id);
   return ok({ deletedRoutine });
 }
 
@@ -514,7 +520,7 @@ export async function makeSeparateCopy(
     .update(weeklyPlanEntries)
     .set({ routineId: copy.data.id })
     .where(and(eq(weeklyPlanEntries.physioId, physioId), eq(weeklyPlanEntries.id, entry.id)));
-  await bump(tx, physioId, plan.id);
+  await bumpAndRecord(tx, physioId, plan.id);
   return ok({ routineId: copy.data.id });
 }
 
@@ -594,5 +600,6 @@ export async function copyPlan(
       })),
     );
   }
+  await recordPlanVersion(tx, physioId, plan.id, { kind: "created" });
   return ok({ id: plan.id });
 }

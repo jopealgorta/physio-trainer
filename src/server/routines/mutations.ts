@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 
 import type { RoutineStatus } from "@/lib/routines";
+import { recordRoutineVersion, type RecordOptions } from "@/server/history/record";
 
 import { listPlansUsingRoutine } from "./hooks";
 import {
@@ -60,8 +61,8 @@ export async function createRoutine(
 
   try {
     // A savepoint, so a constraint violation does not abort the caller's transaction.
-    const [row] = await tx.transaction((savepoint) =>
-      savepoint
+    const row = await tx.transaction(async (savepoint) => {
+      const [inserted] = await savepoint
         .insert(routines)
         .values({
           physioId,
@@ -69,8 +70,10 @@ export async function createRoutine(
           caseId: input.caseId,
           name: input.name,
         })
-        .returning({ id: routines.id }),
-    );
+        .returning({ id: routines.id });
+      await recordRoutineVersion(savepoint, physioId, inserted.id, { kind: "created" });
+      return inserted;
+    });
     return ok(row);
   } catch (error) {
     if (isForeignKeyViolation(error, "routines_customer_fk")) return fail("customerNotFound");
@@ -83,12 +86,13 @@ export async function createRoutine(
  * Replaces a routine's header, groups, items and sets in the caller's transaction. The routine
  * row is locked first, so concurrent saves serialise and the loser sees the bumped version
  * (optimistic locking). Groups, items and sets get fresh ids on every save; client keys are
- * never stored.
+ * never stored. Each save records a version snapshot (`record` says what kind, spec 15).
  */
 export async function saveRoutine(
   tx: Tx,
   physioId: string,
   input: SaveRoutineInput,
+  record: RecordOptions = { kind: "edited" },
 ): Promise<Result<{ version: number }, SaveRoutineError>> {
   if (!isUuid(input.id)) return fail("notFound");
 
@@ -206,6 +210,7 @@ export async function saveRoutine(
     })
     .where(and(eq(routines.physioId, physioId), eq(routines.id, input.id)))
     .returning({ version: routines.version });
+  await recordRoutineVersion(tx, physioId, input.id, record);
   return ok({ version: saved.version });
 }
 
@@ -326,6 +331,7 @@ export async function copyRoutine(
       );
     }
   }
+  await recordRoutineVersion(tx, physioId, copy.id, { kind: "created" });
   return ok({ id: copy.id });
 }
 
