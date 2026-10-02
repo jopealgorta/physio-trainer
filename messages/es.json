@@ -1312,6 +1312,61 @@
       "titleWithClinic": "{title} · {clinic}",
       "imageAlt": "{clinic}",
       "imageAltTitled": "{title} · {clinic}"
+    },
+    "startWorkout": "Empezar entrenamiento"
+  },
+  "Workout": {
+    "label": "Entrenamiento: {name}",
+    "progress": "Ejercicio {current, number} de {total, number}",
+    "setOf": "Serie {current, number} de {total, number}",
+    "superset": "Superserie",
+    "side": {
+      "left": "Lado izquierdo",
+      "right": "Lado derecho",
+      "both": "Ambos lados"
+    },
+    "target": {
+      "reps": "{count, plural, one {# repetición} other {# repeticiones}}",
+      "range": "{min, number}–{max, number} repeticiones",
+      "duration": "{value, number} s",
+      "load": "Carga: {value}"
+    },
+    "exit": "Salir del entrenamiento",
+    "exitDialog": {
+      "title": "¿Salir de este entrenamiento?",
+      "description": "Vas a perder lo que avanzaste en este entrenamiento.",
+      "stay": "Seguir",
+      "leave": "Salir"
+    },
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "setDone": "Serie lista",
+    "startTimer": "Iniciar cuenta regresiva",
+    "startHold": "Sostener {value, number} s",
+    "hold": "Sostener",
+    "timeLeft": "Tiempo restante",
+    "rest": "Descanso",
+    "upNext": "Sigue",
+    "skip": "Saltar",
+    "addTime": "+15 s",
+    "addTimeLabel": "Sumar 15 segundos",
+    "notes": "Nota",
+    "instructions": "Cómo hacerlo",
+    "noVideo": "Este ejercicio no tiene video",
+    "sound": {
+      "on": "Sonido activado",
+      "off": "Sonido desactivado"
+    },
+    "announce": {
+      "holdDone": "Terminó el sostén.",
+      "timeUp": "Se acabó el tiempo.",
+      "restOver": "Terminó el descanso. Sigue: {name}.",
+      "finished": "Entrenamiento terminado."
+    },
+    "finished": {
+      "title": "¡Muy bien!",
+      "description": "Terminaste {name}.",
+      "back": "Volver a mi plan"
     }
   }
 }

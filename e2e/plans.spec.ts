@@ -200,6 +200,9 @@ test("dragging a card to another day moves it (desktop)", async ({
   await addExisting(page, "Monday", "Drag me");
 
   const handle = page.getByRole("button", { name: "Move Drag me" });
+  // Mouse coordinates are viewport coordinates: bring the board into view before measuring it
+  // (the plan form above it is tall enough to push the cards below a 720 px viewport).
+  await handle.scrollIntoViewIfNeeded();
   const from = await handle.boundingBox();
   const to = await day(page, "Wednesday").boundingBox();
   if (!from || !to) throw new Error("layout not ready");

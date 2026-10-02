@@ -2,6 +2,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 
 import type { Locale } from "@/i18n/config";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
+import { buildWorkoutPath } from "@/lib/patient-paths";
 import { weekdayName, type Weekday } from "@/lib/plans";
 import type { PatientView } from "@/server/patient/view";
 
@@ -87,6 +88,7 @@ export async function PatientHome({
                     routine={entry.routine}
                     label={entry.label}
                     locale={locale}
+                    startHref={buildWorkoutPath(path, entry.routine.id, entry.id)}
                   />
                 ))
               )}
@@ -113,6 +115,7 @@ export async function PatientHome({
               routine={routine}
               locale={locale}
               headingLevel={routinesHeading ? 3 : 2}
+              startHref={buildWorkoutPath(path, routine.id)}
             />
           ))}
         </section>

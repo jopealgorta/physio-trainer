@@ -1,6 +1,10 @@
+import { PlayIcon } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { YouTubePreview } from "@/components/library/youtube-preview";
+import { Button } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import { formatPrescription, type PrescriptionTranslate } from "@/lib/prescription";
 import type { PatientBlock, PatientItem, PatientRoutine } from "@/server/patient/view";
@@ -13,12 +17,15 @@ export async function RoutineView({
   locale,
   headingLevel = 3,
   label,
+  startHref,
 }: {
   routine: PatientRoutine;
   locale: Locale;
   headingLevel?: 2 | 3;
   /** The plan entry's label ("Morning"), shown above the routine name. */
   label?: string | null;
+  /** The guided workout for this routine (spec 12); omitted where it cannot start. */
+  startHref?: string;
 }) {
   const [t, tPrescription] = await Promise.all([
     getTranslations({ locale, namespace: "Patient" }),
@@ -46,6 +53,14 @@ export async function RoutineView({
           <p className="text-muted-foreground text-sm">{frequency.join(" · ")}</p>
         ) : null}
       </header>
+      {startHref && routine.blocks.length > 0 ? (
+        <Button asChild size="lg" className="h-12 w-full text-base sm:w-fit">
+          <Link href={startHref as Route} prefetch={false}>
+            <PlayIcon aria-hidden />
+            {t("startWorkout")}
+          </Link>
+        </Button>
+      ) : null}
       {routine.notes ? (
         <section aria-label={t("notes")} className="bg-muted rounded-lg p-3 text-sm">
           <p className="wrap-anywhere whitespace-pre-line">{routine.notes}</p>
