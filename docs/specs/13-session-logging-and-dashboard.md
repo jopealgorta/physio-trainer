@@ -67,11 +67,11 @@ Charts follow the repo's dataviz conventions (tokens, light/dark, accessible lab
    and active on `performed_on` → upsert.
 2. `performed_on` comes from the patient's device date; accept only today or yesterday in the
    physio's timezone ±1 day. Older dates are rejected.
-3. Rate limit: 30 writes per link per hour.
+3. ~~Rate limit: 30 writes per link per hour.~~ Dropped (see Open questions 3).
 4. **Adherence** = logged-completed sessions / planned sessions in a window. Planned sessions:
    plan entries per active day + single routines' `sessions_per_week` (pro-rated). Implement in
    `src/lib/adherence.ts` (pure, unit-tested) using the spec 08 active-on-date helper.
-5. Physio can't edit patient logs, but can hide a log (e.g. accidental) — optional, see open questions.
+5. Physio can't edit or hide patient logs (see Open questions 2).
 
 ## Security and privacy
 
@@ -95,13 +95,22 @@ Namespaces `Patient.logging`, `Activity`, `Dashboard`.
 ## Test plan
 
 - Unit: adherence calculation (plans + single routines, phase windows), attention rules.
-- Integration: log upsert/uniqueness, reachability, date window, rate limit, RLS.
+- Integration: log upsert/uniqueness, reachability, date window, RLS.
 - E2E: patient logs pain 6 → physio dashboard shows it under recently active; pain 8 → needs attention.
 
 ## Open questions
 
 1. Are the "needs attention" thresholds right (pain ≥ 7, +3 week over week, < 50 % adherence)?
+   **Answer (2026-10-02):** yes, as specced. The adherence rule applies only when something is
+   planned and the customer has a usable share link; the week-over-week rule only when both weeks
+   have a pain rating.
 2. Should physios be able to hide/delete a patient log?
+   **Answer:** no. Logs are read-only for physios (rule 5); patients correct their own.
+3. (Raised while designing) The 30 writes/link/hour rate limit (rule 3) vs spec 10, which shipped
+   no limiter. **Answer:** no limiter. The upsert already caps rows (one per routine, entry and
+   day), so a flood can only rewrite existing rows. Rule 3 is dropped.
+4. (Raised while designing) Charts: **Answer:** shadcn `chart` (recharts) for the pain line; the
+   heatmap is a plain token-coloured grid.
 
 ## Decisions made during implementation
 
