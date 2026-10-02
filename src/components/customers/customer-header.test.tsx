@@ -106,9 +106,9 @@ describe("CustomerHeader", () => {
 
   it("offers sharing, except for an archived customer (their links are revoked)", () => {
     const { unmount } = setup();
-    expect(screen.getByRole("button", { name: "Share" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Share all active" })).toBeInTheDocument();
     unmount();
     setup({ archivedAt: new Date("2026-10-01T00:00:00Z") });
-    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share all active" })).not.toBeInTheDocument();
   });
 });

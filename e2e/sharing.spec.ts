@@ -231,7 +231,7 @@ test.describe("sharing from the physio's side", () => {
     await insertRoutine(physio.id, customerId, "Knee routine");
     await page.goto(`/customers/${customerId}`);
 
-    await page.getByRole("button", { name: "Share" }).click();
+    await page.getByRole("button", { name: "Share all active" }).click();
     const link = page.getByLabel("Link", { exact: true });
     await expect(link).toHaveValue(new RegExp(`/${physio.handle}/ana-[0-9a-hjkmnp-tv-z]{8}$`));
     const url = await link.inputValue();
@@ -296,7 +296,7 @@ test.describe("sharing from the physio's side", () => {
     const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
     await insertRoutine(physio.id, customerId, "Knee routine");
     await page.goto(`/customers/${customerId}`);
-    await page.getByRole("button", { name: "Share" }).click();
+    await page.getByRole("button", { name: "Share all active" }).click();
     await expect(page.getByLabel("Link", { exact: true })).toBeVisible();
 
     const content = page.locator('[data-slot="popover-content"]');
@@ -322,14 +322,14 @@ test.describe("sharing from the physio's side", () => {
     const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
     await insertRoutine(physio.id, customerId, "Knee routine");
     await page.goto(`/customers/${customerId}`);
-    await page.getByRole("button", { name: "Share" }).click();
+    await page.getByRole("button", { name: "Share all active" }).click();
     const url = await page.getByLabel("Link", { exact: true }).inputValue();
     await page.keyboard.press("Escape");
 
     await page.getByRole("button", { name: "Archive" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Archive" }).click();
     await expect(page.getByRole("button", { name: "Restore" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Share" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Share all active" })).toHaveCount(0);
 
     const patient = await browser.newContext();
     const patientPage = await patient.newPage();
@@ -357,14 +357,14 @@ test.describe("sharing from the physio's side", () => {
     void other;
 
     await page.goto(`/routines/${routineId}`);
-    await page.getByRole("button", { name: "Share" }).click();
+    await page.getByRole("button", { name: "Share routine" }).click();
     await expect(
       page.getByRole("heading", { name: "Share this routine", exact: true }),
     ).toBeVisible();
     const routineUrl = await page.getByLabel("Link", { exact: true }).inputValue();
 
     await page.goto(`/plans/${planId}`);
-    await page.getByRole("button", { name: "Share" }).click();
+    await page.getByRole("button", { name: "Share plan" }).click();
     await expect(page.getByRole("heading", { name: "Share this plan", exact: true })).toBeVisible();
     const planUrl = await page.getByLabel("Link", { exact: true }).inputValue();
 
