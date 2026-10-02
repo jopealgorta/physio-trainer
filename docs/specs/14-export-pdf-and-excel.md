@@ -1,6 +1,6 @@
 # 14 · PDF and Excel export
 
-- **Status:** Not started
+- **Status:** Done
 - **Feature:** Core
 - **Depends on:** 05, 06, 09, 10
 
@@ -77,10 +77,13 @@ Namespace `Export`; dates/units localised to the customer's locale.
 
 ## Acceptance criteria
 
-- [ ] PDF and xlsx for routine, plan, customer; patient PDF download.
-- [ ] Branding, QR code to the live link, thumbnails; readable in greyscale print.
-- [ ] Files open correctly in Acrobat/Preview and Excel/Numbers/LibreOffice.
-- [ ] 10-exercise routine PDF < 2 MB and generated in < 3 s locally.
+- [x] PDF and xlsx for routine, plan, customer; patient PDF download.
+- [x] Branding, QR code to the live link, thumbnails; readable in greyscale print.
+- [x] Files open correctly in Acrobat/Preview and Excel/Numbers/LibreOffice. Checked in macOS
+      Preview/Quick Look (PDF and xlsx) and by an exceljs read-back; Acrobat, Excel and LibreOffice
+      were not available to check.
+- [x] 10-exercise routine PDF < 2 MB and generated in < 3 s locally (unit test: about 175 KB,
+      about 160 ms with ten distinct covers).
 
 ## Test plan
 
@@ -102,4 +105,46 @@ Namespace `Export`; dates/units localised to the customer's locale.
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **One model, two renderers.** Loaders produce an `ExportSource`; the pure
+  `buildExportDocument` (`src/server/export/model.ts`) turns it into the `ExportDocument` both the
+  PDF (`src/server/export/pdf/`) and xlsx (`src/server/export/xlsx.ts`) renderers read.
+- **Shared routine content.** The patient view's private loader moved to
+  `src/server/routines/content.ts` as `loadRoutineContent(q, physioId, customerId, ids)` (it
+  filters by physio and customer itself). The patient page and patient PDF use the owner `db`, the
+  physio export uses its RLS transaction. The patient page's plan-entry query became
+  `linkPlanEntries` next to `linkScopes` in `src/server/patient/view.ts`, so the page and the PDF
+  share one definition of what a link can see.
+- **No `sharp`.** Thumbnails are YouTube's `mqdefault.jpg` (320×180, about 15 KB), fetched
+  server-side with a 2 s timeout, a 512 KB streaming cap, a PNG/JPEG check and an LRU cache; any
+  failure renders a grey box. The fetch helper lives in `src/server/images.ts` and the link-preview
+  logo uses it too.
+- **Fonts** are read from `src/assets/fonts` at runtime (Outfit Regular is new, a static file from
+  the upstream Outfit repo), so `next.config.ts` traces them for the export routes. Both packages
+  are `serverExternalPackages`. Outfit has no italic, so item notes are grey with a bold "Notes:" prefix.
+- **Layout.** Routines flow one after another (no page break per routine). A routine's heading
+  stays on the same page as its first exercise, and an item is never split across pages. The
+  clinic header is on the first page only; the footer (QR, short URL, page numbers) is on every
+  page. Tracking boxes appear only on the days a plan schedules the routine, or on all seven days
+  for a routine outside a plan. Instructions are cut at 280 characters in the PDF and kept in
+  full in the xlsx.
+- **QR target** is always the customer's link (created on first export if none exists). Only the
+  PDF needs it, so an xlsx export never creates a link. The patient PDF points at the link it was
+  downloaded from.
+- **Scope.** A physio's plan export includes draft routines, matching the plan board. The
+  customer export and the patient PDF only include what is active today (`scheduleFilter`), with
+  every weekday of the plan. Phase labels and dates appear only in the physio's export, since the
+  patient page shows none. Headers name the customer by first name only.
+- **Patient download.** When the link has become PIN-locked or unavailable, the download
+  answers `303` to the page, which shows the PIN gate or the "unavailable" screen. The button is a
+  plain link with no `download` attribute, so the browser follows that redirect instead of saving
+  HTML; `Content-Disposition: attachment` still downloads the PDF. The route sets
+  `PATIENT_HEADERS` itself, because the proxy only matches 2- and 4-segment patient paths.
+  Downloads don't count as link opens.
+- **Filenames** are `<slug>-<YYYY-MM-DD>.<ext>`, sent as ASCII `filename` plus a
+  UTF-8 `filename*` (RFC 5987).
+- **Excel.** There is one row per exercise. A value that differs per set is joined
+  ("12 / 10 / 8") and collapses to one value when every set matches; numbers stay numeric when
+  single-valued. Superset members share a group label (A1, A2). Routine notes and frequency sit
+  above the frozen header row (row 6).
+- **Unrelated test fix.** Two `plan-board.test.tsx` tests raced `useOptimistic` reverting
+  (`main` CI was red on them); they now hold the action pending while they assert.
