@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ROUTINE_NAME_MAX, ROUTINE_NOTES_MAX } from "./routines";
-import { validateHeader, type HeaderInput } from "./routine-validation";
+import { validateHeader, validateName, type HeaderInput } from "./routine-validation";
 
 const valid: HeaderInput = {
   name: "Knee rehab",
@@ -72,5 +72,13 @@ describe("validateHeader", () => {
       ok: false,
       errors: { name: "nameRequired", sessionsPerWeek: "outOfRange", sessionsPerDay: "outOfRange" },
     });
+  });
+});
+
+describe("validateName", () => {
+  it("requires a name, trimmed, of at most the routine maximum", () => {
+    expect(validateName("  ")).toBe("nameRequired");
+    expect(validateName("x".repeat(ROUTINE_NAME_MAX + 1))).toBe("nameTooLong");
+    expect(validateName(` ${"x".repeat(ROUTINE_NAME_MAX)} `)).toBeNull();
   });
 });

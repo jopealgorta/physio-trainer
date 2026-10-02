@@ -5,7 +5,6 @@ import { useId, useState, useTransition, type FormEvent } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -15,22 +14,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { PLAN_NAME_MAX, PLAN_NOTES_MAX } from "@/lib/plans";
+import { PLAN_NOTES_MAX } from "@/lib/plans";
 import { ROUTINE_STATUSES, type RoutineStatus } from "@/lib/routines";
 import { fromSelectValue, toSelectValue } from "@/lib/select-value";
 import { TEMPLATE_STATUSES } from "@/lib/templates";
 import { updatePlanAction } from "@/server/plans/actions";
 
+/** The plan's details; its name is the page title (`PlanTitle`), renamed on its own. */
 export type PlanDetails = {
-  name: string;
   notes: string;
   caseId: string | null;
   status: RoutineStatus;
 };
 
-/** Details as the server stores them (it trims name and notes), for comparing. */
-const normalized = ({ name, notes, caseId, status }: PlanDetails) =>
-  JSON.stringify({ name: name.trim(), notes: notes.trim(), caseId, status });
+/** Details as the server stores them (it trims the notes), for comparing. */
+const normalized = ({ notes, caseId, status }: PlanDetails) =>
+  JSON.stringify({ notes: notes.trim(), caseId, status });
 
 type SaveError =
   | "notFound"
@@ -40,11 +39,9 @@ type SaveError =
   | "templateNoDraft"
   | "invalid"
   | "generic"
-  | "nameRequired"
-  | "nameTooLong"
   | "notesTooLong";
 
-/** Name, status, case and notes of a plan. Saves with the button (the board saves on its own). */
+/** Status, case and notes of a plan. Saves with the button (the board saves on its own). */
 export function PlanDetailsForm({
   planId,
   initial,
@@ -87,7 +84,6 @@ export function PlanDetailsForm({
 
   const dirty = normalized(values) !== normalized(saved);
   const statuses = isTemplate ? TEMPLATE_STATUSES : ROUTINE_STATUSES;
-  const nameBlank = values.name.trim() === "";
   const caseTitles = new Map(cases.map((item) => [item.id, item.title]));
 
   const change = (patch: Partial<PlanDetails>) => {
@@ -97,17 +93,12 @@ export function PlanDetailsForm({
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (nameBlank) {
-      setError("nameRequired");
-      return;
-    }
     setError(null);
     const submitted = values;
     startTransition(async () => {
       try {
         const result = await updatePlanAction({
           id: planId,
-          name: submitted.name,
           notes: submitted.notes,
           caseId: submitted.caseId,
           status: submitted.status,
@@ -127,25 +118,7 @@ export function PlanDetailsForm({
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-4 rounded-lg border p-4">
       <h2 className="text-base font-semibold">{t("title")}</h2>
-      <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
-        <div className="grid gap-2">
-          <Label htmlFor={`${id}-name`}>{t("name")}</Label>
-          <Input
-            id={`${id}-name`}
-            value={values.name}
-            maxLength={PLAN_NAME_MAX}
-            autoComplete="off"
-            required
-            aria-invalid={error === "nameRequired"}
-            aria-describedby={isTemplate ? undefined : `${id}-name-hint`}
-            onChange={(event) => change({ name: event.target.value })}
-          />
-          {isTemplate ? null : (
-            <p id={`${id}-name-hint`} className="text-muted-foreground text-sm">
-              {t("nameHint")}
-            </p>
-          )}
-        </div>
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor={`${id}-status`}>{t("status")}</Label>
           <Select
@@ -211,9 +184,7 @@ export function PlanDetailsForm({
       </div>
       {error ? (
         <Alert variant="destructive">
-          <AlertDescription>
-            {tErrors(error, { max: error === "nameTooLong" ? PLAN_NAME_MAX : PLAN_NOTES_MAX })}
-          </AlertDescription>
+          <AlertDescription>{tErrors(error, { max: PLAN_NOTES_MAX })}</AlertDescription>
         </Alert>
       ) : null}
       <div className="flex items-center gap-3">

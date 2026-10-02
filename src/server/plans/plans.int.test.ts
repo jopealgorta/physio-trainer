@@ -12,6 +12,7 @@ import {
   routineItems,
   routines,
   weeklyPlanEntries,
+  weeklyPlanVersions,
   weeklyPlans,
 } from "@/db/schema";
 import { DEFAULT_PLAN_FILTERS } from "@/lib/plan-params";
@@ -29,6 +30,7 @@ import {
   makeSeparateCopy,
   moveEntry,
   removeEntry,
+  renamePlan,
   setEntryLabel,
   updatePlan,
 } from "./mutations";
@@ -738,6 +740,51 @@ describe("weekly plans server layer", () => {
           updatePlan(tx, id, { id: planId, name: "x", notes: null, caseId: null, status: "draft" }),
         ),
       ).resolves.toEqual({ ok: false, error: "notFound" });
+    });
+  });
+
+  describe("renamePlan", () => {
+    it("renames only, bumping the version", async () => {
+      const c = await customer(a);
+      const planId = await plan(a, c);
+      await as(a, (tx, id) =>
+        updatePlan(tx, id, { id: planId, notes: "Keep", caseId: null, status: "draft" }),
+      );
+      const before = await versionOf(planId);
+      await expect(
+        as(a, (tx, id) => renamePlan(tx, id, { id: planId, name: "Week 2" })),
+      ).resolves.toEqual({ ok: true, data: { version: before + 1 } });
+      const [row] = await db.select().from(weeklyPlans).where(eq(weeklyPlans.id, planId));
+      expect(row).toMatchObject({ name: "Week 2", notes: "Keep", status: "draft" });
+      // Recorded in the history like any other edit (spec 15).
+      const versions = await db
+        .select()
+        .from(weeklyPlanVersions)
+        .where(eq(weeklyPlanVersions.weeklyPlanId, planId));
+      const latest = versions.sort((x, y) => y.version - x.version)[0];
+      expect(latest).toMatchObject({ version: before + 1, kind: "edited" });
+      expect(latest.snapshot).toMatchObject({ plan: { name: "Week 2" } });
+    });
+
+    it("saving the details without a name keeps the name", async () => {
+      const c = await customer(a);
+      const planId = await plan(a, c);
+      await as(a, (tx, id) => renamePlan(tx, id, { id: planId, name: "Renamed" }));
+      await as(a, (tx, id) =>
+        updatePlan(tx, id, { id: planId, notes: "n", caseId: null, status: "draft" }),
+      );
+      const [row] = await db.select().from(weeklyPlans).where(eq(weeklyPlans.id, planId));
+      expect(row).toMatchObject({ name: "Renamed", notes: "n" });
+    });
+
+    it("is not found for another physio's plan", async () => {
+      const c = await customer(a);
+      const planId = await plan(a, c);
+      await expect(
+        as(b, (tx, id) => renamePlan(tx, id, { id: planId, name: "Mine" })),
+      ).resolves.toEqual({ ok: false, error: "notFound" });
+      const [row] = await db.select().from(weeklyPlans).where(eq(weeklyPlans.id, planId));
+      expect(row.name).toBe("Week");
     });
   });
 

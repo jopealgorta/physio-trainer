@@ -8,6 +8,7 @@ import {
   makeSeparateCopyAction,
   moveEntryAction,
   removeEntryAction,
+  renamePlanAction,
   setEntryLabelAction,
   updatePlanAction,
 } from "./actions";
@@ -15,6 +16,7 @@ import {
 const m = vi.hoisted(() => ({
   createPlan: vi.fn(),
   updatePlan: vi.fn(),
+  renamePlan: vi.fn(),
   addEntry: vi.fn(),
   addNewRoutineEntry: vi.fn(),
   moveEntry: vi.fn(),
@@ -33,6 +35,7 @@ vi.mock("@/server/auth/session", () => ({ withPhysio: m.withPhysio }));
 vi.mock("./mutations", () => ({
   createPlan: m.createPlan,
   updatePlan: m.updatePlan,
+  renamePlan: m.renamePlan,
   addEntry: m.addEntry,
   addNewRoutineEntry: m.addNewRoutineEntry,
   moveEntry: m.moveEntry,
@@ -147,6 +150,7 @@ describe("board actions", () => {
     ["removeEntryAction", removeEntryAction, "garbage"],
     ["makeSeparateCopyAction", makeSeparateCopyAction, null],
     ["updatePlanAction", updatePlanAction, { id: PLAN, name: "", status: "draft" }],
+    ["renamePlanAction", renamePlanAction, { id: PLAN, name: " " }],
   ])(
     "%s rejects an invalid payload without touching the database",
     async (_name, action, input) => {
@@ -229,6 +233,16 @@ describe("board actions", () => {
     await expect(
       updatePlanAction({ id: PLAN, name: "Week", notes: "", caseId: "", status: "active" }),
     ).resolves.toEqual({ ok: true, data: { version: 4 } });
+    expect(m.revalidatePath).toHaveBeenCalledWith(`/plans/${PLAN}`);
+  });
+
+  it("renames with the trimmed name and revalidates", async () => {
+    m.renamePlan.mockResolvedValue({ ok: true, data: { version: 5 } });
+    await expect(renamePlanAction({ id: PLAN, name: " Week 2 " })).resolves.toEqual({
+      ok: true,
+      data: { version: 5 },
+    });
+    expect(m.renamePlan).toHaveBeenCalledWith({}, "physio-1", { id: PLAN, name: "Week 2" });
     expect(m.revalidatePath).toHaveBeenCalledWith(`/plans/${PLAN}`);
   });
 });

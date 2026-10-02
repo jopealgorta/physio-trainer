@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
+import { EditableTitle } from "@/components/editable-title";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TemplateBadge } from "@/components/templates/template-badge";
-import type { HeaderErrors, HeaderField } from "@/lib/routine-validation";
+import { validateName, type HeaderErrors, type HeaderField } from "@/lib/routine-validation";
 import {
   ROUTINE_NAME_MAX,
   ROUTINE_NOTES_MAX,
@@ -111,21 +112,26 @@ export function RoutineHeader({
     <div ref={root} className="grid gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid min-w-0 grow basis-64 gap-1">
-          <Input
+          <EditableTitle
             value={values.name}
-            onChange={(event) => onChange({ name: event.target.value })}
-            aria-label={t("name")}
-            aria-invalid={invalid("name")}
-            aria-describedby={describedBy("name", isTemplate ? undefined : `${id}-name-hint`)}
-            autoComplete="off"
-            className="h-auto min-w-0 px-2 py-1 text-2xl font-semibold tracking-tight md:text-2xl"
+            label={t("name")}
+            editLabel={t("rename")}
+            validate={(name) => {
+              const code = validateName(name);
+              return code ? t(`errors.${code}`, { max: ROUTINE_NAME_MAX }) : null;
+            }}
+            // Renaming is an edit like any other: saved with the Save button.
+            onConfirm={(name) => onChange({ name })}
+            error={
+              errors.name ? t(`errors.${errors.name}`, { max: ROUTINE_NAME_MAX, min: 1 }) : null
+            }
+            describedBy={isTemplate ? undefined : `${id}-name-hint`}
           />
           {isTemplate ? null : (
             <p id={`${id}-name-hint`} className="text-muted-foreground px-2 text-sm">
               {t("nameHint")}
             </p>
           )}
-          {errorText("name")}
           {isTemplate ? (
             <div>
               <TemplateBadge />

@@ -10,6 +10,7 @@ import { PhaseBar } from "@/components/phases/phase-bar";
 import { ShareButton } from "@/components/sharing/share-button";
 import { PlanBoard } from "@/components/plans/plan-board";
 import { PlanDetailsForm } from "@/components/plans/plan-details-form";
+import { PlanTitle } from "@/components/plans/plan-title";
 import { StatusBadge } from "@/components/routines/status-badge";
 import { FromTemplate } from "@/components/templates/from-template";
 import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-dialog";
@@ -72,8 +73,8 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
           ) : null}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{plan.name}</h1>
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
+        <PlanTitle planId={plan.id} name={plan.name} isTemplate={plan.isTemplate} />
         <StatusBadge status={plan.status} />
         {plan.isTemplate ? <TemplateBadge /> : null}
       </div>
@@ -107,7 +108,6 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
       <PlanDetailsForm
         planId={plan.id}
         initial={{
-          name: plan.name,
           notes: plan.notes ?? "",
           caseId: plan.caseId,
           status: plan.status,

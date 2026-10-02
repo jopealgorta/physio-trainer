@@ -672,7 +672,8 @@
         "notesTooLong": "Use at most {max, number} characters.",
         "outOfRange": "Enter a whole number from {min, number} to {max, number}."
       },
-      "backToPlan": "Back to plan"
+      "backToPlan": "Back to plan",
+      "rename": "Rename routine"
     },
     "items": {
       "empty": "No exercises yet. Pick some from the list.",
@@ -788,7 +789,6 @@
       },
       "details": {
         "title": "Plan details",
-        "name": "Name",
         "nameHint": "Shown as the title in the link preview when you share it.",
         "status": "Status",
         "case": "Case",
@@ -891,7 +891,9 @@
         "hasArchivedRoutines": "Remove archived routines from the plan before activating it.",
         "templateNoDraft": "Templates are either active or archived.",
         "notShared": "Nothing else uses this routine, so there is nothing to separate it from."
-      }
+      },
+      "name": "Plan name",
+      "rename": "Rename plan"
     }
   },
   "Templates": {
