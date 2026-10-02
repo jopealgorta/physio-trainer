@@ -83,7 +83,7 @@ export async function createPlan(
  * snapshot of the entries), and returns what the actions need. Null when the plan is not the
  * physio's.
  */
-async function lockPlan(tx: Tx, physioId: string, planId: string) {
+export async function lockPlan(tx: Tx, physioId: string, planId: string) {
   if (!isUuid(planId)) return null;
   const [plan] = await tx
     .select({
