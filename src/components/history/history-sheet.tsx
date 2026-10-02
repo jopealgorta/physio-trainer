@@ -168,20 +168,24 @@ export function HistorySheet({
 
   async function restore() {
     if (selected === null || restoring) return;
+    // Back and the compare select are disabled meanwhile, but the sheet can be closed and
+    // reopened on another version: a refusal then belongs to a view that is gone.
+    const token = request.current;
     setRestoring(true);
     setRestoreError(null);
     try {
       const result = await restoreVersionAction({ kind, id, version: selected });
       if (result.ok) {
+        // Reported whatever is on screen now: the content did change.
         setOpen(false);
         setRestored({ dropped: result.data.dropped });
         if (onRestored) onRestored();
         else router.refresh();
-      } else {
+      } else if (token === request.current) {
         setRestoreError(shownError(result.error));
       }
     } catch {
-      setRestoreError("generic");
+      if (token === request.current) setRestoreError("generic");
     } finally {
       setRestoring(false);
     }
@@ -191,7 +195,8 @@ export function HistorySheet({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <p role="status" className="text-muted-foreground text-sm">
+      {/* Kept in the accessibility tree for announcements, out of the layout while empty. */}
+      <p role="status" className="text-muted-foreground text-sm empty:sr-only">
         {restored ? (
           <>
             {t("restored")}{" "}
@@ -227,7 +232,13 @@ export function HistorySheet({
             ) : (
               <div className="grid gap-4">
                 <div>
-                  <Button type="button" variant="ghost" size="sm" onClick={back}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={restoring}
+                    onClick={back}
+                  >
                     <ArrowLeftIcon aria-hidden />
                     {t("back")}
                   </Button>
@@ -244,6 +255,7 @@ export function HistorySheet({
                     <Label htmlFor={compareId}>{t("compareWith")}</Label>
                     <Select
                       value={toSelectValue(String(compare))}
+                      disabled={restoring}
                       onValueChange={(next) => {
                         // "" only comes from Radix's internal <select> (see select-value).
                         if (next === "") return;

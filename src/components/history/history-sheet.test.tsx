@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -240,6 +240,66 @@ describe("HistorySheet", () => {
       ),
     ).toBeInTheDocument();
     expect(onRestored).not.toHaveBeenCalled();
+  });
+
+  it("keeps the version on screen while it is being restored", async () => {
+    let settle!: (value: unknown) => void;
+    a.restoreVersionAction.mockReturnValue(new Promise((resolve) => (settle = resolve)));
+    const { user } = setup();
+    const sheet = await open(user);
+    await user.click(within(sheet).getByRole("button", { name: /Created/ }));
+    await user.click(within(sheet).getByRole("button", { name: "Restore this version" }));
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Restore" }),
+    );
+
+    expect(within(sheet).getByRole("button", { name: "Restoring…" })).toBeDisabled();
+    expect(within(sheet).getByRole("button", { name: "Back" })).toBeDisabled();
+    expect(within(sheet).getByRole("combobox", { name: "Compare with" })).toBeDisabled();
+    await act(async () => settle({ ok: false, error: "conflict" }));
+    expect(within(sheet).getByRole("alert")).toHaveTextContent("This changed while you were");
+    expect(within(sheet).getByRole("button", { name: "Back" })).toBeEnabled();
+  });
+
+  it("drops a late refusal once the sheet was reopened on another version", async () => {
+    let settle!: (value: unknown) => void;
+    a.restoreVersionAction.mockReturnValue(new Promise((resolve) => (settle = resolve)));
+    const { user } = setup();
+    let sheet = await open(user);
+    await user.click(within(sheet).getByRole("button", { name: /Created/ }));
+    await user.click(within(sheet).getByRole("button", { name: "Restore this version" }));
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Restore" }),
+    );
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    sheet = await open(user);
+    await user.click(within(sheet).getByRole("button", { name: /Reps changed/ }));
+    await within(sheet).findByText("Lunge");
+    await act(async () => settle({ ok: false, error: "needsItems" }));
+    expect(within(sheet).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps the status line out of the layout until there is something to say", async () => {
+    a.restoreVersionAction.mockResolvedValue({ ok: true, data: { version: 4, dropped: 0 } });
+    const { user } = setup();
+    const status = screen.getByRole("status");
+    expect(status).toBeEmptyDOMElement();
+    expect(status).toHaveClass("empty:sr-only");
+
+    let sheet = await open(user);
+    await user.click(within(sheet).getByRole("button", { name: /Created/ }));
+    await user.click(within(sheet).getByRole("button", { name: "Restore this version" }));
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Restore" }),
+    );
+    await waitFor(() => expect(status).toHaveTextContent("Version restored."));
+
+    // Opening the history again clears the message.
+    sheet = await open(user);
+    expect(sheet).toBeInTheDocument();
+    expect(status).toBeEmptyDOMElement();
   });
 
   it("says when the history cannot be loaded", async () => {
