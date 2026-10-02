@@ -1158,7 +1158,11 @@
       "subject": "Your exercises from {clinic}",
       "body": "Hi {name}! Here are your exercises from {clinic}: {url}"
     },
-    "trigger": "Share",
+    "trigger": {
+      "customer": "Share all active",
+      "routine": "Share routine",
+      "weekly_plan": "Share plan"
+    },
     "title": {
       "customer": "Share with the patient",
       "routine": "Share this routine",
@@ -1305,6 +1309,7 @@
         "routine": "Open your routine.",
         "weeklyPlan": "Open your weekly plan."
       },
+      "titleWithClinic": "{title} · {clinic}",
       "imageAlt": "{clinic}",
       "imageAltTitled": "{title} · {clinic}"
     },

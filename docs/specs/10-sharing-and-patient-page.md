@@ -63,11 +63,11 @@ Partial unique index: one non-revoked `customer` link per customer.
 
 Physio side:
 
-| Where                       | What                                                                                                                                                                                    |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Customer header             | "Share" button → popover: customer link (copy, WhatsApp, email, QR), status, PIN toggle (shows the PIN once, with "regenerate"), expiry date, revoke/regenerate. Created on first open. |
-| Routine editor / plan board | "Share this routine/plan" → same popover for an item link.                                                                                                                              |
-| Customer page               | "Preview as patient" opens the patient page in a new tab (physio session bypasses PIN).                                                                                                 |
+| Where                       | What                                                                                                                                                                                               |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Customer header             | "Share all active" button → popover: customer link (copy, WhatsApp, email, QR), status, PIN toggle (shows the PIN once, with "regenerate"), expiry date, revoke/regenerate. Created on first open. |
+| Routine editor / plan board | "Share routine" / "Share plan" button → "Share this routine/plan" popover, same for an item link.                                                                                                  |
+| Customer page               | "Preview as patient" opens the patient page in a new tab (physio session bypasses PIN).                                                                                                            |
 
 Patient side (`src/app/(patient)/[handle]/[slug]/`):
 
@@ -234,3 +234,9 @@ no-referrer` and `X-Robots-Tag: noindex, nofollow` to paths matching `/{handle}/
   Postgres 16 with stubbed `auth`/`storage` schemas and a small fake GoTrue (create/delete user,
   magic link, verify, user). The branding suites and the Data API test need real Supabase and were
   not runnable; CI runs them.
+
+- **The Share button names what it shares.** All three buttons said just "Share", so the physio
+  could not tell a customer link (everything active) from a routine or plan link. The label is now
+  per target (`Sharing.trigger.{customer,routine,weekly_plan}`): "Share all active", "Share routine",
+  "Share plan" (es: "Compartir todo lo activo", "Compartir rutina", "Compartir plan"). A visible label,
+  not a tooltip, because tooltips do not work on touch and the app has no tooltip primitive.

@@ -14,14 +14,14 @@ const translator = (locale: "en" | "es") =>
   }) as unknown as Parameters<typeof previewCopy>[0];
 
 describe("previewCopy", () => {
-  it("titles a routine or plan link with its name, and never names the clinic in the text", () => {
+  it("titles a routine or plan link with its name and the clinic", () => {
     const routine = previewCopy(translator("en"), {
       target: "routine",
       itemTitle: "Shoulder mobility",
       clinicName: "Kine Sur",
     });
     expect(routine).toEqual({
-      title: "Shoulder mobility",
+      title: "Shoulder mobility · Kine Sur",
       description: "Open your routine.",
       imageAlt: "Shoulder mobility · Kine Sur",
     });
@@ -31,19 +31,18 @@ describe("previewCopy", () => {
       itemTitle: "Back plan",
       clinicName: "Kine Sur",
     });
-    expect(plan.title).toBe("Back plan");
+    expect(plan.title).toBe("Back plan · Kine Sur");
     expect(plan.description).toBe("Open your weekly plan.");
-    expect(`${plan.title}${plan.description}`).not.toContain("Kine Sur");
   });
 
-  it("keeps the generic text for a customer link (its item name is the patient's)", () => {
+  it("keeps the generic text for a customer link (its item name is the patient's), plus the clinic", () => {
     const copy = previewCopy(translator("en"), {
       target: "customer",
       itemTitle: null,
       clinicName: "Kine Sur",
     });
     expect(copy).toEqual({
-      title: "Your exercise plan",
+      title: "Your exercise plan · Kine Sur",
       description: "Open your exercises.",
       imageAlt: "Kine Sur",
     });
@@ -59,7 +58,7 @@ describe("previewCopy", () => {
     expect(
       previewCopy(translator("es"), { target: "customer", itemTitle: null, clinicName: "Kine Sur" })
         .title,
-    ).toBe("Tu plan de ejercicios");
+    ).toBe("Tu plan de ejercicios · Kine Sur");
   });
 
   it("falls back to the generic text when a routine or plan has no title", () => {
@@ -68,6 +67,17 @@ describe("previewCopy", () => {
       itemTitle: null,
       clinicName: "Kine Sur",
     });
-    expect(copy.title).toBe("Your exercise plan");
+    expect(copy.title).toBe("Your exercise plan · Kine Sur");
+  });
+
+  it("leaves the title bare when there is no clinic name at all", () => {
+    for (const clinicName of ["", "   "]) {
+      const copy = previewCopy(translator("en"), {
+        target: "routine",
+        itemTitle: "Shoulder mobility",
+        clinicName,
+      });
+      expect(copy.title).toBe("Shoulder mobility");
+    }
   });
 });

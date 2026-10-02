@@ -66,9 +66,9 @@ function setup(ref: Parameters<typeof ShareButton>[0]["target"] = target) {
     </NextIntlClientProvider>,
   );
 }
-const open = async () => {
+const open = async (label = "Share all active") => {
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Share" }));
+  await user.click(screen.getByRole("button", { name: label }));
   return user;
 };
 
@@ -124,20 +124,31 @@ describe("ShareButton", () => {
     expect(screen.queryByRole("group", { name: "How the link looks in chats" })).toBeNull();
   });
 
+  it("says on the button what it shares", () => {
+    const { unmount } = setup();
+    expect(screen.getByRole("button", { name: "Share all active" })).toBeInTheDocument();
+    unmount();
+    const routine = setup({ target: "routine", routineId: "r1" });
+    expect(screen.getByRole("button", { name: "Share routine" })).toBeInTheDocument();
+    routine.unmount();
+    setup({ target: "weekly_plan", weeklyPlanId: "p1" });
+    expect(screen.getByRole("button", { name: "Share plan" })).toBeInTheDocument();
+  });
+
   it("titles the popover for a routine and a plan", async () => {
     const { unmount } = setup({ target: "routine", routineId: "r1" });
-    await open();
+    await open("Share routine");
     expect(await screen.findByRole("heading", { name: "Share this routine" })).toBeInTheDocument();
     unmount();
     setup({ target: "weekly_plan", weeklyPlanId: "p1" });
-    await open();
+    await open("Share plan");
     expect(await screen.findByRole("heading", { name: "Share this plan" })).toBeInTheDocument();
   });
 
   it("warns when the item is still a draft", async () => {
     m.load.mockResolvedValue(ok(state({ itemStatus: "draft" })));
     setup({ target: "routine", routineId: "r1" });
-    await open();
+    await open("Share routine");
     expect(await screen.findByText(/still a draft/)).toBeInTheDocument();
   });
 
@@ -275,7 +286,7 @@ describe("ShareButton", () => {
     const user = userEvent.setup();
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     setup();
-    await user.click(screen.getByRole("button", { name: "Share" }));
+    await user.click(screen.getByRole("button", { name: "Share all active" }));
     await user.click(await screen.findByRole("button", { name: "Copy link" }));
     expect(writeText).toHaveBeenCalledWith(URL_);
     expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
