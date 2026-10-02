@@ -5,6 +5,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { Tx } from "@/db/rls";
 import { routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
 import { endPredecessor } from "@/lib/phases";
+import { recordPlanVersion } from "@/server/history/record";
 import { duplicateRoutine } from "@/server/routines/mutations";
 
 import { isUuid, type CopyPhaseInput, type PhaseError, type SetPhaseInput } from "./schemas";
@@ -208,6 +209,7 @@ async function copyPlanPhase(
       })),
     );
   }
+  await recordPlanVersion(tx, physioId, copy.id, { kind: "created" });
 
   if (predecessor?.ok) {
     await tx

@@ -11,6 +11,7 @@ import {
   weeklyPlanEntries,
   weeklyPlans,
 } from "@/db/schema";
+import { recordPlanVersion, recordRoutineVersion } from "@/server/history/record";
 import { copyPlan } from "@/server/plans/mutations";
 import { copyRoutine } from "@/server/routines/mutations";
 
@@ -83,12 +84,14 @@ export async function createTemplate(
         status: "active",
       })
       .returning({ id: routines.id });
+    await recordRoutineVersion(tx, physioId, row.id, { kind: "created" });
     return ok(row);
   }
   const [row] = await tx
     .insert(weeklyPlans)
     .values({ physioId, customerId: null, name: input.name, isTemplate: true, status: "active" })
     .returning({ id: weeklyPlans.id });
+  await recordPlanVersion(tx, physioId, row.id, { kind: "created" });
   return ok(row);
 }
 
