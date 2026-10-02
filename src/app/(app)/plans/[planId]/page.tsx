@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { PhaseBar } from "@/components/phases/phase-bar";
+import { ExportMenu } from "@/components/export/export-menu";
 import { ShareButton } from "@/components/sharing/share-button";
 import { PlanBoard } from "@/components/plans/plan-board";
 import { PlanDetailsForm } from "@/components/plans/plan-details-form";
@@ -60,7 +61,10 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
         </Link>
         {/* A template (no customer) has nobody to share with. */}
         {plan.customerId ? (
-          <ShareButton target={{ target: "weekly_plan", weeklyPlanId: plan.id }} />
+          <div className="flex flex-wrap gap-2">
+            <ExportMenu target={{ kind: "plans", id: plan.id }} />
+            <ShareButton target={{ target: "weekly_plan", weeklyPlanId: plan.id }} />
+          </div>
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-3">

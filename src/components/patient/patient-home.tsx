@@ -1,5 +1,7 @@
+import { DownloadIcon } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 
+import { Button } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
 import { buildWorkoutPath } from "@/lib/patient-paths";
@@ -29,8 +31,9 @@ export async function PatientHome({
   /** Session logging (spec 13): the logs of this week, and whether this visitor may write one. */
   logging: { code: string; logs: PatientLog[]; canLog: boolean };
 }) {
-  const [t, format] = await Promise.all([
+  const [t, tE, format] = await Promise.all([
     getTranslations({ locale, namespace: "Patient" }),
+    getTranslations({ locale, namespace: "Export.patient" }),
     getFormatter({ locale }),
   ]);
   const isToday = view.weekday === view.todayWeekday;
@@ -69,9 +72,19 @@ export async function PatientHome({
 
   return (
     <div className="grid gap-8">
-      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-        {t("greeting", { name: firstName })}
-      </h1>
+      <div className="grid justify-items-start gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
+          {t("greeting", { name: firstName })}
+        </h1>
+        {nothing ? null : (
+          <Button asChild variant="outline" size="sm">
+            <a href={`${path}/download`} download>
+              <DownloadIcon aria-hidden />
+              {tE("download")}
+            </a>
+          </Button>
+        )}
+      </div>
 
       {nothing ? (
         <section className="bg-muted grid gap-1 rounded-xl p-4" aria-labelledby="nothing-title">
