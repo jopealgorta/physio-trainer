@@ -114,9 +114,16 @@ Answered 2026-10-02:
   spec 08) records no version; a later version's diff then shows the date change.
 - Restoring a superset that loses members below the minimum ungroups the survivor and gives it
   the group's rest, as the editor does when a superset shrinks.
-- Plan restore replaces entries with fresh ids. Plan-only routines no longer referenced stay in
-  place, like removing an entry without deleting its routine; restoring a plan to before a
-  "separate copy" therefore leaves the copy routine in place.
+- Plan restore re-inserts the snapshot's entries with their snapshot ids: the current entries
+  are deleted first in the same transaction and nothing references an entry id, so the ids
+  never collide, and a diff across a restore matches entries instead of showing every entry
+  removed and re-added. Plan-only routines no longer referenced stay in place, like removing an
+  entry without deleting its routine; restoring a plan to before a "separate copy" therefore
+  leaves the copy routine in place.
+- A plan entry counts as moved when its weekday changed or, on the same day, it falls outside
+  the longest run of the day's kept entries that kept their relative order (the same rule
+  routine items follow). Positions alone don't count: the board renumbers a day on every add,
+  remove or move, so removing the first of three entries moves nothing.
 - The plan page's details form adopts restored values when the server's name/notes differ from
   what it last saved (not keyed by version, so board actions don't drop unsaved details
   edits); the plan page shows no unsaved-changes warning in the restore dialog.
