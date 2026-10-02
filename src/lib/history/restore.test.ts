@@ -112,7 +112,7 @@ describe("routineRestoreInput", () => {
     expect(input.items.map((it) => it.exerciseId)).toEqual(["a", "b"]);
   });
 
-  it("ungroups the survivor of a two-exercise superset that lost a member", () => {
+  it("ungroups the survivor of a two-exercise superset that lost a member, giving it the group's rest", () => {
     const snapshot = routine(
       [item("a", "g0"), item("gone", "g0"), item("b")],
       [{ key: "g0", restSeconds: 60 }],
@@ -120,6 +120,17 @@ describe("routineRestoreInput", () => {
     const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b"]));
     expect(dropped).toBe(1);
     expect(input.groups).toEqual([]);
+    expect(input.items[0]).toMatchObject({ exerciseId: "a", groupKey: null, restSeconds: 60 });
+    // A single item keeps its own rest.
+    expect(input.items[1]).toMatchObject({ exerciseId: "b", groupKey: null, restSeconds: 30 });
+  });
+
+  it("gives a dissolved superset's survivor no rest when the group had none", () => {
+    const snapshot = routine(
+      [item("a", "g0"), item("gone", "g0")],
+      [{ key: "g0", restSeconds: null }],
+    );
+    const { input } = routineRestoreInput(snapshot, current, new Set(["a"]));
     expect(input.items[0]).toMatchObject({ exerciseId: "a", groupKey: null, restSeconds: null });
   });
 

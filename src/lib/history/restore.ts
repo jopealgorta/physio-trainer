@@ -23,9 +23,12 @@ export function routineRestoreInput(
       members.set(prescription.groupKey, (members.get(prescription.groupKey) ?? 0) + 1);
     }
   }
-  // A superset left with too few members dissolves; its survivor keeps no rest of its own.
+  // A superset left with too few members dissolves and its survivor takes the group's rest, as
+  // the editor does when a superset shrinks (a grouped item has no rest of its own).
   const keepGroup = (key: string | null): key is string =>
     key !== null && (members.get(key) ?? 0) >= GROUP_MIN;
+  const groupRest = (key: string): number | null =>
+    snapshot.groups.find((group) => group.key === key)?.restSeconds ?? null;
 
   return {
     input: {
@@ -40,15 +43,19 @@ export function routineRestoreInput(
       groups: snapshot.groups
         .filter((group) => keepGroup(group.key))
         .map((group) => ({ key: group.key, restSeconds: group.restSeconds })),
-      items: kept.map(({ exercise, prescription }) => ({
-        exerciseId: exercise.id,
-        groupKey: keepGroup(prescription.groupKey) ? prescription.groupKey : null,
-        holdSeconds: prescription.holdSeconds,
-        restSeconds: prescription.restSeconds,
-        side: prescription.side,
-        notes: prescription.notes,
-        sets: prescription.sets.map((set) => ({ ...set })),
-      })),
+      items: kept.map(({ exercise, prescription }) => {
+        const { groupKey } = prescription;
+        const dissolved = groupKey !== null && !keepGroup(groupKey);
+        return {
+          exerciseId: exercise.id,
+          groupKey: keepGroup(groupKey) ? groupKey : null,
+          holdSeconds: prescription.holdSeconds,
+          restSeconds: dissolved ? groupRest(groupKey) : prescription.restSeconds,
+          side: prescription.side,
+          notes: prescription.notes,
+          sets: prescription.sets.map((set) => ({ ...set })),
+        };
+      }),
     },
     dropped: ordered.length - kept.length,
   };
