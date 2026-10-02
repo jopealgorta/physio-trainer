@@ -1,8 +1,9 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { LOGO_MAX_BYTES } from "@/lib/branding";
+import { fetchImageDataUri } from "@/server/images";
 
-import { fetchImageDataUri, loadThumbnails } from "../images";
+import { loadThumbnails } from "../images";
 import type { ExportDocument } from "../model";
 import type { ExportTranslate } from "../translate";
 import { ExportPdf } from "./document";

@@ -5,12 +5,16 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Locale } from "@/i18n/config";
+import { youtubeCoverUrl } from "@/lib/youtube";
 import type { ContentItem } from "@/server/routines/content";
 
 import { buildExportDocument, type ExportSource, type SourceRoutine } from "../model";
 import { exportTranslators } from "../translate";
 import { truncateText } from "./document";
 import { renderExportPdf } from "./render";
+
+// Unit tests run without the int config's server-only alias; the real package throws here.
+vi.mock("server-only", () => ({}));
 
 const THUMB = readFileSync(join(process.cwd(), "src/server/export/__fixtures__/thumb.jpg"));
 // Bytes after the JPEG's end marker make every cover a distinct image, as real covers are (the
@@ -90,19 +94,23 @@ async function build(src: ExportSource) {
 const pageCount = (buffer: Buffer) =>
   (buffer.toString("latin1").match(/\/Type \/Page\b/g) ?? []).length;
 
-const tenExercises = () =>
+/** Covers are cached per video id, so a test that must reach fetch uses its own id `prefix`. */
+const tenExercises = (prefix: string) =>
   source({
     routines: [
       routine(
         "R",
-        Array.from({ length: 10 }, (_, i) => ({ kind: "single" as const, item: item(i + 1) })),
+        Array.from({ length: 10 }, (_, i) => ({
+          kind: "single" as const,
+          item: item(i + 1, { media: [{ videoId: `${prefix}${i + 1}`, isShort: false }] }),
+        })),
       ),
     ],
   });
 
 describe("renderExportPdf", () => {
   it("renders 10 exercises with thumbnails under 2 MB and 3 s", async () => {
-    const { doc, t } = await build(tenExercises());
+    const { doc, t } = await build(tenExercises("sized"));
     const started = performance.now();
     const buffer = await renderExportPdf(doc, t, { fetchImpl: thumbFetch });
     const elapsed = performance.now() - started;
@@ -112,9 +120,19 @@ describe("renderExportPdf", () => {
   });
 
   it("still renders when every image fails to load", async () => {
-    const { doc, t } = await build(tenExercises());
+    const { doc, t } = await build(tenExercises("offline"));
     const buffer = await renderExportPdf(doc, t, { fetchImpl: failingFetch });
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+    // Every cover and the logo really went to the (failing) network, none came from a cache.
+    const urls = (failingFetch as unknown as ReturnType<typeof vi.fn>).mock.calls.map(([url]) =>
+      String(url),
+    );
+    expect(urls.sort()).toEqual(
+      [
+        "https://storage.example/logo.jpg",
+        ...Array.from({ length: 10 }, (_, i) => youtubeCoverUrl(`offline${i + 1}`)),
+      ].sort(),
+    );
   });
 
   it("paginates 25 long exercises with a plan, a superset and Spanish text", async () => {

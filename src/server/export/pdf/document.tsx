@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
-  plan: { marginBottom: 20 },
   weekTitle: { marginTop: 14, marginBottom: 4 },
   weekRow: {
     flexDirection: "row",
@@ -109,8 +108,10 @@ const styles = StyleSheet.create({
   itemNotes: { fontSize: 9, color: SECONDARY, marginTop: 2, lineHeight: 1.3 },
   notesLabel: { fontWeight: 700 },
   instructions: { fontSize: 8.5, color: SECONDARY, marginTop: 3, lineHeight: 1.35 },
-  group: { borderLeftWidth: 2, borderLeftColor: GROUP_RULE, paddingLeft: 8, marginTop: 8 },
+  group: { borderLeftWidth: 2, borderLeftColor: GROUP_RULE, paddingLeft: 8 },
+  groupFirst: { marginTop: 8 },
   groupCaption: { paddingTop: 4 },
+  sectionSpaced: { marginTop: 28 },
   footer: {
     position: "absolute",
     left: 32,
@@ -203,10 +204,11 @@ function Header({ doc, t, logo }: Context & { logo: string | null }) {
   );
 }
 
-function PlanSection({ plan, doc, t }: Context & { plan: ExportPlan }) {
+function PlanSection({ plan, spaced, doc, t }: Context & { plan: ExportPlan; spaced: boolean }) {
   const phase = phaseLine(plan.phase, doc.locale, t);
   return (
-    <View style={styles.plan}>
+    // Heading, notes and week table stay on one page.
+    <View style={spaced ? styles.sectionSpaced : undefined} wrap={false}>
       {/* A plan export is titled with the plan's name already. */}
       {doc.plans.length === 1 && plan.name === doc.title ? null : (
         <Text style={styles.sectionTitle}>{plan.name}</Text>
@@ -241,7 +243,7 @@ function PlanSection({ plan, doc, t }: Context & { plan: ExportPlan }) {
 
 function TrackHeader({ doc, t }: Context) {
   return (
-    <View style={styles.trackHeader} minPresenceAhead={70}>
+    <View style={styles.trackHeader}>
       <Text style={styles.trackHint}>{t("pdf.track")}</Text>
       <View style={styles.boxes}>
         {WEEKDAYS.map((weekday) => (
@@ -276,7 +278,7 @@ function ItemRow({
 }: Context & { item: ExportItem; routine: ExportRoutine }) {
   const thumbnail = item.videoId ? thumbnails.get(item.videoId) : undefined;
   return (
-    <View style={styles.item} wrap={false}>
+    <View style={styles.item}>
       {thumbnail ? (
         // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt.
         <Image src={thumbnail} style={styles.thumb} />
@@ -306,35 +308,51 @@ function ItemRow({
   );
 }
 
-function Block({ block, ...props }: Context & { block: ExportBlock; routine: ExportRoutine }) {
-  if (block.kind === "single") return <ItemRow item={block.item} {...props} />;
-  const { t } = props;
+/** One exercise; superset members carry the group's left rule, the first one its caption too. */
+type Row = { item: ExportItem; caption: string | null; inGroup: boolean };
+
+function rows(routine: ExportRoutine, t: ExportTranslate): Row[] {
+  return routine.blocks.flatMap((block: ExportBlock): Row[] => {
+    if (block.kind === "single") return [{ item: block.item, caption: null, inGroup: false }];
+    const caption =
+      block.restSeconds !== null
+        ? t("pdf.supersetRest", { seconds: block.restSeconds })
+        : t("pdf.superset");
+    return block.items.map((item, index) => ({
+      item,
+      caption: index === 0 ? caption : null,
+      inGroup: true,
+    }));
+  });
+}
+
+/** Never split across pages. Consecutive members' left rules touch, so a superset reads as one. */
+function RowView({ row, ...props }: Context & { row: Row; routine: ExportRoutine }) {
+  const style = row.inGroup ? (row.caption ? [styles.group, styles.groupFirst] : styles.group) : {};
   return (
-    <View style={styles.group}>
-      <Text style={[styles.caption, styles.groupCaption]} minPresenceAhead={60}>
-        {block.restSeconds !== null
-          ? t("pdf.supersetRest", { seconds: block.restSeconds })
-          : t("pdf.superset")}
-      </Text>
-      {block.items.map((item) => (
-        <ItemRow key={item.id} item={item} {...props} />
-      ))}
+    <View style={style} wrap={false}>
+      {row.caption ? (
+        <Text style={[styles.caption, styles.groupCaption]}>{row.caption}</Text>
+      ) : null}
+      <ItemRow item={row.item} {...props} />
     </View>
   );
 }
 
 function RoutineSection({
   routine,
-  pageBreak,
+  spaced,
   ...context
-}: Context & { routine: ExportRoutine; pageBreak: boolean }) {
+}: Context & { routine: ExportRoutine; spaced: boolean }) {
   const { doc, t } = context;
   const phase = phaseLine(routine.phase, doc.locale, t);
   const sessions =
     routine.sessionsPerWeek !== null ? t("pdf.sessions", { perWeek: routine.sessionsPerWeek }) : "";
+  const [firstRow, ...otherRows] = rows(routine, t);
   return (
-    <View break={pageBreak}>
-      <View minPresenceAhead={80}>
+    <View style={spaced ? styles.sectionSpaced : undefined}>
+      {/* The heading never sits alone at the bottom of a page: it moves with the first exercise. */}
+      <View wrap={false}>
         {/* A routine export is titled with the routine's name already. */}
         {doc.plans.length === 0 &&
         doc.routines.length === 1 &&
@@ -344,13 +362,16 @@ function RoutineSection({
         {phase ? <Text style={styles.meta}>{phase}</Text> : null}
         {sessions ? <Text style={styles.meta}>{sessions}</Text> : null}
         {routine.notes ? <Text style={styles.notes}>{routine.notes}</Text> : null}
+        {doc.tracking && firstRow ? <TrackHeader {...context} /> : null}
+        {firstRow ? (
+          <View style={styles.items}>
+            <RowView row={firstRow} routine={routine} {...context} />
+          </View>
+        ) : null}
       </View>
-      {doc.tracking && routine.blocks.length > 0 ? <TrackHeader {...context} /> : null}
-      <View style={styles.items}>
-        {routine.blocks.map((block, index) => (
-          <Block key={index} block={block} routine={routine} {...context} />
-        ))}
-      </View>
+      {otherRows.map((row) => (
+        <RowView key={row.item.id} row={row} routine={routine} {...context} />
+      ))}
     </View>
   );
 }
@@ -408,14 +429,14 @@ export function ExportPdf({ doc, t, thumbnails, logo }: ExportPdfProps) {
           <Text style={styles.nothing}>{t("pdf.nothing")}</Text>
         ) : (
           <>
-            {doc.plans.map((plan) => (
-              <PlanSection key={plan.id} plan={plan} {...context} />
+            {doc.plans.map((plan, index) => (
+              <PlanSection key={plan.id} plan={plan} spaced={index > 0} {...context} />
             ))}
             {doc.routines.map((routine, index) => (
               <RoutineSection
                 key={routine.id}
                 routine={routine}
-                pageBreak={index > 0 || hasPlans}
+                spaced={index > 0 || hasPlans}
                 {...context}
               />
             ))}

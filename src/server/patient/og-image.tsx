@@ -11,7 +11,7 @@ import { ACTIVITY_PATH } from "@/lib/app-icon-image";
 import { LOGO_MAX_BYTES } from "@/lib/branding";
 import { cardColors, PREVIEW_IMAGE_SIZE } from "@/lib/link-preview";
 import type { BrandTokens } from "@/lib/color";
-import { fetchImageDataUri } from "@/server/export/images";
+import { fetchImageDataUri } from "@/server/images";
 
 import { loadLink } from "./load";
 
