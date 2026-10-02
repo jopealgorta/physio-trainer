@@ -39,6 +39,20 @@ const routineNames = (page: Page, name: string) =>
     .locator("li a[href^='/routines/']")
     .evaluateAll((links) => links.map((link) => link.textContent?.trim() ?? ""));
 
+/**
+ * Resolves once the next board action has committed on the server (Next sends a server action's
+ * response only after the action returns). The board shows a change before its action commits,
+ * so a reload right after an optimistic assertion can render the plan as it was: start this
+ * before the action, await it before reloading.
+ */
+const boardActionSettled = (page: Page) =>
+  page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.request().headers()["next-action"] !== undefined &&
+      new URL(response.url()).pathname.startsWith("/plans/"),
+  );
+
 /** The routine names on a day, in order (polls: the board updates after each action). */
 const expectDay = (page: Page, name: string, expected: string[]) =>
   expect.poll(() => routineNames(page, name)).toEqual(expected);
@@ -104,6 +118,7 @@ test("a physio builds a weekly plan, edits it from the board, and it persists", 
   // Edit a label.
   await entryAction(page, "Monday", "Knee rehab A", "Edit label…");
   await page.getByRole("dialog").getByLabel("Label").fill("Evening");
+  const labelled = boardActionSettled(page);
   await page.getByRole("button", { name: "Save label" }).click();
   await expect(day(page, "Monday").getByText("Evening")).toBeVisible();
 
@@ -111,6 +126,7 @@ test("a physio builds a weekly plan, edits it from the board, and it persists", 
   await expect(page.getByText("4 routines a week")).toBeVisible();
 
   // Everything survives a reload.
+  await labelled;
   await page.reload();
   await expectDay(page, "Monday", ["Knee rehab A"]);
   await expectDay(page, "Thursday", ["Knee rehab A"]);
@@ -210,10 +226,12 @@ test("dragging a card to another day moves it (desktop)", async ({
   await page.mouse.down();
   await page.mouse.move(from.x + 20, from.y + 20, { steps: 5 });
   await page.mouse.move(to.x + to.width / 2, to.y + to.height - 20, { steps: 15 });
+  const moved = boardActionSettled(page);
   await page.mouse.up();
 
   await expectDay(page, "Wednesday", ["Drag me"]);
   await expect(day(page, "Monday")).toContainText("Rest day");
+  await moved;
   await page.reload();
   await expectDay(page, "Wednesday", ["Drag me"]);
 });
