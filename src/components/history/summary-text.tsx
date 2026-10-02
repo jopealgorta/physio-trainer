@@ -33,6 +33,15 @@ export type HistoryField = (typeof HISTORY_FIELDS)[number];
 const isHistoryField = (field: string): field is HistoryField =>
   (HISTORY_FIELDS as readonly string[]).includes(field);
 
+/** jsonb reorders object keys: list fields in HISTORY_FIELDS order, unknown ones last. */
+function orderedFields(fields: Record<string, number>): [string, number][] {
+  const rank = (field: string) => {
+    const index = (HISTORY_FIELDS as readonly string[]).indexOf(field);
+    return index === -1 ? HISTORY_FIELDS.length : index;
+  };
+  return Object.entries(fields).sort(([a], [b]) => rank(a) - rank(b));
+}
+
 /** The localized name of a changed field (unknown fields, from a newer shape, show as stored). */
 export function useFieldLabel(): (field: string) => string {
   const t = useTranslations("History.fields");
@@ -73,7 +82,7 @@ export function SummaryText({
     const key = routine ? "summary.removedExercises" : "summary.removedRoutines";
     parts.push(t(key, { count: summary.removed }));
   }
-  for (const [field, count] of Object.entries(summary.fields)) {
+  for (const [field, count] of orderedFields(summary.fields)) {
     parts.push(t("summary.changedField", { field: fieldLabel(field), count }));
   }
   if (summary.moved > 0) parts.push(t("summary.moved", { count: summary.moved }));

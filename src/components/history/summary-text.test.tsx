@@ -38,6 +38,18 @@ describe("SummaryText", () => {
     expect(text).toHaveTextContent("+2 exercises · Reps changed on 1");
   });
 
+  it("lists changed fields in a fixed order, whatever order the stored summary has", () => {
+    const text = setup({
+      target: "routine",
+      kind: "edited",
+      // jsonb stores object keys in its own order.
+      summary: summary({ changed: 2, fields: { future: 1, notes: 1, side: 2, reps: 1 } }),
+    });
+    expect(text).toHaveTextContent(
+      "Reps changed on 1 · Side changed on 2 · Notes changed on 1 · future changed on 1",
+    );
+  });
+
   it("counts routines on a plan", () => {
     const text = setup({ target: "plan", kind: "edited", summary: summary({ added: 1 }) });
     expect(text).toHaveTextContent("+1 routine");
