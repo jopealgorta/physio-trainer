@@ -96,4 +96,30 @@ describe("PlanDetailsForm", () => {
     expect(name).toHaveValue("Restored");
     expect(screen.getByRole("button", { name: "Save details" })).toBeDisabled();
   });
+
+  it("keeps its own save when the server trims the name and notes", async () => {
+    const user = userEvent.setup();
+    const { rerender } = setup();
+    const name = screen.getByLabelText("Name");
+    const notes = screen.getByLabelText("Notes for the patient");
+
+    await user.type(name, " ");
+    await user.type(notes, "Ice after{Enter}");
+    await user.click(screen.getByRole("button", { name: "Save details" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    // The page re-renders with what the server stored: trimmed.
+    rerender(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <PlanDetailsForm
+          planId="p1"
+          initial={{ ...INITIAL, name: "Week A", notes: "Ice after" }}
+          cases={[]}
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+    expect(name).toHaveValue("Week A ");
+    expect(notes).toHaveValue("Ice after\n");
+    expect(screen.getByRole("button", { name: "Save details" })).toBeDisabled();
+  });
 });

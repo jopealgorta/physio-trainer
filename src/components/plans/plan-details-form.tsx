@@ -28,6 +28,10 @@ export type PlanDetails = {
   status: RoutineStatus;
 };
 
+/** Details as the server stores them (it trims name and notes), for comparing. */
+const normalized = ({ name, notes, caseId, status }: PlanDetails) =>
+  JSON.stringify({ name: name.trim(), notes: notes.trim(), caseId, status });
+
 type SaveError =
   | "notFound"
   | "caseNotFound"
@@ -69,10 +73,11 @@ export function PlanDetailsForm({
   const [server, setServer] = useState(initial);
 
   // The page re-renders with every board action and after this form's own save; only details
-  // that changed elsewhere (a restore) replace what the form holds.
-  if (JSON.stringify(initial) !== JSON.stringify(server)) {
+  // that changed elsewhere (a restore) replace what the form holds. Its own save comes back
+  // trimmed, so compare the way the server stores them.
+  if (normalized(initial) !== normalized(server)) {
     setServer(initial);
-    if (JSON.stringify(initial) !== JSON.stringify(saved)) {
+    if (normalized(initial) !== normalized(saved)) {
       setValues(initial);
       setSaved(initial);
       setError(null);
@@ -80,7 +85,7 @@ export function PlanDetailsForm({
     }
   }
 
-  const dirty = JSON.stringify(values) !== JSON.stringify(saved);
+  const dirty = normalized(values) !== normalized(saved);
   const statuses = isTemplate ? TEMPLATE_STATUSES : ROUTINE_STATUSES;
   const nameBlank = values.name.trim() === "";
   const caseTitles = new Map(cases.map((item) => [item.id, item.title]));
