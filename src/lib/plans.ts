@@ -15,11 +15,11 @@ export type Weekday = (typeof WEEKDAYS)[number];
 export const isWeekday = (value: unknown): value is Weekday =>
   typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 7;
 
-/** A weekday's name in the active locale ("Monday", "lunes"). */
+/** A weekday's name in the active locale ("Monday", "lunes"; "M", "L" when narrow). */
 export function weekdayName(
   locale: string,
   weekday: Weekday,
-  style: "long" | "short" = "long",
+  style: "long" | "short" | "narrow" = "long",
 ): string {
   // 1 January 2024 was a Monday, so day-of-month equals the ISO weekday.
   return new Intl.DateTimeFormat(locale, { weekday: style, timeZone: "UTC" }).format(

@@ -41,6 +41,8 @@ describe("weekdays", () => {
     expect(weekdayName("en", 7)).toBe("Sunday");
     expect(weekdayName("es", 1)).toBe("lunes");
     expect(weekdayName("es", 3, "short")).toMatch(/^mi/);
+    expect(weekdayName("en", 1, "narrow")).toBe("M");
+    expect(weekdayName("es", 1, "narrow")).toBe("L");
   });
 });
 

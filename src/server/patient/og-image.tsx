@@ -8,9 +8,10 @@ import { getTranslations } from "next-intl/server";
 import type { ReactElement } from "react";
 
 import { ACTIVITY_PATH } from "@/lib/app-icon-image";
-import { LOGO_CONTENT_TYPES, LOGO_MAX_BYTES, sniffImageType } from "@/lib/branding";
+import { LOGO_MAX_BYTES } from "@/lib/branding";
 import { cardColors, PREVIEW_IMAGE_SIZE } from "@/lib/link-preview";
 import type { BrandTokens } from "@/lib/color";
+import { fetchImageDataUri } from "@/server/export/images";
 
 import { loadLink } from "./load";
 
@@ -59,23 +60,15 @@ export async function loadLogoDataUri(
   if (!url) return null;
   const cached = logoCache.get(url);
   if (cached) return cached;
-  try {
-    const response = await fetchImpl(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-    if (!response.ok) return null;
-    // Refuse oversized files before buffering them: this endpoint is public.
-    const declared = Number(response.headers.get("content-length"));
-    if (declared > LOGO_MAX_BYTES) return null;
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.length === 0 || bytes.length > LOGO_MAX_BYTES) return null;
-    const type = sniffImageType(bytes);
-    if (type !== "png" && type !== "jpeg") return null;
-    const dataUri = `data:${LOGO_CONTENT_TYPES[type]};base64,${Buffer.from(bytes).toString("base64")}`;
-    if (logoCache.size >= LOGO_CACHE_SIZE) logoCache.delete(logoCache.keys().next().value!);
-    logoCache.set(url, dataUri);
-    return dataUri;
-  } catch {
-    return null;
-  }
+  const dataUri = await fetchImageDataUri(url, {
+    maxBytes: LOGO_MAX_BYTES,
+    timeoutMs: FETCH_TIMEOUT_MS,
+    fetchImpl,
+  });
+  if (!dataUri) return null;
+  if (logoCache.size >= LOGO_CACHE_SIZE) logoCache.delete(logoCache.keys().next().value!);
+  logoCache.set(url, dataUri);
+  return dataUri;
 }
 
 /** Longer names get a smaller type so up to 80 characters fit on two lines. */
