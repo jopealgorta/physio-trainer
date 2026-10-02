@@ -18,7 +18,8 @@ import type { Result, ShareError, ShareRef, ShareState } from "@/server/sharing/
 import { ShareLinkPanel, type PanelError } from "./share-link-panel";
 
 /**
- * "Share" button and its popover (spec 10): the link, WhatsApp/email, QR, expiry, PIN, revoke and
+ * "Share" button and its popover (spec 10): the button names what it shares ("Share all active",
+ * "Share routine", "Share plan"); the popover has the link, WhatsApp/email, QR, expiry, PIN, revoke and
  * regenerate. The link is created the first time a target is opened; all state lives on the server.
  */
 export function ShareButton({
@@ -78,7 +79,7 @@ export function ShareButton({
       <PopoverTrigger asChild>
         <Button type="button" variant={variant}>
           <Share2Icon aria-hidden />
-          {t("trigger")}
+          {t(`trigger.${target.target}`)}
         </Button>
       </PopoverTrigger>
       <PopoverContent

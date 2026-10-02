@@ -28,8 +28,8 @@ never contain customer data or exercise content.
 
 1. `generateMetadata` on the patient route returns:
    - `title`: the routine's or plan's name for a routine or plan link, else "Your exercise plan"
-     (localised to the customer's locale). The clinic is not in the text: it is on the image and
-     in `og:site_name`.
+     (localised to the customer's locale), followed by ` · {clinic}`: the clinic name, or the
+     physio's display name when none is set. The description never names anyone.
    - `description`: "Open your routine." / "Open your weekly plan." / "Open your exercises."
      (customer link). No names of exercises, injuries, or the patient.
    - `openGraph.images`: the image route, versioned (`…/og?v=…`).
@@ -77,7 +77,7 @@ None. Answered when the title was added:
 - Title on every known link, whatever its status (revoked, expired, PIN-protected too).
 - Second line is the clinic name (the display name when no clinic name is set).
 - Title also in `og:title`/`twitter:title`, and in the share popover preview.
-- No clinic name in the text under the image; the browser tab shows the title too.
+- ~~No clinic name in the text under the image~~ Reversed (see Decisions): the title ends in the clinic.
 
 ## Decisions made during implementation
 
@@ -144,3 +144,13 @@ None. Answered when the title was added:
   expired and PIN links gave identical tags and byte-identical images, and a rename changed `?v=`.
   That check showed a routine can have only one live link, which the e2e seeding now respects.
   `patient.int.test.ts` and the e2e specs need local Supabase and run in CI only.
+
+- **Clinic in the title line (reverses the "no clinic in the text" rule).** The title is
+  `{title} · {clinic}` (`Patient.meta.titleWithClinic`, so the separator is translatable) on every
+  link, including customer links ("Your exercise plan · Kine Sur"). It reaches the tab title,
+  `og:title`, `twitter:title` and the share-popover card, because they all come from `previewCopy`.
+  The clinic is `getBranding`'s `clinicName || displayName`, so a physio without a clinic name shows
+  their own name; with neither (blank), the title stays bare. The clinic was already public on the
+  image and in `og:site_name`, so this exposes nothing new. The description is unchanged. This also
+  makes the tab-title assertion in `e2e/sharing.spec.ts` true again (it had gone stale when the
+  title became the routine's or plan's name).

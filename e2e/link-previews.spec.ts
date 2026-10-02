@@ -48,7 +48,7 @@ test.describe("link previews", () => {
     expect(page.status()).toBe(200);
     const html = await page.text();
 
-    expect(metaContent(html, "property", "og:title")).toBe("Your exercise plan");
+    expect(metaContent(html, "property", "og:title")).toBe("Your exercise plan · Kine Sur");
     expect(metaContent(html, "property", "og:description")).toBe("Open your exercises.");
     expect(metaContent(html, "property", "og:site_name")).toBe("Kine Sur");
     expect(metaContent(html, "name", "twitter:card")).toBe("summary_large_image");
@@ -77,11 +77,11 @@ test.describe("link previews", () => {
     const customerId = await insertCustomer(physio.id, { locale: "es" });
     const link = await insertCustomerLink(physio, customerId);
     const html = await (await request.get(link.path)).text();
-    expect(metaContent(html, "property", "og:title")).toBe("Tu plan de ejercicios");
+    expect(metaContent(html, "property", "og:title")).toBe("Tu plan de ejercicios · Kine Sur");
     expect(metaContent(html, "property", "og:description")).toBe("Abrí tus ejercicios.");
   });
 
-  test("a routine or plan link is titled with its name, and the text never names the clinic", async ({
+  test("a routine or plan link is titled with its name and the clinic", async ({
     request,
     physio,
   }) => {
@@ -93,12 +93,12 @@ test.describe("link previews", () => {
     const plan = await insertCustomerLink(physio, customerId, { slug: "p", weeklyPlanId: planId });
 
     const routineHtml = await (await request.get(routine.path)).text();
-    expect(metaContent(routineHtml, "property", "og:title")).toBe("Rodilla fase 2");
-    expect(metaContent(routineHtml, "name", "twitter:title")).toBe("Rodilla fase 2");
+    expect(metaContent(routineHtml, "property", "og:title")).toBe("Rodilla fase 2 · Kine Sur");
+    expect(metaContent(routineHtml, "name", "twitter:title")).toBe("Rodilla fase 2 · Kine Sur");
     expect(metaContent(routineHtml, "property", "og:description")).toBe("Abrí tu rutina.");
 
     const planHtml = await (await request.get(plan.path)).text();
-    expect(metaContent(planHtml, "property", "og:title")).toBe("Plan de espalda");
+    expect(metaContent(planHtml, "property", "og:title")).toBe("Plan de espalda · Kine Sur");
     expect(metaContent(planHtml, "property", "og:description")).toBe("Abrí tu plan semanal.");
 
     // The title is in the image, and renaming the routine gives new shares a fresh image URL.
@@ -190,10 +190,10 @@ test.describe("link previews", () => {
     await setBranding(physio.id, { clinicName: "Kine Sur", accent: "#0f766e" });
     const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
     await page.goto(`/customers/${customerId}`);
-    await page.getByRole("button", { name: "Share" }).click();
+    await page.getByRole("button", { name: "Share all active" }).click();
 
     const card = page.getByRole("group", { name: "How the link looks in chats" });
-    await expect(card.getByText("Your exercise plan")).toBeVisible();
+    await expect(card.getByText("Your exercise plan · Kine Sur")).toBeVisible();
     await expect(card.getByText("Open your exercises.")).toBeVisible();
     const image = card.getByRole("img", { name: "Link preview image" });
     await expect(image).toBeVisible();
