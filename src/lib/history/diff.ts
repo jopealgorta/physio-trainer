@@ -26,7 +26,7 @@ export type RoutineDiff = { header: FieldChange<RoutineHeaderField>[]; items: It
 
 export type EntryDiff = {
   status: "added" | "removed" | "changed" | "unchanged";
-  /** Weekday or position changed. */
+  /** Moved to another weekday, or reordered within its day (see diffPlans). */
   moved: boolean;
   before: PlanSnapshot["entries"][number] | null;
   after: PlanSnapshot["entries"][number] | null;
@@ -222,10 +222,36 @@ export function diffRoutines(before: RoutineSnapshot, after: RoutineSnapshot): R
   };
 }
 
+/**
+ * Ids of the entries that moved: to another weekday, or within the same day out of the relative
+ * order of the day's other kept entries. Positions alone don't count, since the board renumbers a
+ * day whenever an entry is added, removed or moved (removing the first of three shifts the rest).
+ */
+function movedEntries(before: PlanSnapshot, after: PlanSnapshot): Set<string> {
+  const beforeById = new Map(before.entries.map((entry) => [entry.id, entry]));
+  const moved = new Set<string>();
+  const stayed = new Map<number, PlanSnapshot["entries"]>();
+  for (const entry of after.entries) {
+    const old = beforeById.get(entry.id);
+    if (!old) continue;
+    if (old.weekday !== entry.weekday) moved.add(entry.id);
+    else stayed.set(entry.weekday, [...(stayed.get(entry.weekday) ?? []), entry]);
+  }
+  for (const day of stayed.values()) {
+    day.sort((a, b) => a.position - b.position);
+    const keep = longestIncreasing(day.map((entry) => beforeById.get(entry.id)!.position));
+    day.forEach((entry, i) => {
+      if (!keep.has(i)) moved.add(entry.id);
+    });
+  }
+  return moved;
+}
+
 /** Compare two plan snapshots: header fields plus entries paired by id. */
 export function diffPlans(before: PlanSnapshot, after: PlanSnapshot): PlanDiff {
   const beforeById = new Map(before.entries.map((entry) => [entry.id, entry]));
   const afterIds = new Set(after.entries.map((entry) => entry.id));
+  const moved = movedEntries(before, after);
 
   const entries: EntryDiff[] = after.entries.map((entry) => {
     const old = beforeById.get(entry.id);
@@ -240,7 +266,7 @@ export function diffPlans(before: PlanSnapshot, after: PlanSnapshot): PlanDiff {
     }
     return {
       status: changes.length > 0 ? "changed" : "unchanged",
-      moved: old.weekday !== entry.weekday || old.position !== entry.position,
+      moved: moved.has(entry.id),
       before: old,
       after: entry,
       changes,

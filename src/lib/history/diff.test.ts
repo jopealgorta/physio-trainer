@@ -248,9 +248,38 @@ describe("diffPlans", () => {
     expect(diff.entries[0]).toMatchObject({ status: "unchanged", moved: true });
   });
 
-  it("flags a position move", () => {
-    const diff = diffPlans(plan([entry("n1")]), plan([entry("n1", { position: 1 })]));
-    expect(diff.entries[0]).toMatchObject({ status: "unchanged", moved: true });
+  const monday = (...ids: string[]) => ids.map((id, position) => entry(id, { position }));
+  const movedIds = (diff: ReturnType<typeof diffPlans>) =>
+    diff.entries.filter((e) => e.moved).map((e) => (e.before ?? e.after)!.id);
+
+  it("does not flag the entries renumbered after one is removed", () => {
+    const diff = diffPlans(plan(monday("n1", "n2", "n3")), plan(monday("n2", "n3")));
+    expect(movedIds(diff)).toEqual([]);
+    expect(diff.entries.map((e) => [(e.before ?? e.after)!.id, e.status])).toEqual([
+      ["n1", "removed"],
+      ["n2", "unchanged"],
+      ["n3", "unchanged"],
+    ]);
+  });
+
+  it("does not flag the entries shifted when one is added at the top of the day", () => {
+    const diff = diffPlans(plan(monday("n1", "n2")), plan(monday("n0", "n1", "n2")));
+    expect(movedIds(diff)).toEqual([]);
+  });
+
+  it("flags only the entry moved to the top of its day", () => {
+    const diff = diffPlans(plan(monday("n1", "n2", "n3")), plan(monday("n3", "n1", "n2")));
+    expect(movedIds(diff)).toEqual(["n3"]);
+  });
+
+  it("flags an entry moved to another day, but not the ones left behind or shifted", () => {
+    const before = plan([...monday("n1", "n2", "n3"), entry("t1", { weekday: 2 })]);
+    const after = plan([
+      ...monday("n2", "n3"),
+      entry("n1", { weekday: 2, position: 0 }),
+      entry("t1", { weekday: 2, position: 1 }),
+    ]);
+    expect(movedIds(diffPlans(before, after))).toEqual(["n1"]);
   });
 
   it("reports a label change", () => {
