@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
@@ -35,6 +35,10 @@ describe("exportForPhysio", () => {
   beforeEach(() => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 404 }));
     signIn(physio);
+  });
+  // The cleanup in afterAll deletes auth users over global fetch: it must not hit the stub.
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("is 401 without a session", async () => {
@@ -121,6 +125,12 @@ describe("exportForPhysio", () => {
       await runAsPhysio(physio.claims, (tx, id) => revokeShareLink(tx, id, link!.id));
       expect((await call("customer", customerId, "?format=pdf")).status).toBe(200);
       expect(await linkCount(customerId)).toBe(1);
+    });
+
+    it("is not created by an Excel export", async () => {
+      const customerId = await insertCustomer(physio.id);
+      expect((await call("customer", customerId, "?format=xlsx")).status).toBe(200);
+      expect(await linkCount(customerId)).toBe(0);
     });
   });
 });

@@ -38,7 +38,9 @@ export async function exportForPhysio(
           : await getCustomerExport(tx, physioId, id, today);
     if (!data) return null;
     const branding = await getBranding(tx, physioId);
-    const shareUrl = await exportShareUrl(tx, physioId, data.customer.id, now);
+    // Only the PDF prints the link (as a QR); an Excel export must not create one.
+    const shareUrl =
+      query.format === "pdf" ? await exportShareUrl(tx, physioId, data.customer.id, now) : null;
     return { today, data, branding, shareUrl };
   });
   if (!loaded) return fail(404);

@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
@@ -49,6 +49,10 @@ describe("patient PDF download", () => {
       "fetch",
       vi.fn(async () => new Response(null, { status: 404 })),
     );
+  });
+  // The cleanup in afterAll deletes the auth user over global fetch: it must not hit the stub.
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("serves the PDF with the patient privacy headers", async () => {
