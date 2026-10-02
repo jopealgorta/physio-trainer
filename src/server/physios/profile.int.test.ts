@@ -6,7 +6,7 @@ import { runAsPhysio } from "@/db/rls";
 import { physios } from "@/db/schema";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
-import { completeOnboarding, updateProfile } from "./mutations";
+import { completeOnboarding, setAvatarUrl, updateProfile } from "./mutations";
 import { getProfile, isHandleAvailable, suggestHandle } from "./queries";
 import type { ProfileInput } from "./schemas";
 
@@ -79,6 +79,21 @@ describe("physio profile", () => {
   it("cannot update another physio's profile", async () => {
     const result = await runAsPhysio(maria.claims, (tx) => updateProfile(tx, other.id, input()));
     expect(result).toEqual({ ok: false, error: "notFound" });
+  });
+
+  it("stores the sign-in photo on the physio's own row", async () => {
+    const url = "https://lh3.googleusercontent.com/a/maria";
+    await runAsPhysio(maria.claims, (tx, id) => setAvatarUrl(tx, id, url));
+    const profile = await runAsPhysio(maria.claims, (tx, id) => getProfile(tx, id));
+    expect(profile?.avatarUrl).toBe(url);
+  });
+
+  it("cannot set another physio's photo", async () => {
+    await runAsPhysio(maria.claims, (tx) =>
+      setAvatarUrl(tx, other.id, "https://lh3.googleusercontent.com/a/x"),
+    );
+    const [row] = await db.select().from(physios).where(eq(physios.id, other.id));
+    expect(row.avatarUrl).toBeNull();
   });
 
   it("checks handle availability", async () => {

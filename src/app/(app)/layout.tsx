@@ -22,7 +22,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </Link>
         <AppNav group="main" />
         <div className="mt-auto flex items-end justify-between gap-2">
-          <UserMenu name={profile.displayName} email={profile.email} className="flex-1" />
+          <UserMenu
+            name={profile.displayName}
+            email={profile.email}
+            avatarUrl={profile.avatarUrl}
+            className="flex-1"
+          />
           <ThemeToggle />
         </div>
       </aside>
@@ -34,7 +39,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             </Link>
             <div className="flex items-center gap-1">
               <ThemeToggle />
-              <UserMenu name={profile.displayName} email={profile.email} compact />
+              <UserMenu
+                name={profile.displayName}
+                email={profile.email}
+                avatarUrl={profile.avatarUrl}
+                compact
+              />
             </div>
           </div>
           <MobileNav />

@@ -8,7 +8,7 @@ import { env } from "@/env";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { buildBranding, type Branding } from "@/lib/branding";
 import { isShareCode, type ShareTarget } from "@/lib/share-links";
-import { brandingSource } from "@/server/branding/queries";
+import { brandingColumns, brandingSource } from "@/server/branding/queries";
 
 import { isPinTokenValid } from "./pin-cookie";
 
@@ -27,6 +27,8 @@ export type LinkShell = {
   /** The customer's language, not the physio's. */
   locale: Locale;
   branding: Branding & { updatedAt: Date };
+  /** Shown beside the clinic in the header: the physio's name and sign-in photo (Google). */
+  physio: { name: string; avatarUrl: string | null };
   /**
    * The shared routine's or plan's name, for the link preview (spec 11). Set whatever the link's
    * status, so every status unfurls alike; null for a customer link.
@@ -71,7 +73,13 @@ export async function resolveLink(code: string, now: Date = new Date()): Promise
       pinHash: shareLinks.pinHash,
       expiresAt: shareLinks.expiresAt,
       revokedAt: shareLinks.revokedAt,
-      physio: physios,
+      // Only what the patient surfaces use: never the physio's sign-in email or settings.
+      physio: {
+        ...brandingColumns,
+        handle: physios.handle,
+        timezone: physios.timezone,
+        avatarUrl: physios.avatarUrl,
+      },
       routineName: routines.name,
       planName: weeklyPlans.name,
       customerFirstName: customers.firstName,
@@ -110,6 +118,7 @@ export async function resolveLink(code: string, now: Date = new Date()): Promise
     target: row.target,
     locale: resolveLocale(row.customerLocale),
     branding,
+    physio: { name: row.physio.displayName, avatarUrl: row.physio.avatarUrl },
     title: row.routineName ?? row.planName ?? null,
   };
 

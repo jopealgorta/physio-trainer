@@ -17,6 +17,8 @@ export const physios = pgTable(
     locale: text().notNull().default("en"),
     timezone: text().notNull().default("UTC"),
     onboardedAt: timestamp({ withTimezone: true }),
+    // The sign-in provider's profile photo (Google), refreshed on every sign-in. null = none.
+    avatarUrl: text(),
     // Branding (docs/specs/09-physio-branding.md). null = not set / app default.
     clinicName: text(),
     logoPath: text(),
@@ -33,6 +35,10 @@ export const physios = pgTable(
       sql`${table.handle} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(${table.handle}) between 3 and 30`,
     ),
     check("physios_display_name_length", sql`char_length(${table.displayName}) between 1 and 80`),
+    check(
+      "physios_avatar_url_format",
+      sql`${table.avatarUrl} ~ '^https://' and char_length(${table.avatarUrl}) <= 2048`,
+    ),
     check("physios_clinic_name_length", sql`char_length(${table.clinicName}) between 1 and 80`),
     check("physios_accent_color_format", sql`${table.accentColor} ~ '^#[0-9a-f]{6}$'`),
     // The logo must live in the physio's own Storage folder (same rule as the bucket policies).

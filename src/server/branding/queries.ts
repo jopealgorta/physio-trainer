@@ -11,7 +11,22 @@ import { buildBranding, logoPublicUrl, type Branding, type BrandingSource } from
 /** A physio transaction (settings) or the owner connection after link resolution (spec 10). */
 export type Queryable = Tx | typeof db;
 
-export function brandingSource(row: Physio): BrandingSource {
+/** The physio columns branding is built from (patient code selects only these and a few more). */
+export const brandingColumns = {
+  displayName: physios.displayName,
+  clinicName: physios.clinicName,
+  logoPath: physios.logoPath,
+  accentColor: physios.accentColor,
+  contactEmail: physios.contactEmail,
+  contactPhone: physios.contactPhone,
+  website: physios.website,
+  showContactToPatients: physios.showContactToPatients,
+  updatedAt: physios.updatedAt,
+};
+
+type BrandingRow = Pick<Physio, keyof typeof brandingColumns>;
+
+export function brandingSource(row: BrandingRow): BrandingSource {
   return {
     displayName: row.displayName,
     clinicName: row.clinicName,

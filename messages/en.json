@@ -158,7 +158,8 @@
   "UserMenu": {
     "trigger": "Account menu",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "photoAlt": "Photo of {name}"
   },
   "Nav": {
     "dashboard": "Dashboard",
@@ -1345,7 +1346,8 @@
         "unavailable": "This link is no longer available.",
         "preview": "You are previewing this page, so nothing was saved."
       }
-    }
+    },
+    "physioPhotoAlt": "Photo of {name}"
   },
   "Workout": {
     "label": "Workout: {name}",

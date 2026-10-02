@@ -49,6 +49,35 @@ describe("physios sign-up trigger", () => {
     expect((await rowOf(physio.id)).displayName).toHaveLength(80);
   });
 
+  it("copies Google's avatar_url as the profile photo", async () => {
+    const url = "https://lh3.googleusercontent.com/a/photo=s96-c";
+    const physio = await newPhysio({
+      userMetadata: { avatar_url: url, picture: "https://x.test/p" },
+    });
+    expect((await rowOf(physio.id)).avatarUrl).toBe(url);
+  });
+
+  it("falls back to 'picture' when avatar_url is missing", async () => {
+    const url = "https://lh3.googleusercontent.com/a/picture";
+    const physio = await newPhysio({ userMetadata: { picture: url } });
+    expect((await rowOf(physio.id)).avatarUrl).toBe(url);
+  });
+
+  it.each([
+    ["http", "http://example.test/photo.png"],
+    ["javascript", "javascript:alert(1)"],
+    ["too long", `https://example.test/${"x".repeat(2048)}`],
+    ["not a string", 42],
+  ])("ignores a %s photo URL", async (_label, avatarUrl) => {
+    const physio = await newPhysio({ userMetadata: { avatar_url: avatarUrl } });
+    expect((await rowOf(physio.id)).avatarUrl).toBeNull();
+  });
+
+  it("has no photo for a magic-link sign-up", async () => {
+    const physio = await newPhysio();
+    expect((await rowOf(physio.id)).avatarUrl).toBeNull();
+  });
+
   it("removes the row when the auth user is deleted", async () => {
     const physio = await createTestPhysio();
     await adminClient.auth.admin.deleteUser(physio.id);
@@ -70,6 +99,16 @@ describe("physios table", () => {
       const physio = await newPhysio();
       await expect(
         db.update(physios).set({ handle }).where(eq(physios.id, physio.id)),
+      ).rejects.toThrow();
+    },
+  );
+
+  it.each(["http://example.test/a.png", `https://example.test/${"x".repeat(2048)}`])(
+    "rejects the avatar URL %j",
+    async (avatarUrl) => {
+      const physio = await newPhysio();
+      await expect(
+        db.update(physios).set({ avatarUrl }).where(eq(physios.id, physio.id)),
       ).rejects.toThrow();
     },
   );

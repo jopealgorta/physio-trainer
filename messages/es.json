@@ -158,7 +158,8 @@
   "UserMenu": {
     "trigger": "Menú de la cuenta",
     "settings": "Configuración",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "photoAlt": "Foto de {name}"
   },
   "Nav": {
     "dashboard": "Panel",
@@ -1345,7 +1346,8 @@
         "unavailable": "Este enlace ya no está disponible.",
         "preview": "Estás viendo una vista previa, así que no se guardó nada."
       }
-    }
+    },
+    "physioPhotoAlt": "Foto de {name}"
   },
   "Workout": {
     "label": "Entrenamiento: {name}",
