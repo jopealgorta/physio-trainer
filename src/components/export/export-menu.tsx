@@ -4,6 +4,7 @@ import { DownloadIcon, Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
+import { usePageAction, usePageNotice } from "@/components/page-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -75,6 +76,26 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
   const t = useTranslations("Export.menu");
   const [tracking, setTracking] = useState(true);
   const exporter = useExport(target);
+  const { pending } = exporter;
+  usePageAction("exportPdf", {
+    label: t("pdf"),
+    order: 20,
+    pending,
+    onSelect: () => void exporter.run("pdf", tracking),
+  });
+  usePageAction("exportXlsx", {
+    label: t("xlsx"),
+    order: 21,
+    pending,
+    onSelect: () => void exporter.run("xlsx", tracking),
+  });
+  usePageAction("exportTracking", {
+    label: t("tracking"),
+    order: 22,
+    checked: tracking,
+    onSelect: () => setTracking((value) => !value),
+  });
+  usePageNotice("export", exporter.failed ? { text: t("error"), tone: "error" } : null);
 
   return (
     <>

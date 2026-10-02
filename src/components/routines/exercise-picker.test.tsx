@@ -74,7 +74,13 @@ afterEach(() => vi.useRealTimers());
 
 describe("ExercisePicker", () => {
   it("marks exercises already in the routine, with a count from two", () => {
-    setup({ recent: [SQUAT], added: new Map([["e1", 2], ["e2", 1]]) });
+    setup({
+      recent: [SQUAT],
+      added: new Map([
+        ["e1", 2],
+        ["e2", 1],
+      ]),
+    });
     const squat = within(list()).getByRole("button", { name: "Squat" });
     expect(squat).toHaveAttribute("data-added", "true");
     expect(squat).toHaveAccessibleDescription("In the routine 2 times");

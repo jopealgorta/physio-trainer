@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import type { Download, Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { phoneMenu } from "./helpers/page-actions";
 import {
   insertCustomer,
   insertCustomerLink,
@@ -18,24 +19,76 @@ async function expectFile(download: Download, ext: string, magic: string) {
   expect(bytes.subarray(0, magic.length).toString("latin1")).toBe(magic);
 }
 
-async function exportVia(page: Page, item: "Download PDF" | "Download Excel") {
-  await page.getByRole("button", { name: "Export", exact: true }).click();
-  const download = page.waitForEvent("download");
-  await page.getByRole("menuitem", { name: item }).click();
-  return download;
+/**
+ * On a phone the file goes to the system share sheet (Save to Files, WhatsApp…): this stand-in
+ * records what it was handed. Desktop browsers get a plain download and never call it.
+ */
+async function stubShareSheet(page: Page) {
+  await page.addInitScript(() => {
+    const shared: { name: string; type: string; head: string }[] = [];
+    Object.assign(window, { __shared: shared });
+    Object.defineProperty(navigator, "canShare", {
+      configurable: true,
+      value: (data?: { files?: File[] }) => Array.isArray(data?.files),
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async ({ files }: { files: File[] }) => {
+        for (const file of files) {
+          const bytes = new Uint8Array(await file.arrayBuffer()).subarray(0, 4);
+          shared.push({ name: file.name, type: file.type, head: String.fromCharCode(...bytes) });
+        }
+      },
+    });
+  });
+}
+
+/**
+ * Exports through the page's controls and checks the file: downloaded on a desktop, handed to the
+ * share sheet on a phone. Routine and plan pages keep Export in "More actions" on phones.
+ */
+async function expectExport(
+  page: Page,
+  isMobile: boolean,
+  item: "Download PDF" | "Download Excel",
+  ext: string,
+  magic: string,
+) {
+  const open = async () => {
+    const exportButton = page.getByRole("button", { name: "Export", exact: true });
+    await ((await phoneMenu(page, exportButton)) ?? exportButton).click();
+    await page.getByRole("menuitem", { name: item }).click();
+  };
+  if (!isMobile) {
+    const download = page.waitForEvent("download");
+    await open();
+    await expectFile(await download, ext, magic);
+    return;
+  }
+  const shared = () =>
+    page.evaluate(
+      () => (window as unknown as { __shared: { name: string; head: string }[] }).__shared,
+    );
+  const before = (await shared()).length;
+  await open();
+  await expect.poll(async () => (await shared()).length).toBe(before + 1);
+  const file = (await shared()).at(-1)!;
+  expect(file.name).toMatch(new RegExp(`\\.${ext}$`));
+  expect(file.head.startsWith(magic)).toBe(true);
 }
 
 test.describe("export", () => {
-  test("a routine downloads as PDF and Excel", async ({ physioPage: page, physio }) => {
+  test("a routine downloads as PDF and Excel", async ({ physioPage: page, physio, isMobile }) => {
     const customerId = await insertCustomer(physio.id);
     const routineId = await insertRoutine(physio.id, customerId, "Export routine");
 
+    await stubShareSheet(page);
     await page.goto(`/routines/${routineId}`);
-    await expectFile(await exportVia(page, "Download PDF"), "pdf", "%PDF");
-    await expectFile(await exportVia(page, "Download Excel"), "xlsx", "PK");
+    await expectExport(page, isMobile, "Download PDF", "pdf", "%PDF");
+    await expectExport(page, isMobile, "Download Excel", "xlsx", "PK");
   });
 
-  test("a plan downloads as PDF", async ({ physioPage: page, physio }) => {
+  test("a plan downloads as PDF", async ({ physioPage: page, physio, isMobile }) => {
     const customerId = await insertCustomer(physio.id);
     const routineId = await insertRoutine(physio.id, customerId, "Plan routine", {
       standalone: false,
@@ -44,16 +97,18 @@ test.describe("export", () => {
       { weekday: isoWeekdayIn(0), routineId },
     ]);
 
+    await stubShareSheet(page);
     await page.goto(`/plans/${planId}`);
-    await expectFile(await exportVia(page, "Download PDF"), "pdf", "%PDF");
+    await expectExport(page, isMobile, "Download PDF", "pdf", "%PDF");
   });
 
-  test("a customer downloads as Excel", async ({ physioPage: page, physio }) => {
+  test("a customer downloads as Excel", async ({ physioPage: page, physio, isMobile }) => {
     const customerId = await insertCustomer(physio.id);
     await insertRoutine(physio.id, customerId, "Customer routine");
 
+    await stubShareSheet(page);
     await page.goto(`/customers/${customerId}`);
-    await expectFile(await exportVia(page, "Download Excel"), "xlsx", "PK");
+    await expectExport(page, isMobile, "Download Excel", "xlsx", "PK");
   });
 
   test("a patient downloads the PDF from the shared link", async ({ page, physio }) => {

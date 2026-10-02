@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EditorBlock, EditorItem } from "@/lib/routine-editor";
 import type { ExerciseSummary } from "@/server/library/queries";
+import { menuActions } from "@/test/page-actions";
 import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
@@ -223,6 +224,29 @@ describe("RoutineEditor", () => {
     expect(
       within(screen.getByTestId("picker-list")).getByRole("button", { name: "Lunge" }),
     ).toBeDisabled();
+  });
+
+  it("lays out the page's back link, controls and phase around the title, with History in More actions", async () => {
+    const user = userEvent.setup();
+    setup({
+      ...PROPS,
+      top: {
+        back: <a href="#back">Back to routines</a>,
+        actions: <button type="button">Export</button>,
+        secondary: <button type="button">Save as template…</button>,
+        phase: <p>Phase bar</p>,
+      },
+    });
+    expect(screen.getByRole("link", { name: "Back to routines" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save as template…" })).toBeInTheDocument();
+    expect(screen.getByText("Phase bar")).toBeInTheDocument();
+    // On phones the controls' rows give way to the menu (and Save moves up next to it).
+    expect(screen.getByRole("button", { name: "Export" }).parentElement).toHaveClass(
+      "hidden",
+      "sm:flex",
+    );
+    expect(await menuActions(user)).toEqual(["History"]);
   });
 
   it("keeps Save disabled until something changes", async () => {

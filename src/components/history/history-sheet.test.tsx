@@ -9,6 +9,7 @@ import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
 import { HistorySheet } from "./history-sheet";
+import { chooseMenuAction, InPageActions } from "@/test/page-actions";
 
 const a = vi.hoisted(() => ({
   listVersionsAction: vi.fn(),
@@ -365,5 +366,28 @@ describe("HistorySheet", () => {
     const wednesday = await within(sheet).findByRole("group", { name: "Wednesday" });
     expect(wednesday).toHaveTextContent("Strength");
     expect(within(sheet).queryByRole("group", { name: "Monday" })).not.toBeInTheDocument();
+  });
+});
+
+describe("HistorySheet in a page's More actions menu", () => {
+  it("opens from the menu and repeats the restore message in the page notices", async () => {
+    a.restoreVersionAction.mockResolvedValue({ ok: true, data: { version: 4, dropped: 0 } });
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <InPageActions>
+          <HistorySheet kind="routine" id={ID} onRestored={vi.fn()} />
+        </InPageActions>
+      </NextIntlClientProvider>,
+    );
+    await chooseMenuAction(user, "History");
+    const sheet = await screen.findByRole("dialog", { name: "Version history" });
+    await user.click(await within(sheet).findByRole("button", { name: /Reps changed/ }));
+    await user.click(within(sheet).getByRole("button", { name: "Restore this version" }));
+    const confirm = await screen.findByRole("alertdialog", { name: "Restore this version?" });
+    await user.click(within(confirm).getByRole("button", { name: "Restore" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("page-notices")).toHaveTextContent("Version restored."),
+    );
   });
 });

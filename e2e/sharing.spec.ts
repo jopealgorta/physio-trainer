@@ -1,4 +1,5 @@
 import { expect, test } from "./helpers/auth";
+import { pageAction } from "./helpers/page-actions";
 import {
   insertCustomer,
   insertCustomerLink,
@@ -357,14 +358,14 @@ test.describe("sharing from the physio's side", () => {
     void other;
 
     await page.goto(`/routines/${routineId}`);
-    await page.getByRole("button", { name: "Share routine" }).click();
+    await pageAction(page, "Share routine");
     await expect(
       page.getByRole("heading", { name: "Share this routine", exact: true }),
     ).toBeVisible();
     const routineUrl = await page.getByLabel("Link", { exact: true }).inputValue();
 
     await page.goto(`/plans/${planId}`);
-    await page.getByRole("button", { name: "Share plan" }).click();
+    await pageAction(page, "Share plan");
     await expect(page.getByRole("heading", { name: "Share this plan", exact: true })).toBeVisible();
     const planUrl = await page.getByLabel("Link", { exact: true }).inputValue();
 

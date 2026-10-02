@@ -4,6 +4,7 @@ import { LayersIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useId, useState, type FormEvent } from "react";
 
+import { usePageAction } from "@/components/page-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,10 +42,18 @@ export function SaveAsTemplateDialog({
 }) {
   const t = useTranslations("Templates.save");
   const [open, setOpen] = useState(false);
+  usePageAction("saveAsTemplate", {
+    label: t("button"),
+    order: 40,
+    icon: <LayersIcon aria-hidden />,
+    opensDialog: true,
+    onSelect: () => setOpen(true),
+  });
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline">
+        {/* Pushed to the end of its row, with or without "From template" before it. */}
+        <Button type="button" variant="outline" className="ml-auto">
           <LayersIcon aria-hidden /> {t("button")}
         </Button>
       </DialogTrigger>

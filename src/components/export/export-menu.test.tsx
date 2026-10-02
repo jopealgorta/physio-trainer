@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "../../../messages/en.json";
 
 import { ExportMenu } from "./export-menu";
+import { chooseMenuAction, InPageActions, menuActions } from "@/test/page-actions";
 
 const PDF = "application/pdf";
 // Writable stand-ins for the Web Share API, which jsdom lacks.
@@ -152,5 +153,54 @@ describe("ExportMenu", () => {
     await user.click(screen.getByRole("button", { name: "Share" }));
     await waitFor(() => expect(nav.share).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+});
+
+describe("ExportMenu in a page's More actions menu", () => {
+  const inMenu = () =>
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <InPageActions>
+          <ExportMenu target={{ kind: "routines", id: "r1" }} />
+        </InPageActions>
+      </NextIntlClientProvider>,
+    );
+
+  it("offers PDF, Excel and the tracking boxes, and exports from there", async () => {
+    const user = userEvent.setup();
+    inMenu();
+    expect(await menuActions(user)).toEqual([
+      "Download PDF",
+      "Download Excel",
+      "Include tracking boxes",
+    ]);
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(
+      await screen.findByRole("menuitemcheckbox", { name: "Include tracking boxes" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Download PDF" }));
+    await waitFor(() => expect(clicked).toEqual(["knee.pdf"]));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/export/routines/r1?format=pdf&tracking=0",
+      sameOrigin,
+    );
+  });
+
+  it("shows the export running on the menu button and repeats a failure in the notices", async () => {
+    let resolve!: (response: Response) => void;
+    fetchMock.mockImplementation(() => new Promise<Response>((done) => (resolve = done)));
+    const user = userEvent.setup();
+    inMenu();
+    await chooseMenuAction(user, "Download Excel");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "More actions" })).toHaveAttribute(
+        "aria-busy",
+        "true",
+      ),
+    );
+    resolve(new Response("", { status: 500 }));
+    await waitFor(() =>
+      expect(screen.getByTestId("page-notices")).toHaveTextContent("Couldn't export. Try again."),
+    );
   });
 });

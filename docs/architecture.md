@@ -235,6 +235,14 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   swiped down to dismiss. vaul owns the drawer's touch gestures: put scrollable content in an
   inner `min-h-0 overflow-y-auto` box (it scrolls until it is back at its top, then the drag
   closes the drawer). Side panels (`Sheet` from the left or right) stay sheets.
+- **Page actions on phones**: a detail page with several secondary controls (the routine and
+  plan pages: Share, Export, History, templates) wraps them in `PageActions`
+  (`src/components/page-actions.tsx`). Each control calls `usePageAction` to appear in the "⋯"
+  `PageActionsMenu`, and `usePageNotice` for what it says inline (errors, "Version restored.").
+  The page hides the controls' own rows below `sm` (`hidden sm:flex`; their dialogs are
+  portalled, so they still open) and shows the menu and `PageNotices` there instead.
+- **Titles**: a detail page's name is an `h1` renamed in place with `EditableTitle` (pencil
+  button; Enter or blur confirms, Escape cancels), not an always-on input.
 - **Handles and top-level routes**: adding a top-level route requires adding it to
   `RESERVED_HANDLES` in `src/lib/handles.ts` (a unit test enforces this).
 

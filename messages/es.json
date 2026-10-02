@@ -1014,7 +1014,8 @@
         "plan": "{count, plural, one {# rutina} other {# rutinas}}"
       },
       "back": "Volver a las plantillas"
-    }
+    },
+    "fromMenu": "Desde la plantilla: {name}"
   },
   "VisitNotes": {
     "title": "Notas de visita",
@@ -1633,5 +1634,8 @@
       "conflict": "Esto cambió mientras lo mirabas. Abrí el historial de nuevo y volvé a intentar.",
       "generic": "Algo salió mal. Volvé a intentar."
     }
+  },
+  "PageActions": {
+    "more": "Más acciones"
   }
 }

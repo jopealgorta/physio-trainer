@@ -35,7 +35,7 @@ import type { ExerciseSummary } from "@/server/library/queries";
 
 import { BlockList } from "./block-list";
 import { ExercisePicker } from "./exercise-picker";
-import { RoutineHeader, type HeaderValues } from "./routine-header";
+import { RoutineHeader, type HeaderSlots, type HeaderValues } from "./routine-header";
 import { useUnsavedGuard } from "./use-unsaved-guard";
 
 export type { HeaderValues } from "./routine-header";
@@ -55,6 +55,8 @@ export type RoutineEditorProps = {
   categories: CategoryNode[];
   recent: ExerciseSummary[];
   exercises: ExerciseSummary[];
+  /** The page's back link and controls, laid out with the header (see RoutineHeader). */
+  top?: HeaderSlots;
 };
 
 type SaveError = SaveRoutineActionError | "generic";
@@ -78,6 +80,7 @@ export function RoutineEditor({
   categories,
   recent,
   exercises,
+  top,
 }: RoutineEditorProps) {
   const t = useTranslations("Routines.editor");
   const tPicker = useTranslations("Routines.picker");
@@ -259,6 +262,7 @@ export function RoutineEditor({
         onSave={save}
         focusToken={focusToken}
         actions={<HistorySheet kind="routine" id={routine.id} dirty={dirty} onRestored={reload} />}
+        top={top}
       />
 
       {invalidItems.size > 0 ? (

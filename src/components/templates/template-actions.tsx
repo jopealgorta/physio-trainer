@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
+import { usePageAction, usePageNotice } from "@/components/page-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { TemplateKind } from "@/lib/templates";
@@ -39,6 +40,27 @@ export function TemplateActions({
       else setFailed(true);
     });
   };
+
+  usePageAction(
+    "assign",
+    customers.length > 0
+      ? {
+          label: t("assign"),
+          order: 60,
+          icon: <UserPlusIcon aria-hidden />,
+          opensDialog: true,
+          onSelect: () => setAssigning(true),
+        }
+      : null,
+  );
+  usePageAction("duplicate", {
+    label: t("duplicate"),
+    order: 61,
+    icon: <CopyIcon aria-hidden />,
+    pending,
+    onSelect: duplicate,
+  });
+  usePageNotice("duplicate", failed ? { text: t("duplicateFailed"), tone: "error" } : null);
 
   return (
     <div className="grid gap-3">

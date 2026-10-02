@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "../../../messages/en.json";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
+import { chooseMenuAction, InPageActions } from "@/test/page-actions";
 
 const { saveAsTemplateAction } = vi.hoisted(() => ({ saveAsTemplateAction: vi.fn() }));
 vi.mock("@/server/templates/actions", () => ({ saveAsTemplateAction }));
@@ -77,5 +78,21 @@ describe("SaveAsTemplateDialog", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "That routine or plan no longer exists.",
     );
+  });
+});
+
+describe("SaveAsTemplateDialog in a page's More actions menu", () => {
+  it("opens the dialog from the menu item", async () => {
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <InPageActions>
+          <SaveAsTemplateDialog kind="routine" sourceId="src-1" defaultName="Knee rehab" />
+        </InPageActions>
+      </NextIntlClientProvider>,
+    );
+    await chooseMenuAction(user, "Save as template…");
+    expect(await screen.findByRole("dialog", { name: "Save as template" })).toBeVisible();
+    expect(screen.getByLabelText("Template name")).toHaveValue("Knee rehab");
   });
 });
