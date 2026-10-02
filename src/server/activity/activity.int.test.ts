@@ -124,13 +124,19 @@ describe("activity", () => {
       // 3 completed sessions, one logged as not completed.
       expect(summary.completed).toBe(3);
       expect(summary.lastLoggedOn).toBe("2026-10-07");
+      // Back is planned Mondays and Thursdays: 8 sessions between 10 Sep and 7 Oct, 3 logged.
+      expect(summary.adherence).toEqual({ planned: 8, completed: 3, ratio: 0.375 });
     });
 
     it("is empty for a customer with no logs and refuses another physio's customer", async () => {
       const empty = await as(physio, (tx, id) => getCustomerActivity(tx, id, beto, TODAY));
       expect(empty.comments).toEqual([]);
       expect(empty.pain.overall).toEqual([]);
-      expect(empty.summary).toEqual({ completed: 0, lastLoggedOn: null });
+      expect(empty.summary).toEqual({
+        completed: 0,
+        lastLoggedOn: null,
+        adherence: { planned: 0, completed: 0, ratio: null },
+      });
 
       const foreign = await as(other, (tx, id) => getCustomerActivity(tx, id, ana, TODAY));
       expect(foreign.comments).toEqual([]);

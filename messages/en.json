@@ -505,9 +505,6 @@
       "activity": "Activity",
       "notes": "Notes"
     },
-    "tabEmpty": {
-      "activity": "Their activity and progress will appear here."
-    },
     "overview": {
       "basicInfo": "Basic information",
       "notSet": "Not set",
@@ -1404,6 +1401,67 @@
       "title": "Well done!",
       "description": "You finished {name}.",
       "back": "Back to my plan"
+    }
+  },
+  "Activity": {
+    "pain": {
+      "title": "Pain over time",
+      "routine": "Routine",
+      "all": "All routines",
+      "series": "Pain",
+      "tooltipValue": "{value, number} / 10",
+      "summary": "Pain over time ({scope}): {count, plural, one {# rating} other {# ratings}}, latest {latest, number} out of 10 on {date}.",
+      "threshold": "The dashboard flags pain of {value, number} or more.",
+      "empty": "No pain ratings yet.",
+      "table": {
+        "caption": "Pain ratings",
+        "date": "Date",
+        "pain": "Pain (0–10)"
+      }
+    },
+    "title": "Activity",
+    "description": "What {name} logged from their link over the last 12 weeks.",
+    "empty": {
+      "title": "Nothing logged yet",
+      "body": "When {name} marks a routine as done from their link, their sessions, pain and comments show up here."
+    },
+    "summary": {
+      "sessions": "Sessions logged",
+      "sessionsHint": "last 12 weeks",
+      "adherence": "Adherence",
+      "adherenceHint": "last 4 weeks",
+      "adherenceNone": "Nothing planned",
+      "lastLogged": "Last logged",
+      "never": "Never"
+    },
+    "heatmap": {
+      "title": "Sessions by day",
+      "label": "Calendar of the last 12 weeks, one square per day, Monday to Sunday.",
+      "legend": {
+        "done": "All done",
+        "partial": "Some done",
+        "missed": "Missed",
+        "extra": "Extra",
+        "upcoming": "Planned",
+        "none": "Nothing planned",
+        "label": "Legend"
+      },
+      "state": {
+        "done": "{date}: done, {completed, number} of {planned, number} planned",
+        "partial": "{date}: {completed, number} of {planned, number} planned done",
+        "missed": "{date}: missed, {planned, number} planned",
+        "planned": "{date}: {planned, number} planned today, not done yet",
+        "upcoming": "{date}: {planned, number} planned",
+        "extra": "{date}: {completed, number} done, none planned",
+        "none": "{date}: nothing planned"
+      }
+    },
+    "comments": {
+      "title": "Comments",
+      "empty": "No comments yet.",
+      "new": "New",
+      "newCount": "{count, plural, one {# new comment} other {# new comments}}",
+      "painValue": "Pain {value, number}/10"
     }
   }
 }

@@ -7,7 +7,7 @@ import { getTranslations } from "next-intl/server";
 import { CustomerHeader } from "@/components/customers/customer-header";
 import { CustomerOverview } from "@/components/customers/customer-overview";
 import { CustomerTabs } from "@/components/customers/customer-tabs";
-import { TabEmpty } from "@/components/customers/tab-empty";
+import { CustomerActivity } from "@/components/activity/customer-activity";
 import { CustomerPlans } from "@/components/plans/customer-plans";
 import { CustomerRoutines } from "@/components/routines/customer-routines";
 import { CustomerNotes } from "@/components/visit-notes/customer-notes";
@@ -95,7 +95,7 @@ export default async function CustomerPage({
           filters={parseNotesParams(sp)}
         />
       ) : (
-        <TabEmpty tab={tab} />
+        <CustomerActivity customerId={customer.id} customerName={name} timeZone={timezone} />
       )}
     </div>
   );

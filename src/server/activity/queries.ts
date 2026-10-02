@@ -12,9 +12,11 @@ import {
   weeklyPlans,
 } from "@/db/schema";
 import {
+  adherence,
   dayCells,
   heatmapWeeks,
   painSeries,
+  type Adherence,
   type DayCell,
   type LogFact,
   type PainPoint,
@@ -164,7 +166,12 @@ export type CustomerActivity = {
   };
   comments: ActivityComment[];
   unseenCount: number;
-  summary: { completed: number; lastLoggedOn: string | null };
+  summary: {
+    completed: number;
+    lastLoggedOn: string | null;
+    /** The 4 weeks that ended yesterday: a session not done yet today is not held against them. */
+    adherence: Adherence;
+  };
 };
 
 /** The Activity tab (spec 13) for one customer: the last 12 weeks of logs against the plan. */
@@ -183,7 +190,11 @@ export async function getCustomerActivity(
     pain: { overall: [], routines: [] },
     comments: [],
     unseenCount: 0,
-    summary: { completed: 0, lastLoggedOn: null },
+    summary: {
+      completed: 0,
+      lastLoggedOn: null,
+      adherence: { planned: 0, completed: 0, ratio: null },
+    },
   };
   if (!isUuid(customerId)) return empty;
 
@@ -246,6 +257,13 @@ export async function getCustomerActivity(
     summary: {
       completed: rows.filter((row) => row.completed).length,
       lastLoggedOn: rows[0]?.performedOn ?? null,
+      adherence: adherence(
+        addDays(today, -28),
+        addDays(today, -1),
+        plans,
+        facts.get(customerId)?.singles ?? [],
+        logs,
+      ),
     },
   };
 }

@@ -505,9 +505,6 @@
       "activity": "Actividad",
       "notes": "Notas"
     },
-    "tabEmpty": {
-      "activity": "Acá van a aparecer su actividad y su progreso."
-    },
     "overview": {
       "basicInfo": "Información básica",
       "notSet": "Sin definir",
@@ -1404,6 +1401,67 @@
       "title": "¡Muy bien!",
       "description": "Terminaste {name}.",
       "back": "Volver a mi plan"
+    }
+  },
+  "Activity": {
+    "pain": {
+      "title": "Dolor a lo largo del tiempo",
+      "routine": "Rutina",
+      "all": "Todas las rutinas",
+      "series": "Dolor",
+      "tooltipValue": "{value, number} / 10",
+      "summary": "Dolor a lo largo del tiempo ({scope}): {count, plural, one {# registro} other {# registros}}, el último {latest, number} de 10 el {date}.",
+      "threshold": "El panel marca un dolor de {value, number} o más.",
+      "empty": "Todavía no hay registros de dolor.",
+      "table": {
+        "caption": "Registros de dolor",
+        "date": "Fecha",
+        "pain": "Dolor (0–10)"
+      }
+    },
+    "title": "Actividad",
+    "description": "Lo que {name} registró desde su enlace en las últimas 12 semanas.",
+    "empty": {
+      "title": "Todavía no registró nada",
+      "body": "Cuando {name} marque una rutina como hecha desde su enlace, sus sesiones, dolor y comentarios van a aparecer acá."
+    },
+    "summary": {
+      "sessions": "Sesiones registradas",
+      "sessionsHint": "últimas 12 semanas",
+      "adherence": "Cumplimiento",
+      "adherenceHint": "últimas 4 semanas",
+      "adherenceNone": "Nada planificado",
+      "lastLogged": "Último registro",
+      "never": "Nunca"
+    },
+    "heatmap": {
+      "title": "Sesiones por día",
+      "label": "Calendario de las últimas 12 semanas, un cuadrado por día, de lunes a domingo.",
+      "legend": {
+        "done": "Todo hecho",
+        "partial": "Algo hecho",
+        "missed": "Perdida",
+        "extra": "Extra",
+        "upcoming": "Planificada",
+        "none": "Nada planificado",
+        "label": "Leyenda"
+      },
+      "state": {
+        "done": "{date}: hecho, {completed, number} de {planned, number} planificadas",
+        "partial": "{date}: {completed, number} de {planned, number} planificadas hechas",
+        "missed": "{date}: perdida, {planned, number} planificadas",
+        "planned": "{date}: {planned, number} planificadas para hoy, todavía sin hacer",
+        "upcoming": "{date}: {planned, number} planificadas",
+        "extra": "{date}: {completed, number} hechas, ninguna planificada",
+        "none": "{date}: nada planificado"
+      }
+    },
+    "comments": {
+      "title": "Comentarios",
+      "empty": "Todavía no hay comentarios.",
+      "new": "Nuevo",
+      "newCount": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
+      "painValue": "Dolor {value, number}/10"
     }
   }
 }
