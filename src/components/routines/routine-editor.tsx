@@ -9,14 +9,14 @@ import { HistorySheet } from "@/components/history/history-sheet";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import type { CategoryNode } from "@/lib/category-tree";
 import {
   addItem,
@@ -255,31 +255,28 @@ export function RoutineEditor({
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="grid min-w-0 gap-4">
           <div className="lg:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
+            <Drawer>
+              <DrawerTrigger asChild>
                 <Button type="button" variant="outline">
                   <PlusIcon aria-hidden />
                   {tPicker("open")}
                 </Button>
-              </SheetTrigger>
+              </DrawerTrigger>
               {/* The title says it all (no description), and Done is the localized way out. */}
-              <SheetContent
-                side="bottom"
-                showCloseButton={false}
-                className="max-h-[85dvh]"
-                aria-describedby={undefined}
-              >
-                <SheetHeader>
-                  <SheetTitle>{tPicker("title")}</SheetTitle>
-                </SheetHeader>
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">{picker}</div>
-                <SheetFooter>
-                  <SheetClose asChild>
+              <DrawerContent aria-describedby={undefined}>
+                <DrawerHeader>
+                  <DrawerTitle>{tPicker("title")}</DrawerTitle>
+                </DrawerHeader>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-2">
+                  {picker}
+                </div>
+                <DrawerFooter>
+                  <DrawerClose asChild>
                     <Button type="button">{tPicker("close")}</Button>
-                  </SheetClose>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
+                  </DrawerClose>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
           </div>
           <BlockList
             blocks={blocks}

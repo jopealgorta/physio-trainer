@@ -224,11 +224,17 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   hard-code colours; accent colour must stay on `primary` so branding (spec 09) can override it.
 - **Popovers are bottom sheets on phones**: use the `Popover` primitive from
   `src/components/ui/popover.tsx`; below Tailwind's `sm` breakpoint it renders as a bottom sheet
-  (modal, `max-h-[85dvh]`, scrolls inside) and from `sm` up as a floating popover. Size the
+  (a `Drawer`: modal, `max-h-[85dvh]`, swiped down to dismiss, scrolls inside) and from `sm` up
+  as a floating popover. Size the
   content for desktop under `sm:` (`sm:w-96`, `sm:max-h-(--radix-popover-content-available-height)`)
   so the sheet keeps the full width, and name it with `PopoverTitle` (`className="sr-only"` when
   no heading is shown). Dropdown _menus_ (`DropdownMenu`) stay dropdowns: they are short lists.
   Never build a floating card by hand.
+- **Bottom sheets are drawers**: anything that slides up from the bottom uses `Drawer`
+  (`src/components/ui/drawer.tsx`, vaul), never `SheetContent side="bottom"`, so it can be
+  swiped down to dismiss. vaul owns the drawer's touch gestures: put scrollable content in an
+  inner `min-h-0 overflow-y-auto` box (it scrolls until it is back at its top, then the drag
+  closes the drawer). Side panels (`Sheet` from the left or right) stay sheets.
 - **Handles and top-level routes**: adding a top-level route requires adding it to
   `RESERVED_HANDLES` in `src/lib/handles.ts` (a unit test enforces this).
 

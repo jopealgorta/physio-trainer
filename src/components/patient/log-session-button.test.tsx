@@ -65,6 +65,9 @@ describe("LogSessionButton", () => {
     setup({ entryId: ENTRY });
     await user.click(screen.getByRole("button", { name: "Mark as done" }));
     const dialog = screen.getByRole("dialog", { name: "How did it go?" });
+    // A drawer, so it can be swiped down to dismiss; it carries the patient branding scope.
+    expect(dialog).toHaveAttribute("data-vaul-drawer");
+    expect(dialog).toHaveAttribute("data-brand", "patient");
     await user.click(within(dialog).getByRole("radio", { name: "6" }));
     await user.type(within(dialog).getByLabelText("Comment (optional)"), "A bit pinchy");
     await user.click(within(dialog).getByRole("button", { name: "Save" }));

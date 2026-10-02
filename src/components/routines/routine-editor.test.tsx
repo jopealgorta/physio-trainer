@@ -124,6 +124,8 @@ describe("RoutineEditor", () => {
     setup({ ...PROPS, exercises: [LUNGE] });
     await user.click(screen.getByRole("button", { name: "Add exercises" }));
     const sheet = await screen.findByRole("dialog", { name: "Add exercises" });
+    // A drawer, so it can be swiped down to dismiss.
+    expect(sheet).toHaveAttribute("data-vaul-drawer");
     expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
     // The sheet's built-in X button carries a hard-coded English "Close" label.
     expect(within(sheet).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
