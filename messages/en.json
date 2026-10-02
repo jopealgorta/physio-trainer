@@ -505,9 +505,6 @@
       "activity": "Activity",
       "notes": "Notes"
     },
-    "tabEmpty": {
-      "activity": "Their activity and progress will appear here."
-    },
     "overview": {
       "basicInfo": "Basic information",
       "notSet": "Not set",
@@ -1256,7 +1253,8 @@
       "dayToday": "{day}, today",
       "dayHasRoutines": "{day}, has exercises",
       "dayBoth": "{day}, today, has exercises",
-      "dayPlain": "{day}"
+      "dayPlain": "{day}",
+      "logged": "session logged"
     },
     "restDay": "Nothing scheduled for {day}.",
     "yourRoutines": "Your routines",
@@ -1313,7 +1311,41 @@
       "imageAlt": "{clinic}",
       "imageAltTitled": "{title} · {clinic}"
     },
-    "startWorkout": "Start workout"
+    "startWorkout": "Start workout",
+    "logging": {
+      "markDone": "Mark as done",
+      "done": "Done",
+      "edit": "Edit",
+      "title": "How did it go?",
+      "close": "Close",
+      "day": {
+        "label": "Day",
+        "today": "Today",
+        "yesterday": "Yesterday"
+      },
+      "pain": {
+        "legend": "Pain (optional)",
+        "hint": "0 is no pain, 10 is the worst pain you can imagine.",
+        "none": "No pain",
+        "worst": "Worst pain",
+        "clear": "Clear"
+      },
+      "comment": {
+        "label": "Comment (optional)",
+        "placeholder": "How did it feel? Anything your physio should know?"
+      },
+      "save": "Save",
+      "undo": "Mark as not done",
+      "finished": "Log how it went so your physio can follow your progress.",
+      "errors": {
+        "generic": "Something went wrong. Try again.",
+        "invalid": "Check what you entered and try again.",
+        "date": "You can only log today or yesterday.",
+        "unreachable": "This routine was not part of your plan on that day.",
+        "unavailable": "This link is no longer available.",
+        "preview": "You are previewing this page, so nothing was saved."
+      }
+    }
   },
   "Workout": {
     "label": "Workout: {name}",
@@ -1369,6 +1401,98 @@
       "title": "Well done!",
       "description": "You finished {name}.",
       "back": "Back to my plan"
+    }
+  },
+  "Activity": {
+    "pain": {
+      "title": "Pain over time",
+      "routine": "Routine",
+      "all": "All routines",
+      "series": "Pain",
+      "tooltipValue": "{value, number} / 10",
+      "summary": "Pain over time ({scope}): {count, plural, one {# rating} other {# ratings}}, latest {latest, number} out of 10 on {date}.",
+      "threshold": "The dashboard flags pain of {value, number} or more.",
+      "empty": "No pain ratings yet.",
+      "table": {
+        "caption": "Pain ratings",
+        "date": "Date",
+        "pain": "Pain (0–10)"
+      }
+    },
+    "title": "Activity",
+    "description": "What {name} logged from their link over the last 12 weeks.",
+    "empty": {
+      "title": "Nothing logged yet",
+      "body": "When {name} marks a routine as done from their link, their sessions, pain and comments show up here."
+    },
+    "summary": {
+      "sessions": "Sessions logged",
+      "sessionsHint": "last 12 weeks",
+      "adherence": "Adherence",
+      "adherenceHint": "last 4 weeks",
+      "adherenceNone": "Nothing planned",
+      "lastLogged": "Last logged",
+      "never": "Never"
+    },
+    "heatmap": {
+      "title": "Sessions by day",
+      "label": "Calendar of the last 12 weeks, one square per day, Monday to Sunday.",
+      "legend": {
+        "done": "All done",
+        "partial": "Some done",
+        "missed": "Missed",
+        "extra": "Extra",
+        "upcoming": "Planned",
+        "none": "Nothing planned",
+        "label": "Legend"
+      },
+      "state": {
+        "done": "{date}: done, {completed, number} of {planned, number} planned",
+        "partial": "{date}: {completed, number} of {planned, number} planned done",
+        "missed": "{date}: missed, {planned, number} planned",
+        "planned": "{date}: {planned, number} planned today, not done yet",
+        "upcoming": "{date}: {planned, number} planned",
+        "extra": "{date}: {completed, number} done, none planned",
+        "none": "{date}: nothing planned"
+      }
+    },
+    "comments": {
+      "title": "Comments",
+      "empty": "No comments yet.",
+      "new": "New",
+      "newCount": "{count, plural, one {# new comment} other {# new comments}}",
+      "painValue": "Pain {value, number}/10"
+    }
+  },
+  "Dashboard": {
+    "description": "Who needs your attention, and what your patients logged lately.",
+    "totals": {
+      "customers": "Active customers",
+      "sessions": "Sessions logged this week"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "description": "Pain, or too few sessions, in the last 7 days.",
+      "empty": "Nobody needs attention right now.",
+      "reasons": {
+        "highPain": "Pain {pain, number}/10 in the last 7 days",
+        "painRise": "Pain up {delta, number} points on the week before",
+        "lowAdherence": "Only {percent, number}% of planned sessions done in the last 7 days"
+      }
+    },
+    "comments": {
+      "title": "New comments",
+      "description": "What patients wrote that you haven't opened yet.",
+      "empty": "No new comments.",
+      "count": "{count, plural, one {# new comment} other {# new comments}}",
+      "context": "{routine} · {date}"
+    },
+    "recent": {
+      "title": "Recently active",
+      "description": "Patients who logged a session in the last 7 days.",
+      "empty": "Nobody has logged a session in the last 7 days.",
+      "sessions": "{count, plural, one {# session} other {# sessions}} in the last 7 days",
+      "last": "Last: {date}"
     }
   }
 }

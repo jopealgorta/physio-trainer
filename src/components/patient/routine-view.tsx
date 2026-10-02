@@ -1,4 +1,5 @@
 import { PlayIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import type { Route } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -18,6 +19,7 @@ export async function RoutineView({
   headingLevel = 3,
   label,
   startHref,
+  logSlot,
 }: {
   routine: PatientRoutine;
   locale: Locale;
@@ -26,6 +28,8 @@ export async function RoutineView({
   label?: string | null;
   /** The guided workout for this routine (spec 12); omitted where it cannot start. */
   startHref?: string;
+  /** Where the patient marks this routine as done (spec 13). */
+  logSlot?: ReactNode;
 }) {
   const [t, tPrescription] = await Promise.all([
     getTranslations({ locale, namespace: "Patient" }),
@@ -61,6 +65,7 @@ export async function RoutineView({
           </Link>
         </Button>
       ) : null}
+      {logSlot}
       {routine.notes ? (
         <section aria-label={t("notes")} className="bg-muted rounded-lg p-3 text-sm">
           <p className="wrap-anywhere whitespace-pre-line">{routine.notes}</p>

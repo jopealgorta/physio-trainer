@@ -2,6 +2,7 @@ import type { Route } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { LogSessionButton } from "@/components/patient/log-session-button";
 import { PinGate } from "@/components/patient/pin-gate";
 import { Unavailable } from "@/components/patient/unavailable";
 import { WorkoutPlayer } from "@/components/patient/workout/workout-player";
@@ -10,7 +11,8 @@ import { firstParam } from "@/lib/search-params";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { getLinkAccess } from "@/server/patient/access";
 import { loadLink } from "@/server/patient/load";
-import { getReachableRoutine } from "@/server/patient/view";
+import { getPatientLogs } from "@/server/patient/log-session";
+import { getReachableRoutine, isReachable } from "@/server/patient/view";
 import { todayIn } from "@/lib/calendar-date";
 
 const decode = (value: string) => {
@@ -48,20 +50,52 @@ export default async function WorkoutPage({
   }
 
   const { link } = resolved;
-  const { unlocked } = await getLinkAccess(shell, link);
+  const { owner, unlocked } = await getLinkAccess(shell, link);
   if (!unlocked) return <PinGate code={shell.code} clinicName={shell.branding.clinicName} />;
 
   const routine = await getReachableRoutine(shell, link, routineId);
   if (!routine || routine.blocks.length === 0) notFound();
 
-  const t = await getTranslations({ locale: shell.locale, namespace: "Workout" });
+  const today = todayIn(shell.timeZone);
+  // The plan entry the workout was started from (spec 13 logs it). A made-up or stale id is
+  // dropped rather than trusted: the log is then saved for the routine on its own.
+  const requestedEntry = entry && isUuid(entry) ? entry : null;
+  const entryId =
+    requestedEntry &&
+    (await isReachable(shell, link, { routineId, entryId: requestedEntry }, today))
+      ? requestedEntry
+      : null;
+
+  const [t, tLogging, logs] = await Promise.all([
+    getTranslations({ locale: shell.locale, namespace: "Workout" }),
+    getTranslations({ locale: shell.locale, namespace: "Patient.logging" }),
+    getPatientLogs(shell, link, today, today),
+  ]);
+  // The finish screen hands off to the log sheet; the owner previewing the link only sees the state.
+  const finishSlot = (
+    <div className="grid justify-items-center gap-3">
+      <p className="text-muted-foreground max-w-xs text-sm">{tLogging("finished")}</p>
+      <LogSessionButton
+        code={shell.code}
+        routineId={routine.id}
+        entryId={entryId}
+        routineName={routine.name}
+        days={owner ? [] : [{ date: today, relative: "today" }]}
+        logs={logs.filter((log) => log.routineId === routine.id && log.entryId === entryId)}
+        shownDate={today}
+        defaultOpen={!owner}
+      />
+    </div>
+  );
+
   return (
     <WorkoutPlayer
       label={t("label", { name: routine.name })}
       routine={routine}
       code={shell.code}
-      today={todayIn(shell.timeZone)}
+      today={today}
       exitHref={path}
+      finishSlot={finishSlot}
     />
   );
 }

@@ -3,10 +3,14 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import type { Locale } from "@/i18n/config";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
 import { buildWorkoutPath } from "@/lib/patient-paths";
+import { addDays } from "@/lib/phases";
 import { weekdayName, type Weekday } from "@/lib/plans";
+import { dateForWeekday, isLoggableDate, loggedWeekdays } from "@/lib/session-logs";
+import type { PatientLog } from "@/server/patient/log-session";
 import type { PatientView } from "@/server/patient/view";
 
 import { DayStrip } from "./day-strip";
+import { LogSessionButton, type LoggableDay } from "./log-session-button";
 import { RoutineView } from "./routine-view";
 
 /** The patient page body: greeting, plans for the chosen day with the week strip, and routines. */
@@ -15,12 +19,15 @@ export async function PatientHome({
   firstName,
   locale,
   path,
+  logging,
 }: {
   view: PatientView;
   firstName: string;
   locale: Locale;
   /** Canonical link path (for the day links). */
   path: string;
+  /** Session logging (spec 13): the logs of this week, and whether this visitor may write one. */
+  logging: { code: string; logs: PatientLog[]; canLog: boolean };
 }) {
   const [t, format] = await Promise.all([
     getTranslations({ locale, namespace: "Patient" }),
@@ -31,6 +38,34 @@ export async function PatientHome({
   const nothing = view.plans.length === 0 && view.routines.length === 0;
   // A lone routine needs no "Your routines" heading; its own name is the next level down.
   const routinesHeading = view.plans.length > 0 || view.routines.length > 1;
+
+  // A plan day stands for one date of this week; single routines are done on any day, so the
+  // patient picks today or yesterday in the sheet.
+  const day = (date: string): LoggableDay => ({
+    date,
+    relative: date === view.today ? "today" : "yesterday",
+  });
+  const dayDate = dateForWeekday(view.today, view.weekday);
+  const planDays = logging.canLog && isLoggableDate(dayDate, view.today) ? [day(dayDate)] : [];
+  const singleDays = logging.canLog ? [day(addDays(view.today, -1)), day(view.today)] : [];
+  const logSlot = (
+    routine: { id: string; name: string },
+    entryId: string | null,
+    days: LoggableDay[],
+    shownDate: string,
+  ) => (
+    <LogSessionButton
+      code={logging.code}
+      routineId={routine.id}
+      entryId={entryId}
+      routineName={routine.name}
+      days={days}
+      logs={logging.logs.filter(
+        (entry) => entry.routineId === routine.id && entry.entryId === entryId,
+      )}
+      shownDate={shownDate}
+    />
+  );
 
   return (
     <div className="grid gap-8">
@@ -71,6 +106,7 @@ export async function PatientHome({
             selected={view.weekday}
             today={view.todayWeekday}
             withContent={view.weekdaysWithContent}
+            logged={loggedWeekdays(view.today, logging.logs)}
           />
           {view.plans.map((plan) => (
             <div key={plan.id} className="grid gap-4">
@@ -89,6 +125,7 @@ export async function PatientHome({
                     label={entry.label}
                     locale={locale}
                     startHref={buildWorkoutPath(path, entry.routine.id, entry.id)}
+                    logSlot={logSlot(entry.routine, entry.id, planDays, dayDate)}
                   />
                 ))
               )}
@@ -116,6 +153,7 @@ export async function PatientHome({
               locale={locale}
               headingLevel={routinesHeading ? 3 : 2}
               startHref={buildWorkoutPath(path, routine.id)}
+              logSlot={logSlot(routine, null, singleDays, view.today)}
             />
           ))}
         </section>

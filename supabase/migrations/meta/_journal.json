@@ -155,6 +155,20 @@
       "when": 1790892664226,
       "tag": "20261001221104_share-links-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790944090084,
+      "tag": "20261002122810_session-logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790944092084,
+      "tag": "20261002122812_session-logs-extras",
+      "breakpoints": true
     }
   ]
 }

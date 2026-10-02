@@ -42,7 +42,7 @@ function routineOf(...items: PatientItem[]): PatientRoutine {
 const KEY = workoutStorageKey("7k2m9qpx", "routine-1", "2026-10-01");
 const T0 = new Date("2026-10-01T10:00:00Z");
 
-function setup(routine: PatientRoutine, locale: "en" | "es" = "en") {
+function setup(routine: PatientRoutine, locale: "en" | "es" = "en", finishSlot?: React.ReactNode) {
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? messages : es}>
@@ -52,6 +52,7 @@ function setup(routine: PatientRoutine, locale: "en" | "es" = "en") {
         today="2026-10-01"
         exitHref="/maria/ana-7k2m9qpx"
         label="Workout: Knee rehab"
+        finishSlot={finishSlot}
       />
     </NextIntlClientProvider>,
   );
@@ -124,6 +125,19 @@ describe("WorkoutPlayer", () => {
 
     await user.click(screen.getByRole("button", { name: "Back to my plan" }));
     expect(m.push).toHaveBeenCalledWith("/maria/ana-7k2m9qpx");
+  });
+
+  it("hands off to the session log on the finish screen, and only there", async () => {
+    const user = setup(
+      routineOf(item("a", "Squat", { sets: [item("x", "x").sets[0]!] })),
+      "en",
+      <button type="button">Log session</button>,
+    );
+    expect(screen.queryByRole("button", { name: "Log session" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Set done" }));
+    expect(screen.getByRole("heading", { name: "Well done!" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log session" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back to my plan" })).toBeInTheDocument();
   });
 
   it("skips a rest", async () => {

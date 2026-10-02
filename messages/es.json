@@ -505,9 +505,6 @@
       "activity": "Actividad",
       "notes": "Notas"
     },
-    "tabEmpty": {
-      "activity": "Acá van a aparecer su actividad y su progreso."
-    },
     "overview": {
       "basicInfo": "Información básica",
       "notSet": "Sin definir",
@@ -1256,7 +1253,8 @@
       "dayToday": "{day}, hoy",
       "dayHasRoutines": "{day}, tiene ejercicios",
       "dayBoth": "{day}, hoy, tiene ejercicios",
-      "dayPlain": "{day}"
+      "dayPlain": "{day}",
+      "logged": "sesión registrada"
     },
     "restDay": "No hay nada programado para {day}.",
     "yourRoutines": "Tus rutinas",
@@ -1313,7 +1311,41 @@
       "imageAlt": "{clinic}",
       "imageAltTitled": "{title} · {clinic}"
     },
-    "startWorkout": "Empezar entrenamiento"
+    "startWorkout": "Empezar entrenamiento",
+    "logging": {
+      "markDone": "Marcar como hecha",
+      "done": "Hecha",
+      "edit": "Editar",
+      "title": "¿Cómo te fue?",
+      "close": "Cerrar",
+      "day": {
+        "label": "Día",
+        "today": "Hoy",
+        "yesterday": "Ayer"
+      },
+      "pain": {
+        "legend": "Dolor (opcional)",
+        "hint": "0 es sin dolor y 10 es el peor dolor que puedas imaginar.",
+        "none": "Sin dolor",
+        "worst": "Peor dolor",
+        "clear": "Borrar"
+      },
+      "comment": {
+        "label": "Comentario (opcional)",
+        "placeholder": "¿Cómo lo sentiste? ¿Algo que tu fisioterapeuta deba saber?"
+      },
+      "save": "Guardar",
+      "undo": "Marcar como no hecha",
+      "finished": "Contá cómo te fue para que tu fisioterapeuta siga tu progreso.",
+      "errors": {
+        "generic": "Algo salió mal. Probá de nuevo.",
+        "invalid": "Revisá lo que ingresaste y probá de nuevo.",
+        "date": "Solo podés registrar hoy o ayer.",
+        "unreachable": "Esa rutina no era parte de tu plan ese día.",
+        "unavailable": "Este enlace ya no está disponible.",
+        "preview": "Estás viendo una vista previa, así que no se guardó nada."
+      }
+    }
   },
   "Workout": {
     "label": "Entrenamiento: {name}",
@@ -1369,6 +1401,98 @@
       "title": "¡Muy bien!",
       "description": "Terminaste {name}.",
       "back": "Volver a mi plan"
+    }
+  },
+  "Activity": {
+    "pain": {
+      "title": "Dolor a lo largo del tiempo",
+      "routine": "Rutina",
+      "all": "Todas las rutinas",
+      "series": "Dolor",
+      "tooltipValue": "{value, number} / 10",
+      "summary": "Dolor a lo largo del tiempo ({scope}): {count, plural, one {# registro} other {# registros}}, el último {latest, number} de 10 el {date}.",
+      "threshold": "El panel marca un dolor de {value, number} o más.",
+      "empty": "Todavía no hay registros de dolor.",
+      "table": {
+        "caption": "Registros de dolor",
+        "date": "Fecha",
+        "pain": "Dolor (0–10)"
+      }
+    },
+    "title": "Actividad",
+    "description": "Lo que {name} registró desde su enlace en las últimas 12 semanas.",
+    "empty": {
+      "title": "Todavía no registró nada",
+      "body": "Cuando {name} marque una rutina como hecha desde su enlace, sus sesiones, dolor y comentarios van a aparecer acá."
+    },
+    "summary": {
+      "sessions": "Sesiones registradas",
+      "sessionsHint": "últimas 12 semanas",
+      "adherence": "Cumplimiento",
+      "adherenceHint": "últimas 4 semanas",
+      "adherenceNone": "Nada planificado",
+      "lastLogged": "Último registro",
+      "never": "Nunca"
+    },
+    "heatmap": {
+      "title": "Sesiones por día",
+      "label": "Calendario de las últimas 12 semanas, un cuadrado por día, de lunes a domingo.",
+      "legend": {
+        "done": "Todo hecho",
+        "partial": "Algo hecho",
+        "missed": "Perdida",
+        "extra": "Extra",
+        "upcoming": "Planificada",
+        "none": "Nada planificado",
+        "label": "Leyenda"
+      },
+      "state": {
+        "done": "{date}: hecho, {completed, number} de {planned, number} planificadas",
+        "partial": "{date}: {completed, number} de {planned, number} planificadas hechas",
+        "missed": "{date}: perdida, {planned, number} planificadas",
+        "planned": "{date}: {planned, number} planificadas para hoy, todavía sin hacer",
+        "upcoming": "{date}: {planned, number} planificadas",
+        "extra": "{date}: {completed, number} hechas, ninguna planificada",
+        "none": "{date}: nada planificado"
+      }
+    },
+    "comments": {
+      "title": "Comentarios",
+      "empty": "Todavía no hay comentarios.",
+      "new": "Nuevo",
+      "newCount": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
+      "painValue": "Dolor {value, number}/10"
+    }
+  },
+  "Dashboard": {
+    "description": "Quién necesita tu atención y qué registraron tus pacientes últimamente.",
+    "totals": {
+      "customers": "Clientes activos",
+      "sessions": "Sesiones registradas esta semana"
+    },
+    "attention": {
+      "title": "Necesitan atención",
+      "description": "Dolor o muy pocas sesiones en los últimos 7 días.",
+      "empty": "Nadie necesita atención por ahora.",
+      "reasons": {
+        "highPain": "Dolor {pain, number}/10 en los últimos 7 días",
+        "painRise": "El dolor subió {delta, number} puntos respecto de la semana anterior",
+        "lowAdherence": "Solo {percent, number} % de las sesiones planificadas en los últimos 7 días"
+      }
+    },
+    "comments": {
+      "title": "Comentarios nuevos",
+      "description": "Lo que escribieron tus pacientes y todavía no abriste.",
+      "empty": "No hay comentarios nuevos.",
+      "count": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
+      "context": "{routine} · {date}"
+    },
+    "recent": {
+      "title": "Activos recientemente",
+      "description": "Pacientes que registraron una sesión en los últimos 7 días.",
+      "empty": "Nadie registró una sesión en los últimos 7 días.",
+      "sessions": "{count, plural, one {# sesión} other {# sesiones}} en los últimos 7 días",
+      "last": "Último: {date}"
     }
   }
 }

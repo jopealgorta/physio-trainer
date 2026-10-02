@@ -237,28 +237,30 @@ export async function getPatientView(
   };
 }
 
+type ReachShell = Pick<LinkShell, "physioId" | "timeZone">;
+type ReachLink = Pick<ActiveLink, "target" | "customerId" | "routineId" | "weeklyPlanId">;
+
 /**
- * The routine behind a workout link, or null when this link cannot reach it (spec 12): one of the
- * customer's active standalone routines, a routine in an active plan entry of the link's
- * customer, or the single routine or plan the link points at. The id comes from the request, so
- * it is only ever matched against what the link itself can reach.
+ * Can this link reach `routineId` on `date`? One of the customer's active standalone routines, a
+ * routine in an active plan entry of the link's customer, or the single routine or plan the link
+ * points at. `entryId` narrows it to that plan entry (spec 13 logs per entry). The ids come from
+ * the request, so they are only ever matched against what the link itself can reach.
  */
-export async function getReachableRoutine(
-  shell: Pick<LinkShell, "physioId" | "timeZone">,
-  link: Pick<ActiveLink, "target" | "customerId" | "routineId" | "weeklyPlanId">,
-  routineId: string,
-  now: Date = new Date(),
-): Promise<PatientRoutine | null> {
-  const today = todayIn(shell.timeZone, now);
-  const { planScope, routineScope, routineActive } = linkScopes(shell, link, today);
+export async function isReachable(
+  shell: Pick<LinkShell, "physioId">,
+  link: ReachLink,
+  target: { routineId: string; entryId?: string | null },
+  date: string,
+): Promise<boolean> {
+  const { planScope, routineScope, routineActive } = linkScopes(shell, link, date);
 
   const [standalone, inPlan] = await Promise.all([
-    link.target === "weekly_plan"
+    link.target === "weekly_plan" || target.entryId
       ? []
       : db
           .select({ id: routines.id })
           .from(routines)
-          .where(routineScope(and(eq(routines.id, routineId), routineActive)))
+          .where(routineScope(and(eq(routines.id, target.routineId), routineActive)))
           .limit(1),
     link.target === "routine"
       ? []
@@ -282,8 +284,9 @@ export async function getReachableRoutine(
           .where(
             and(
               eq(weeklyPlanEntries.physioId, shell.physioId),
-              eq(weeklyPlanEntries.routineId, routineId),
-              planScope(scheduleFilter(weeklyPlans, "active", today)),
+              eq(weeklyPlanEntries.routineId, target.routineId),
+              target.entryId ? eq(weeklyPlanEntries.id, target.entryId) : undefined,
+              planScope(scheduleFilter(weeklyPlans, "active", date)),
               // The same rule as the page: the plan's routine must be the customer's and finished.
               eq(routines.customerId, link.customerId),
               eq(routines.status, "active"),
@@ -291,8 +294,21 @@ export async function getReachableRoutine(
           )
           .limit(1),
   ]);
-  if (standalone.length === 0 && inPlan.length === 0) return null;
+  return standalone.length > 0 || inPlan.length > 0;
+}
 
+/**
+ * The routine behind a workout link, or null when this link cannot reach it today (spec 12);
+ * see `isReachable`.
+ */
+export async function getReachableRoutine(
+  shell: ReachShell,
+  link: ReachLink,
+  routineId: string,
+  now: Date = new Date(),
+): Promise<PatientRoutine | null> {
+  const today = todayIn(shell.timeZone, now);
+  if (!(await isReachable(shell, link, { routineId }, today))) return null;
   const content = await loadRoutines(shell.physioId, link.customerId, [routineId]);
   return content.get(routineId) ?? null;
 }
