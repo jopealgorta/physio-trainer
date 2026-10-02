@@ -1620,5 +1620,8 @@
       "conflict": "This changed while you were looking. Open the history again and retry.",
       "generic": "Something went wrong. Try again."
     }
+  },
+  "Loading": {
+    "label": "Loading…"
   }
 }
