@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,6 +78,20 @@ async function chooseFromSubmenu(
   }
   expect(document.activeElement).toHaveTextContent(item);
   await user.keyboard("{Enter}");
+}
+
+/**
+ * Keeps a mocked action pending until the returned function is called, so the board's optimistic
+ * state stays visible. Always settle it: a transition left pending would hold back later tests'.
+ */
+function hold(action: ReturnType<typeof vi.fn>) {
+  let release!: () => void;
+  action.mockReturnValue(
+    new Promise((resolve) => {
+      release = () => resolve({ ok: true, data: { deletedRoutine: false } });
+    }),
+  );
+  return () => act(async () => release());
 }
 
 beforeEach(() => {
@@ -183,9 +197,9 @@ describe("entry menu", () => {
 
   it("moves to another day at the end of it", async () => {
     const user = userEvent.setup();
-    // Held pending: the optimistic state only lasts while the action runs (props never change here).
-    let release!: (value: unknown) => void;
-    a.moveEntryAction.mockReturnValue(new Promise((resolve) => (release = resolve)));
+    // Hold the action open: the optimistic state only lasts while the transition is pending,
+    // and these props never change (no server refresh), so it reverts once the action settles.
+    const settle = hold(a.moveEntryAction);
     setup([entry({ id: "a" })]);
     await user.click(menuFor("Routine a"));
     await chooseFromSubmenu(user, "Move to…", "Friday");
@@ -196,7 +210,7 @@ describe("entry menu", () => {
       index: 6,
     });
     await waitFor(() => expect(namesIn("Friday")).toEqual(["Routine a"]));
-    release({ ok: true, data: {} });
+    await settle();
   });
 
   it("copies to another day", async () => {
@@ -323,9 +337,8 @@ describe("removing an entry", () => {
 
   it("asks about deleting the routine when it was the last use of a plan-only routine", async () => {
     const user = userEvent.setup();
-    // Held pending: the optimistic state only lasts while the action runs (props never change here).
-    let release!: (value: unknown) => void;
-    a.removeEntryAction.mockReturnValue(new Promise((resolve) => (release = resolve)));
+    // Keep the action pending so the optimistic removal stays visible (props never change).
+    const settle = hold(a.removeEntryAction);
     setup([entry({ id: "a", routineIsStandalone: false, routineEntryCount: 1 })]);
     await user.click(menuFor("Routine a"));
     await user.click(await screen.findByRole("menuitem", { name: "Remove from plan" }));
@@ -339,7 +352,7 @@ describe("removing an entry", () => {
       deleteRoutine: true,
     });
     await waitFor(() => expect(namesIn("Monday")).toEqual([]));
-    release({ ok: true, data: { deletedRoutine: true } });
+    await settle();
   });
 
   it("keeps the routine when the box is unticked, and starts ticked again next time", async () => {
