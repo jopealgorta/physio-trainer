@@ -1358,6 +1358,8 @@
       "off": "Sound off"
     },
     "announce": {
+      "setDone": "Set {current, number} of {total, number} done.",
+      "exerciseDone": "{name} done.",
       "holdDone": "Hold finished.",
       "timeUp": "Time's up.",
       "restOver": "Rest over. Next: {name}.",

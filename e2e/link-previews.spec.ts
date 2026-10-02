@@ -152,7 +152,7 @@ test.describe("link previews", () => {
         image: bytes.toString("base64"),
       });
     }
-    expect(cards[0].title).toBe("Knee rehab");
+    expect(cards[0].title).toBe("Knee rehab · Kine Sur");
     for (const card of cards.slice(1)) expect(card).toEqual(cards[0]);
   });
 

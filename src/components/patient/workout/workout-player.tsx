@@ -43,6 +43,7 @@ import {
   completeSet,
   goTo,
   initialState,
+  isLastSetOfExercise,
   nextStep,
   remainingMs,
   skipTimer,
@@ -60,9 +61,23 @@ import {
 import { useWakeLock } from "@/lib/workout/use-wake-lock";
 import type { PatientItem, PatientRoutine } from "@/server/patient/view";
 
+import { Confetti, SetDoneBurst } from "./set-done-burst";
+
 const TICK_MS = 250;
 const ADD_SECONDS = 15;
 const SWIPE_DISTANCE = 60;
+/** How long the set-done effects stay mounted (the animations are a little shorter). */
+const BURST_MS = 900;
+const BIG_BURST_MS = 1600;
+
+/**
+ * Wide (16:9) videos on a portrait phone are as tall as the screen is wide, so they are scaled to
+ * cover this window instead, trimming a little off the sides. Shorts (9:16) fill the stage.
+ */
+const WIDE_VIDEO_WINDOW = "aspect-[4/3]";
+
+type Notice = { text: string; /** Shown on screen too, not only announced. */ visible: boolean };
+type Celebration = { id: number; big: boolean };
 
 type Translate = ReturnType<typeof useTranslations<"Workout">>;
 
@@ -117,7 +132,9 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
   });
   const stateRef = useRef(state);
   const [now, setNow] = useState(() => Date.now());
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const celebrations = useRef(0);
   const [confirmExit, setConfirmExit] = useState(false);
 
   const commit = useCallback((next: WorkoutState) => {
@@ -131,6 +148,36 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
   }, [state, storageKey]);
 
   useWakeLock(state.phase !== "finished");
+
+  useEffect(() => {
+    if (!celebration) return;
+    const id = window.setTimeout(
+      () => setCelebration(null),
+      celebration.big ? BIG_BURST_MS : BURST_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, [celebration]);
+
+  /** Effects for a finished set; `withCue` is false when a countdown's own beep already played. */
+  const celebrate = useCallback(
+    (stepIndex: number, withCue: boolean) => {
+      const big = isLastSetOfExercise(steps, stepIndex);
+      celebrations.current += 1;
+      setCelebration({ id: celebrations.current, big });
+      const done = steps[stepIndex]!;
+      const name = items.get(done.itemId)?.name ?? "";
+      if (withCue) {
+        setNotice({
+          text: big
+            ? t("announce.exerciseDone", { name })
+            : t("announce.setDone", { current: done.setIndex + 1, total: done.setCount }),
+          visible: false,
+        });
+        cue(big ? "exercise" : "set");
+      }
+    },
+    [steps, items, cue, t],
+  );
 
   // Countdowns: applied from timestamps on a short interval and whenever the tab comes back.
   const running = state.endsAt !== null;
@@ -147,15 +194,20 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
     };
     const announce = (previous: WorkoutState, next: WorkoutState) => {
       if (next.phase === "finished") {
-        setNotice(t("announce.finished"));
+        setNotice({ text: t("announce.finished"), visible: true });
         cue("finish");
       } else if (previous.phase === "rest") {
         const name = items.get(steps[next.stepIndex]!.itemId)?.name ?? "";
-        setNotice(t("announce.restOver", { name }));
+        setNotice({ text: t("announce.restOver", { name }), visible: true });
         cue("end");
       } else {
-        setNotice(previous.phase === "hold" ? t("announce.holdDone") : t("announce.timeUp"));
+        setNotice({
+          text: previous.phase === "hold" ? t("announce.holdDone") : t("announce.timeUp"),
+          visible: true,
+        });
         cue("end");
+        // A timed set that ran out is a finished set: the beep stands in for the chime.
+        if (previous.phase === "timed") celebrate(previous.stepIndex, false);
       }
     };
     update();
@@ -167,10 +219,16 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
       document.removeEventListener("visibilitychange", update);
       window.removeEventListener("pageshow", update);
     };
-  }, [running, steps, items, commit, cue, t]);
+  }, [running, steps, items, commit, cue, celebrate, t]);
 
-  /** Runs a user action: unlocks audio, clears the last notice and applies the new state. */
-  const act = (change: (current: WorkoutState, at: number) => WorkoutState) => {
+  /**
+   * Runs a user action: unlocks audio, clears the last notice and applies the new state.
+   * `finishesSet` marks actions that complete the current set (so it gets the celebration).
+   */
+  const act = (
+    change: (current: WorkoutState, at: number) => WorkoutState,
+    finishesSet = false,
+  ) => {
     unlock();
     setNotice(null);
     const at = Date.now();
@@ -179,8 +237,10 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
     const next = change(previous, at);
     commit(next);
     if (next.phase === "finished" && previous.phase !== "finished") {
-      setNotice(t("announce.finished"));
+      setNotice({ text: t("announce.finished"), visible: true });
       cue("finish");
+    } else if (finishesSet && next !== previous) {
+      celebrate(previous.stepIndex, true);
     }
   };
 
@@ -222,13 +282,19 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
     return (
       <Shell label={label}>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-          <PartyPopperIcon aria-hidden className="text-primary size-16" />
+          <div className="relative">
+            <PartyPopperIcon
+              aria-hidden
+              className="text-primary motion-safe:animate-workout-bump size-16"
+            />
+            <Confetti />
+          </div>
           <h1 className="text-3xl font-semibold tracking-tight">{t("finished.title")}</h1>
           <p className="text-muted-foreground wrap-anywhere">
             {t("finished.description", { name: routine.name })}
           </p>
           <p className="sr-only" role="status">
-            {notice}
+            {notice?.text}
           </p>
           <Button size="lg" className="h-14 px-8 text-base" onClick={exit}>
             {t("finished.back")}
@@ -263,7 +329,10 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
         >
           <ChevronLeftIcon aria-hidden />
         </Button>
-        <p className="min-w-0 flex-1 truncate text-center text-sm font-medium">
+        <p
+          key={step.exerciseIndex}
+          className="motion-safe:animate-workout-bump min-w-0 flex-1 truncate text-center text-sm font-medium"
+        >
           {t("progress", { current: step.exerciseIndex + 1, total: exerciseCount })}
         </p>
         <Button
@@ -289,51 +358,83 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
           {soundOn ? <Volume2Icon aria-hidden /> : <VolumeXIcon aria-hidden />}
         </Button>
       </header>
-      <div className="bg-muted h-1" aria-hidden>
+      <div className="bg-muted relative z-10 h-1.5" aria-hidden>
         <div
-          className="bg-primary h-full motion-safe:transition-[width]"
+          className="bg-primary relative h-full motion-safe:transition-[width]"
           style={{ width: `${progress}%` }}
-        />
+        >
+          {celebration ? (
+            <span
+              key={celebration.id}
+              className="bg-primary motion-safe:animate-workout-glow absolute -top-1 -right-3 h-3.5 w-8 rounded-full opacity-0 blur-sm motion-reduce:hidden"
+            />
+          ) : null}
+        </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col landscape:flex-row">
-        <div className="bg-muted flex h-[40dvh] shrink-0 items-center justify-center landscape:h-auto landscape:w-1/2">
+      {/* Portrait: the video fills the stage and the details sit over its bottom edge. Landscape:
+          video on the left half, details on the right. */}
+      <div className="relative flex min-h-0 flex-1 flex-col landscape:flex-row">
+        <div className="bg-muted absolute inset-0 flex justify-center landscape:static landscape:w-1/2 landscape:shrink-0 landscape:items-center">
           {media ? (
-            <YouTubePreview
-              key={media.videoId}
-              videoId={media.videoId}
-              isShort={media.isShort}
-              title={item.name}
-              autoPlay
-              className={cn("rounded-none", media.isShort ? "h-full w-auto max-w-full" : "w-full")}
-            />
+            media.isShort ? (
+              <YouTubePreview
+                key={media.videoId}
+                videoId={media.videoId}
+                isShort
+                title={item.name}
+                autoPlay
+                className="h-full w-auto max-w-full rounded-none"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "relative w-full self-start overflow-hidden landscape:self-center",
+                  WIDE_VIDEO_WINDOW,
+                )}
+              >
+                <YouTubePreview
+                  key={media.videoId}
+                  videoId={media.videoId}
+                  isShort={false}
+                  title={item.name}
+                  autoPlay
+                  className="absolute top-0 left-1/2 h-full w-auto -translate-x-1/2 rounded-none"
+                />
+              </div>
+            )
           ) : (
-            <div className="text-muted-foreground flex flex-col items-center gap-2 text-sm">
+            <div className="text-muted-foreground flex flex-col items-center gap-2 self-start pt-20 text-sm landscape:self-center landscape:pt-0">
               <DumbbellIcon aria-hidden className="size-10" />
               {t("noVideo")}
             </div>
           )}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col">
+        {celebration ? <SetDoneBurst key={celebration.id} big={celebration.big} /> : null}
+
+        <div className="from-background via-background/85 relative mt-auto flex max-h-[60%] min-h-0 flex-col bg-linear-to-t to-transparent pt-8 landscape:mt-0 landscape:max-h-none landscape:flex-1 landscape:border-l landscape:bg-none landscape:pt-0">
           <div
-            className="flex-1 touch-pan-y overflow-y-auto px-4 py-3"
+            className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-4 py-2"
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
             onPointerCancel={() => (swipeStart.current = null)}
           >
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {state.phase === "rest" ? (
                 <p className="text-muted-foreground text-sm font-medium">{t("upNext")}</p>
               ) : null}
-              <div className="grid gap-1">
+              <div className="grid gap-0.5">
                 {inGroup ? (
                   <p className="text-muted-foreground text-xs font-semibold uppercase">
                     {t("superset")}
                   </p>
                 ) : null}
                 <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{item.name}</h1>
-                <p className="text-muted-foreground text-sm">
+                <p
+                  key={state.stepIndex}
+                  className="text-muted-foreground motion-safe:animate-workout-bump w-fit origin-left text-sm"
+                >
                   {t("setOf", { current: step.setIndex + 1, total: step.setCount })}
                 </p>
               </div>
@@ -344,7 +445,7 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
                 ))}
               </ul>
               {item.notes ? (
-                <p className="text-sm wrap-anywhere">
+                <p className="line-clamp-2 text-sm wrap-anywhere landscape:line-clamp-none">
                   <span className="font-medium">{t("notes")}: </span>
                   {item.notes}
                 </p>
@@ -362,12 +463,12 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
             </div>
           </div>
 
-          <footer className="grid gap-3 border-t p-4">
+          <footer className="grid gap-3 px-4 pt-2 pb-4 landscape:border-t landscape:pt-4">
             <p
               role="status"
-              className={cn("text-center text-sm font-medium", !notice && "sr-only")}
+              className={cn("text-center text-sm font-medium", !notice?.visible && "sr-only")}
             >
-              {notice}
+              {notice?.text}
             </p>
             {state.endsAt !== null ? (
               <div className="grid gap-1 text-center">
@@ -388,10 +489,12 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
               t={t}
               phase={state.phase}
               step={step}
-              onSetDone={() => act((current, at) => completeSet(steps, current, at))}
+              onSetDone={() => act((current, at) => completeSet(steps, current, at), true)}
               onStartTimer={() => act((current, at) => startTimed(steps, current, at))}
               onStartHold={() => act((current, at) => startHold(steps, current, at))}
-              onSkip={() => act((current, at) => skipTimer(steps, current, at))}
+              onSkip={() =>
+                act((current, at) => skipTimer(steps, current, at), state.phase === "timed")
+              }
               onAdd={() => act((current) => adjust(current, ADD_SECONDS * 1000))}
             />
           </footer>

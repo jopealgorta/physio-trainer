@@ -239,6 +239,69 @@ describe("WorkoutPlayer", () => {
     window.localStorage.removeItem("workout:sound");
   });
 
+  describe("set-done effects", () => {
+    const vibrate = vi.fn();
+    beforeEach(() => {
+      vibrate.mockReset();
+      Object.defineProperty(navigator, "vibrate", { configurable: true, value: vibrate });
+    });
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, "vibrate");
+      window.localStorage.removeItem("workout:sound");
+    });
+
+    it("pops a check over the video, announces the set and vibrates briefly", async () => {
+      const user = setup(routineOf(item("a", "Squat"), item("b", "Bridge")));
+      expect(screen.queryByTestId("set-done-burst")).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Set done" }));
+      const burst = screen.getByTestId("set-done-burst");
+      expect(burst).toHaveAttribute("data-big", "false");
+      expect(screen.getByRole("status")).toHaveTextContent("Set 1 of 2 done.");
+      expect(vibrate).toHaveBeenCalledWith([40]);
+
+      await advance(1_000);
+      expect(screen.queryByTestId("set-done-burst")).not.toBeInTheDocument();
+    });
+
+    it("makes more of the last set of an exercise", async () => {
+      const user = setup(routineOf(item("a", "Squat"), item("b", "Bridge")));
+      await user.click(screen.getByRole("button", { name: "Set done" }));
+      await advance(1_000);
+      await user.click(screen.getByRole("button", { name: "Set done" }));
+      expect(screen.getByTestId("set-done-burst")).toHaveAttribute("data-big", "true");
+      expect(screen.getByRole("status")).toHaveTextContent("Squat done.");
+      expect(vibrate).toHaveBeenLastCalledWith([60, 50, 60, 50, 120]);
+      // The confetti only comes with the bigger moment.
+      await advance(1_000);
+      expect(screen.getByTestId("set-done-burst")).toBeInTheDocument();
+      await advance(1_000);
+      expect(screen.queryByTestId("set-done-burst")).not.toBeInTheDocument();
+    });
+
+    it("celebrates a timed set that runs out, using the countdown's own beep", async () => {
+      const timed = { reps: null, repsMax: null, durationSeconds: 5, load: null };
+      const user = setup(routineOf(item("a", "Plank", { sets: [timed, timed] })));
+      await user.click(screen.getByRole("button", { name: "Start timer" }));
+      await advance(5_000);
+      expect(screen.getByTestId("set-done-burst")).toHaveAttribute("data-big", "false");
+      expect(screen.getByText("Time's up.")).toBeInTheDocument();
+      expect(vibrate).toHaveBeenCalledTimes(1);
+      expect(vibrate).toHaveBeenCalledWith([200]);
+    });
+
+    it("does not celebrate moving around, and stays quiet with the sound off", async () => {
+      const user = setup(routineOf(item("a", "Squat")));
+      await user.click(screen.getByRole("button", { name: "Next" }));
+      await user.click(screen.getByRole("button", { name: "Previous" }));
+      expect(screen.queryByTestId("set-done-burst")).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Sound on" }));
+      await user.click(screen.getByRole("button", { name: "Set done" }));
+      expect(screen.getByTestId("set-done-burst")).toBeInTheDocument();
+      expect(vibrate).not.toHaveBeenCalled();
+    });
+  });
+
   it("speaks Spanish", () => {
     setup(routineOf(item("a", "Sentadilla")), "es");
     expect(screen.getByText("Ejercicio 1 de 1")).toBeInTheDocument();
