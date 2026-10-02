@@ -183,6 +183,9 @@ describe("entry menu", () => {
 
   it("moves to another day at the end of it", async () => {
     const user = userEvent.setup();
+    // Held pending: the optimistic state only lasts while the action runs (props never change here).
+    let release!: (value: unknown) => void;
+    a.moveEntryAction.mockReturnValue(new Promise((resolve) => (release = resolve)));
     setup([entry({ id: "a" })]);
     await user.click(menuFor("Routine a"));
     await chooseFromSubmenu(user, "Move to…", "Friday");
@@ -193,6 +196,7 @@ describe("entry menu", () => {
       index: 6,
     });
     await waitFor(() => expect(namesIn("Friday")).toEqual(["Routine a"]));
+    release({ ok: true, data: {} });
   });
 
   it("copies to another day", async () => {
@@ -319,6 +323,9 @@ describe("removing an entry", () => {
 
   it("asks about deleting the routine when it was the last use of a plan-only routine", async () => {
     const user = userEvent.setup();
+    // Held pending: the optimistic state only lasts while the action runs (props never change here).
+    let release!: (value: unknown) => void;
+    a.removeEntryAction.mockReturnValue(new Promise((resolve) => (release = resolve)));
     setup([entry({ id: "a", routineIsStandalone: false, routineEntryCount: 1 })]);
     await user.click(menuFor("Routine a"));
     await user.click(await screen.findByRole("menuitem", { name: "Remove from plan" }));
@@ -332,6 +339,7 @@ describe("removing an entry", () => {
       deleteRoutine: true,
     });
     await waitFor(() => expect(namesIn("Monday")).toEqual([]));
+    release({ ok: true, data: { deletedRoutine: true } });
   });
 
   it("keeps the routine when the box is unticked, and starts ticked again next time", async () => {
