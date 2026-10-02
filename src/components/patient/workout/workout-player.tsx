@@ -20,6 +20,7 @@ import {
   useState,
   useSyncExternalStore,
   type PointerEvent,
+  type ReactNode,
 } from "react";
 
 import { YouTubePreview } from "@/components/library/youtube-preview";
@@ -106,9 +107,11 @@ type PlayerProps = {
   exitHref: string;
   /** Accessible name of the full-screen region (it names the routine). */
   label: string;
+  /** Shown on the "Well done" screen: where the patient logs the session (spec 13). */
+  finishSlot?: ReactNode;
 };
 
-function Player({ routine, code, today, exitHref, label }: PlayerProps) {
+function Player({ routine, code, today, exitHref, label, finishSlot }: PlayerProps) {
   const t = useTranslations("Workout");
   const router = useRouter();
   const { soundOn, toggleSound, unlock, cue } = useCues();
@@ -296,7 +299,13 @@ function Player({ routine, code, today, exitHref, label }: PlayerProps) {
           <p className="sr-only" role="status">
             {notice?.text}
           </p>
-          <Button size="lg" className="h-14 px-8 text-base" onClick={exit}>
+          {finishSlot}
+          <Button
+            size="lg"
+            variant={finishSlot ? "outline" : "default"}
+            className="h-14 px-8 text-base"
+            onClick={exit}
+          >
             {t("finished.back")}
           </Button>
         </div>

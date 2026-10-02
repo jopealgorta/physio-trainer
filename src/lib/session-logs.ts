@@ -2,6 +2,7 @@
 // and server-only modules.
 import { isoWeekday } from "./calendar-date";
 import { addDays } from "./phases";
+import { WEEKDAYS } from "./plans";
 
 /** Session log limits and pure helpers shared by the schema, the action and the UI (spec 13). */
 export const LOG_COMMENT_MAX = 1000;
@@ -42,4 +43,20 @@ export function parsePain(value: unknown): number | null {
 export function normalizeComment(value: string | null | undefined): string | null {
   const trimmed = value?.trim() ?? "";
   return trimmed === "" ? null : trimmed;
+}
+
+/** The days the patient page needs logs for: its week, plus yesterday when that is last week's Sunday. */
+export function weekLogRange(today: string): [from: string, to: string] {
+  const monday = addDays(today, -(isoWeekday(today) - 1));
+  const yesterday = addDays(today, -1);
+  return [monday < yesterday ? monday : yesterday, addDays(monday, 6)];
+}
+
+/** Weekdays of the page's week (see `dateForWeekday`) that have a completed session logged. */
+export function loggedWeekdays(
+  today: string,
+  logs: readonly { performedOn: string; completed: boolean }[],
+): number[] {
+  const doneOn = new Set(logs.filter((entry) => entry.completed).map((entry) => entry.performedOn));
+  return WEEKDAYS.filter((weekday) => doneOn.has(dateForWeekday(today, weekday)));
 }

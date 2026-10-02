@@ -1256,7 +1256,8 @@
       "dayToday": "{day}, hoy",
       "dayHasRoutines": "{day}, tiene ejercicios",
       "dayBoth": "{day}, hoy, tiene ejercicios",
-      "dayPlain": "{day}"
+      "dayPlain": "{day}",
+      "logged": "sesión registrada"
     },
     "restDay": "No hay nada programado para {day}.",
     "yourRoutines": "Tus rutinas",
@@ -1313,7 +1314,41 @@
       "imageAlt": "{clinic}",
       "imageAltTitled": "{title} · {clinic}"
     },
-    "startWorkout": "Empezar entrenamiento"
+    "startWorkout": "Empezar entrenamiento",
+    "logging": {
+      "markDone": "Marcar como hecha",
+      "done": "Hecha",
+      "edit": "Editar",
+      "title": "¿Cómo te fue?",
+      "close": "Cerrar",
+      "day": {
+        "label": "Día",
+        "today": "Hoy",
+        "yesterday": "Ayer"
+      },
+      "pain": {
+        "legend": "Dolor (opcional)",
+        "hint": "0 es sin dolor y 10 es el peor dolor que puedas imaginar.",
+        "none": "Sin dolor",
+        "worst": "Peor dolor",
+        "clear": "Borrar"
+      },
+      "comment": {
+        "label": "Comentario (opcional)",
+        "placeholder": "¿Cómo lo sentiste? ¿Algo que tu fisioterapeuta deba saber?"
+      },
+      "save": "Guardar",
+      "undo": "Marcar como no hecha",
+      "finished": "Contá cómo te fue para que tu fisioterapeuta siga tu progreso.",
+      "errors": {
+        "generic": "Algo salió mal. Probá de nuevo.",
+        "invalid": "Revisá lo que ingresaste y probá de nuevo.",
+        "date": "Solo podés registrar hoy o ayer.",
+        "unreachable": "Esta rutina ya no es parte de tu plan.",
+        "unavailable": "Este enlace ya no está disponible.",
+        "preview": "Estás viendo una vista previa, así que no se guardó nada."
+      }
+    }
   },
   "Workout": {
     "label": "Entrenamiento: {name}",

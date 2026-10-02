@@ -9,6 +9,9 @@ import { isValidPin, normalizePin } from "@/lib/pin";
 import { buildSharePath } from "@/lib/share-links";
 import { verifyPin } from "@/server/sharing/pin-hash";
 
+import { getLinkAccess } from "./access";
+import { logSessionSchema } from "./log-schema";
+import { logSession, type PatientLog } from "./log-session";
 import { pinCookieMaxAge, pinCookieName, pinToken } from "./pin-cookie";
 import { resolveLink } from "./resolve-link";
 

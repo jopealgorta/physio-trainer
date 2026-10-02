@@ -44,7 +44,8 @@ describe("logSessionSchema", () => {
   });
 
   it("rejects missing fields", () => {
-    const { completed: _completed, ...rest } = valid;
+    const rest: Record<string, unknown> = { ...valid };
+    delete rest.completed;
     expect(logSessionSchema.safeParse(rest).success).toBe(false);
   });
 });

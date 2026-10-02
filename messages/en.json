@@ -1256,7 +1256,8 @@
       "dayToday": "{day}, today",
       "dayHasRoutines": "{day}, has exercises",
       "dayBoth": "{day}, today, has exercises",
-      "dayPlain": "{day}"
+      "dayPlain": "{day}",
+      "logged": "session logged"
     },
     "restDay": "Nothing scheduled for {day}.",
     "yourRoutines": "Your routines",
@@ -1313,7 +1314,41 @@
       "imageAlt": "{clinic}",
       "imageAltTitled": "{title} · {clinic}"
     },
-    "startWorkout": "Start workout"
+    "startWorkout": "Start workout",
+    "logging": {
+      "markDone": "Mark as done",
+      "done": "Done",
+      "edit": "Edit",
+      "title": "How did it go?",
+      "close": "Close",
+      "day": {
+        "label": "Day",
+        "today": "Today",
+        "yesterday": "Yesterday"
+      },
+      "pain": {
+        "legend": "Pain (optional)",
+        "hint": "0 is no pain, 10 is the worst pain you can imagine.",
+        "none": "No pain",
+        "worst": "Worst pain",
+        "clear": "Clear"
+      },
+      "comment": {
+        "label": "Comment (optional)",
+        "placeholder": "How did it feel? Anything your physio should know?"
+      },
+      "save": "Save",
+      "undo": "Mark as not done",
+      "finished": "Log how it went so your physio can follow your progress.",
+      "errors": {
+        "generic": "Something went wrong. Try again.",
+        "invalid": "Check what you entered and try again.",
+        "date": "You can only log today or yesterday.",
+        "unreachable": "This routine is not part of your plan any more.",
+        "unavailable": "This link is no longer available.",
+        "preview": "You are previewing this page, so nothing was saved."
+      }
+    }
   },
   "Workout": {
     "label": "Workout: {name}",

@@ -1,3 +1,4 @@
+import { CheckIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -16,6 +17,7 @@ export async function DayStrip({
   selected,
   today,
   withContent,
+  logged = [],
 }: {
   /** Canonical link path the strip links back to. */
   path: string;
@@ -23,6 +25,8 @@ export async function DayStrip({
   selected: number;
   today: number;
   withContent: readonly number[];
+  /** Weekdays of this week with a completed session logged (spec 13). */
+  logged?: readonly number[];
 }) {
   const t = await getTranslations({ locale, namespace: "Patient.week" });
   return (
@@ -32,7 +36,8 @@ export async function DayStrip({
           const day = weekdayName(locale, weekday);
           const isToday = weekday === today;
           const hasContent = withContent.includes(weekday);
-          const label = t(
+          const isLogged = logged.includes(weekday);
+          const base = t(
             isToday && hasContent
               ? "dayBoth"
               : isToday
@@ -42,6 +47,7 @@ export async function DayStrip({
                   : "dayPlain",
             { day },
           );
+          const label = isLogged ? `${base}, ${t("logged")}` : base;
           return (
             <li key={weekday}>
               <Link
@@ -60,17 +66,21 @@ export async function DayStrip({
                 )}
               >
                 <span aria-hidden>{weekdayName(locale, weekday, "short")}</span>
-                <span
-                  aria-hidden
-                  className={cn(
-                    "size-1.5 rounded-full",
-                    hasContent
-                      ? weekday === selected
-                        ? "bg-primary-foreground"
-                        : "bg-primary"
-                      : "bg-transparent",
-                  )}
-                />
+                {isLogged ? (
+                  <CheckIcon aria-hidden className="size-3" strokeWidth={3} />
+                ) : (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      hasContent
+                        ? weekday === selected
+                          ? "bg-primary-foreground"
+                          : "bg-primary"
+                        : "bg-transparent",
+                    )}
+                  />
+                )}
               </Link>
             </li>
           );
