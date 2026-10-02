@@ -21,6 +21,7 @@ export type ExportKey =
   | "pdf.superset"
   | "pdf.supersetRest"
   | "pdf.sessions"
+  | "pdf.sessionsPerDay"
   | "pdf.notes"
   | "pdf.track"
   | "pdf.nothing"
@@ -33,6 +34,7 @@ export type ExportKey =
   | "xlsx.day"
   | "xlsx.routines"
   | "xlsx.standalone"
+  | "xlsx.sheetFallback"
   | "xlsx.columns.group"
   | "xlsx.columns.exercise"
   | "xlsx.columns.sets"
@@ -47,6 +49,23 @@ export type ExportKey =
   | "xlsx.columns.video";
 
 export type ExportTranslate = (key: ExportKey, values?: Record<string, string | number>) => string;
+
+/**
+ * "3 sessions a week · 2 times a day": the parts that are set (and not zero), joined as on the
+ * patient page; null when neither is.
+ */
+export function frequencyLine(
+  routine: { sessionsPerWeek: number | null; sessionsPerDay: number | null },
+  t: ExportTranslate,
+): string | null {
+  const parts = [
+    routine.sessionsPerWeek !== null ? t("pdf.sessions", { perWeek: routine.sessionsPerWeek }) : "",
+    routine.sessionsPerDay !== null
+      ? t("pdf.sessionsPerDay", { perDay: routine.sessionsPerDay })
+      : "",
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
 
 /**
  * Translators that work outside a Next request (route handlers, tests): the

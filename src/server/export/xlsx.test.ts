@@ -28,8 +28,22 @@ function item(id: string, over: Partial<ContentItem> = {}): ContentItem {
   };
 }
 
-function routine(id: string, name: string, blocks: SourceRoutine["blocks"]): SourceRoutine {
-  return { id, name, notes: null, sessionsPerWeek: 3, sessionsPerDay: null, blocks, phase: null };
+function routine(
+  id: string,
+  name: string,
+  blocks: SourceRoutine["blocks"],
+  over: Partial<SourceRoutine> = {},
+): SourceRoutine {
+  return {
+    id,
+    name,
+    notes: null,
+    sessionsPerWeek: null,
+    sessionsPerDay: null,
+    blocks,
+    phase: null,
+    ...over,
+  };
 }
 
 function source(over: Partial<ExportSource> = {}): ExportSource {
@@ -61,16 +75,22 @@ async function load(src: ExportSource) {
 describe("sheetNames", () => {
   it("makes names valid and unique", () => {
     const names = sheetNames(
-      ["Knee/hip [A]", "knee/hip [a]", "x".repeat(40), "", "Overview"],
+      ["Knee/hip [A]", "knee/hip [a]", "x".repeat(40), "", "Overview", "[]"],
+      "Routine",
       ["Overview"],
     );
-    expect(names.slice(0, 3)).toEqual(["Knee hip A", "knee hip a (2)", "x".repeat(31)]);
-    expect(names[3].length).toBeGreaterThan(0);
-    expect(names[4]).toBe("Overview (2)");
+    expect(names).toEqual([
+      "Knee hip A",
+      "knee hip a (2)",
+      "x".repeat(31),
+      "Routine",
+      "Overview (2)",
+      "Routine (2)",
+    ]);
   });
 
   it("keeps the suffix when truncating", () => {
-    const [a, b] = sheetNames(["y".repeat(40), "y".repeat(40)]);
+    const [a, b] = sheetNames(["y".repeat(40), "y".repeat(40)], "Routine");
     expect(a).toBe("y".repeat(31));
     expect(b).toBe(`${"y".repeat(27)} (2)`);
   });
@@ -163,5 +183,73 @@ describe("renderExportXlsx", () => {
       }),
     );
     expect(workbook.worksheets.map((s) => s.name)).toEqual(["Solo"]);
+  });
+
+  it("names a sheet from the messages when the routine name has no valid characters", async () => {
+    const { workbook, t } = await load(
+      source({
+        kind: "routine",
+        routines: [routine("R", "[]", [{ kind: "single", item: item("1") }])],
+      }),
+    );
+    expect(workbook.worksheets.map((s) => s.name)).toEqual([t("xlsx.sheetFallback")]);
+    expect(t("xlsx.sheetFallback")).toBe("Rutina");
+  });
+
+  it("puts the frequency next to the routine name and the notes under it", async () => {
+    const { workbook, t } = await load(
+      source({
+        kind: "routine",
+        routines: [
+          routine("R", "Solo", [{ kind: "single", item: item("1") }], {
+            notes: "Hacelo despacio.",
+            sessionsPerWeek: 3,
+            sessionsPerDay: 2,
+          }),
+        ],
+      }),
+    );
+    const sheet = workbook.worksheets[0];
+    expect(sheet.getCell("A4").value).toBe(
+      `Solo · ${t("pdf.sessions", { perWeek: 3 })} · ${t("pdf.sessionsPerDay", { perDay: 2 })}`,
+    );
+    expect(sheet.getCell("A5").value).toBe("Hacelo despacio.");
+    expect(sheet.getRow(6).getCell(2).value).toBe(t("xlsx.columns.exercise"));
+    expect(sheet.views[0]).toMatchObject({ state: "frozen", ySplit: 6 });
+    expect(sheet.getRow(7).getCell(2).value).toBe("Exercise 1");
+  });
+
+  it("keeps the routine name alone when there is no frequency or notes", async () => {
+    const { workbook } = await load(
+      source({
+        kind: "routine",
+        routines: [routine("R", "Solo", [{ kind: "single", item: item("1") }])],
+      }),
+    );
+    const sheet = workbook.worksheets[0];
+    expect(sheet.getCell("A4").value).toBe("Solo");
+    expect(sheet.getCell("A5").value).toBeNull();
+  });
+
+  it("lists plan notes under the plan name on the overview", async () => {
+    const { workbook, t } = await load(
+      source({
+        plans: [
+          {
+            id: "p",
+            name: "Plan",
+            notes: "Caminá los días libres.",
+            phase: null,
+            entries: [{ weekday: 1, label: null, routineId: "R" }],
+          },
+        ],
+        planRoutines: [routine("R", "Solo", [{ kind: "single", item: item("1") }])],
+      }),
+    );
+    const overview = workbook.worksheets[0];
+    expect(overview.getCell("A5").value).toBe("Plan");
+    expect(overview.getCell("A6").value).toBe("Caminá los días libres.");
+    expect(overview.getCell("A7").value).toBe(t("xlsx.day"));
+    expect(overview.getCell("B8").value).toBe("Solo");
   });
 });

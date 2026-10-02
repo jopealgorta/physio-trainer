@@ -5,12 +5,12 @@ import { weekdayName } from "@/lib/plans";
 import type { PrescriptionTranslate } from "@/lib/prescription";
 
 import type { ExportDocument, ExportItem, ExportRoutine } from "./model";
-import type { ExportTranslate } from "./translate";
+import { type ExportTranslate, frequencyLine } from "./translate";
 
 const MAX_SHEET_NAME = 31;
-const FALLBACK_NAME = "Sheet";
 const COLUMN_WIDTHS = [8, 32, 6, 14, 8, 12, 8, 14, 12, 30, 60, 44];
 const HEADER_ROW = 6;
+const NOTES_MAX_LINES = 8;
 
 function sanitize(name: string): string {
   return name
@@ -23,15 +23,16 @@ function sanitize(name: string): string {
 
 /**
  * Valid Excel sheet names (at most 31 characters, no `[]:*?/\`, not blank, no edge quotes),
- * unique case-insensitively: later duplicates become "Name (2)", "Name (3)".
+ * unique case-insensitively: later duplicates become "Name (2)", "Name (3)". A name with nothing
+ * left after sanitizing becomes `fallback` (a translated "Routine").
  */
-export function sheetNames(names: string[], reserved: string[] = []): string[] {
+export function sheetNames(names: string[], fallback: string, reserved: string[] = []): string[] {
   const used = new Set(reserved.map((name) => name.toLowerCase()));
   return names.map((raw) => {
-    const base = sanitize(raw) || FALLBACK_NAME;
+    const base = sanitize(raw) || fallback;
     for (let n = 1; ; n++) {
       const suffix = n === 1 ? "" : ` (${n})`;
-      const stem = sanitize(base.slice(0, MAX_SHEET_NAME - suffix.length)) || FALLBACK_NAME;
+      const stem = sanitize(base.slice(0, MAX_SHEET_NAME - suffix.length)) || fallback;
       const candidate = `${stem}${suffix}`;
       if (!used.has(candidate.toLowerCase())) {
         used.add(candidate.toLowerCase());
@@ -46,6 +47,21 @@ function numberOrText(value: string | number | null): string | number | null {
   if (value === null) return null;
   if (typeof value === "number") return value;
   return /^\d+$/.test(value) ? Number(value) : value;
+}
+
+/**
+ * A free-text row (notes) spread across `columns` columns and wrapped, tall enough for its lines:
+ * Excel neither shows line breaks in an unwrapped cell nor sizes a merged row by itself. Capped
+ * so a long note does not push the frozen header off screen; the full text stays in the cell.
+ */
+function notesRow(sheet: ExcelJS.Worksheet, text: string, columns: number, charsPerLine: number) {
+  const row = sheet.addRow([text]);
+  sheet.mergeCells(row.number, 1, row.number, columns);
+  row.getCell(1).alignment = { wrapText: true, vertical: "top" };
+  const lines = text
+    .split("\n")
+    .reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / charsPerLine)), 0);
+  if (lines > 1) row.height = Math.min(lines, NOTES_MAX_LINES) * 15;
 }
 
 function headerBlock(
@@ -73,6 +89,7 @@ function overviewSheet(
   for (const plan of doc.plans) {
     sheet.addRow([]);
     sheet.addRow([plan.name]).font = { bold: true };
+    if (plan.notes) notesRow(sheet, plan.notes, 2, 80);
     sheet.addRow([t("xlsx.day"), t("xlsx.routines")]).font = { bold: true };
     for (const day of plan.week) {
       sheet.addRow([
@@ -122,8 +139,12 @@ function routineSheet(
 ) {
   const sheet = workbook.addWorksheet(name);
   headerBlock(sheet, doc, t, date);
-  sheet.addRow([routine?.name ?? ""]).font = { bold: true };
-  sheet.addRow([]);
+  // Row 4: the name, with the frequency after it; row 5: the notes. The header stays on row 6.
+  const frequency = routine ? frequencyLine(routine, t) : null;
+  const title = [routine?.name ?? "", frequency].filter(Boolean).join(" · ");
+  sheet.addRow([title]).font = { bold: true };
+  if (routine?.notes) notesRow(sheet, routine.notes, COLUMN_WIDTHS.length, 200);
+  else sheet.addRow([]);
   const keys = [
     "group",
     "exercise",
@@ -165,7 +186,8 @@ export async function renderExportXlsx(
   const date = new Intl.DateTimeFormat(doc.locale, CALENDAR_DATE_FORMAT).format(
     calendarDateToDate(doc.generatedOn),
   );
-  const overviewName = sheetNames([t("xlsx.overview")])[0];
+  const fallback = t("xlsx.sheetFallback");
+  const overviewName = sheetNames([t("xlsx.overview")], fallback)[0];
 
   if (doc.routines.length === 0 && doc.plans.length === 0) {
     // Nothing to list: a single sheet with the headers keeps the file valid and self-explanatory.
@@ -176,6 +198,7 @@ export async function renderExportXlsx(
     }
     const names = sheetNames(
       doc.routines.map((routine) => routine.name),
+      fallback,
       [overviewName],
     );
     doc.routines.forEach((routine, index) => {

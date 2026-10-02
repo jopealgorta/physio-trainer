@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { isValidElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Locale } from "@/i18n/config";
@@ -10,7 +11,7 @@ import type { ContentItem } from "@/server/routines/content";
 
 import { buildExportDocument, type ExportSource, type SourceRoutine } from "../model";
 import { exportTranslators } from "../translate";
-import { truncateText } from "./document";
+import { ExportPdf, truncateText } from "./document";
 import { renderExportPdf } from "./render";
 
 // Unit tests run without the int config's server-only alias; the real package throws here.
@@ -89,6 +90,16 @@ function source(over: Partial<ExportSource> = {}): ExportSource {
 async function build(src: ExportSource) {
   const { t, summary } = await exportTranslators(src.locale as Locale);
   return { doc: buildExportDocument(src, summary), t };
+}
+
+/** Every string the document tree renders, expanding function components (none use hooks). */
+function textOf(node: ReactNode): string[] {
+  if (typeof node === "string" || typeof node === "number") return [String(node)];
+  if (Array.isArray(node)) return node.flatMap(textOf);
+  if (!isValidElement(node)) return [];
+  const { type, props } = node as { type: unknown; props: { children?: ReactNode } };
+  if (typeof type === "function") return textOf((type as (p: unknown) => ReactNode)(props));
+  return textOf(props.children);
 }
 
 const pageCount = (buffer: Buffer) =>
@@ -174,6 +185,23 @@ describe("renderExportPdf", () => {
     const buffer = await renderExportPdf(doc, t, { fetchImpl: thumbFetch });
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
     expect(pageCount(buffer)).toBeGreaterThan(1);
+  });
+
+  it("prints the per-day frequency of a routine with no weekly count", async () => {
+    const { doc, t } = await build(
+      source({
+        routines: [
+          routine("R", [{ kind: "single", item: item(1) }], {
+            sessionsPerWeek: null,
+            sessionsPerDay: 3,
+          }),
+        ],
+      }),
+    );
+    const texts = textOf(ExportPdf({ doc, t, thumbnails: new Map(), logo: null }));
+    expect(texts).toContain("3 times a day");
+    const buffer = await renderExportPdf(doc, t, { fetchImpl: failingFetch });
+    expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
   });
 
   it("renders an empty document without a link or a logo", async () => {

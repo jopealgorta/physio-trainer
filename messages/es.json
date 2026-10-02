@@ -1518,6 +1518,7 @@
       "superset": "Superserie",
       "supersetRest": "Superserie · descansá {seconds} s entre rondas",
       "sessions": "{perWeek, plural, =0 {} one {# sesión por semana} other {# sesiones por semana}}",
+      "sessionsPerDay": "{perDay, plural, =0 {} one {# vez por día} other {# veces por día}}",
       "notes": "Notas",
       "track": "Marcá una casilla cada día que lo hagas",
       "nothing": "Por ahora no hay nada programado.",
@@ -1532,6 +1533,7 @@
       "day": "Día",
       "routines": "Rutinas",
       "standalone": "Rutinas",
+      "sheetFallback": "Rutina",
       "columns": {
         "group": "Grupo",
         "exercise": "Ejercicio",

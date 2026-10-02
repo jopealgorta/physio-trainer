@@ -12,7 +12,7 @@ import type {
   ExportPlan,
   ExportRoutine,
 } from "../model";
-import type { ExportTranslate } from "../translate";
+import { type ExportTranslate, frequencyLine } from "../translate";
 import { PDF_FONT } from "./fonts";
 
 /** Greyscale-safe palette: the PDF is often printed in black and white. */
@@ -346,8 +346,7 @@ function RoutineSection({
 }: Context & { routine: ExportRoutine; spaced: boolean }) {
   const { doc, t } = context;
   const phase = phaseLine(routine.phase, doc.locale, t);
-  const sessions =
-    routine.sessionsPerWeek !== null ? t("pdf.sessions", { perWeek: routine.sessionsPerWeek }) : "";
+  const sessions = frequencyLine(routine, t);
   const [firstRow, ...otherRows] = rows(routine, t);
   return (
     <View style={spaced ? styles.sectionSpaced : undefined}>

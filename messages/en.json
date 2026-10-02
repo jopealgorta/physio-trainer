@@ -1518,6 +1518,7 @@
       "superset": "Superset",
       "supersetRest": "Superset · rest {seconds} s between rounds",
       "sessions": "{perWeek, plural, =0 {} one {# session a week} other {# sessions a week}}",
+      "sessionsPerDay": "{perDay, plural, =0 {} one {# time a day} other {# times a day}}",
       "notes": "Notes",
       "track": "Tick a box each day you do it",
       "nothing": "Nothing is scheduled right now.",
@@ -1532,6 +1533,7 @@
       "day": "Day",
       "routines": "Routines",
       "standalone": "Routines",
+      "sheetFallback": "Routine",
       "columns": {
         "group": "Group",
         "exercise": "Exercise",
