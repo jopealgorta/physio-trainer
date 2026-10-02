@@ -62,12 +62,18 @@ export type AssignTemplateProps = {
 export function AssignTemplateDialog({
   open,
   onOpenChange,
+  onCloseAutoFocus,
   ...form
-}: AssignTemplateProps & { open: boolean; onOpenChange: (open: boolean) => void }) {
+}: AssignTemplateProps & {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Where focus goes on close (it has no trigger of its own). */
+  onCloseAutoFocus?: (event: Event) => void;
+}) {
   const t = useTranslations("Templates.assign");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description", { name: form.template.name })}</DialogDescription>

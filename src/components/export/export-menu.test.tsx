@@ -93,7 +93,9 @@ describe("ExportMenu", () => {
         sameOrigin,
       ),
     );
-    await waitFor(() => expect(screen.getByRole("button", { name: "Export" })).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Export" })).toHaveAttribute("aria-busy", "false"),
+    );
     await user.click(screen.getByRole("button", { name: "Export" }));
     await user.click(await screen.findByRole("menuitem", { name: "Download Excel" }));
     await waitFor(() =>
@@ -101,17 +103,23 @@ describe("ExportMenu", () => {
     );
   });
 
-  it("shows the export in progress and ignores another click meanwhile", async () => {
+  it("shows the export in progress and offers no second export meanwhile", async () => {
     let resolve!: (response: Response) => void;
     fetchMock.mockImplementation(() => new Promise<Response>((done) => (resolve = done)));
     const user = userEvent.setup();
     setup();
     await exportPdf(user);
+    // Still focusable (focus comes back to it), but busy, and its items are disabled.
     const trigger = screen.getByRole("button", { name: "Export" });
-    expect(trigger).toBeDisabled();
     expect(trigger).toHaveAttribute("aria-busy", "true");
+    await user.click(trigger);
+    expect(await screen.findByRole("menuitem", { name: "Download PDF" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await user.keyboard("{Escape}");
     resolve(pdfResponse());
-    await waitFor(() => expect(trigger).toBeEnabled());
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-busy", "false"));
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -153,6 +161,20 @@ describe("ExportMenu", () => {
     await user.click(screen.getByRole("button", { name: "Share" }));
     await waitFor(() => expect(nav.share).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+});
+
+describe("ExportMenu when the second share does not work either", () => {
+  it("downloads the file instead of dropping it", async () => {
+    setTouch(true);
+    nav.canShare = vi.fn(() => true);
+    nav.share = vi.fn().mockRejectedValue(new DOMException("no gesture", "NotAllowedError"));
+    const user = userEvent.setup();
+    setup();
+    await exportPdf(user);
+    await screen.findByRole("dialog", { name: "Your file is ready" });
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    await waitFor(() => expect(clicked).toEqual(["knee.pdf"]));
   });
 });
 
@@ -198,6 +220,7 @@ describe("ExportMenu in a page's More actions menu", () => {
         "true",
       ),
     );
+    await waitFor(() => expect(screen.getByTestId("page-notices")).toHaveTextContent("Exporting…"));
     resolve(new Response("", { status: 500 }));
     await waitFor(() =>
       expect(screen.getByTestId("page-notices")).toHaveTextContent("Couldn't export. Try again."),

@@ -41,7 +41,7 @@ export function TemplateActions({
     });
   };
 
-  usePageAction(
+  const { onCloseAutoFocus } = usePageAction(
     "assign",
     customers.length > 0
       ? {
@@ -85,6 +85,7 @@ export function TemplateActions({
         customers={customers}
         open={assigning}
         onOpenChange={setAssigning}
+        onCloseAutoFocus={onCloseAutoFocus}
       />
     </div>
   );

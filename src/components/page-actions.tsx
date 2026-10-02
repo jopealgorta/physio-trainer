@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,8 @@ export type PageNotice = { text: string; tone: "error" | "info" };
 type Registry = {
   action: (id: string, entry: Entry) => () => void;
   notice: (id: string, notice: PageNotice) => () => void;
+  /** The "⋯" button, where focus goes back when a dialog opened from it closes. */
+  menuTrigger: RefObject<HTMLButtonElement | null>;
 };
 
 const RegistryContext = createContext<Registry | null>(null);
@@ -89,7 +92,11 @@ function useRegistered<T>() {
 export function PageActions({ children }: { children: ReactNode }) {
   const [entries, addEntry] = useRegistered<Entry>();
   const [notices, addNotice] = useRegistered<PageNotice>();
-  const registry = useMemo(() => ({ action: addEntry, notice: addNotice }), [addEntry, addNotice]);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const registry = useMemo(
+    () => ({ action: addEntry, notice: addNotice, menuTrigger }),
+    [addEntry, addNotice],
+  );
   return (
     <RegistryContext.Provider value={registry}>
       <EntriesContext.Provider value={entries}>
@@ -99,11 +106,24 @@ export function PageActions({ children }: { children: ReactNode }) {
   );
 }
 
+/** Whether an element is laid out (neither it nor an ancestor is `display: none`). */
+function displayed(element: HTMLElement) {
+  for (let node: HTMLElement | null = element; node; node = node.parentElement) {
+    if (getComputedStyle(node).display === "none") return false;
+  }
+  return element.isConnected;
+}
+
 /**
  * Puts a control's action in the page's "⋯" menu (`null` leaves it out); outside `PageActions` it
- * does nothing. `inMenu` says whether the page has a menu.
+ * does nothing. `inMenu` says whether the page has a menu. Pass `onCloseAutoFocus` to the
+ * control's dialog content: while the menu is showing (phones), closing the dialog returns focus
+ * to the menu's button, since the control's own trigger is hidden there.
  */
-export function usePageAction(id: string, action: PageAction | null): { inMenu: boolean } {
+export function usePageAction(
+  id: string,
+  action: PageAction | null,
+): { inMenu: boolean; onCloseAutoFocus: (event: Event) => void } {
   const registry = useContext(RegistryContext);
   const register = registry?.action;
   // Callbacks and icons change identity every render; the menu reads the latest through this.
@@ -130,7 +150,17 @@ export function usePageAction(id: string, action: PageAction | null): { inMenu: 
     });
   }, [register, present, id, label, order, href, checked, disabled, pending, opensDialog]);
 
-  return { inMenu: registry !== null };
+  const onCloseAutoFocus = useCallback(
+    (event: Event) => {
+      const menu = registry?.menuTrigger.current;
+      if (!menu || !displayed(menu)) return;
+      event.preventDefault();
+      menu.focus();
+    },
+    [registry],
+  );
+
+  return { inMenu: registry !== null, onCloseAutoFocus };
 }
 
 /** Repeats a control's inline message in `PageNotices` (phones), while it is not null. */
@@ -172,6 +202,7 @@ export function PageNotices({ className }: { className?: string }) {
 export function PageActionsMenu({ className }: { className?: string }) {
   const t = useTranslations("PageActions");
   const entries = useContext(EntriesContext);
+  const menuTrigger = useContext(RegistryContext)?.menuTrigger;
   const sorted = useMemo(() => [...entries.values()].sort((a, b) => a.order - b.order), [entries]);
   const busy = sorted.some((entry) => entry.pending);
   // A dialog item's action waits for the menu to close (see `opensDialog`).
@@ -181,6 +212,7 @@ export function PageActionsMenu({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          ref={menuTrigger}
           type="button"
           variant="outline"
           size="icon-lg"

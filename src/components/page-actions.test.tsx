@@ -2,6 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { useState } from "react";
+
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { describe, expect, it, vi } from "vitest";
 
 import messages from "../../messages/en.json";
@@ -206,5 +208,37 @@ describe("PageActions", () => {
       </PageActions>,
     );
     expect(screen.getByTestId("page-notices")).toBeEmptyDOMElement();
+  });
+
+  it("hands focus back to More actions when a dialog opened from it closes", async () => {
+    function WithDialog() {
+      const [open, setOpen] = useState(false);
+      const { onCloseAutoFocus } = usePageAction("history", {
+        label: "History",
+        order: 30,
+        opensDialog: true,
+        onSelect: () => setOpen(true),
+      });
+      return (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
+            <DialogTitle>Version history</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      );
+    }
+    const user = userEvent.setup();
+    renderWith(
+      <PageActions>
+        <WithDialog />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    await user.click(more());
+    await user.click(await screen.findByRole("menuitem", { name: "History" }));
+    expect(await screen.findByRole("dialog", { name: "Version history" })).toBeVisible();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(more()).toHaveFocus();
   });
 });

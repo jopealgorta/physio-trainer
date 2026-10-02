@@ -74,7 +74,7 @@ export function ShareButton({
   }
 
   const link = state?.link;
-  usePageAction("share", {
+  const { onCloseAutoFocus } = usePageAction("share", {
     label: t(`trigger.${target.target}`),
     order: 10,
     icon: <Share2Icon aria-hidden />,
@@ -92,6 +92,7 @@ export function ShareButton({
       </PopoverTrigger>
       <PopoverContent
         align="end"
+        onCloseAutoFocus={onCloseAutoFocus}
         className="gap-4 p-4 text-sm sm:max-h-(--radix-popover-content-available-height) sm:w-96 sm:overflow-y-auto"
       >
         <div className="grid gap-1">

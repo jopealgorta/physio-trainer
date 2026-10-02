@@ -42,6 +42,15 @@ export function EditableTitle({
   const [draft, setDraft] = useState(value);
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // The title an edit started from; a different one arriving (a restored version) ends the edit.
+  const [base, setBase] = useState(value);
+  if (value !== base) {
+    setBase(value);
+    if (editing && !pending) {
+      setEditing(false);
+      setProblem(null);
+    }
+  }
   const input = useRef<HTMLInputElement>(null);
   const pencil = useRef<HTMLButtonElement>(null);
   // Set by Enter and Escape: the keyboard user goes back to the pencil. Leaving the field by

@@ -42,7 +42,7 @@ export function SaveAsTemplateDialog({
 }) {
   const t = useTranslations("Templates.save");
   const [open, setOpen] = useState(false);
-  usePageAction("saveAsTemplate", {
+  const { onCloseAutoFocus } = usePageAction("saveAsTemplate", {
     label: t("button"),
     order: 40,
     icon: <LayersIcon aria-hidden />,
@@ -57,7 +57,7 @@ export function SaveAsTemplateDialog({
           <LayersIcon aria-hidden /> {t("button")}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("notesWarning")}</DialogDescription>

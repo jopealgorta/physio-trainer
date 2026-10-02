@@ -205,7 +205,7 @@ export function HistorySheet({
         .filter(Boolean)
         .join(" ")
     : null;
-  usePageAction("history", {
+  const { onCloseAutoFocus } = usePageAction("history", {
     label: t("button"),
     order: 30,
     icon: <HistoryIcon aria-hidden />,
@@ -227,7 +227,10 @@ export function HistorySheet({
             {t("button")}
           </Button>
         </SheetTrigger>
-        <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
+        <SheetContent
+          className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg"
+          onCloseAutoFocus={onCloseAutoFocus}
+        >
           <SheetHeader>
             <SheetTitle>{t("title")}</SheetTitle>
             <SheetDescription>{t("description")}</SheetDescription>

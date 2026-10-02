@@ -264,12 +264,17 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   await menu.getByRole("menuitem", { name: "History" }).click();
   await expect(page.getByRole("dialog", { name: "Version history" })).toBeVisible();
   await page.keyboard.press("Escape");
+  // History's own button is hidden here: focus comes back to the menu's.
+  await expect(more).toBeFocused();
 
   await more.click();
   await page.getByRole("menuitem", { name: "Share routine" }).click();
   const share = page.getByRole("dialog", { name: "Share this routine" });
   await expect(share).toBeVisible();
   await expect(share).toHaveAttribute("data-presentation", "sheet");
+  await page.keyboard.press("Escape");
+  await expect(share).toBeHidden();
+  await expect(more).toBeFocused();
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
 });
 

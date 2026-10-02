@@ -145,4 +145,25 @@ describe("EditableTitle", () => {
     finish(null);
     await waitFor(() => expect(screen.getByRole("heading", { name: "Hip" })).toBeInTheDocument());
   });
+
+  it("gives up an edit when the title changes underneath it (a restored version)", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const view = (value: string) => (
+      <EditableTitle
+        value={value}
+        label="Plan name"
+        editLabel="Rename plan"
+        validate={validate}
+        onConfirm={onConfirm}
+      />
+    );
+    const { rerender } = render(view("Week A"));
+    await user.click(screen.getByRole("button", { name: "Rename plan" }));
+    await user.type(screen.getByRole("textbox", { name: "Plan name" }), "!");
+    rerender(view("Restored"));
+    expect(screen.getByRole("heading", { name: "Restored" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
 });

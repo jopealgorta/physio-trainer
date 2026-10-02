@@ -23,7 +23,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { deliverFile, fetchExportFile, prefersShareSheet, shareFile } from "@/lib/export-file";
+import {
+  deliverFile,
+  downloadFile,
+  fetchExportFile,
+  prefersShareSheet,
+  shareFile,
+} from "@/lib/export-file";
 
 type ExportFormat = "pdf" | "xlsx";
 type ExportTarget = { kind: "routines" | "plans" | "customers"; id: string };
@@ -64,7 +70,8 @@ function useExport(target: ExportTarget) {
     if (!ready) return;
     // Called from the tap on "Share", so the browser allows it now.
     const outcome = await shareFile(ready);
-    if (outcome === "failed") setFailed(true);
+    // Refused again: the file is not lost, it downloads.
+    if (outcome === "failed" || outcome === "needsTap") downloadFile(ready);
     setReady(null);
   }
 
@@ -77,7 +84,7 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
   const [tracking, setTracking] = useState(true);
   const exporter = useExport(target);
   const { pending } = exporter;
-  usePageAction("exportPdf", {
+  const { onCloseAutoFocus } = usePageAction("exportPdf", {
     label: t("pdf"),
     order: 20,
     pending,
@@ -95,18 +102,21 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
     checked: tracking,
     onSelect: () => setTracking((value) => !value),
   });
-  usePageNotice("export", exporter.failed ? { text: t("error"), tone: "error" } : null);
+  usePageNotice(
+    "export",
+    exporter.failed
+      ? { text: t("error"), tone: "error" }
+      : pending
+        ? { text: t("exporting"), tone: "info" }
+        : null,
+  );
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={exporter.pending}
-            aria-busy={exporter.pending}
-          >
+          {/* Not disabled while busy: focus comes back here after choosing an item. */}
+          <Button type="button" variant="outline" aria-busy={exporter.pending}>
             {exporter.pending ? (
               <Loader2Icon aria-hidden className="animate-spin motion-reduce:animate-none" />
             ) : (
@@ -116,10 +126,16 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-52">
-          <DropdownMenuItem onSelect={() => void exporter.run("pdf", tracking)}>
+          <DropdownMenuItem
+            disabled={exporter.pending}
+            onSelect={() => void exporter.run("pdf", tracking)}
+          >
             {t("pdf")}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void exporter.run("xlsx", tracking)}>
+          <DropdownMenuItem
+            disabled={exporter.pending}
+            onSelect={() => void exporter.run("xlsx", tracking)}
+          >
             {t("xlsx")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -146,6 +162,7 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
         file={exporter.ready}
         onShare={() => void exporter.shareReady()}
         onDismiss={exporter.dismissReady}
+        onCloseAutoFocus={onCloseAutoFocus}
       />
     </>
   );
@@ -156,15 +173,17 @@ function ExportReadyDialog({
   file,
   onShare,
   onDismiss,
+  onCloseAutoFocus,
 }: {
   file: File | null;
   onShare: () => void;
+  onCloseAutoFocus: (event: Event) => void;
   onDismiss: () => void;
 }) {
   const t = useTranslations("Export.menu.ready");
   return (
     <Dialog open={file !== null} onOpenChange={(open) => (open ? undefined : onDismiss())}>
-      <DialogContent showCloseButton={false}>
+      <DialogContent showCloseButton={false} onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription className="wrap-anywhere">
