@@ -60,6 +60,7 @@ questions). Also read `docs/architecture.md` (tenancy rules, conventions) and `C
 ### Task 1: Snapshot shapes, diff and summary (pure)
 
 **Files:**
+
 - Create: `src/lib/history/snapshot.ts`, `src/lib/history/diff.ts`, `src/lib/history/summary.ts`
 - Test: `src/lib/history/snapshot.test.ts`, `src/lib/history/diff.test.ts`, `src/lib/history/summary.test.ts`
 
@@ -72,29 +73,44 @@ export const snapshotSetSchema = z.object({ reps, repsMax, durationSeconds, load
 export const routineSnapshotSchema = z.object({
   schema: z.literal(1),
   routine: z.object({
-    name: z.string(), notes: z.string().nullable(), status: z.enum(ROUTINE_STATUSES),
-    caseId: z.string().nullable(), sessionsPerWeek: z.number().nullable(),
-    sessionsPerDay: z.number().nullable(), phaseLabel: z.string().nullable(),
-    startsOn: z.string().nullable(), endsOn: z.string().nullable(),
+    name: z.string(),
+    notes: z.string().nullable(),
+    status: z.enum(ROUTINE_STATUSES),
+    caseId: z.string().nullable(),
+    sessionsPerWeek: z.number().nullable(),
+    sessionsPerDay: z.number().nullable(),
+    phaseLabel: z.string().nullable(),
+    startsOn: z.string().nullable(),
+    endsOn: z.string().nullable(),
   }),
   groups: z.array(z.object({ key: z.string(), restSeconds: z.number().nullable() })),
-  items: z.array(z.object({
-    exercise: z.object({ id: z.string(), name: z.string(), instructions: z.string().nullable() }),
-    position: z.number().int(),
-    prescription: z.object({
-      groupKey: z.string().nullable(), holdSeconds, restSeconds, side: z.enum(PRESCRIPTION_SIDES).nullable(),
-      notes: z.string().nullable(), sets: z.array(snapshotSetSchema),
+  items: z.array(
+    z.object({
+      exercise: z.object({ id: z.string(), name: z.string(), instructions: z.string().nullable() }),
+      position: z.number().int(),
+      prescription: z.object({
+        groupKey: z.string().nullable(),
+        holdSeconds,
+        restSeconds,
+        side: z.enum(PRESCRIPTION_SIDES).nullable(),
+        notes: z.string().nullable(),
+        sets: z.array(snapshotSetSchema),
+      }),
     }),
-  })),
+  ),
 });
 export const planSnapshotSchema = z.object({
   schema: z.literal(1),
   plan: z.object({ name, notes, status, caseId, phaseLabel, startsOn, endsOn }),
-  entries: z.array(z.object({
-    id: z.string(), weekday: z.number().int().min(1).max(7), position: z.number().int(),
-    label: z.string().nullable(),
-    routine: z.object({ id: z.string(), name: z.string(), version: z.number().int() }),
-  })),
+  entries: z.array(
+    z.object({
+      id: z.string(),
+      weekday: z.number().int().min(1).max(7),
+      position: z.number().int(),
+      label: z.string().nullable(),
+      routine: z.object({ id: z.string(), name: z.string(), version: z.number().int() }),
+    }),
+  ),
 });
 export type RoutineSnapshot = z.infer<typeof routineSnapshotSchema>;
 export type PlanSnapshot = z.infer<typeof planSnapshotSchema>;
@@ -119,7 +135,7 @@ export type ItemDiff = {
   before: RoutineSnapshot["items"][number] | null;
   after: RoutineSnapshot["items"][number] | null;
   changes: FieldChange<ItemField>[]; // "sets" = set count; "group" = superset membership/rest
-  sets: SetDiff[];                   // per set index (index is 0-based; UI shows index + 1)
+  sets: SetDiff[]; // per set index (index is 0-based; UI shows index + 1)
 };
 export type RoutineHeaderField = keyof RoutineSnapshot["routine"];
 export type RoutineDiff = { header: FieldChange<RoutineHeaderField>[]; items: ItemDiff[] };
@@ -147,41 +163,44 @@ inserted at its old index. Plans: pair entries by `id`; moved = weekday or posit
 ```ts
 // summary.ts — stored in the `summary` jsonb column, rendered by the UI with next-intl
 export const changeSummarySchema = z.object({
-  added: z.number().int(), removed: z.number().int(), moved: z.number().int(),
+  added: z.number().int(),
+  removed: z.number().int(),
+  moved: z.number().int(),
   changed: z.number().int(),
   fields: z.record(z.string(), z.number().int()), // field -> number of items/entries where it changed
-  header: z.array(z.string()),                      // header fields that changed
+  header: z.array(z.string()), // header fields that changed
 });
 export type ChangeSummary = z.infer<typeof changeSummarySchema>;
 export function summarizeRoutine(diff: RoutineDiff): ChangeSummary; // fields keys: SetField | ItemField
-export function summarizePlan(diff: PlanDiff): ChangeSummary;       // fields keys: "label" | "routine"
+export function summarizePlan(diff: PlanDiff): ChangeSummary; // fields keys: "label" | "routine"
 export const isEmptySummary = (s: ChangeSummary) => boolean;
 ```
 
 For `fields`, a per-set field counts once per item (reps changed on sets 1 and 2 of one item = 1).
 
 - [ ] **Step 1:** Write `snapshot.test.ts`: a valid routine and plan snapshot parse; `schema: 2`
-  fails; missing `prescription.sets` fails.
+      fails; missing `prescription.sets` fails.
 - [ ] **Step 2:** Write `diff.test.ts` (fixtures built with a small `item(exerciseId, overrides)`
-  helper): identical → all unchanged, empty header; appended item → `added`; removed → `removed` at
-  its old index; swap of two items → exactly one `moved` (LCS); reps 10→12 on set 2 → item
-  `changed`, `sets: [{ index: 1, kind: "changed", changes: [{ field: "reps", from: 10, to: 12 }] }]`;
-  a third set added → `sets` gets `{ index: 2, kind: "added" }` and `changes` has `sets`;
-  side/notes/hold change; two items grouped into a superset → both get a `group` change; same
-  exercise twice, second one edited → only the second is changed, no moves; header name/status/
-  `startsOn` changes. Plans: entry added, removed, moved weekday, moved position, label changed,
-  routine swapped (same entry id, other routine id).
+      helper): identical → all unchanged, empty header; appended item → `added`; removed → `removed` at
+      its old index; swap of two items → exactly one `moved` (LCS); reps 10→12 on set 2 → item
+      `changed`, `sets: [{ index: 1, kind: "changed", changes: [{ field: "reps", from: 10, to: 12 }] }]`;
+      a third set added → `sets` gets `{ index: 2, kind: "added" }` and `changes` has `sets`;
+      side/notes/hold change; two items grouped into a superset → both get a `group` change; same
+      exercise twice, second one edited → only the second is changed, no moves; header name/status/
+      `startsOn` changes. Plans: entry added, removed, moved weekday, moved position, label changed,
+      routine swapped (same entry id, other routine id).
 - [ ] **Step 3:** Run `pnpm test src/lib/history` — expect FAIL (modules missing).
 - [ ] **Step 4:** Implement `snapshot.ts`, `diff.ts`.
 - [ ] **Step 5:** Write `summary.test.ts`: "+2, reps changed on 1" fixture →
-  `{ added: 2, removed: 0, moved: 0, changed: 1, fields: { reps: 1 }, header: [] }`; header-only
-  change; plan summary with label + routine swap; `isEmptySummary`.
+      `{ added: 2, removed: 0, moved: 0, changed: 1, fields: { reps: 1 }, header: [] }`; header-only
+      change; plan summary with label + routine swap; `isEmptySummary`.
 - [ ] **Step 6:** Implement `summary.ts`; `pnpm test src/lib/history` PASS; `pnpm check`.
 - [ ] **Step 7:** Commit `feat(history): snapshot shapes, diff and change summary (spec 15)`.
 
 ### Task 2: Tables, migration and RLS
 
 **Files:**
+
 - Create: `src/db/schema/history.ts`; generated `supabase/migrations/<ts>_version-history.sql`;
   custom `supabase/migrations/<ts+1>_version-history-extras.sql`
 - Modify: `src/db/schema/enums.ts` (`versionKindEnum` from `VERSION_KINDS`),
@@ -192,26 +211,44 @@ For `fields`, a per-set field counts once per item (reps changed on sets 1 and 2
 `WeeklyPlanVersion`.
 
 ```ts
-export const routineVersions = pgTable("routine_versions", {
-  id: uuid().primaryKey().defaultRandom(),
-  physioId: physioId(),                 // notNull, references physios on delete cascade
-  routineId: uuid().notNull(),
-  version: integer().notNull(),
-  kind: versionKindEnum().notNull(),
-  restoredFrom: integer(),
-  snapshot: jsonb().$type<RoutineSnapshot>().notNull(),
-  summary: jsonb().$type<ChangeSummary>(),
-  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-}, (t) => [
-  foreignKey({ name: "routine_versions_routine_fk", columns: [t.physioId, t.routineId],
-    foreignColumns: [routines.physioId, routines.id] }).onDelete("cascade"),
-  unique("routine_versions_routine_version_unique").on(t.routineId, t.version),
-  index("routine_versions_routine_idx").on(t.physioId, t.routineId, t.version.desc()),
-  check("routine_versions_version_positive", sql`${t.version} >= 1`),
-  check("routine_versions_restored_from", sql`(${t.kind} = 'restored') = (${t.restoredFrom} is not null)`),
-  pgPolicy("routine_versions_select", { for: "select", to: authenticatedRole, using: sql`${t.physioId} = ${authUid}` }),
-  pgPolicy("routine_versions_insert", { for: "insert", to: authenticatedRole, withCheck: sql`${t.physioId} = ${authUid}` }),
-]);
+export const routineVersions = pgTable(
+  "routine_versions",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    physioId: physioId(), // notNull, references physios on delete cascade
+    routineId: uuid().notNull(),
+    version: integer().notNull(),
+    kind: versionKindEnum().notNull(),
+    restoredFrom: integer(),
+    snapshot: jsonb().$type<RoutineSnapshot>().notNull(),
+    summary: jsonb().$type<ChangeSummary>(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "routine_versions_routine_fk",
+      columns: [t.physioId, t.routineId],
+      foreignColumns: [routines.physioId, routines.id],
+    }).onDelete("cascade"),
+    unique("routine_versions_routine_version_unique").on(t.routineId, t.version),
+    index("routine_versions_routine_idx").on(t.physioId, t.routineId, t.version.desc()),
+    check("routine_versions_version_positive", sql`${t.version} >= 1`),
+    check(
+      "routine_versions_restored_from",
+      sql`(${t.kind} = 'restored') = (${t.restoredFrom} is not null)`,
+    ),
+    pgPolicy("routine_versions_select", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${t.physioId} = ${authUid}`,
+    }),
+    pgPolicy("routine_versions_insert", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${t.physioId} = ${authUid}`,
+    }),
+  ],
+);
 // weeklyPlanVersions: same, with weeklyPlanId (FK to weekly_plans, cascade), sessionId uuid null,
 // ...timestamps (createdAt + updatedAt), plus an update policy (using + withCheck own rows).
 ```
@@ -220,13 +257,13 @@ Import types into the schema file with relative paths (`../../lib/history/snapsh
 schema files do.
 
 - [ ] **Step 1:** Write `history-rls.int.test.ts` (pattern: `src/server/routines/routines.int.test.ts`,
-  `createTestPhysio`, `runAsPhysio`): physio A inserts a routine version and a plan version for
-  their own routine/plan; B selects none of them; B inserting with A's `physio_id` throws; A
-  `update` on `routine_versions` affects 0 rows (no policy); A `delete` on either table affects 0
-  rows; A can update own plan version; B updating A's plan version affects 0 rows; deleting the
-  routine cascades its versions; duplicate `(routine_id, version)` throws.
+      `createTestPhysio`, `runAsPhysio`): physio A inserts a routine version and a plan version for
+      their own routine/plan; B selects none of them; B inserting with A's `physio_id` throws; A
+      `update` on `routine_versions` affects 0 rows (no policy); A `delete` on either table affects 0
+      rows; A can update own plan version; B updating A's plan version affects 0 rows; deleting the
+      routine cascades its versions; duplicate `(routine_id, version)` throws.
 - [ ] **Step 2:** `pnpm test:int src/server/history` — expect FAIL (tables missing). Needs
-  `pnpm db:start`.
+      `pnpm db:start`.
 - [ ] **Step 3:** Write the schema, `pnpm db:generate`, then the extras migration:
 
 ```sql
@@ -237,12 +274,13 @@ create trigger weekly_plan_versions_set_updated_at
 ```
 
 - [ ] **Step 4:** `pnpm db:reset`, `pnpm test:int` (whole suite: the schema-wide RLS/trigger
-  tests must still pass) PASS; `pnpm check`.
+      tests must still pass) PASS; `pnpm check`.
 - [ ] **Step 5:** Commit `feat(history): version tables with insert-only RLS (spec 15)`.
 
 ### Task 3: Record snapshots on every write path
 
 **Files:**
+
 - Create: `src/server/history/record.ts`
 - Modify: `src/server/routines/mutations.ts` (`createRoutine`, `saveRoutine`, `copyRoutine`),
   `src/server/plans/mutations.ts` (`createPlan`, `updatePlan`, `bump` and all board actions,
@@ -255,10 +293,28 @@ create trigger weekly_plan_versions_set_updated_at
 
 ```ts
 export type RecordOptions = { kind: VersionKind; restoredFrom?: number };
-export async function buildRoutineSnapshot(tx: Tx, physioId: string, routineId: string): Promise<RoutineSnapshot>;
-export async function recordRoutineVersion(tx: Tx, physioId: string, routineId: string, options: RecordOptions): Promise<void>;
-export async function buildPlanSnapshot(tx: Tx, physioId: string, planId: string): Promise<PlanSnapshot>;
-export async function recordPlanVersion(tx: Tx, physioId: string, planId: string, options: RecordOptions): Promise<void>;
+export async function buildRoutineSnapshot(
+  tx: Tx,
+  physioId: string,
+  routineId: string,
+): Promise<RoutineSnapshot>;
+export async function recordRoutineVersion(
+  tx: Tx,
+  physioId: string,
+  routineId: string,
+  options: RecordOptions,
+): Promise<void>;
+export async function buildPlanSnapshot(
+  tx: Tx,
+  physioId: string,
+  planId: string,
+): Promise<PlanSnapshot>;
+export async function recordPlanVersion(
+  tx: Tx,
+  physioId: string,
+  planId: string,
+  options: RecordOptions,
+): Promise<void>;
 ```
 
 - `recordRoutineVersion`: reads `routines.version`, builds the snapshot (items by position, sets by
@@ -267,9 +323,9 @@ export async function recordPlanVersion(tx: Tx, physioId: string, planId: string
   `kind: "created"` always stores `summary: null`.
 - `recordPlanVersion`: same, plus coalescing. Select the latest row `for update`; coalesce when
   `options.kind === "edited" && latest.kind === "edited" && latest.sessionId IS NOT DISTINCT FROM
-  session && latest.updatedAt > now() - interval '5 minutes'` (evaluate the time and session test
+session && latest.updatedAt > now() - interval '5 minutes'` (evaluate the time and session test
   in SQL: `current_setting('request.jwt.claims', true)::jsonb ->> 'session_id'`). Coalesce = update
-  that row's `version`, `snapshot`, `summary` (diffed against the row *before* it), `sessionId`.
+  that row's `version`, `snapshot`, `summary` (diffed against the row _before_ it), `sessionId`.
   Otherwise insert with `sessionId`.
 - `saveRoutine` gains an optional 4th parameter `record: RecordOptions = { kind: "edited" }` and
   calls `recordRoutineVersion` after the final `update(routines)`. `createRoutine` records
@@ -299,12 +355,13 @@ export async function recordPlanVersion(tx: Tx, physioId: string, planId: string
 - [ ] **Step 2:** `pnpm test:int src/server/history/record` — expect FAIL.
 - [ ] **Step 3:** Implement `record.ts` and wire every call site.
 - [ ] **Step 4:** `pnpm test:int` (whole suite) PASS — existing routines/plans/templates/phases
-  int tests must still pass; `pnpm check`.
+      int tests must still pass; `pnpm check`.
 - [ ] **Step 5:** Commit `feat(history): snapshot every routine and plan write (spec 15)`.
 
 ### Task 4: Queries, restore and actions
 
 **Files:**
+
 - Create: `src/lib/history/restore.ts` (+ `restore.test.ts`), `src/server/history/schemas.ts`,
   `src/server/history/queries.ts`, `src/server/history/mutations.ts`, `src/server/history/actions.ts`
   (+ `actions.test.ts` following `src/server/routines/actions.test.ts` mocking style)
@@ -326,33 +383,68 @@ export function routineRestoreInput(
 export function planRestoreEntries(
   snapshot: PlanSnapshot,
   usable: ReadonlySet<string>, // routine ids that exist, are not archived, belong to the plan's customer (null = template)
-): { entries: { weekday: number; position: number; routineId: string; label: string | null }[]; dropped: number };
+): {
+  entries: { weekday: number; position: number; routineId: string; label: string | null }[];
+  dropped: number;
+};
 // positions renumbered 0.. per weekday after dropping (use normalizeEntries from src/lib/plans)
 
 // server/history/schemas.ts
 export const historyTargetSchema = z.object({ kind: z.enum(["routine", "plan"]), id: z.uuid() });
-export const versionsRequestSchema = historyTargetSchema.extend({ versions: z.array(z.number().int().min(1)).min(1).max(2) });
+export const versionsRequestSchema = historyTargetSchema.extend({
+  versions: z.array(z.number().int().min(1)).min(1).max(2),
+});
 export const restoreSchema = historyTargetSchema.extend({ version: z.number().int().min(1) });
-export type VersionMeta = { version: number; kind: VersionKind; restoredFrom: number | null; summary: ChangeSummary | null; at: string /* ISO */ };
-export type RestoreError = "notFound" | "versionNotFound" | "needsItems" | "needsEntries" | "conflict" | "invalid";
+export type VersionMeta = {
+  version: number;
+  kind: VersionKind;
+  restoredFrom: number | null;
+  summary: ChangeSummary | null;
+  at: string; /* ISO */
+};
+export type RestoreError =
+  "notFound" | "versionNotFound" | "needsItems" | "needsEntries" | "conflict" | "invalid";
 
 // server/history/queries.ts
-export async function listVersions(tx: Tx, physioId: string, target: HistoryTarget): Promise<VersionMeta[] | null>; // newest first; null = target not the physio's
-export async function getSnapshots(tx: Tx, physioId: string, target: HistoryTarget, versions: number[]): Promise<Record<number, RoutineSnapshot | PlanSnapshot>>;
+export async function listVersions(
+  tx: Tx,
+  physioId: string,
+  target: HistoryTarget,
+): Promise<VersionMeta[] | null>; // newest first; null = target not the physio's
+export async function getSnapshots(
+  tx: Tx,
+  physioId: string,
+  target: HistoryTarget,
+  versions: number[],
+): Promise<Record<number, RoutineSnapshot | PlanSnapshot>>;
 
 // server/history/mutations.ts
-export async function restoreRoutineVersion(tx, physioId, { id, version }): Promise<Result<{ version: number; dropped: number }, RestoreError>>;
-export async function restorePlanVersion(tx, physioId, { id, version }): Promise<Result<{ version: number; dropped: number }, RestoreError>>;
+export async function restoreRoutineVersion(
+  tx,
+  physioId,
+  { id, version },
+): Promise<Result<{ version: number; dropped: number }, RestoreError>>;
+export async function restorePlanVersion(
+  tx,
+  physioId,
+  { id, version },
+): Promise<Result<{ version: number; dropped: number }, RestoreError>>;
 
 // server/history/actions.ts ("use server"; validate → withPhysio → revalidatePath)
-export async function listVersionsAction(input: unknown): Promise<Result<VersionMeta[], "notFound" | "invalid">>;
-export async function getSnapshotsAction(input: unknown): Promise<Result<Record<number, RoutineSnapshot | PlanSnapshot>, "notFound" | "invalid">>;
-export async function restoreVersionAction(input: unknown): Promise<Result<{ version: number; dropped: number }, RestoreError>>;
+export async function listVersionsAction(
+  input: unknown,
+): Promise<Result<VersionMeta[], "notFound" | "invalid">>;
+export async function getSnapshotsAction(
+  input: unknown,
+): Promise<Result<Record<number, RoutineSnapshot | PlanSnapshot>, "notFound" | "invalid">>;
+export async function restoreVersionAction(
+  input: unknown,
+): Promise<Result<{ version: number; dropped: number }, RestoreError>>;
 ```
 
 - `restoreRoutineVersion`: lock the routine `for update`, load the version row, query which
   snapshot exercise ids still exist for the physio (archived included), build the input with the
-  routine's *current* version/status/case, re-parse with `saveRoutineSchema` (fail `invalid` if
+  routine's _current_ version/status/case, re-parse with `saveRoutineSchema` (fail `invalid` if
   it does not parse), call `saveRoutine(tx, physioId, parsed, { kind: "restored", restoredFrom: version })`
   and map its errors (`needsItems`, `conflict`, `notFound`; others → `invalid`).
 - `restorePlanVersion`: lock the plan `for update`; usable routines = existing, not archived, same
@@ -363,25 +455,26 @@ export async function restoreVersionAction(input: unknown): Promise<Result<{ ver
   as the existing save actions do.
 
 - [ ] **Step 1:** Write `restore.test.ts`: all exercises present → input equals snapshot content
-  with current id/version/status/case, `dropped: 0`; one deleted exercise → `dropped: 1`; a
-  2-member superset losing one member → remaining item has `groupKey: null`, group removed; a
-  3-member superset losing one keeps the group; plan: archived routine entry dropped and positions
-  renumbered.
+      with current id/version/status/case, `dropped: 0`; one deleted exercise → `dropped: 1`; a
+      2-member superset losing one member → remaining item has `groupKey: null`, group removed; a
+      3-member superset losing one keeps the group; plan: archived routine entry dropped and positions
+      renumbered.
 - [ ] **Step 2:** Write `restore.int.test.ts`: save v2 (reps 10), v3 (reps 12), restore v2 → new
-  v4 `kind: "restored"`, `restoredFrom: 2`, reps back to 10, status/case unchanged; restore of a
-  version whose exercise was deleted → `dropped: 1`; restore of an empty v1 onto an active routine
-  → `needsItems`, no new version row; plan restore drops an archived routine's entry
-  (`dropped: 1`); active plan restore to empty v1 → `needsEntries`; `listVersions` newest first
-  with summaries; physio B: `listVersions`/`getSnapshots` return null/empty and restore returns
-  `notFound` for A's routine.
+      v4 `kind: "restored"`, `restoredFrom: 2`, reps back to 10, status/case unchanged; restore of a
+      version whose exercise was deleted → `dropped: 1`; restore of an empty v1 onto an active routine
+      → `needsItems`, no new version row; plan restore drops an archived routine's entry
+      (`dropped: 1`); active plan restore to empty v1 → `needsEntries`; `listVersions` newest first
+      with summaries; physio B: `listVersions`/`getSnapshots` return null/empty and restore returns
+      `notFound` for A's routine.
 - [ ] **Step 3:** Write `actions.test.ts`: invalid input → `invalid` without calling `withPhysio`;
-  happy path revalidates the routine path.
+      happy path revalidates the routine path.
 - [ ] **Step 4:** Run — expect FAIL. Implement. `pnpm test`, `pnpm test:int` PASS; `pnpm check`.
 - [ ] **Step 5:** Commit `feat(history): list, compare and restore versions (spec 15)`.
 
 ### Task 5: History sheet UI and i18n
 
 **Files:**
+
 - Create: `src/components/history/history-sheet.tsx`, `src/components/history/version-list.tsx`,
   `src/components/history/routine-diff-view.tsx`, `src/components/history/plan-diff-view.tsx`,
   `src/components/history/summary-text.tsx` (renders a `ChangeSummary` with `useTranslations("History")`)
@@ -398,7 +491,7 @@ export async function restoreVersionAction(input: unknown): Promise<Result<{ ver
 export function HistorySheet(props: {
   kind: "routine" | "plan";
   id: string;
-  dirty?: boolean;      // routine editor: unsaved changes → the confirm dialog warns they are discarded
+  dirty?: boolean; // routine editor: unsaved changes → the confirm dialog warns they are discarded
   onRestored: () => void;
 }): JSX.Element;
 ```
@@ -432,41 +525,42 @@ status, caseId, sessionsPerWeek, sessionsPerDay, phaseLabel, startsOn, endsOn), 
 ("Restaurá esta versión" is a button label: use "Restaurar esta versión"; body text in voseo).
 
 - [ ] **Step 1:** Write `summary-text.test.tsx` (render with the `en` messages provider pattern
-  used by existing component tests): routine summary → "+2 exercises · Reps changed on 1"; plan
-  summary → "+1 routine"; null on edited → "First recorded version"; created → "Created".
+      used by existing component tests): routine summary → "+2 exercises · Reps changed on 1"; plan
+      summary → "+1 routine"; null on edited → "First recorded version"; created → "Created".
 - [ ] **Step 2:** Write `history-sheet.test.tsx` (mock the actions module): opens and lists
-  versions newest first with "Current"; selecting an older version shows "Set 1 · Reps 12 → 10"
-  style diff lines; changing "Compare with" (use `chooseOption` from `src/test/select.ts`) refetches
-  and re-diffs; restore → confirm → calls `restoreVersionAction` and `onRestored`; with `dirty`
-  the confirm shows the unsaved warning; `needsItems` error shows its message.
+      versions newest first with "Current"; selecting an older version shows "Set 1 · Reps 12 → 10"
+      style diff lines; changing "Compare with" (use `chooseOption` from `src/test/select.ts`) refetches
+      and re-diffs; restore → confirm → calls `restoreVersionAction` and `onRestored`; with `dirty`
+      the confirm shows the unsaved warning; `needsItems` error shows its message.
 - [ ] **Step 3:** Run — expect FAIL. Implement components, wire the editor and plan page, add
-  messages to both locales.
+      messages to both locales.
 - [ ] **Step 4:** `pnpm check` PASS (includes `src/i18n/messages.test.ts`); `pnpm dev` and check
-  the sheet on a phone width (no horizontal scroll) and desktop.
+      the sheet on a phone width (no horizontal scroll) and desktop.
 - [ ] **Step 5:** Commit `feat(history): history sheet with diff and restore (spec 15)`.
 
 ### Task 6: E2E, docs and status
 
 **Files:**
+
 - Create: `e2e/history.spec.ts`
 - Modify: `docs/specs/15-version-history.md` (Status Done, acceptance boxes, "Decisions made during
   implementation"), `docs/specs/README.md` (index row → Done)
 
 - [ ] **Step 1:** Write `e2e/history.spec.ts` (helpers in `e2e/helpers/routines.ts`,
-  `e2e/helpers/select.ts`; desktop + mobile projects):
+      `e2e/helpers/select.ts`; desktop + mobile projects):
   - routine: `createExercise`, `createRoutine`, `addExercises`, set reps 10, Save; change reps to
     12, Save; open History → top row "Reps changed on 1"; select the previous row; Restore this
     version → confirm; the reps input shows 10 again and History lists a "Restored from" row;
   - plan: create a plan with one routine on Monday, open History → "+1 routine"; restore the
     created version → the board is empty again.
 - [ ] **Step 2:** `pnpm test:e2e e2e/history.spec.ts` PASS (in sandboxes set
-  `PLAYWRIGHT_CHROMIUM_EXECUTABLE`), then the full `pnpm test:e2e` to catch regressions in
-  routine/plan flows.
+      `PLAYWRIGHT_CHROMIUM_EXECUTABLE`), then the full `pnpm test:e2e` to catch regressions in
+      routine/plan flows.
 - [ ] **Step 3:** Update the spec: Status Done, tick acceptance criteria, Decisions:
-  `summary` is structured jsonb rendered per locale (not text); snapshot types live in
-  `src/lib/history/snapshot.ts` (client diff needs them); `weekly_plan_versions` has an update
-  policy for coalescing plus `session_id`/`updated_at`; `kind` + `restored_from` columns; entries
-  carry their id; coalescing never folds into created/restored rows; versions created before this
-  spec are not backfilled (first recorded version shown without summary); restoring a plan to
-  before a "separate copy" leaves the copy routine in place. README index row → Done.
+      `summary` is structured jsonb rendered per locale (not text); snapshot types live in
+      `src/lib/history/snapshot.ts` (client diff needs them); `weekly_plan_versions` has an update
+      policy for coalescing plus `session_id`/`updated_at`; `kind` + `restored_from` columns; entries
+      carry their id; coalescing never folds into created/restored rows; versions created before this
+      spec are not backfilled (first recorded version shown without summary); restoring a plan to
+      before a "separate copy" leaves the copy routine in place. README index row → Done.
 - [ ] **Step 4:** `pnpm check`, `pnpm test:int`; commit `test(history): e2e and spec decisions (spec 15)`.
