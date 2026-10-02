@@ -93,12 +93,13 @@ describe("prefersShareSheet", () => {
 
 describe("delivering a file", () => {
   const file = new File(["%PDF"], "knee.pdf", { type: PDF });
-  const nav = navigator as Navigator & { share?: unknown; canShare?: unknown };
-  let click: ReturnType<typeof vi.fn>;
+  // Writable stand-ins for the Web Share API, which jsdom lacks.
+  const nav = navigator as unknown as { share?: unknown; canShare?: unknown };
+  let click: ReturnType<typeof vi.fn<(link: object) => void>>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    click = vi.fn();
+    click = vi.fn<(link: object) => void>();
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
       this: HTMLAnchorElement,
     ) {

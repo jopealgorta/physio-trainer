@@ -8,7 +8,8 @@ import messages from "../../../messages/en.json";
 import { ExportMenu } from "./export-menu";
 
 const PDF = "application/pdf";
-const nav = navigator as Navigator & { share?: unknown; canShare?: unknown };
+// Writable stand-ins for the Web Share API, which jsdom lacks.
+const nav = navigator as unknown as { share?: unknown; canShare?: unknown };
 const realMatchMedia = window.matchMedia;
 
 /** Pretends the screen is touch (`pointer: coarse`) or not. */
