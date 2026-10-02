@@ -3,20 +3,11 @@ import "server-only";
 import { and, asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import { db } from "@/db";
-import {
-  exerciseMedia,
-  exercises,
-  routineGroups,
-  routineItemSets,
-  routineItems,
-  routines,
-  weeklyPlanEntries,
-  weeklyPlans,
-} from "@/db/schema";
+import { routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
 import { isoWeekday, todayIn } from "@/lib/calendar-date";
-import type { ItemPrescription, SetPrescription } from "@/lib/prescription";
 import { nextStart } from "@/lib/schedule";
-import { parseYouTubeUrl } from "@/lib/youtube";
+import { loadRoutineContent } from "@/server/routines/content";
+import type { ContentBlock, ContentItem, RoutineContent } from "@/server/routines/content";
 import { scheduleFilter } from "@/server/schedule/active";
 
 import type { ActiveLink, LinkShell } from "./resolve-link";
@@ -26,26 +17,9 @@ import type { ActiveLink, LinkShell } from "./resolve-link";
  * exercise instructions and media, prescription. No case details, history, visit notes, other
  * customers, last names or contact details of the customer.
  */
-export type PatientItem = ItemPrescription & {
-  id: string;
-  name: string;
-  instructions: string | null;
-  sets: SetPrescription[];
-  media: { videoId: string; isShort: boolean }[];
-};
-
-export type PatientBlock =
-  | { kind: "single"; item: PatientItem }
-  | { kind: "group"; key: string; restSeconds: number | null; items: PatientItem[] };
-
-export type PatientRoutine = {
-  id: string;
-  name: string;
-  notes: string | null;
-  sessionsPerWeek: number | null;
-  sessionsPerDay: number | null;
-  blocks: PatientBlock[];
-};
+export type PatientItem = ContentItem;
+export type PatientBlock = ContentBlock;
+export type PatientRoutine = RoutineContent;
 
 export type PatientPlan = {
   id: string;
@@ -73,9 +47,9 @@ export type PatientView = {
 /**
  * What a link may reach, as SQL: the plans and routines of its customer (narrowed to the one
  * routine or plan for a single-target link). Shared by the page and the workout route so both
- * answer "can this link see it?" the same way.
+ * answer "can this link see it?" the same way (and the export, spec 14).
  */
-function linkScopes(
+export function linkScopes(
   shell: Pick<LinkShell, "physioId">,
   link: Pick<ActiveLink, "target" | "customerId" | "routineId" | "weeklyPlanId">,
   today: string,
@@ -106,6 +80,53 @@ function linkScopes(
       : scheduleFilter(routines, "active", today);
 
   return { planScope, routineScope, routineActive };
+}
+
+export type LinkPlanEntry = {
+  id: string;
+  planId: string;
+  weekday: number;
+  label: string | null;
+  routineId: string;
+};
+
+/**
+ * The entries of the given plans (already scoped by `linkScopes`) that a link may show, every
+ * weekday, ordered by weekday then position. The routine must be the same customer's and
+ * finished: a draft or archived routine is never shown, the same rule as when it is shared on
+ * its own. Shared by the page (one weekday) and the export (all of them).
+ */
+export async function linkPlanEntries(
+  shell: Pick<LinkShell, "physioId">,
+  link: Pick<ActiveLink, "customerId">,
+  planIds: string[],
+): Promise<LinkPlanEntry[]> {
+  if (planIds.length === 0) return [];
+  return db
+    .select({
+      id: weeklyPlanEntries.id,
+      planId: weeklyPlanEntries.weeklyPlanId,
+      weekday: weeklyPlanEntries.weekday,
+      label: weeklyPlanEntries.label,
+      routineId: weeklyPlanEntries.routineId,
+    })
+    .from(weeklyPlanEntries)
+    .innerJoin(
+      routines,
+      and(
+        eq(routines.physioId, weeklyPlanEntries.physioId),
+        eq(routines.id, weeklyPlanEntries.routineId),
+      ),
+    )
+    .where(
+      and(
+        eq(weeklyPlanEntries.physioId, shell.physioId),
+        inArray(weeklyPlanEntries.weeklyPlanId, planIds),
+        eq(routines.customerId, link.customerId),
+        eq(routines.status, "active"),
+      ),
+    )
+    .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position));
 }
 
 const isWeekdayNumber = (value: number) => Number.isInteger(value) && value >= 1 && value <= 7;
@@ -143,45 +164,18 @@ export async function getPatientView(
           .orderBy(asc(routines.name), asc(routines.id)),
   ]);
 
-  const entryRows = planRows.length
-    ? await db
-        .select({
-          id: weeklyPlanEntries.id,
-          planId: weeklyPlanEntries.weeklyPlanId,
-          weekday: weeklyPlanEntries.weekday,
-          label: weeklyPlanEntries.label,
-          routineId: weeklyPlanEntries.routineId,
-        })
-        .from(weeklyPlanEntries)
-        .innerJoin(
-          routines,
-          and(
-            eq(routines.physioId, weeklyPlanEntries.physioId),
-            eq(routines.id, weeklyPlanEntries.routineId),
-          ),
-        )
-        .where(
-          and(
-            eq(weeklyPlanEntries.physioId, shell.physioId),
-            inArray(
-              weeklyPlanEntries.weeklyPlanId,
-              planRows.map((plan) => plan.id),
-            ),
-            // The routine must be the same customer's and finished: a draft or archived routine
-            // is never shown, the same rule as when it is shared on its own.
-            eq(routines.customerId, link.customerId),
-            eq(routines.status, "active"),
-          ),
-        )
-        .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position))
-    : [];
+  const entryRows = await linkPlanEntries(
+    shell,
+    link,
+    planRows.map((plan) => plan.id),
+  );
 
   const weekdaysWithContent = [...new Set(entryRows.map((entry) => entry.weekday))].sort(
     (a, b) => a - b,
   );
   const dayEntries = entryRows.filter((entry) => entry.weekday === weekday);
 
-  const content = await loadRoutines(shell.physioId, link.customerId, [
+  const content = await loadRoutineContent(db, shell.physioId, link.customerId, [
     ...new Set([...dayEntries.map((entry) => entry.routineId), ...routineRows.map((r) => r.id)]),
   ]);
 
@@ -309,151 +303,6 @@ export async function getReachableRoutine(
 ): Promise<PatientRoutine | null> {
   const today = todayIn(shell.timeZone, now);
   if (!(await isReachable(shell, link, { routineId }, today))) return null;
-  const content = await loadRoutines(shell.physioId, link.customerId, [routineId]);
+  const content = await loadRoutineContent(db, shell.physioId, link.customerId, [routineId]);
   return content.get(routineId) ?? null;
-}
-
-/** Routines with their exercises, grouped into supersets, for the given (already scoped) ids. */
-async function loadRoutines(
-  physioId: string,
-  customerId: string,
-  ids: string[],
-): Promise<Map<string, PatientRoutine>> {
-  const result = new Map<string, PatientRoutine>();
-  if (ids.length === 0) return result;
-
-  const headers = await db
-    .select({
-      id: routines.id,
-      name: routines.name,
-      notes: routines.notes,
-      sessionsPerWeek: routines.sessionsPerWeek,
-      sessionsPerDay: routines.sessionsPerDay,
-    })
-    .from(routines)
-    .where(
-      and(
-        eq(routines.physioId, physioId),
-        eq(routines.customerId, customerId),
-        inArray(routines.id, ids),
-      ),
-    );
-  if (headers.length === 0) return result;
-  const routineIds = headers.map((header) => header.id);
-
-  const [groupRows, itemRows] = await Promise.all([
-    db
-      .select({ id: routineGroups.id, restSeconds: routineGroups.restSeconds })
-      .from(routineGroups)
-      .where(
-        and(eq(routineGroups.physioId, physioId), inArray(routineGroups.routineId, routineIds)),
-      ),
-    db
-      .select({
-        id: routineItems.id,
-        routineId: routineItems.routineId,
-        exerciseId: routineItems.exerciseId,
-        groupId: routineItems.groupId,
-        name: exercises.name,
-        instructions: exercises.instructions,
-        holdSeconds: routineItems.holdSeconds,
-        restSeconds: routineItems.restSeconds,
-        side: routineItems.side,
-        notes: routineItems.notes,
-      })
-      .from(routineItems)
-      .innerJoin(
-        exercises,
-        and(
-          eq(exercises.physioId, routineItems.physioId),
-          eq(exercises.id, routineItems.exerciseId),
-        ),
-      )
-      .where(and(eq(routineItems.physioId, physioId), inArray(routineItems.routineId, routineIds)))
-      .orderBy(asc(routineItems.routineId), asc(routineItems.position)),
-  ]);
-
-  const itemIds = itemRows.map((item) => item.id);
-  const exerciseIds = [...new Set(itemRows.map((item) => item.exerciseId))];
-  const [setRows, mediaRows] = itemRows.length
-    ? await Promise.all([
-        db
-          .select({
-            itemId: routineItemSets.routineItemId,
-            reps: routineItemSets.reps,
-            repsMax: routineItemSets.repsMax,
-            durationSeconds: routineItemSets.durationSeconds,
-            load: routineItemSets.load,
-          })
-          .from(routineItemSets)
-          .where(
-            and(
-              eq(routineItemSets.physioId, physioId),
-              inArray(routineItemSets.routineItemId, itemIds),
-            ),
-          )
-          .orderBy(asc(routineItemSets.routineItemId), asc(routineItemSets.position)),
-        db
-          .select({
-            exerciseId: exerciseMedia.exerciseId,
-            kind: exerciseMedia.kind,
-            url: exerciseMedia.externalUrl,
-          })
-          .from(exerciseMedia)
-          .where(
-            and(
-              eq(exerciseMedia.physioId, physioId),
-              inArray(exerciseMedia.exerciseId, exerciseIds),
-            ),
-          )
-          .orderBy(asc(exerciseMedia.exerciseId), asc(exerciseMedia.position)),
-      ])
-    : [[], []];
-
-  const setsByItem = new Map<string, SetPrescription[]>();
-  for (const { itemId, ...set } of setRows) {
-    setsByItem.set(itemId, [...(setsByItem.get(itemId) ?? []), set]);
-  }
-  const mediaByExercise = new Map<string, PatientItem["media"]>();
-  for (const row of mediaRows) {
-    const video = row.kind === "youtube" ? parseYouTubeUrl(row.url) : null;
-    if (!video) continue;
-    mediaByExercise.set(row.exerciseId, [
-      ...(mediaByExercise.get(row.exerciseId) ?? []),
-      { videoId: video.videoId, isShort: video.isShort },
-    ]);
-  }
-  const restOfGroup = new Map(groupRows.map((group) => [group.id, group.restSeconds]));
-
-  for (const header of headers) {
-    const blocks: PatientBlock[] = [];
-    for (const row of itemRows.filter((item) => item.routineId === header.id)) {
-      const item: PatientItem = {
-        id: row.id,
-        name: row.name,
-        instructions: row.instructions,
-        holdSeconds: row.holdSeconds,
-        restSeconds: row.restSeconds,
-        side: row.side,
-        notes: row.notes,
-        sets: setsByItem.get(row.id) ?? [],
-        media: mediaByExercise.get(row.exerciseId) ?? [],
-      };
-      const last = blocks.at(-1);
-      if (row.groupId === null) {
-        blocks.push({ kind: "single", item });
-      } else if (last?.kind === "group" && last.key === row.groupId) {
-        last.items.push(item);
-      } else {
-        blocks.push({
-          kind: "group",
-          key: row.groupId,
-          restSeconds: restOfGroup.get(row.groupId) ?? null,
-          items: [item],
-        });
-      }
-    }
-    result.set(header.id, { ...header, blocks });
-  }
-  return result;
 }

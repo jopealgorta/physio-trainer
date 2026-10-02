@@ -10,9 +10,13 @@ const buildId =
 const nextConfig: NextConfig = {
   typedRoutes: true,
   env: { NEXT_PUBLIC_BUILD_ID: buildId },
-  // The link-preview image reads its font at runtime (spec 11); tracing cannot see that.
+  serverExternalPackages: ["@react-pdf/renderer", "exceljs"],
+  // The link-preview image (spec 11) and PDF exports (spec 14) read fonts at runtime; tracing
+  // cannot see that.
   outputFileTracingIncludes: {
     "/\\[handle\\]/\\[slug\\]/og": ["./src/assets/fonts/**/*"],
+    "/\\[handle\\]/\\[slug\\]/download": ["./src/assets/fonts/**/*"],
+    "/api/export/**/*": ["./src/assets/fonts/**/*"],
   },
   experimental: {
     // Branding logos are posted to a Server Action (≤ 2 MB after the browser resizes them,

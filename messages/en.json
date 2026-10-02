@@ -1494,5 +1494,60 @@
       "sessions": "{count, plural, one {# session} other {# sessions}} in the last 7 days",
       "last": "Last: {date}"
     }
+  },
+  "Export": {
+    "menu": {
+      "trigger": "Export",
+      "pdf": "Download PDF",
+      "xlsx": "Download Excel",
+      "tracking": "Include tracking boxes"
+    },
+    "patient": {
+      "download": "Download PDF"
+    },
+    "pdf": {
+      "allTitle": "Your exercise program",
+      "forCustomer": "For {name}",
+      "generatedOn": "Generated {date}",
+      "phase": "{label}",
+      "dateRange": "{from} – {to}",
+      "from": "From {date}",
+      "until": "Until {date}",
+      "week": "Week overview",
+      "restDay": "Rest",
+      "superset": "Superset",
+      "supersetRest": "Superset · rest {seconds} s between rounds",
+      "sessions": "{perWeek, plural, =0 {} one {# session a week} other {# sessions a week}}",
+      "sessionsPerDay": "{perDay, plural, =0 {} one {# time a day} other {# times a day}}",
+      "notes": "Notes",
+      "track": "Tick a box each day you do it",
+      "nothing": "Nothing is scheduled right now.",
+      "scan": "Scan for the latest version",
+      "page": "Page {page} of {total}"
+    },
+    "xlsx": {
+      "overview": "Overview",
+      "clinic": "Clinic",
+      "customer": "Customer",
+      "generated": "Generated",
+      "day": "Day",
+      "routines": "Routines",
+      "standalone": "Routines",
+      "sheetFallback": "Routine",
+      "columns": {
+        "group": "Group",
+        "exercise": "Exercise",
+        "sets": "Sets",
+        "reps": "Reps",
+        "hold": "Hold (s)",
+        "duration": "Duration (s)",
+        "rest": "Rest (s)",
+        "load": "Load",
+        "side": "Side",
+        "notes": "Notes",
+        "instructions": "Instructions",
+        "video": "Video link"
+      }
+    }
   }
 }

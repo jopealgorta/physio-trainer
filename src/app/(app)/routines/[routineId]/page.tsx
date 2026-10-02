@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { PhaseBar } from "@/components/phases/phase-bar";
+import { ExportMenu } from "@/components/export/export-menu";
 import { ShareButton } from "@/components/sharing/share-button";
 import { RoutineEditor } from "@/components/routines/routine-editor";
 import { FromTemplate } from "@/components/templates/from-template";
@@ -82,7 +83,10 @@ export default async function RoutinePage({
         </Link>
         {/* A template has no customer to share with. */}
         {routine.isTemplate ? null : (
-          <ShareButton target={{ target: "routine", routineId: routine.id }} />
+          <div className="flex flex-wrap gap-2">
+            <ExportMenu target={{ kind: "routines", id: routine.id }} />
+            <ShareButton target={{ target: "routine", routineId: routine.id }} />
+          </div>
         )}
       </div>
       {routine.isTemplate ? (

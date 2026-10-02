@@ -1494,5 +1494,60 @@
       "sessions": "{count, plural, one {# sesión} other {# sesiones}} en los últimos 7 días",
       "last": "Último: {date}"
     }
+  },
+  "Export": {
+    "menu": {
+      "trigger": "Exportar",
+      "pdf": "Descargar PDF",
+      "xlsx": "Descargar Excel",
+      "tracking": "Incluir casillas de seguimiento"
+    },
+    "patient": {
+      "download": "Descargá el PDF"
+    },
+    "pdf": {
+      "allTitle": "Tu programa de ejercicios",
+      "forCustomer": "Para {name}",
+      "generatedOn": "Generado el {date}",
+      "phase": "{label}",
+      "dateRange": "{from} – {to}",
+      "from": "Desde el {date}",
+      "until": "Hasta el {date}",
+      "week": "Resumen de la semana",
+      "restDay": "Descanso",
+      "superset": "Superserie",
+      "supersetRest": "Superserie · descansá {seconds} s entre rondas",
+      "sessions": "{perWeek, plural, =0 {} one {# sesión por semana} other {# sesiones por semana}}",
+      "sessionsPerDay": "{perDay, plural, =0 {} one {# vez por día} other {# veces por día}}",
+      "notes": "Notas",
+      "track": "Marcá una casilla cada día que lo hagas",
+      "nothing": "Por ahora no hay nada programado.",
+      "scan": "Escaneá para ver la versión actualizada",
+      "page": "Página {page} de {total}"
+    },
+    "xlsx": {
+      "overview": "Resumen",
+      "clinic": "Consultorio",
+      "customer": "Paciente",
+      "generated": "Generado",
+      "day": "Día",
+      "routines": "Rutinas",
+      "standalone": "Rutinas",
+      "sheetFallback": "Rutina",
+      "columns": {
+        "group": "Grupo",
+        "exercise": "Ejercicio",
+        "sets": "Series",
+        "reps": "Repeticiones",
+        "hold": "Mantener (s)",
+        "duration": "Duración (s)",
+        "rest": "Descanso (s)",
+        "load": "Carga",
+        "side": "Lado",
+        "notes": "Notas",
+        "instructions": "Indicaciones",
+        "video": "Enlace al video"
+      }
+    }
   }
 }

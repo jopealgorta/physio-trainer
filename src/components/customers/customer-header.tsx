@@ -2,6 +2,7 @@ import { MailIcon, MessageCircleIcon, PencilIcon, PhoneIcon } from "lucide-react
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { ExportMenu } from "@/components/export/export-menu";
 import { ShareButton } from "@/components/sharing/share-button";
 import { Button } from "@/components/ui/button";
 import type { Customer } from "@/db/schema";
@@ -43,6 +44,7 @@ export function CustomerHeader({
           </div>
         </div>
         <CustomerArchiveButton id={customer.id} name={name} archived={customer.archivedAt !== null}>
+          <ExportMenu target={{ kind: "customers", id: customer.id }} />
           {/* Archived customers' links are revoked and cannot be recreated until restored. */}
           {customer.archivedAt === null ? (
             <ShareButton target={{ target: "customer", customerId: customer.id }} />
