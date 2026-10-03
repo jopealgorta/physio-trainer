@@ -37,12 +37,23 @@ export async function insertRoutine(
   physioId: string,
   customerId: string,
   name: string,
-  options: { standalone?: boolean; sessionsPerWeek?: number; exercise?: string } = {},
+  options: {
+    standalone?: boolean;
+    sessionsPerWeek?: number;
+    exercise?: string;
+    /** Attach this YouTube video (an 11-character id) to the exercise. */
+    videoId?: string;
+  } = {},
 ): Promise<string> {
   const [exercise] = await sql<{ id: string }[]>`
     insert into public.exercises (physio_id, name, instructions)
     values (${physioId}, ${options.exercise ?? `${name} exercise`}, 'Keep your back straight.')
     returning id`;
+  if (options.videoId) {
+    await sql`
+      insert into public.exercise_media (physio_id, exercise_id, kind, external_url, external_id, position)
+      values (${physioId}, ${exercise.id}, 'youtube', ${`https://www.youtube.com/watch?v=${options.videoId}`}, ${options.videoId}, 0)`;
+  }
   const [routine] = await sql<{ id: string }[]>`
     insert into public.routines (physio_id, customer_id, name, notes, status, is_standalone, sessions_per_week)
     values (${physioId}, ${customerId}, ${name}, 'Warm up first.', 'active',
@@ -55,6 +66,13 @@ export async function insertRoutine(
     insert into public.routine_item_sets (physio_id, routine_item_id, position, reps)
     select ${physioId}, ${item.id}, n, 12 from generate_series(0, 2) n`;
   return routine.id;
+}
+
+/** Activates every draft routine of a customer (routines made through the UI start as drafts). */
+export async function activateRoutines(customerId: string): Promise<void> {
+  await sql`
+    update public.routines set status = 'active', is_standalone = true
+    where customer_id = ${customerId} and status = 'draft'`;
 }
 
 export async function renameRoutine(routineId: string, name: string): Promise<void> {
@@ -76,6 +94,18 @@ export async function insertPlan(
       values (${physioId}, ${plan.id}, ${entry.weekday}, ${entry.routineId}, ${position}, ${entry.label ?? null})`;
   }
   return plan.id;
+}
+
+/** The note a plan shows its patient on one weekday (1 = Monday). */
+export async function insertDayNote(
+  physioId: string,
+  planId: string,
+  weekday: number,
+  notes: string,
+): Promise<void> {
+  await sql`
+    insert into public.weekly_plan_days (physio_id, weekly_plan_id, weekday, notes)
+    values (${physioId}, ${planId}, ${weekday}, ${notes})`;
 }
 
 export type SeededLink = { code: string; slug: string; path: string };
