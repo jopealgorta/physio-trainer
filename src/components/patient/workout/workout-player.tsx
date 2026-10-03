@@ -33,8 +33,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { distanceDisplay } from "@/lib/distance";
-import { durationDisplay } from "@/lib/prescription";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { useCues } from "@/lib/workout/cues";
@@ -65,6 +63,7 @@ import type { PatientItem, PatientRoutine } from "@/server/patient/view";
 
 import { ExerciseList, type ExerciseLogging } from "../exercise-list";
 import { ExerciseLogButton } from "../exercise-log-button";
+import { setTargets } from "../set-targets";
 import { Confetti, SetDoneBurst } from "./set-done-burst";
 
 const TICK_MS = 250;
@@ -76,8 +75,6 @@ const BIG_BURST_MS = 1600;
 
 type Notice = { text: string; /** Shown on screen too, not only announced. */ visible: boolean };
 type Celebration = { id: number; big: boolean };
-
-type Translate = ReturnType<typeof useTranslations<"Workout">>;
 
 /**
  * Full-screen guided workout (spec 12, laid out by spec 19): the routine's exercise list with the
@@ -582,37 +579,4 @@ function Chip({ children, primary = false }: { children: React.ReactNode; primar
       {children}
     </li>
   );
-}
-
-function setTargets(set: PatientItem["sets"][number] | undefined, t: Translate): string[] {
-  if (!set) return [];
-  const labels: string[] = [];
-  if (set.reps !== null) {
-    labels.push(
-      set.repsMax !== null
-        ? t("target.range", { min: set.reps, max: set.repsMax })
-        : t("target.reps", { count: set.reps }),
-    );
-  }
-  if (set.durationSeconds !== null) {
-    const duration = durationDisplay(set.durationSeconds);
-    labels.push(
-      duration.unit === "minutesSeconds"
-        ? t("target.minutesSeconds", { minutes: duration.minutes, seconds: duration.seconds })
-        : duration.unit === "minutes"
-          ? t("target.minutes", { value: duration.value })
-          : t("target.duration", { value: duration.value }),
-    );
-  }
-  if (set.distanceMeters !== null) {
-    const distance = distanceDisplay(set.distanceMeters);
-    labels.push(
-      t(distance.unit === "km" ? "target.distanceKm" : "target.distanceM", {
-        value: distance.value,
-      }),
-    );
-  }
-  if (set.load) labels.push(t("target.load", { value: set.load }));
-  if (set.intensity) labels.push(t("target.intensity", { value: set.intensity }));
-  return labels;
 }
