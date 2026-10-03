@@ -49,14 +49,20 @@ export function ExerciseLogFeed({ logs }: { logs: ActivityExerciseLog[] }) {
             </h3>
             <ul className="grid gap-2">
               {group.rows.map((log) => {
+                const weightText =
+                  log.setWeightsKg !== null
+                    ? log.setWeightsKg
+                        .map((v) =>
+                          v !== null ? format.number(v, { maximumFractionDigits: 1 }) : "–",
+                        )
+                        .join(" · ")
+                    : log.weightKg !== null
+                      ? format.number(log.weightKg, { maximumFractionDigits: 1 })
+                      : null;
                 const values = [
                   log.pain !== null ? t("pain", { value: log.pain }) : null,
                   log.rpe !== null ? t("rpe", { value: log.rpe }) : null,
-                  log.weightKg !== null
-                    ? t("weight", {
-                        value: format.number(log.weightKg, { maximumFractionDigits: 1 }),
-                      })
-                    : null,
+                  weightText !== null ? t("weight", { value: weightText }) : null,
                 ].filter((value) => value !== null);
                 return (
                   <li key={log.id} className="bg-card grid gap-1 rounded-lg border p-3">
