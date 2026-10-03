@@ -265,7 +265,7 @@ export function PlanBoard({
         <h2 id={`${dndId}-week`} className="text-lg font-semibold">
           {t("week")}
         </h2>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm" aria-live="polite">
           {[
             t("summary.routines", { count: summary.totalSessions }),
             t("summary.exercises", { count: summary.totalExercises }),
@@ -559,7 +559,7 @@ function DayNotePopover({
           placeholder={t("placeholder")}
           onChange={(event) => setDraft(event.target.value)}
         />
-        <p className="text-muted-foreground text-right text-xs" aria-live="polite">
+        <p className="text-muted-foreground text-right text-xs">
           {draft.length}/{DAY_NOTES_MAX}
         </p>
         <div className="flex justify-end gap-2">
