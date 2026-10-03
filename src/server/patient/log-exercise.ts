@@ -1,15 +1,13 @@
 import "server-only";
 
-import { and, asc, between, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { exerciseLogs, routineItems, weeklyPlanEntries } from "@/db/schema";
-import { todayIn } from "@/lib/calendar-date";
-import { isLoggableDate } from "@/lib/session-logs";
+import { exerciseLogs, routineItems } from "@/db/schema";
 
 import type { LogExerciseInput } from "./exercise-log-schema";
 import type { ActiveLink, LinkShell } from "./resolve-link";
-import { isReachable } from "./view";
+import { checkLoggable, patientLogScope, resetSeenOnNewComment } from "./log-shared";
 
 export type { LogExerciseInput };
 
@@ -52,16 +50,14 @@ export async function logExercise(
   input: LogExerciseInput,
   now: Date = new Date(),
 ): Promise<LogExerciseResult> {
-  if (!isLoggableDate(input.performedOn, todayIn(shell.timeZone, now))) {
-    return { ok: false, error: "date" };
-  }
-  const reachable = await isReachable(
+  const refused = await checkLoggable(
     shell,
     link,
     { routineId: input.routineId, entryId: input.entryId },
     input.performedOn,
+    now,
   );
-  if (!reachable) return { ok: false, error: "unreachable" };
+  if (refused) return { ok: false, error: refused };
 
   const [item] = await db
     .select({ id: routineItems.id })
@@ -127,9 +123,7 @@ export async function logExercise(
         rpe: input.rpe,
         weightKg: input.weightKg,
         comment: input.comment,
-        // A changed comment is news for the physio again; the same words are not.
-        seenByPhysioAt: sql`case when ${exerciseLogs.comment} is not distinct from excluded.comment
-          then ${exerciseLogs.seenByPhysioAt} else null end`,
+        seenByPhysioAt: resetSeenOnNewComment(exerciseLogs),
       },
     })
     .returning(patientColumns);
@@ -149,28 +143,7 @@ export async function getPatientExerciseLogs(
   return db
     .select(patientColumns)
     .from(exerciseLogs)
-    .where(
-      and(
-        eq(exerciseLogs.physioId, shell.physioId),
-        eq(exerciseLogs.customerId, link.customerId),
-        between(exerciseLogs.performedOn, from, to),
-        link.target === "routine" ? eq(exerciseLogs.routineId, link.routineId!) : undefined,
-        link.target === "weekly_plan"
-          ? inArray(
-              exerciseLogs.weeklyPlanEntryId,
-              db
-                .select({ id: weeklyPlanEntries.id })
-                .from(weeklyPlanEntries)
-                .where(
-                  and(
-                    eq(weeklyPlanEntries.physioId, shell.physioId),
-                    eq(weeklyPlanEntries.weeklyPlanId, link.weeklyPlanId!),
-                  ),
-                ),
-            )
-          : undefined,
-      ),
-    )
+    .where(patientLogScope(exerciseLogs, shell, link, from, to))
     .orderBy(
       asc(exerciseLogs.performedOn),
       asc(exerciseLogs.routineId),

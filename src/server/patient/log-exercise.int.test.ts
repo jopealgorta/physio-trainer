@@ -141,6 +141,17 @@ describe("logExercise", () => {
     expect(await rows(standalone)).toHaveLength(0);
   });
 
+  it("rejects an exercise id that belongs to another physio", async () => {
+    const alien = await insertExercise(other.id, { name: "Alien" });
+    expect(await log(customerCode, { exerciseId: alien, pain: 1 })).toEqual({
+      ok: false,
+      error: "unreachable",
+    });
+    expect(
+      await db.select().from(exerciseLogs).where(eq(exerciseLogs.exerciseId, alien)),
+    ).toHaveLength(0);
+  });
+
   it("rejects a plan entry that does not hold the routine", async () => {
     expect(await log(customerCode, { routineId: standalone, entryId, pain: 1 })).toEqual({
       ok: false,
