@@ -28,7 +28,8 @@ describe("logSessionSchema", () => {
   });
 
   it("parses a missing rpe (an old client) to null", () => {
-    const { rpe: _rpe, ...old } = valid;
+    const old: Record<string, unknown> = { ...valid };
+    delete old.rpe;
     expect(logSessionSchema.parse(old).rpe).toBeNull();
   });
 
