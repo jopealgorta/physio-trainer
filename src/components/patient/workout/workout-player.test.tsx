@@ -22,8 +22,22 @@ const item = (id: string, name: string, values: Partial<PatientItem> = {}): Pati
   notes: null,
   media: [],
   sets: [
-    { reps: 10, repsMax: null, durationSeconds: null, load: null },
-    { reps: 10, repsMax: null, durationSeconds: null, load: null },
+    {
+      reps: 10,
+      repsMax: null,
+      durationSeconds: null,
+      load: null,
+      distanceMeters: null,
+      intensity: null,
+    },
+    {
+      reps: 10,
+      repsMax: null,
+      durationSeconds: null,
+      load: null,
+      distanceMeters: null,
+      intensity: null,
+    },
   ],
   ...values,
 });
@@ -76,7 +90,16 @@ describe("WorkoutPlayer", () => {
         item("a", "Squat", {
           side: "alternating",
           notes: "Slow down",
-          sets: [{ reps: 8, repsMax: 12, durationSeconds: null, load: "5 kg" }],
+          sets: [
+            {
+              reps: 8,
+              repsMax: 12,
+              durationSeconds: null,
+              load: "5 kg",
+              distanceMeters: null,
+              intensity: null,
+            },
+          ],
         }),
         item("b", "Bridge"),
       ),
@@ -149,7 +172,14 @@ describe("WorkoutPlayer", () => {
   });
 
   it("runs a timed set and moves into the rest when it ends", async () => {
-    const timed = { reps: null, repsMax: null, durationSeconds: 45, load: null };
+    const timed = {
+      reps: null,
+      repsMax: null,
+      durationSeconds: 45,
+      load: null,
+      distanceMeters: null,
+      intensity: null,
+    };
     const user = setup(routineOf(item("a", "Plank", { restSeconds: 20, sets: [timed, timed] })));
     expect(screen.queryByRole("button", { name: "Set done" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Start timer" }));
@@ -293,7 +323,14 @@ describe("WorkoutPlayer", () => {
     });
 
     it("celebrates a timed set that runs out, using the countdown's own beep", async () => {
-      const timed = { reps: null, repsMax: null, durationSeconds: 5, load: null };
+      const timed = {
+        reps: null,
+        repsMax: null,
+        durationSeconds: 5,
+        load: null,
+        distanceMeters: null,
+        intensity: null,
+      };
       const user = setup(routineOf(item("a", "Plank", { sets: [timed, timed] })));
       await user.click(screen.getByRole("button", { name: "Start timer" }));
       await advance(5_000);

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { distanceDisplay } from "./distance";
+
 /**
  * Prescription fields of routine items (spec 05): per-set and per-item shapes.
  * All optional; the UI shows only what is set. Error messages are i18n keys (Prescription.errors.*).
@@ -10,11 +12,13 @@ export type PrescriptionSide = (typeof PRESCRIPTION_SIDES)[number];
 export const PRESCRIPTION_LIMITS = {
   reps: { min: 1, max: 999 },
   repsMax: { min: 1, max: 999 },
-  durationSeconds: { min: 1, max: 7200 },
+  durationSeconds: { min: 1, max: 14_400 },
+  distanceMeters: { min: 1, max: 200_000 },
   holdSeconds: { min: 1, max: 3600 },
   restSeconds: { min: 1, max: 3600 },
 } as const;
 export const LOAD_MAX_LENGTH = 40;
+export const INTENSITY_MAX_LENGTH = 40;
 export const PRESCRIPTION_NOTES_MAX_LENGTH = 500;
 
 /** The codes a set field can show (Prescription.errors.*); text and side limits never surface. */
@@ -54,6 +58,8 @@ const prescriptionShape = {
   holdSeconds: optionalInt(PRESCRIPTION_LIMITS.holdSeconds),
   restSeconds: optionalInt(PRESCRIPTION_LIMITS.restSeconds),
   load: optionalText(LOAD_MAX_LENGTH),
+  distanceMeters: optionalInt(PRESCRIPTION_LIMITS.distanceMeters),
+  intensity: optionalText(INTENSITY_MAX_LENGTH),
   side: z
     .preprocess(blankToUndefined, z.enum(PRESCRIPTION_SIDES, { error: "invalidSide" }).optional())
     .transform((value) => value ?? null),
@@ -79,6 +85,8 @@ export const setShape = {
   repsMax: prescriptionShape.repsMax,
   durationSeconds: prescriptionShape.durationSeconds,
   load: prescriptionShape.load,
+  distanceMeters: prescriptionShape.distanceMeters,
+  intensity: prescriptionShape.intensity,
 };
 export const setSchema = z.object(setShape).superRefine(refinePrescription);
 export type SetPrescription = z.output<typeof setSchema>;
@@ -87,6 +95,8 @@ export const EMPTY_SET: SetPrescription = {
   repsMax: null,
   durationSeconds: null,
   load: null,
+  distanceMeters: null,
+  intensity: null,
 };
 
 /** Per-exercise fields of a routine item. */
@@ -109,6 +119,9 @@ export type PrescriptionSummaryKey =
   | "summary.count"
   | "summary.range"
   | "summary.seconds"
+  | "summary.minutes"
+  | "summary.distanceKm"
+  | "summary.distanceM"
   | "summary.sets"
   | "summary.blank"
   | "summary.hold"
@@ -131,7 +144,16 @@ function setBase(set: SetPrescription, t: PrescriptionTranslate): string | null 
     );
   }
   if (set.durationSeconds !== null) {
-    parts.push(t("summary.seconds", { value: set.durationSeconds }));
+    const seconds = set.durationSeconds;
+    parts.push(
+      seconds >= 60 && seconds % 60 === 0
+        ? t("summary.minutes", { value: seconds / 60 })
+        : t("summary.seconds", { value: seconds }),
+    );
+  }
+  if (set.distanceMeters !== null) {
+    const { unit, value } = distanceDisplay(set.distanceMeters);
+    parts.push(t(unit === "km" ? "summary.distanceKm" : "summary.distanceM", { value }));
   }
   return parts.length ? parts.join(" / ") : null;
 }
@@ -149,13 +171,23 @@ export function formatPrescription(
 ): string {
   const { sets } = item;
   const parts: string[] = [];
-  const loads = new Set(sets.map((set) => set.load));
-  const sharedLoad = loads.size <= 1 ? ([...loads][0] ?? null) : null;
-  const perSetLoad = loads.size > 1;
+  // A text field (load, intensity) is shown once when shared, or per set when sets differ.
+  const sharedText = (pick: (set: SetPrescription) => string | null) => {
+    const values = new Set(sets.map(pick));
+    return { shared: values.size <= 1 ? ([...values][0] ?? null) : null, perSet: values.size > 1 };
+  };
+  const load = sharedText((set) => set.load);
+  const intensity = sharedText((set) => set.intensity);
   const labels = sets.map((set) => {
-    const base = setBase(set, t);
-    if (!perSetLoad || set.load === null) return base;
-    return base === null ? set.load : `${base} × ${set.load}`;
+    let label = setBase(set, t);
+    for (const [perSet, value] of [
+      [load.perSet, set.load],
+      [intensity.perSet, set.intensity],
+    ] as const) {
+      if (!perSet || value === null) continue;
+      label = label === null ? value : `${label} × ${value}`;
+    }
+    return label;
   });
 
   if (labels.length > 0) {
@@ -173,7 +205,8 @@ export function formatPrescription(
       parts.push(labels.map((label) => label ?? t("summary.blank")).join(SUMMARY_SEPARATOR));
     }
   }
-  if (sharedLoad !== null) parts.push(sharedLoad);
+  if (load.shared !== null) parts.push(load.shared);
+  if (intensity.shared !== null) parts.push(intensity.shared);
   if (item.holdSeconds !== null) parts.push(t("summary.hold", { value: item.holdSeconds }));
   if (item.restSeconds !== null) parts.push(t("summary.rest", { value: item.restSeconds }));
   if (item.side !== null) parts.push(t(`sides.${item.side}`));

@@ -6,6 +6,8 @@ export const set = (key: string, patch: Partial<EditorSet> = {}): EditorSet => (
   repsMax: null,
   durationSeconds: null,
   load: null,
+  distanceMeters: null,
+  intensity: null,
   ...patch,
 });
 

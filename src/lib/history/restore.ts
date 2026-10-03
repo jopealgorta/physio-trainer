@@ -1,5 +1,6 @@
 import type { SaveRoutineInput } from "@/server/routines/schemas";
 
+import { EMPTY_SET } from "../prescription";
 import { normalizeEntries } from "../plans";
 import { GROUP_MIN, type RoutineStatus } from "../routines";
 import type { PlanSnapshot, RoutineSnapshot } from "./snapshot";
@@ -53,7 +54,7 @@ export function routineRestoreInput(
           restSeconds: dissolved ? groupRest(groupKey) : prescription.restSeconds,
           side: prescription.side,
           notes: prescription.notes,
-          sets: prescription.sets.map((set) => ({ ...set })),
+          sets: prescription.sets.map((set) => ({ ...EMPTY_SET, ...set })),
         };
       }),
     },

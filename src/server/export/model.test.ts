@@ -13,7 +13,14 @@ import {
 } from "./model";
 
 const t: PrescriptionTranslate = (k, v) => k + JSON.stringify(v ?? {});
-const S = { reps: null, repsMax: null, durationSeconds: null, load: null };
+const S = {
+  reps: null,
+  repsMax: null,
+  durationSeconds: null,
+  load: null,
+  distanceMeters: null,
+  intensity: null,
+};
 
 function item(id: string, over: Partial<ContentItem> = {}): ContentItem {
   return {

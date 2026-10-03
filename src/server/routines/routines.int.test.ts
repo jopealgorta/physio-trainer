@@ -31,6 +31,8 @@ const set = (reps: number | null = 10, extra: Record<string, unknown> = {}) => (
   repsMax: null,
   durationSeconds: null,
   load: null,
+  distanceMeters: null,
+  intensity: null,
   ...extra,
 });
 const item = (exerciseId: string, overrides: Partial<SaveItem> = {}): SaveItem => ({

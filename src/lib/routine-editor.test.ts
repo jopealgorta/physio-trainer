@@ -425,7 +425,16 @@ describe("toSaveBlocks", () => {
       restSeconds: 20,
       side: "left",
       notes: "x",
-      sets: [{ reps: 8, repsMax: null, durationSeconds: null, load: null }],
+      sets: [
+        {
+          reps: 8,
+          repsMax: null,
+          durationSeconds: null,
+          load: null,
+          distanceMeters: null,
+          intensity: null,
+        },
+      ],
     });
     assertValid(blocks);
   });

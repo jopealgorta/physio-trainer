@@ -90,6 +90,8 @@ const copySet = (set: SetPrescription, newKey: NewKey): EditorSet => ({
   repsMax: set.repsMax,
   durationSeconds: set.durationSeconds,
   load: set.load,
+  distanceMeters: set.distanceMeters,
+  intensity: set.intensity,
   key: newKey(),
 });
 
@@ -353,6 +355,8 @@ export function toSaveBlocks(blocks: EditorBlock[]): SaveBlocks {
           repsMax: set.repsMax,
           durationSeconds: set.durationSeconds,
           load: set.load,
+          distanceMeters: set.distanceMeters,
+          intensity: set.intensity,
         })),
       });
     }

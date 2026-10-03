@@ -37,7 +37,16 @@ const item = (exerciseId: string, reps = 10): SaveItem => ({
   restSeconds: null,
   side: null,
   notes: null,
-  sets: [{ reps, repsMax: null, durationSeconds: null, load: null }],
+  sets: [
+    {
+      reps,
+      repsMax: null,
+      durationSeconds: null,
+      load: null,
+      distanceMeters: null,
+      intensity: null,
+    },
+  ],
 });
 
 const saveInput = (

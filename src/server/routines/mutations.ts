@@ -191,6 +191,8 @@ export async function saveRoutine(
         repsMax: set.repsMax,
         durationSeconds: set.durationSeconds,
         load: set.load,
+        distanceMeters: set.distanceMeters,
+        intensity: set.intensity,
       })),
     );
     if (setRows.length > 0) await tx.insert(routineItemSets).values(setRows);
@@ -327,6 +329,8 @@ export async function copyRoutine(
           repsMax: row.repsMax,
           durationSeconds: row.durationSeconds,
           load: row.load,
+          distanceMeters: row.distanceMeters,
+          intensity: row.intensity,
         })),
       );
     }

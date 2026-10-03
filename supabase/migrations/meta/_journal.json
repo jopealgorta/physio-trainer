@@ -190,6 +190,13 @@
       "when": 1790983820001,
       "tag": "20261002233019_physios-avatar-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791028518895,
+      "tag": "20261003115518_aerobic-exercises",
+      "breakpoints": true
     }
   ]
 }

@@ -107,6 +107,8 @@ export async function loadRoutineContent(
             repsMax: routineItemSets.repsMax,
             durationSeconds: routineItemSets.durationSeconds,
             load: routineItemSets.load,
+            distanceMeters: routineItemSets.distanceMeters,
+            intensity: routineItemSets.intensity,
           })
           .from(routineItemSets)
           .where(

@@ -41,7 +41,17 @@ const BLOCKS: EditorBlock[] = [
       restSeconds: 30,
       side: null,
       notes: null,
-      sets: [{ key: "s1", reps: 10, repsMax: null, durationSeconds: null, load: null }],
+      sets: [
+        {
+          key: "s1",
+          reps: 10,
+          repsMax: null,
+          durationSeconds: null,
+          load: null,
+          distanceMeters: null,
+          intensity: null,
+        },
+      ],
     },
   },
 ];
@@ -322,7 +332,16 @@ describe("RoutineEditor", () => {
           restSeconds: 30,
           side: null,
           notes: null,
-          sets: [{ reps: 10, repsMax: null, durationSeconds: null, load: null }],
+          sets: [
+            {
+              reps: 10,
+              repsMax: null,
+              durationSeconds: null,
+              load: null,
+              distanceMeters: null,
+              intensity: null,
+            },
+          ],
         },
       ],
     });
@@ -545,7 +564,17 @@ describe("RoutineEditor", () => {
         key: "k1",
         item: {
           ...BLOCKS_ITEM,
-          sets: [{ key: "s1", reps: 12, repsMax: 10, durationSeconds: null, load: null }],
+          sets: [
+            {
+              key: "s1",
+              reps: 12,
+              repsMax: 10,
+              durationSeconds: null,
+              load: null,
+              distanceMeters: null,
+              intensity: null,
+            },
+          ],
         },
       },
     ];
@@ -587,7 +616,17 @@ describe("RoutineEditor", () => {
         key: "k1",
         item: {
           ...BLOCKS_ITEM,
-          sets: [{ key: "s1", reps: null, repsMax: 8, durationSeconds: null, load: null }],
+          sets: [
+            {
+              key: "s1",
+              reps: null,
+              repsMax: 8,
+              durationSeconds: null,
+              load: null,
+              distanceMeters: null,
+              intensity: null,
+            },
+          ],
         },
       },
     ];

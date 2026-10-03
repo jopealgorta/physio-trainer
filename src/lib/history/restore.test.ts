@@ -6,6 +6,8 @@ import type { PlanSnapshot, RoutineSnapshot } from "./snapshot";
 type Item = RoutineSnapshot["items"][number];
 
 const set = (reps: number) => ({ reps, repsMax: null, durationSeconds: null, load: null });
+// Old snapshots carry no aerobic fields; restoring fills them with null.
+const restored = (reps: number) => ({ ...set(reps), distanceMeters: null, intensity: null });
 
 function item(exerciseId: string, groupKey: string | null = null, reps = 10): Item {
   return {
@@ -74,7 +76,7 @@ describe("routineRestoreInput", () => {
           restSeconds: 30,
           side: "left",
           notes: "slowly",
-          sets: [set(10), set(10)],
+          sets: [restored(10), restored(10)],
         },
         {
           exerciseId: "b",
@@ -83,7 +85,7 @@ describe("routineRestoreInput", () => {
           restSeconds: null,
           side: "left",
           notes: "slowly",
-          sets: [set(10), set(10)],
+          sets: [restored(10), restored(10)],
         },
         {
           exerciseId: "c",
@@ -92,7 +94,7 @@ describe("routineRestoreInput", () => {
           restSeconds: null,
           side: "left",
           notes: "slowly",
-          sets: [set(10), set(10)],
+          sets: [restored(10), restored(10)],
         },
       ],
     });

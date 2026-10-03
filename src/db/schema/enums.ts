@@ -3,6 +3,7 @@ import { pgEnum } from "drizzle-orm/pg-core";
 // Relative import: drizzle-kit loads the schema without the "@/" alias.
 import { BODY_AREAS, BODY_SIDES } from "../../lib/body-areas";
 import { VERSION_KINDS } from "../../lib/history/kinds";
+import { EXERCISE_KINDS } from "../../lib/exercise-kinds";
 import { CASE_STATUSES, CUSTOMER_SEXES } from "../../lib/customers";
 import { PRESCRIPTION_SIDES } from "../../lib/prescription";
 import { ROUTINE_STATUSES } from "../../lib/routines";
@@ -31,3 +32,6 @@ export const shareTargetEnum = pgEnum("share_target", SHARE_TARGETS);
 
 /** What produced a version snapshot (spec 15). Values come from src/lib/history/kinds.ts. */
 export const versionKindEnum = pgEnum("version_kind", VERSION_KINDS);
+
+/** Strength or aerobic exercise (spec 19). Values come from src/lib/exercise-kinds.ts. */
+export const exerciseKindEnum = pgEnum("exercise_kind", EXERCISE_KINDS);
