@@ -256,9 +256,13 @@ test("a physio cannot see another physio's customers", async ({ physioPage: page
     await signIn(otherPage, other);
     await expect(otherPage).toHaveURL(/\/dashboard$/);
 
-    const response = await otherPage.goto(path);
-    expect(response?.status()).toBe(404);
+    // The page streams behind its loading.tsx, so a miss is the not-found page with a 200
+    // status and a noindex tag (Next's streamed 404), not a 404 status.
+    await otherPage.goto(path);
     await expect(otherPage.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await expect(
+      otherPage.locator('meta[name="robots"][content="noindex"]').first(),
+    ).toBeAttached();
     await expect(otherPage.getByText("Private Patient")).toHaveCount(0);
 
     await otherPage.goto("/customers");

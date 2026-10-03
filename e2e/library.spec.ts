@@ -159,10 +159,12 @@ test("reordering videos changes the cover", async ({ physioPage: page }) => {
   await expect(covers.nth(1)).toHaveAttribute("src", /aaaaaaaaaaa/);
 });
 
-test("an unknown or malformed exercise id is a 404", async ({ physioPage: page }) => {
+test("an unknown or malformed exercise id is not found", async ({ physioPage: page }) => {
   for (const id of ["not-a-uuid", crypto.randomUUID()]) {
-    const response = await page.goto(`/library/${id}`);
-    expect(response?.status()).toBe(404);
+    // Streamed behind loading.tsx: the not-found page (noindex), not a 404 status.
+    await page.goto(`/library/${id}`);
+    await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await expect(page.locator('meta[name="robots"][content="noindex"]').first()).toBeAttached();
   }
 });
 

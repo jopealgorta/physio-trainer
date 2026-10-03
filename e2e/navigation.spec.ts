@@ -50,6 +50,9 @@ test("a tab change marks the tab and dims the list until it loads", async ({
   await expect(page.locator("main [aria-busy=true]").first()).toBeAttached({
     timeout: FEEDBACK_MS,
   });
+  // The page stays (dimmed): a search-param navigation never shows the route skeleton.
+  await expect(loading(page)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Routines", level: 1 })).toBeVisible();
 
   await expect(templates).toHaveAttribute("aria-current", "page");
   await expect(page.locator("main [aria-busy=true]")).toHaveCount(0);
