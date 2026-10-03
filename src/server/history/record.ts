@@ -95,6 +95,8 @@ async function routineState(tx: Tx, physioId: string, routineId: string) {
         repsMax: routineItemSets.repsMax,
         durationSeconds: routineItemSets.durationSeconds,
         load: routineItemSets.load,
+        distanceMeters: routineItemSets.distanceMeters,
+        intensity: routineItemSets.intensity,
       })
       .from(routineItemSets)
       .where(

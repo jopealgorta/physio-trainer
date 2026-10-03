@@ -33,6 +33,8 @@ const failingFetch = vi.fn(async () => {
 function item(index: number, over: Partial<ContentItem> = {}): ContentItem {
   return {
     id: `item-${index}`,
+    exerciseId: `ex-${index}`,
+    kind: "strength",
     name: `Exercise ${index}`,
     instructions: "Keep your back straight and breathe out on the way up.",
     holdSeconds: index % 3 === 0 ? 5 : null,

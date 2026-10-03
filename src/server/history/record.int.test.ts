@@ -175,7 +175,16 @@ describe("recording versions", () => {
             restSeconds: null,
             side: null,
             notes: null,
-            sets: [{ reps: 12, repsMax: null, durationSeconds: null, load: null }],
+            sets: [
+              {
+                reps: 12,
+                repsMax: null,
+                durationSeconds: null,
+                load: null,
+                distanceMeters: null,
+                intensity: null,
+              },
+            ],
           },
         },
       ]);

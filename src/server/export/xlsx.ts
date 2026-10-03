@@ -8,7 +8,8 @@ import type { ExportDocument, ExportItem, ExportRoutine } from "./model";
 import { type ExportTranslate, frequencyLine } from "./translate";
 
 const MAX_SHEET_NAME = 31;
-const COLUMN_WIDTHS = [8, 32, 6, 14, 8, 12, 8, 14, 12, 30, 60, 44];
+const COLUMN_WIDTHS = [8, 32, 6, 14, 8, 12, 8, 14, 12, 14, 12, 30, 60, 44];
+const INSTRUCTIONS_COLUMN = 13;
 const HEADER_ROW = 6;
 const NOTES_MAX_LINES = 8;
 
@@ -121,6 +122,8 @@ function itemRow(item: ExportItem, summary: PrescriptionTranslate): ExcelJS.Cell
     numberOrText(item.columns.duration),
     item.restSeconds,
     item.columns.load,
+    item.columns.distance,
+    item.columns.intensity,
     item.side ? summary(`sides.${item.side}`) : null,
     item.notes,
     item.instructions,
@@ -154,6 +157,8 @@ function routineSheet(
     "duration",
     "rest",
     "load",
+    "distance",
+    "intensity",
     "side",
     "notes",
     "instructions",
@@ -171,7 +176,7 @@ function routineSheet(
   for (const block of routine?.blocks ?? []) {
     for (const item of block.kind === "single" ? [block.item] : block.items) {
       const row = sheet.addRow(itemRow(item, summary));
-      row.getCell(11).alignment = { wrapText: true, vertical: "top" };
+      row.getCell(INSTRUCTIONS_COLUMN).alignment = { wrapText: true, vertical: "top" };
     }
   }
 }

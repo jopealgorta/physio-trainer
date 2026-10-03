@@ -18,6 +18,7 @@ const exercise = (id: string, name: string, over: Partial<ExerciseSummary> = {})
   ({
     id,
     name,
+    kind: "strength",
     categoryId: null,
     bodyAreas: ["knee"],
     tags: [],

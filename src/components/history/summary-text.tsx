@@ -11,6 +11,8 @@ export const HISTORY_FIELDS = [
   "repsMax",
   "durationSeconds",
   "load",
+  "distanceMeters",
+  "intensity",
   "sets",
   "holdSeconds",
   "restSeconds",

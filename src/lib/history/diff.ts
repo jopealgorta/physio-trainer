@@ -1,6 +1,7 @@
 import type { PlanSnapshot, RoutineSnapshot, SnapshotSet } from "./snapshot";
 
-export type SetField = "reps" | "repsMax" | "durationSeconds" | "load";
+export type SetField =
+  "reps" | "repsMax" | "durationSeconds" | "load" | "distanceMeters" | "intensity";
 export type ItemField = "holdSeconds" | "restSeconds" | "side" | "notes" | "group" | "sets";
 export type FieldChange<F extends string> = { field: F; from: unknown; to: unknown };
 
@@ -37,7 +38,14 @@ export type EntryDiff = {
 export type PlanHeaderField = keyof PlanSnapshot["plan"];
 export type PlanDiff = { header: FieldChange<PlanHeaderField>[]; entries: EntryDiff[] };
 
-const SET_FIELDS: SetField[] = ["reps", "repsMax", "durationSeconds", "load"];
+const SET_FIELDS: SetField[] = [
+  "reps",
+  "repsMax",
+  "durationSeconds",
+  "load",
+  "distanceMeters",
+  "intensity",
+];
 const ROUTINE_HEADER_FIELDS: RoutineHeaderField[] = [
   "name",
   "notes",

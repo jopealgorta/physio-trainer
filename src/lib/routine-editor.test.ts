@@ -465,6 +465,7 @@ describe("fromLoaded", () => {
     ...EMPTY_ITEM_PRESCRIPTION,
     id,
     exerciseId: `ex-${id}`,
+    exerciseKind: "strength",
     exerciseName: id,
     exerciseArchived: false,
     cover: null,

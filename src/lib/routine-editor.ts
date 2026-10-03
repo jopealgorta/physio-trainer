@@ -5,6 +5,7 @@ import {
   type ItemPrescription,
   type SetPrescription,
 } from "./prescription";
+import type { ExerciseKind } from "./exercise-kinds";
 import { GROUP_MAX, GROUP_MIN, MAX_ITEMS, MAX_SETS } from "./routines";
 
 /**
@@ -48,6 +49,7 @@ export type SaveBlocks = { groups: SaveGroup[]; items: SaveItem[] };
 export type LoadedItem = ItemPrescription & {
   id: string;
   exerciseId: string;
+  exerciseKind: ExerciseKind;
   exerciseName: string;
   exerciseArchived: boolean;
   cover: { videoId: string; isShort: boolean } | null;

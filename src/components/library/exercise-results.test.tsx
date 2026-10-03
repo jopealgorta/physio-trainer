@@ -19,6 +19,7 @@ const exercises: ExerciseSummary[] = [
   {
     id: "e1",
     name: "Bridge",
+    kind: "strength",
     categoryId: null,
     bodyAreas: ["knee", "hip_groin", "lower_back", "ankle_foot"],
     tags: ["band", "core"],
@@ -28,6 +29,7 @@ const exercises: ExerciseSummary[] = [
   {
     id: "e2",
     name: "Squat",
+    kind: "strength",
     categoryId: null,
     bodyAreas: [],
     tags: [],

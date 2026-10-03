@@ -25,6 +25,8 @@ const S = {
 function item(id: string, over: Partial<ContentItem> = {}): ContentItem {
   return {
     id,
+    exerciseId: `e-${id}`,
+    kind: "strength",
     name: `Ex ${id}`,
     instructions: null,
     holdSeconds: null,
@@ -79,6 +81,8 @@ describe("setColumns", () => {
       reps: "12",
       duration: null,
       load: null,
+      distance: null,
+      intensity: null,
     });
   });
   it("joins differing values", () => {
@@ -96,7 +100,26 @@ describe("setColumns", () => {
     expect(c.duration).toBe("30");
   });
   it("handles no sets", () => {
-    expect(setColumns([])).toEqual({ count: 0, reps: null, duration: null, load: null });
+    expect(setColumns([])).toEqual({
+      count: 0,
+      reps: null,
+      duration: null,
+      load: null,
+      distance: null,
+      intensity: null,
+    });
+  });
+  it("formats distance with the locale and lists intensity per set", () => {
+    const c = setColumns(
+      [
+        { ...S, distanceMeters: 2500, intensity: "Zone 2" },
+        { ...S, distanceMeters: 800, intensity: "Zone 2" },
+      ],
+      "es",
+    );
+    expect(c.distance).toBe("2,5 km / 800 m");
+    expect(c.intensity).toBe("Zone 2");
+    expect(setColumns([{ ...S, distanceMeters: 5000 }], "en").distance).toBe("5 km");
   });
 });
 

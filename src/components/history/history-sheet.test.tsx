@@ -31,7 +31,16 @@ const item = (id: string, name: string, position: number, reps: number) => ({
     restSeconds: null,
     side: null,
     notes: null,
-    sets: [{ reps, repsMax: null, durationSeconds: null, load: null }],
+    sets: [
+      {
+        reps,
+        repsMax: null,
+        durationSeconds: null,
+        load: null,
+        distanceMeters: null,
+        intensity: null,
+      },
+    ],
   },
 });
 

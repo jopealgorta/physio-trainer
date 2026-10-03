@@ -12,6 +12,8 @@ import { renderExportXlsx, sheetNames } from "./xlsx";
 function item(id: string, over: Partial<ContentItem> = {}): ContentItem {
   return {
     id,
+    exerciseId: `e-${id}`,
+    kind: "strength",
     name: `Exercise ${id}`,
     instructions: "Keep your back straight.",
     holdSeconds: 5,
@@ -118,6 +120,33 @@ describe("sheetNames", () => {
 });
 
 describe("renderExportXlsx", () => {
+  it("writes the distance and intensity cells of an aerobic item", async () => {
+    const aerobic = item("1", {
+      kind: "aerobic",
+      holdSeconds: null,
+      sets: [
+        {
+          reps: null,
+          repsMax: null,
+          durationSeconds: 1800,
+          load: null,
+          distanceMeters: 5000,
+          intensity: "Zona 2",
+        },
+      ],
+    });
+    const { workbook } = await load(
+      source({
+        kind: "routine",
+        routines: [routine("R", "Solo", [{ kind: "single", item: aerobic }])],
+      }),
+    );
+    const row = workbook.worksheets[0].getRow(7);
+    expect(row.getCell(9).value).toBe("5 km");
+    expect(row.getCell(10).value).toBe("Zona 2");
+    expect(row.getCell(13).alignment).toMatchObject({ wrapText: true });
+  });
+
   it("round-trips a plan with duplicate routine names and a superset", async () => {
     const name = "Rodilla – fase 2 ñ";
     const { workbook, t } = await load(
@@ -169,6 +198,8 @@ describe("renderExportXlsx", () => {
       "duration",
       "rest",
       "load",
+      "distance",
+      "intensity",
       "side",
       "notes",
       "instructions",
@@ -184,9 +215,12 @@ describe("renderExportXlsx", () => {
     expect(first.getCell(5).value).toBe(5);
     expect(first.getCell(7).value).toBe(60);
     expect(first.getCell(8).value).toBe("– / 5 kg / –");
-    const link = first.getCell(12).value as { text: string; hyperlink: string };
+    expect(first.getCell(9).value).toBeNull();
+    expect(first.getCell(10).value).toBeNull();
+    expect(first.getCell(13).alignment).toMatchObject({ wrapText: true });
+    const link = first.getCell(14).value as { text: string; hyperlink: string };
     expect(link.hyperlink).toContain("abcdefghijk");
-    expect(sheet.getRow(9).getCell(12).value).toBeNull();
+    expect(sheet.getRow(9).getCell(14).value).toBeNull();
   });
 
   it("renders an empty document without throwing", async () => {

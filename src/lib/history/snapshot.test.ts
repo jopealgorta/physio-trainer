@@ -59,6 +59,13 @@ const plan = {
 };
 
 describe("snapshot schemas", () => {
+  it("defaults the aerobic set fields of an old snapshot to null", () => {
+    const parsed = routineSnapshotSchema.parse(routine);
+    expect(parsed.items[0].prescription.sets[0]).toMatchObject({
+      distanceMeters: null,
+      intensity: null,
+    });
+  });
   it("exposes the schema number and kinds", () => {
     expect(SNAPSHOT_SCHEMA).toBe(1);
     expect(VERSION_KINDS).toEqual(["created", "edited", "restored"]);

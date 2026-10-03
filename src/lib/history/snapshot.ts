@@ -16,6 +16,9 @@ export const snapshotSetSchema = z.object({
   repsMax: z.number().nullable(),
   durationSeconds: z.number().nullable(),
   load: z.string().nullable(),
+  // Added after the first snapshots were stored: older ones parse with null.
+  distanceMeters: z.number().nullable().default(null),
+  intensity: z.string().nullable().default(null),
 });
 export type SnapshotSet = z.infer<typeof snapshotSetSchema>;
 

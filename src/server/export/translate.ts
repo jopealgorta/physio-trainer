@@ -43,6 +43,8 @@ export type ExportKey =
   | "xlsx.columns.duration"
   | "xlsx.columns.rest"
   | "xlsx.columns.load"
+  | "xlsx.columns.distance"
+  | "xlsx.columns.intensity"
   | "xlsx.columns.side"
   | "xlsx.columns.notes"
   | "xlsx.columns.instructions"

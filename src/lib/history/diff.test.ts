@@ -12,6 +12,8 @@ const set = (reps: number | null = 10) => ({
   repsMax: null,
   durationSeconds: null,
   load: null,
+  distanceMeters: null,
+  intensity: null,
 });
 
 function item(exerciseId: string, overrides: ItemOverrides = {}): Item {
@@ -57,6 +59,26 @@ function routine(
 }
 
 describe("diffRoutines", () => {
+  it("reports a changed intensity and distance on a set", () => {
+    const before = routine([item("a", { prescription: { sets: [set()] } })]);
+    const after = routine([
+      item("a", {
+        prescription: { sets: [{ ...set(), intensity: "Zone 2", distanceMeters: 5000 }] },
+      }),
+    ]);
+    const [diff] = diffRoutines(before, after).items;
+    expect(diff.sets).toEqual([
+      {
+        index: 0,
+        kind: "changed",
+        changes: [
+          { field: "distanceMeters", from: null, to: 5000 },
+          { field: "intensity", from: null, to: "Zone 2" },
+        ],
+      },
+    ]);
+  });
+
   it("reports identical routines as unchanged", () => {
     const a = routine([item("a"), item("b")]);
     const diff = diffRoutines(a, structuredClone(a));

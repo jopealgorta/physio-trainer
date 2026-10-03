@@ -5,6 +5,7 @@ import { and, asc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import type { Tx } from "@/db/rls";
 import { exerciseCategories, exerciseMedia, exercises, type Exercise } from "@/db/schema";
 import type { BodyArea } from "@/lib/body-areas";
+import type { ExerciseKind } from "@/lib/exercise-kinds";
 import { buildCategoryTree, type CategoryNode } from "@/lib/category-tree";
 import type { LibraryFilters } from "@/lib/library-params";
 import { escapeLike } from "@/lib/sql-like";
@@ -38,6 +39,7 @@ export async function listCategoryTree(tx: Tx, physioId: string): Promise<Catego
 export type ExerciseSummary = {
   id: string;
   name: string;
+  kind: ExerciseKind;
   categoryId: string | null;
   bodyAreas: BodyArea[];
   tags: string[];
@@ -79,6 +81,7 @@ export async function listExercises(
     .select({
       id: exercises.id,
       name: exercises.name,
+      kind: exercises.kind,
       categoryId: exercises.categoryId,
       bodyAreas: exercises.bodyAreas,
       tags: exercises.tags,

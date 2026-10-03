@@ -14,6 +14,8 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: m.push }) }));
 
 const item = (id: string, name: string, values: Partial<PatientItem> = {}): PatientItem => ({
   id,
+  exerciseId: `ex-${id}`,
+  kind: "strength",
   name,
   instructions: null,
   holdSeconds: null,

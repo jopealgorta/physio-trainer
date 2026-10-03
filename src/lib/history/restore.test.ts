@@ -5,7 +5,14 @@ import type { PlanSnapshot, RoutineSnapshot } from "./snapshot";
 
 type Item = RoutineSnapshot["items"][number];
 
-const set = (reps: number) => ({ reps, repsMax: null, durationSeconds: null, load: null });
+const set = (reps: number) => ({
+  reps,
+  repsMax: null,
+  durationSeconds: null,
+  load: null,
+  distanceMeters: null,
+  intensity: null,
+});
 // Old snapshots carry no aerobic fields; restoring fills them with null.
 const restored = (reps: number) => ({ ...set(reps), distanceMeters: null, intensity: null });
 

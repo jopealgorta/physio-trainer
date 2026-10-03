@@ -186,6 +186,7 @@ export async function getRoutine(
         id: routineItems.id,
         exerciseId: routineItems.exerciseId,
         exerciseName: exercises.name,
+        exerciseKind: exercises.kind,
         exerciseArchivedAt: exercises.archivedAt,
         groupId: routineItems.groupId,
         holdSeconds: routineItems.holdSeconds,
@@ -287,6 +288,7 @@ export async function listRecentExercises(
     .select({
       id: exercises.id,
       name: exercises.name,
+      kind: exercises.kind,
       categoryId: exercises.categoryId,
       bodyAreas: exercises.bodyAreas,
       tags: exercises.tags,

@@ -60,6 +60,7 @@ const BLOCKS_ITEM = (BLOCKS[0] as Extract<EditorBlock, { kind: "single" }>).item
 const summary = (id: string, name: string): ExerciseSummary => ({
   id,
   name,
+  kind: "strength",
   categoryId: null,
   bodyAreas: [],
   tags: [],

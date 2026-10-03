@@ -3,6 +3,7 @@
 import { useFormatter, useTranslations } from "next-intl";
 
 import type { FieldChange } from "@/lib/history/diff";
+import { distanceDisplay } from "@/lib/distance";
 import { PRESCRIPTION_SIDES } from "@/lib/prescription";
 import { ROUTINE_STATUSES } from "@/lib/routines";
 
@@ -28,6 +29,12 @@ export function useChangeText(): (change: FieldChange<string>) => string {
     if (raw === null || raw === undefined || raw === "") return tPrescription("summary.blank");
     if (field === "side" && includes(PRESCRIPTION_SIDES, raw)) return tPrescription(`sides.${raw}`);
     if (field === "status" && includes(ROUTINE_STATUSES, raw)) return tStatus(raw);
+    if (field === "distanceMeters" && typeof raw === "number") {
+      const { unit, value } = distanceDisplay(raw);
+      return tPrescription(unit === "km" ? "summary.distanceKm" : "summary.distanceM", {
+        value,
+      });
+    }
     if (typeof raw === "number") {
       return SECONDS.has(field)
         ? tPrescription("summary.seconds", { value: raw })
