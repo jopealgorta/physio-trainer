@@ -317,8 +317,7 @@ describe("WorkoutPlayer", () => {
     expect(within(bar()).queryByText(/1,800/)).not.toBeInTheDocument();
   });
 
-  // Task 6 (spec 20) brings the bar's "Log exercise" back as the inline log's opener.
-  it.skip("logs the current exercise from the bar", async () => {
+  it("opens and closes the current exercise's inline log from the bar", async () => {
     const user = setup(
       routineOf(item("a", "Squat"), item("b", "Bridge")),
       "en",
@@ -327,8 +326,22 @@ describe("WorkoutPlayer", () => {
     );
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
-    expect(await screen.findByRole("dialog", { name: "How did Bridge go?" })).toBeInTheDocument();
+    const open = within(bar()).getByRole("button", { name: "Log exercise" });
+    expect(open).toHaveAttribute("aria-expanded", "false");
+    await user.click(open);
+    expect(screen.getByRole("region", { name: "How did Bridge go?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log Bridge" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(open).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(open);
+    expect(screen.queryByRole("region", { name: "How did Bridge go?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log Bridge" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   describe("swipes", () => {
@@ -344,13 +357,11 @@ describe("WorkoutPlayer", () => {
       expect(screen.getByText("Set 2 of 2")).toBeInTheDocument();
     });
 
-    // Task 6 (spec 20): the exercise log sheet is gone; revisit with the bar's "Log exercise".
-    it.skip("ignores drags inside the log sheet opened from the bar", async () => {
+    it("ignores drags inside the inline log opened from the bar", async () => {
       const user = setup(routineOf(item("a", "Squat")), "en", undefined, logging());
       await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
-      const dialog = await screen.findByRole("dialog", { name: "How did Squat go?" });
-      // The sheet is portalled out of the bar, but React events still bubble to it.
-      swipeLeft(within(dialog).getByRole("group", { name: "Effort (RPE)" }));
+      const panel = screen.getByRole("region", { name: "How did Squat go?" });
+      swipeLeft(within(panel).getByRole("group", { name: "Effort (RPE)" }));
       expect(screen.getByText("Set 1 of 2")).toBeInTheDocument();
     });
   });

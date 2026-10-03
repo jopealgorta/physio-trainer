@@ -6,6 +6,7 @@ import {
   PartyPopperIcon,
   Volume2Icon,
   VolumeXIcon,
+  NotebookPenIcon,
   XIcon,
 } from "lucide-react";
 import type { Route } from "next";
@@ -103,7 +104,7 @@ type PlayerProps = {
   label: string;
   /** Shown on the "Well done" screen: where the patient logs the session (spec 13). */
   finishSlot?: ReactNode;
-  /** Today's exercise logs for this routine (and entry), for the list and the bar's Log button. */
+  /** Today's exercise logs for this routine (and entry), for the list and the bar's "Log exercise" button. */
   exerciseLogging?: ExerciseLogging;
 };
 
@@ -279,6 +280,26 @@ function Player({
     });
   }, [step.exerciseIndex, reducedMotion]);
 
+  // Which exercises have their inline log expanded; the bar's "Log exercise" toggles the current one.
+  const [openLogs, setOpenLogs] = useState<ReadonlySet<string>>(() => new Set());
+  const canLog = exerciseLogging !== undefined && exerciseLogging.days.length > 0;
+  const logOpen = openLogs.has(item.id);
+  const toggleLog = () => {
+    const next = new Set(openLogs);
+    if (logOpen) next.delete(item.id);
+    else next.add(item.id);
+    setOpenLogs(next);
+    if (!logOpen) {
+      // Wait for the panel to render, then bring the row (and its panel) to the top of the list.
+      requestAnimationFrame(() =>
+        currentRow.current?.scrollIntoView({
+          block: "start",
+          behavior: reducedMotion ? "auto" : "smooth",
+        }),
+      );
+    }
+  };
+
   const exit = () => {
     clearWorkoutState(window.sessionStorage, storageKey);
     router.push(exitHref as Route);
@@ -286,8 +307,8 @@ function Player({
 
   // Horizontal swipes move between steps; vertical gestures stay with scrolling.
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  // React events bubble out of portals: a drag inside the log sheet opened from the bar reaches
-  // the bar's handlers too. Only gestures on the bar's own DOM count.
+  // React events bubble out of portals (e.g. a dialog opened from the bar): only gestures on the
+  // bar's own DOM count. The inline log lives in the list, outside the bar.
   const onBar = (event: PointerEvent) => event.currentTarget.contains(event.target as Node);
   const onPointerDown = (event: PointerEvent) => {
     unlock();
@@ -396,6 +417,8 @@ function Player({
             doneSets={doneSets}
             currentRef={currentRef}
             logging={exerciseLogging}
+            openLogs={openLogs}
+            onOpenLogsChange={setOpenLogs}
           />
         </div>
       </div>
@@ -516,7 +539,18 @@ function Player({
             </Button>
           </div>
 
-          {/* Task 6 (spec 20): "Log exercise" here expands the current exercise's inline log. */}
+          {canLog ? (
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-12 w-full text-base"
+              aria-expanded={logOpen}
+              onClick={toggleLog}
+            >
+              <NotebookPenIcon aria-hidden />
+              {t("logExercise")}
+            </Button>
+          ) : null}
         </div>
       </section>
 
