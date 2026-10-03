@@ -136,6 +136,8 @@ describe("RoutineEditor", () => {
     const sheet = await screen.findByRole("dialog", { name: "Add exercises" });
     // A drawer, so it can be swiped down to dismiss.
     expect(sheet).toHaveAttribute("data-vaul-drawer");
+    // Focus moves onto the sheet, not into the search field (which would pop the keyboard).
+    expect(sheet).toHaveFocus();
     expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
     // The sheet's built-in X button carries a hard-coded English "Close" label.
     expect(within(sheet).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
@@ -261,6 +263,24 @@ describe("RoutineEditor", () => {
     expect(save()).toBeDisabled();
   });
 
+  it("saves a name still being typed with one tap on Save", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Rename routine" }));
+    const input = screen.getByRole("textbox", { name: "Routine name" });
+    await user.clear(input);
+    await user.type(input, "Hip rehab");
+    // Save is on as soon as the name changes (on iOS a disabled button cannot be tapped).
+    expect(save()).toBeEnabled();
+    await user.click(save());
+    await waitFor(() =>
+      expect(saveRoutineAction).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Hip rehab" }),
+      ),
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Hip rehab" })).toBeInTheDocument();
+  });
+
   it("refuses a blank title inline, leaving the routine unchanged", async () => {
     const user = userEvent.setup();
     setup();
@@ -268,9 +288,9 @@ describe("RoutineEditor", () => {
     await user.clear(screen.getByRole("textbox", { name: "Routine name" }));
     await user.keyboard("{Enter}");
     expect(screen.getByRole("alert")).toHaveTextContent("Enter a name.");
-    expect(save()).toBeDisabled();
     await user.keyboard("{Escape}");
     expect(title()).toHaveTextContent("Knee rehab");
+    expect(save()).toBeDisabled();
   });
 
   it("sends the parsed header and blocks, then shows Saved", async () => {

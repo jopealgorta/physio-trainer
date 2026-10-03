@@ -2,9 +2,9 @@
 
 import { DownloadIcon, Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { usePageAction, usePageNotice } from "@/components/page-actions";
+import { useMenuOpened, usePageAction, usePageNotice } from "@/components/page-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,36 +27,50 @@ import {
   deliverFile,
   downloadFile,
   fetchExportFile,
-  prefersShareSheet,
+  SHARE_SHEET_QUERIES,
   shareFile,
 } from "@/lib/export-file";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 type ExportFormat = "pdf" | "xlsx";
 type ExportTarget = { kind: "routines" | "plans" | "customers"; id: string };
 
+/** How long an export error stays up when nothing else clears it. */
+const ERROR_MS = 8000;
+
+/** Touch screens and the installed app send exports to the share sheet (see export-file). */
+function useShareSheet() {
+  const touch = useMediaQuery(SHARE_SHEET_QUERIES[0]);
+  const standalone = useMediaQuery(SHARE_SHEET_QUERIES[1]);
+  return touch || standalone;
+}
+
 /**
- * Fetches an export and hands it over (see `src/lib/export-file`): one at a time, with an error
- * to show when it fails and, when the share sheet needed a fresh tap, the file to offer again.
+ * Fetches an export and hands it to the share sheet (see `src/lib/export-file`): one at a time,
+ * with an error to show when it fails and, when the share sheet needed a fresh tap, the file to
+ * offer again.
  */
-function useExport(target: ExportTarget) {
+function useShareExport() {
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState<File | null>(null);
-  // State lands a render late; a second tap in between must not start a second export.
+  // State lands a render late; a second tap in between must not start a second export or share.
   const busy = useRef(false);
 
-  async function run(format: ExportFormat, tracking: boolean) {
+  useEffect(() => {
+    if (!failed) return;
+    const timer = setTimeout(() => setFailed(false), ERROR_MS);
+    return () => clearTimeout(timer);
+  }, [failed]);
+
+  async function run(url: string, fallbackName: string) {
     if (busy.current) return;
     busy.current = true;
     setPending(true);
     setFailed(false);
-    const query = format === "pdf" && !tracking ? "&tracking=0" : "";
     try {
-      const file = await fetchExportFile(
-        `/api/export/${target.kind}/${target.id}?format=${format}${query}`,
-        `export.${format}`,
-      );
-      const outcome = await deliverFile(file, { share: prefersShareSheet() });
+      const file = await fetchExportFile(url, fallbackName);
+      const outcome = await deliverFile(file, { share: true });
       if (outcome === "needsTap") setReady(file);
     } catch {
       setFailed(true);
@@ -67,35 +81,58 @@ function useExport(target: ExportTarget) {
   }
 
   async function shareReady() {
-    if (!ready) return;
-    // Called from the tap on "Share", so the browser allows it now.
-    const outcome = await shareFile(ready);
-    // Refused again: the file is not lost, it downloads.
-    if (outcome === "failed" || outcome === "needsTap") downloadFile(ready);
+    const file = ready;
+    if (!file || busy.current) return;
+    busy.current = true;
+    // Closed before the share sheet opens, so a second tap has nothing to hit.
     setReady(null);
+    try {
+      // Called from the tap on "Share", so the browser allows it now.
+      const outcome = await shareFile(file);
+      // Refused again: the file is not lost, it downloads. (A share still open is left alone.)
+      if (outcome === "failed" || outcome === "needsTap") downloadFile(file);
+    } finally {
+      busy.current = false;
+    }
   }
 
-  return { pending, failed, ready, run, shareReady, dismissReady: () => setReady(null) };
+  return {
+    pending,
+    failed,
+    ready,
+    run,
+    shareReady,
+    dismissReady: () => setReady(null),
+    clearError: () => setFailed(false),
+  };
 }
 
-/** "Export" dropdown (spec 14): PDF or Excel of a routine, plan or customer; tracking boxes optional. */
+/**
+ * "Export" dropdown (spec 14): PDF or Excel of a routine, plan or customer; tracking boxes
+ * optional. On a desktop the items are plain download links (the browser streams the file); on
+ * touch screens and in the installed app the file is fetched and handed to the share sheet,
+ * since a download there opens a viewer with no way back.
+ */
 export function ExportMenu({ target }: { target: ExportTarget }) {
   const t = useTranslations("Export.menu");
   const [tracking, setTracking] = useState(true);
-  const exporter = useExport(target);
+  const share = useShareSheet();
+  const exporter = useShareExport();
   const { pending } = exporter;
-  const { onCloseAutoFocus } = usePageAction("exportPdf", {
-    label: t("pdf"),
-    order: 20,
-    pending,
-    onSelect: () => void exporter.run("pdf", tracking),
-  });
-  usePageAction("exportXlsx", {
-    label: t("xlsx"),
-    order: 21,
-    pending,
-    onSelect: () => void exporter.run("xlsx", tracking),
-  });
+
+  const base = `/api/export/${target.kind}/${target.id}`;
+  const hrefs = {
+    pdf: `${base}?format=pdf${tracking ? "" : "&tracking=0"}`,
+    xlsx: `${base}?format=xlsx`,
+  } satisfies Record<ExportFormat, string>;
+  const exportAs = (format: ExportFormat) => void exporter.run(hrefs[format], `export.${format}`);
+  const menuItem = (format: ExportFormat, order: number) =>
+    share
+      ? { label: t(format), order, pending, onSelect: () => exportAs(format) }
+      : { label: t(format), order, href: hrefs[format], download: true };
+
+  const { onCloseAutoFocus } = usePageAction("exportPdf", menuItem("pdf", 20));
+  usePageAction("exportXlsx", menuItem("xlsx", 21));
   usePageAction("exportTracking", {
     label: t("tracking"),
     order: 22,
@@ -110,14 +147,28 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
         ? { text: t("exporting"), tone: "info" }
         : null,
   );
+  useMenuOpened(exporter.clearError);
+
+  const item = (format: ExportFormat) =>
+    share ? (
+      <DropdownMenuItem disabled={pending} onSelect={() => exportAs(format)}>
+        {t(format)}
+      </DropdownMenuItem>
+    ) : (
+      <DropdownMenuItem asChild>
+        <a href={hrefs[format]} download>
+          {t(format)}
+        </a>
+      </DropdownMenuItem>
+    );
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={(open) => (open ? exporter.clearError() : undefined)}>
         <DropdownMenuTrigger asChild>
           {/* Not disabled while busy: focus comes back here after choosing an item. */}
-          <Button type="button" variant="outline" aria-busy={exporter.pending}>
-            {exporter.pending ? (
+          <Button type="button" variant="outline" aria-busy={pending}>
+            {pending ? (
               <Loader2Icon aria-hidden className="animate-spin motion-reduce:animate-none" />
             ) : (
               <DownloadIcon aria-hidden />
@@ -126,18 +177,8 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-52">
-          <DropdownMenuItem
-            disabled={exporter.pending}
-            onSelect={() => void exporter.run("pdf", tracking)}
-          >
-            {t("pdf")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={exporter.pending}
-            onSelect={() => void exporter.run("xlsx", tracking)}
-          >
-            {t("xlsx")}
-          </DropdownMenuItem>
+          {item("pdf")}
+          {item("xlsx")}
           <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem
             checked={tracking}
@@ -148,7 +189,7 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
           </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {exporter.pending ? (
+      {pending ? (
         <span role="status" className="sr-only">
           {t("exporting")}
         </span>

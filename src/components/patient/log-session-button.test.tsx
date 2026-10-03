@@ -60,6 +60,12 @@ describe("LogSessionButton", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("opens straight away with focus inside (the workout's finish screen)", async () => {
+    setup({ defaultOpen: true });
+    const dialog = await screen.findByRole("dialog", { name: "How did it go?" });
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
+  });
+
   it("lays its parts out in the row around it: Mark as done shares it, Edit stays compact", () => {
     const { container, unmount } = setup();
     // No box of its own, so it sits next to Start workout in the routine's row.
@@ -87,6 +93,7 @@ describe("LogSessionButton", () => {
     // A drawer, so it can be swiped down to dismiss; it carries the patient branding scope.
     expect(dialog).toHaveAttribute("data-vaul-drawer");
     expect(dialog).toHaveAttribute("data-brand", "patient");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
     await user.click(within(dialog).getByRole("radio", { name: "6" }));
     await user.type(within(dialog).getByLabelText("Comment (optional)"), "A bit pinchy");
     await user.click(within(dialog).getByRole("button", { name: "Save" }));

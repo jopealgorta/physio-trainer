@@ -116,6 +116,10 @@ describe("PageActions", () => {
           action={{ label: "From template: Knee", order: 50, href: "/routines/t1" }}
         />
         <Tracking />
+        <Control
+          id="xlsx"
+          action={{ label: "Export Excel", order: 21, href: "/api/x?format=xlsx", download: true }}
+        />
         <PageActionsMenu />
       </PageActions>,
     );
@@ -124,6 +128,10 @@ describe("PageActions", () => {
       "href",
       "/routines/t1",
     );
+    expect(screen.getByRole("menuitem", { name: "From template: Knee" })).not.toHaveAttribute(
+      "download",
+    );
+    expect(screen.getByRole("menuitem", { name: "Export Excel" })).toHaveAttribute("download");
     const box = screen.getByRole("menuitemcheckbox", { name: "Include tracking boxes" });
     expect(box).toHaveAttribute("aria-checked", "true");
     await user.click(box);

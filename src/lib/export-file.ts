@@ -13,18 +13,24 @@ export class ExportFetchError extends Error {
   }
 }
 
-/** The file name a `Content-Disposition` header carries (`filename*` first), or null. */
+/**
+ * The file name a `Content-Disposition` header carries (`filename*` first), or null. Parameter
+ * names are case-insensitive, and `filename*` may carry a language tag (`UTF-8'en'…`).
+ */
 export function filenameFromDisposition(header: string | null): string | null {
   if (!header) return null;
-  const extended = /filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)/.exec(header);
+  const extended = /filename\*\s*=\s*([\w!#$%&+^`{}~-]+)'[^']*'([^;\s]+)/i.exec(header);
   if (extended) {
     try {
-      return decodeURIComponent(extended[1]!.trim());
+      // Only UTF-8 is sent by our server; another charset is read as best it can be.
+      return decodeURIComponent(extended[2]!);
     } catch {
       // A malformed encoding: try the plain name.
     }
   }
-  const plain = /filename\s*=\s*"([^"]*)"/.exec(header) ?? /filename\s*=\s*([^;\s]+)/.exec(header);
+  const plain =
+    /(?:^|;)\s*filename\s*=\s*"([^"]*)"/i.exec(header) ??
+    /(?:^|;)\s*filename\s*=\s*([^;\s"]+)/i.exec(header);
   return plain?.[1] ? plain[1] : null;
 }
 
@@ -48,19 +54,20 @@ export async function fetchExportFile(
   });
 }
 
+/** Touch screens and the installed app: where an export goes to the share sheet. */
+export const SHARE_SHEET_QUERIES = ["(pointer: coarse)", "(display-mode: standalone)"] as const;
+
 /**
- * Whether to offer the share sheet: on touch screens and in the installed app. A desktop browser
- * may support sharing too, but there a download is what people expect.
+ * Whether to offer the share sheet (see `SHARE_SHEET_QUERIES`). A desktop browser may support
+ * sharing too, but there a plain download is what people expect.
  */
 export function prefersShareSheet(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
-  return (
-    window.matchMedia("(pointer: coarse)").matches ||
-    window.matchMedia("(display-mode: standalone)").matches
-  );
+  return SHARE_SHEET_QUERIES.some((query) => window.matchMedia(query).matches);
 }
 
-export type ShareOutcome = "shared" | "cancelled" | "needsTap" | "failed";
+/** `busy`: a share sheet is still open (a second tap), which is left to finish. */
+export type ShareOutcome = "shared" | "cancelled" | "busy" | "needsTap" | "failed";
 export type DeliverOutcome = Exclude<ShareOutcome, "failed"> | "downloaded";
 
 const canShareFile = (file: File) =>
@@ -79,6 +86,7 @@ export async function shareFile(file: File): Promise<ShareOutcome> {
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
     if (error instanceof DOMException && error.name === "NotAllowedError") return "needsTap";
+    if (error instanceof DOMException && error.name === "InvalidStateError") return "busy";
     return "failed";
   }
 }

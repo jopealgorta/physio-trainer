@@ -253,8 +253,8 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   const menu = page.getByRole("menu");
   await expect(menu.getByRole("menuitem")).toHaveText([
     "Share routine",
-    "Download PDF",
-    "Download Excel",
+    "Export PDF",
+    "Export Excel",
     "History",
     "Save as template…",
   ]);

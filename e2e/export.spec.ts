@@ -50,7 +50,7 @@ async function stubShareSheet(page: Page) {
 async function expectExport(
   page: Page,
   isMobile: boolean,
-  item: "Download PDF" | "Download Excel",
+  item: "Export PDF" | "Export Excel",
   ext: string,
   magic: string,
 ) {
@@ -84,8 +84,8 @@ test.describe("export", () => {
 
     await stubShareSheet(page);
     await page.goto(`/routines/${routineId}`);
-    await expectExport(page, isMobile, "Download PDF", "pdf", "%PDF");
-    await expectExport(page, isMobile, "Download Excel", "xlsx", "PK");
+    await expectExport(page, isMobile, "Export PDF", "pdf", "%PDF");
+    await expectExport(page, isMobile, "Export Excel", "xlsx", "PK");
   });
 
   test("a plan downloads as PDF", async ({ physioPage: page, physio, isMobile }) => {
@@ -99,7 +99,7 @@ test.describe("export", () => {
 
     await stubShareSheet(page);
     await page.goto(`/plans/${planId}`);
-    await expectExport(page, isMobile, "Download PDF", "pdf", "%PDF");
+    await expectExport(page, isMobile, "Export PDF", "pdf", "%PDF");
   });
 
   test("a customer downloads as Excel", async ({ physioPage: page, physio, isMobile }) => {
@@ -108,7 +108,7 @@ test.describe("export", () => {
 
     await stubShareSheet(page);
     await page.goto(`/customers/${customerId}`);
-    await expectExport(page, isMobile, "Download Excel", "xlsx", "PK");
+    await expectExport(page, isMobile, "Export Excel", "xlsx", "PK");
   });
 
   test("a patient downloads the PDF from the shared link", async ({ page, physio }) => {

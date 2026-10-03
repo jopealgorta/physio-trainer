@@ -165,8 +165,11 @@ export function RoutineEditor({
 
   function openSheet(open: boolean) {
     setSheetOpen(open);
-    setAddedHere(0);
-    setFlash(null);
+    // Reset on opening only: the footer keeps its count while the sheet slides away.
+    if (open) {
+      setAddedHere(0);
+      setFlash(null);
+    }
   }
 
   const added = useMemo(() => {
@@ -301,7 +304,7 @@ export function RoutineEditor({
                 </Button>
               </DrawerTrigger>
               {/* The title says it all (no description), and Done is the localized way out. */}
-              <DrawerContent aria-describedby={undefined}>
+              <DrawerContent aria-describedby={undefined} focusContent>
                 <DrawerHeader>
                   <DrawerTitle>{tPicker("title")}</DrawerTitle>
                 </DrawerHeader>

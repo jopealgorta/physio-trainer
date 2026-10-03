@@ -44,6 +44,8 @@ export type PageAction = {
   onSelect?: () => void;
   /** A link item instead of a button. */
   href?: string;
+  /** With `href`: a download link (a plain `<a download>`, not a page navigation). */
+  download?: boolean;
   /** A checkbox item (it keeps the menu open); `onSelect` toggles it. */
   checked?: boolean;
   disabled?: boolean;
@@ -66,6 +68,8 @@ type Registry = {
   notice: (id: string, notice: PageNotice) => () => void;
   /** The "⋯" button, where focus goes back when a dialog opened from it closes. */
   menuTrigger: RefObject<HTMLButtonElement | null>;
+  /** Listeners for the menu opening (controls clear a stale message then). */
+  menuOpened: RefObject<Set<() => void>>;
 };
 
 const RegistryContext = createContext<Registry | null>(null);
@@ -93,8 +97,9 @@ export function PageActions({ children }: { children: ReactNode }) {
   const [entries, addEntry] = useRegistered<Entry>();
   const [notices, addNotice] = useRegistered<PageNotice>();
   const menuTrigger = useRef<HTMLButtonElement>(null);
+  const menuOpened = useRef(new Set<() => void>());
   const registry = useMemo(
-    () => ({ action: addEntry, notice: addNotice, menuTrigger }),
+    () => ({ action: addEntry, notice: addNotice, menuTrigger, menuOpened }),
     [addEntry, addNotice],
   );
   return (
@@ -133,7 +138,16 @@ export function usePageAction(
   });
 
   const present = action !== null;
-  const { label = "", order = 0, href, checked, disabled, pending, opensDialog } = action ?? {};
+  const {
+    label = "",
+    order = 0,
+    href,
+    download,
+    checked,
+    disabled,
+    pending,
+    opensDialog,
+  } = action ?? {};
   useEffect(() => {
     if (!register || !present) return;
     return register(id, {
@@ -141,6 +155,7 @@ export function usePageAction(
       label,
       order,
       href,
+      download,
       checked,
       disabled,
       pending,
@@ -148,7 +163,19 @@ export function usePageAction(
       run: () => latest.current?.onSelect?.(),
       icon: () => latest.current?.icon,
     });
-  }, [register, present, id, label, order, href, checked, disabled, pending, opensDialog]);
+  }, [
+    register,
+    present,
+    id,
+    label,
+    order,
+    href,
+    download,
+    checked,
+    disabled,
+    pending,
+    opensDialog,
+  ]);
 
   const onCloseAutoFocus = useCallback(
     (event: Event) => {
@@ -161,6 +188,24 @@ export function usePageAction(
   );
 
   return { inMenu: registry !== null, onCloseAutoFocus };
+}
+
+/** Calls `listener` whenever the page's "⋯" menu opens (e.g. to clear a stale error). */
+export function useMenuOpened(listener: () => void) {
+  const menuOpened = useContext(RegistryContext)?.menuOpened;
+  const latest = useRef(listener);
+  useLayoutEffect(() => {
+    latest.current = listener;
+  });
+  useEffect(() => {
+    if (!menuOpened) return;
+    const call = () => latest.current();
+    const listeners = menuOpened.current;
+    listeners.add(call);
+    return () => {
+      listeners.delete(call);
+    };
+  }, [menuOpened]);
 }
 
 /** Repeats a control's inline message in `PageNotices` (phones), while it is not null. */
@@ -202,14 +247,19 @@ export function PageNotices({ className }: { className?: string }) {
 export function PageActionsMenu({ className }: { className?: string }) {
   const t = useTranslations("PageActions");
   const entries = useContext(EntriesContext);
-  const menuTrigger = useContext(RegistryContext)?.menuTrigger;
+  const registry = useContext(RegistryContext);
+  const menuTrigger = registry?.menuTrigger;
   const sorted = useMemo(() => [...entries.values()].sort((a, b) => a.order - b.order), [entries]);
   const busy = sorted.some((entry) => entry.pending);
   // A dialog item's action waits for the menu to close (see `opensDialog`).
   const deferred = useRef<(() => void) | null>(null);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (open) for (const listener of registry?.menuOpened.current ?? []) listener();
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button
           ref={menuTrigger}
@@ -278,6 +328,13 @@ function MenuEntry({
       >
         {entry.label}
       </DropdownMenuCheckboxItem>
+    ) : entry.href !== undefined && entry.download ? (
+      <DropdownMenuItem asChild>
+        <a href={entry.href} download>
+          {icon}
+          {entry.label}
+        </a>
+      </DropdownMenuItem>
     ) : entry.href !== undefined ? (
       <DropdownMenuItem asChild>
         <Link href={entry.href as Route}>

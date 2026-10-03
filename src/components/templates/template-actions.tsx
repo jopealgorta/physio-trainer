@@ -3,9 +3,9 @@
 import { CopyIcon, UserPlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
-import { usePageAction, usePageNotice } from "@/components/page-actions";
+import { useMenuOpened, usePageAction, usePageNotice } from "@/components/page-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { TemplateKind } from "@/lib/templates";
@@ -14,6 +14,8 @@ import { duplicateTemplateAction } from "@/server/templates/actions";
 import { AssignTemplateDialog } from "./assign-template-dialog";
 
 const PATHS = { routine: "/routines", plan: "/plans" } as const;
+/** How long "Couldn't duplicate" stays up when nothing else clears it. */
+const FAILED_MS = 8000;
 
 /** "Assign to customer…" and "Duplicate" on a template's own page. */
 export function TemplateActions({
@@ -61,6 +63,13 @@ export function TemplateActions({
     onSelect: duplicate,
   });
   usePageNotice("duplicate", failed ? { text: t("duplicateFailed"), tone: "error" } : null);
+  // A failure is news for a while, or until the physio opens the menu to try again.
+  useMenuOpened(() => setFailed(false));
+  useEffect(() => {
+    if (!failed) return;
+    const timer = setTimeout(() => setFailed(false), FAILED_MS);
+    return () => clearTimeout(timer);
+  }, [failed]);
 
   return (
     <div className="grid gap-3">

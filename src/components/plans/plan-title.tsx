@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { EditableTitle } from "@/components/editable-title";
 import { PLAN_NAME_MAX } from "@/lib/plans";
@@ -12,15 +12,17 @@ export function PlanTitle({
   planId,
   name,
   isTemplate,
+  badges,
 }: {
   planId: string;
   /** What the server holds; a different value (a restored version) replaces the shown one. */
   name: string;
   isTemplate: boolean;
+  /** Status and template badges, in the heading's row. */
+  badges?: ReactNode;
 }) {
   const t = useTranslations("Plans.board");
   const tErrors = useTranslations("Plans.board.errors");
-  const id = useId();
   const [shown, setShown] = useState(name);
   const [server, setServer] = useState(name);
   if (name !== server) {
@@ -41,26 +43,20 @@ export function PlanTitle({
   }
 
   return (
-    <div className="grid min-w-0 gap-1">
-      <EditableTitle
-        value={shown}
-        label={t("name")}
-        editLabel={t("rename")}
-        validate={(value) =>
-          value === ""
-            ? tErrors("nameRequired")
-            : value.length > PLAN_NAME_MAX
-              ? tErrors("nameTooLong", { max: PLAN_NAME_MAX })
-              : null
-        }
-        onConfirm={rename}
-        describedBy={isTemplate ? undefined : `${id}-hint`}
-      />
-      {isTemplate ? null : (
-        <p id={`${id}-hint`} className="text-muted-foreground px-2 text-sm">
-          {t("details.nameHint")}
-        </p>
-      )}
-    </div>
+    <EditableTitle
+      value={shown}
+      label={t("name")}
+      editLabel={t("rename")}
+      validate={(value) =>
+        value === ""
+          ? tErrors("nameRequired")
+          : value.length > PLAN_NAME_MAX
+            ? tErrors("nameTooLong", { max: PLAN_NAME_MAX })
+            : null
+      }
+      onConfirm={rename}
+      hint={isTemplate ? undefined : t("details.nameHint")}
+      after={badges}
+    />
   );
 }

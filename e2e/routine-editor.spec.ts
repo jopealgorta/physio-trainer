@@ -37,6 +37,17 @@ test("a physio renames a routine and a stale tab hits the version conflict", asy
   await expect(other.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
 });
 
+test("Save saves a name still being typed, without Enter", async ({ physioPage: page }) => {
+  await createRoutine(page, "Week 4");
+  await page.getByRole("button", { name: "Rename routine" }).click();
+  await page.getByRole("textbox", { name: "Routine name" }).fill("Week 4 - hip");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByTestId("save-status")).toHaveText("Saved");
+  await expect(routineTitle(page, "Week 4 - hip")).toBeVisible();
+  await page.reload();
+  await expect(routineTitle(page, "Week 4 - hip")).toBeVisible();
+});
+
 test("leaving with unsaved changes asks first", async ({ physioPage: page }) => {
   await createRoutine(page, "Week 2");
   await renameRoutine(page, "Week 2!");

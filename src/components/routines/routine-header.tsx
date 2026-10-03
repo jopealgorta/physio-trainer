@@ -161,13 +161,10 @@ export function RoutineHeader({
               error={
                 errors.name ? t(`errors.${errors.name}`, { max: ROUTINE_NAME_MAX, min: 1 }) : null
               }
-              describedBy={isTemplate ? undefined : `${id}-name-hint`}
+              hint={isTemplate ? undefined : t("nameHint")}
+              // Typing is already an edit: Save saves it even while the input is still open.
+              onDraftChange={(name) => onChange({ name })}
             />
-            {isTemplate ? null : (
-              <p id={`${id}-name-hint`} className="text-muted-foreground px-2 text-sm">
-                {t("nameHint")}
-              </p>
-            )}
             {isTemplate ? (
               <div>
                 <TemplateBadge />

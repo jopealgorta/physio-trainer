@@ -79,11 +79,17 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
           <PageActionsMenu />
         </div>
         <PageNotices />
-        <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
-          <PlanTitle planId={plan.id} name={plan.name} isTemplate={plan.isTemplate} />
-          <StatusBadge status={plan.status} />
-          {plan.isTemplate ? <TemplateBadge /> : null}
-        </div>
+        <PlanTitle
+          planId={plan.id}
+          name={plan.name}
+          isTemplate={plan.isTemplate}
+          badges={
+            <>
+              <StatusBadge status={plan.status} />
+              {plan.isTemplate ? <TemplateBadge /> : null}
+            </>
+          }
+        />
         <div className="hidden flex-wrap items-center gap-3 sm:flex">
           {plan.isTemplate ? (
             <TemplateActions

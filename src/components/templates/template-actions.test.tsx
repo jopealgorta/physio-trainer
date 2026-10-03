@@ -99,5 +99,8 @@ describe("TemplateActions in a page's More actions menu", () => {
         "Couldn't duplicate the template. Try again.",
       ),
     );
+    // Opening the menu to try again clears it.
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.getByTestId("page-notices")).toBeEmptyDOMElement();
   });
 });

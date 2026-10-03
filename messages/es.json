@@ -1504,8 +1504,8 @@
   "Export": {
     "menu": {
       "trigger": "Exportar",
-      "pdf": "Descargar PDF",
-      "xlsx": "Descargar Excel",
+      "pdf": "Exportar PDF",
+      "xlsx": "Exportar Excel",
       "tracking": "Incluir casillas de seguimiento",
       "exporting": "Exportando…",
       "error": "No se pudo exportar. Probá de nuevo.",

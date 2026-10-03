@@ -48,6 +48,14 @@ describe("PlanTitle", () => {
     expect(screen.queryByText(HINT)).not.toBeInTheDocument();
   });
 
+  it("shows the hint only while renaming", async () => {
+    const user = userEvent.setup();
+    setup();
+    expect(screen.getByText(HINT)).not.toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Rename plan" }));
+    expect(screen.getByText(HINT)).toBeVisible();
+  });
+
   it("saves a new name straight away", async () => {
     const user = userEvent.setup();
     setup();

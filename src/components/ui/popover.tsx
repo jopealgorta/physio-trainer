@@ -88,6 +88,8 @@ function PopoverContent({
     for (const key of POSITIONING_PROPS) delete sheetProps[key];
     return (
       <DrawerContent
+        // Focus lands on the sheet: its first control may be a field that would pop the keyboard.
+        focusContent
         // The content describes itself; Radix would otherwise warn about a missing description.
         aria-describedby={undefined}
         data-slot="popover-content"

@@ -30,6 +30,13 @@ describe("filenameFromDisposition", () => {
     );
   });
 
+  it("reads the parameter names in any case, and a language tag", () => {
+    expect(filenameFromDisposition(`ATTACHMENT; FileName="knee.pdf"`)).toBe("knee.pdf");
+    expect(
+      filenameFromDisposition(`attachment; FILENAME*=utf-8'es'r%C3%A9sum%C3%A9.pdf; filename="x"`),
+    ).toBe("résumé.pdf");
+  });
+
   it("returns null without a usable name", () => {
     expect(filenameFromDisposition(null)).toBeNull();
     expect(filenameFromDisposition("attachment")).toBeNull();
@@ -137,6 +144,13 @@ describe("delivering a file", () => {
     nav.canShare = vi.fn(() => true);
     nav.share = vi.fn().mockRejectedValue(new DOMException("cancelled", "AbortError"));
     expect(await deliverFile(file, { share: true })).toBe("cancelled");
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it("leaves it to the share already open when one is in progress", async () => {
+    nav.canShare = vi.fn(() => true);
+    nav.share = vi.fn().mockRejectedValue(new DOMException("in progress", "InvalidStateError"));
+    expect(await deliverFile(file, { share: true })).toBe("busy");
     expect(click).not.toHaveBeenCalled();
   });
 

@@ -8,9 +8,10 @@ import { Drawer as DrawerPrimitive } from "vaul";
  * A bottom sheet that follows the finger (vaul): drag it down, or tap outside, to dismiss. Put
  * scrollable content in an inner `overflow-y-auto` element, not on `DrawerContent` itself: vaul
  * blocks native panning on the drawer and lets an inner scroller take the gesture instead.
+ * Opening moves focus inside, like any dialog (vaul leaves it on the trigger by default).
  */
-function Drawer({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
+function Drawer({ autoFocus = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
+  return <DrawerPrimitive.Root data-slot="drawer" autoFocus={autoFocus} {...props} />;
 }
 
 function DrawerTrigger({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {
@@ -44,8 +45,16 @@ function DrawerOverlay({
 function DrawerContent({
   className,
   children,
+  focusContent = false,
+  onOpenAutoFocus,
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+}: React.ComponentProps<typeof DrawerPrimitive.Content> & {
+  /**
+   * On open, focus the sheet itself rather than its first control: when that is a text field,
+   * focusing it would pop the phone's keyboard over the sheet.
+   */
+  focusContent?: boolean;
+}) {
   return (
     <DrawerPortal>
       <DrawerOverlay />
@@ -55,6 +64,12 @@ function DrawerContent({
           "bg-popover text-popover-foreground fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-xl border-t text-xs/relaxed shadow-lg outline-none",
           className,
         )}
+        onOpenAutoFocus={(event) => {
+          onOpenAutoFocus?.(event);
+          if (!focusContent || event.defaultPrevented) return;
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+        }}
         {...props}
       >
         {/* Decorative: the whole sheet is draggable, not just this. */}

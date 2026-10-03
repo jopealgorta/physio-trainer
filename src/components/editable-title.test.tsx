@@ -166,4 +166,59 @@ describe("EditableTitle", () => {
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it("shows the hint while renaming; the button is described by it all along", async () => {
+    const user = userEvent.setup();
+    render(
+      <EditableTitle
+        value="Week A"
+        label="Plan name"
+        editLabel="Rename plan"
+        hint="Shown in link previews."
+        validate={validate}
+        onConfirm={vi.fn()}
+        after={<span>Draft</span>}
+      />,
+    );
+    // Badges sit in the heading's row.
+    expect(screen.getByText("Draft")).toBeInTheDocument();
+    expect(screen.queryByText("Shown in link previews.")).not.toBeVisible();
+    expect(screen.getByRole("button", { name: "Rename plan" })).toHaveAccessibleDescription(
+      "Shown in link previews.",
+    );
+    await user.click(screen.getByRole("button", { name: "Rename plan" }));
+    expect(screen.getByText("Shown in link previews.")).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Plan name" })).toHaveAccessibleDescription(
+      "Shown in link previews.",
+    );
+  });
+
+  it("can hand each keystroke on as a draft, and takes it back on Escape", async () => {
+    function Live() {
+      const [value, setValue] = useState("Knee rehab");
+      return (
+        <>
+          <EditableTitle
+            value={value}
+            label="Routine name"
+            editLabel="Rename routine"
+            validate={validate}
+            onDraftChange={setValue}
+            onConfirm={setValue}
+          />
+          <p data-testid="state">{value}</p>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Live />);
+    await user.click(pencil());
+    await user.type(input(), "!");
+    // The draft is out already, and the echo does not end the edit.
+    expect(screen.getByTestId("state")).toHaveTextContent("Knee rehab!");
+    expect(input()).toHaveValue("Knee rehab!");
+    await user.keyboard("{Escape}");
+    expect(screen.getByTestId("state")).toHaveTextContent(/^Knee rehab$/);
+    expect(screen.getByRole("heading", { name: "Knee rehab" })).toBeInTheDocument();
+  });
 });
