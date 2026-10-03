@@ -88,6 +88,38 @@ test.describe("session logging", () => {
       .toContain("No new comments.");
   });
 
+  test("a patient logs one exercise with a decimal-comma weight, then clears it", async ({
+    page,
+    physio,
+  }) => {
+    const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
+    await insertRoutine(physio.id, customerId, "Knee rehab", { exercise: "Squat" });
+    const link = await insertCustomerLink(physio, customerId);
+
+    await page.goto(link.path);
+    await page.getByRole("button", { name: "Log Squat" }).click();
+    const dialog = page.getByRole("dialog", { name: "How did Squat go?" });
+    // A single routine: today or yesterday, like the routine's own log.
+    await expect(dialog.getByText("Yesterday")).toBeVisible();
+    await rate(page, "Pain (optional)", 3);
+    await rate(page, "Effort (RPE)", 6);
+    await dialog.getByLabel("Weight (optional)").fill("12,5");
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(dialog).toBeHidden();
+    const logged = page.getByRole("list", { name: "Logged" });
+    await expect(logged).toContainText("Pain 3");
+    await expect(logged).toContainText("RPE 6");
+    await expect(logged).toContainText("12.5 kg");
+
+    await page.reload();
+    await expect(page.getByRole("list", { name: "Logged" })).toContainText("12.5 kg");
+    await page.getByRole("button", { name: "Log Squat" }).click();
+    await expect(dialog.getByLabel("Weight (optional)")).toHaveValue("12.5");
+    await dialog.getByRole("button", { name: "Clear log" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("list", { name: "Logged" })).toHaveCount(0);
+  });
+
   test("the physio previewing a link cannot log a session", async ({ page, physio }) => {
     const customerId = await insertCustomer(physio.id);
     await insertRoutine(physio.id, customerId, "Knee rehab");

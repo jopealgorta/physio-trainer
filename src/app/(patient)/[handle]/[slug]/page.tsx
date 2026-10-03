@@ -12,6 +12,7 @@ import { firstParam } from "@/lib/search-params";
 import { weekLogRange } from "@/lib/session-logs";
 import { getLinkAccess } from "@/server/patient/access";
 import { loadLink } from "@/server/patient/load";
+import { getPatientExerciseLogs } from "@/server/patient/log-exercise";
 import { getPatientLogs } from "@/server/patient/log-session";
 import { touchLink } from "@/server/patient/touch";
 import { getPatientView } from "@/server/patient/view";
@@ -53,7 +54,10 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
   const day = Number(firstParam(sp.day));
   const view = await getPatientView(shell, link, Number.isInteger(day) ? day : null);
   const [from, to] = weekLogRange(view.today);
-  const logs = await getPatientLogs(shell, link, from, to);
+  const [logs, exerciseLogs] = await Promise.all([
+    getPatientLogs(shell, link, from, to),
+    getPatientExerciseLogs(shell, link, from, to),
+  ]);
   // Neither the physio previewing their own link nor a chat app unfurling it is a patient opening it.
   if (!owner && !isLinkPreviewBot((await headers()).get("user-agent"))) {
     after(() => touchLink(link.id));
@@ -65,7 +69,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
       firstName={link.customerFirstName}
       locale={shell.locale}
       path={path}
-      logging={{ code: shell.code, logs, canLog: !owner }}
+      logging={{ code: shell.code, logs, exerciseLogs, canLog: !owner }}
     />
   );
 }

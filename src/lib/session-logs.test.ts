@@ -92,6 +92,15 @@ describe("parseWeight", () => {
     expect(parseWeight("999,9")).toBe(999.9);
   });
 
+  it('accepts a leading or trailing separator (",5", "5.")', () => {
+    expect(parseWeight(".5")).toBe(0.5);
+    expect(parseWeight(",5")).toBe(0.5);
+    expect(parseWeight("5.")).toBe(5);
+    expect(parseWeight("5,")).toBe(5);
+    expect(parseWeight(".")).toBeUndefined();
+    expect(parseWeight(",")).toBeUndefined();
+  });
+
   it("is null when blank and undefined when invalid", () => {
     expect(parseWeight("")).toBeNull();
     expect(parseWeight("  ")).toBeNull();

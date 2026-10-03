@@ -44,18 +44,27 @@ test.describe("patient page", () => {
     await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
     await expect(page.getByText("Morning")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Gym today", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Squat/ })).toBeVisible();
+    const squat = page.getByRole("heading", { level: 4, name: /Squat/ });
+    await expect(squat).toBeVisible();
     await expect(page.getByText("3 × 12").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Your routines", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Daily stretch", exact: true })).toBeVisible();
     await expect(page.getByText("3× per week")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Rehab tomorrow", exact: true })).toHaveCount(0);
 
-    // Instructions are collapsed until asked for.
-    const instructions = page.getByText("Keep your back straight.").first();
+    // The rows stay compact on a small phone.
+    await page.setViewportSize({ width: 360, height: 740 });
+    expect(await hasNoHorizontalOverflow(page)).toBe(true);
+
+    // Instructions live in the exercise's detail, opened from its name (or its thumbnail).
+    const instructions = page.getByText("Keep your back straight.");
     await expect(instructions).toBeHidden();
-    await page.getByText("How to do it").first().click();
-    await expect(instructions).toBeVisible();
+    await squat.getByRole("button").click();
+    const detail = page.getByRole("dialog", { name: "Squat" });
+    await expect(detail.getByText("Keep your back straight.")).toBeVisible();
+    await expect(detail.getByText("No video for this exercise")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(detail).toBeHidden();
 
     // Another day of the plan.
     await page

@@ -22,13 +22,14 @@ export const RPE_SCALE = Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, i) =>
 export const WEIGHT_MAX = 999.9;
 
 /**
- * Parses what a patient typed as a weight in kg: comma or dot, rounded to 0.1. Null when blank,
- * undefined when it is not a number in 0..WEIGHT_MAX.
+ * Parses what a patient typed as a weight in kg: comma or dot (also leading or trailing), rounded
+ * to 0.1. Null when blank, undefined when it is not a number in 0..WEIGHT_MAX.
  */
 export function parseWeight(value: string): number | null | undefined {
   const text = value.trim().replace(",", ".");
   if (text === "") return null;
-  if (!/^\d+(\.\d+)?$/.test(text)) return undefined;
+  // "5", "5.5", and the halves a phone keyboard leaves: ".5", "5."
+  if (!/^(\d+(\.\d*)?|\.\d+)$/.test(text)) return undefined;
   const rounded = Math.round(Number(text) * 10) / 10;
   return rounded <= WEIGHT_MAX ? rounded : undefined;
 }

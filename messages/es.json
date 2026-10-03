@@ -1312,7 +1312,13 @@
       "notes": "Nota",
       "superset": "Superserie",
       "supersetRest": "Descansá {value, number} s después de cada vuelta",
-      "noMedia": "Sin video"
+      "noMedia": "Sin video",
+      "open": "Ver {name}",
+      "detailTitle": "Sobre {name}",
+      "log": "Registrar {name}",
+      "logged": "Registrado",
+      "noVideo": "Este ejercicio no tiene video",
+      "thumbnailAlt": "{name}, video {number, number}"
     },
     "empty": {
       "title": "No hay nada programado para hoy",
@@ -1396,6 +1402,34 @@
         "invalid": "Revisá lo que ingresaste y probá de nuevo.",
         "date": "Solo podés registrar hoy o ayer.",
         "unreachable": "Esa rutina no era parte de tu plan ese día.",
+        "unavailable": "Este enlace ya no está disponible.",
+        "preview": "Estás viendo una vista previa, así que no se guardó nada."
+      }
+    },
+    "exerciseLog": {
+      "title": "¿Cómo te fue con {name}?",
+      "weight": {
+        "label": "Peso (opcional)",
+        "hint": "En kg, por ejemplo 12,5",
+        "invalid": "Ingresá un peso entre 0 y {max, number} kg."
+      },
+      "comment": {
+        "label": "Comentario (opcional)",
+        "placeholder": "¿Cómo lo sentiste? ¿Algo que tu fisioterapeuta deba saber?"
+      },
+      "save": "Guardar",
+      "clear": "Borrar registro",
+      "close": "Cerrar",
+      "chips": {
+        "pain": "Dolor {value, number}",
+        "rpe": "RPE {value, number}",
+        "weight": "{value, number} kg"
+      },
+      "errors": {
+        "generic": "Algo salió mal. Probá de nuevo.",
+        "invalid": "Revisá lo que ingresaste y probá de nuevo.",
+        "date": "Solo podés registrar hoy o ayer.",
+        "unreachable": "Este ejercicio no era parte de tu plan ese día.",
         "unavailable": "Este enlace ya no está disponible.",
         "preview": "Estás viendo una vista previa, así que no se guardó nada."
       }
