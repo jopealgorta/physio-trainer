@@ -129,6 +129,7 @@ describe("buildExportDocument", () => {
     name: "Plan",
     notes: null,
     phase: null,
+    days: [{ weekday: 3, notes: "Easy day" }],
     entries: [
       { weekday: 1, label: "AM", routineId: "R" },
       { weekday: 1, label: null, routineId: "S" },
@@ -154,6 +155,7 @@ describe("buildExportDocument", () => {
       { label: null, routineName: "R S" },
     ]);
     expect(week[4].entries).toEqual([]);
+    expect(week.map((day) => day.notes)).toEqual([null, null, "Easy day", null, null, null, null]);
   });
   it("labels supersets", () => {
     const doc = buildExportDocument(

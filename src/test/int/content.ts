@@ -7,6 +7,7 @@ import {
   routineItemSets,
   routineItems,
   routines,
+  weeklyPlanDays,
   weeklyPlanEntries,
   weeklyPlans,
 } from "@/db/schema";
@@ -105,9 +106,10 @@ export async function insertPlan(
   customerId: string | null,
   values: Partial<typeof weeklyPlans.$inferInsert> & {
     entries?: { weekday: number; routineId: string; label?: string }[];
+    days?: { weekday: number; notes: string }[];
   } = {},
 ): Promise<string> {
-  const { entries = [], ...rest } = values;
+  const { entries = [], days = [], ...rest } = values;
   const [row] = await db
     .insert(weeklyPlans)
     .values({ physioId, customerId, name: "Week", ...rest })
@@ -121,6 +123,11 @@ export async function insertPlan(
       position,
       label: entry.label ?? null,
     });
+  }
+  for (const day of days) {
+    await db
+      .insert(weeklyPlanDays)
+      .values({ physioId, weeklyPlanId: row!.id, weekday: day.weekday, notes: day.notes });
   }
   return row!.id;
 }

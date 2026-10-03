@@ -927,6 +927,14 @@
       },
       "name": "Plan name",
       "rename": "Rename plan"
+    },
+    "dayNotes": {
+      "edit": "Edit note for {day}",
+      "title": "Note for {day}",
+      "placeholder": "Something for the patient that day, e.g. \"Easy day, stop if it hurts\"",
+      "save": "Save",
+      "remove": "Remove",
+      "saved": "Saved"
     }
   },
   "Templates": {
@@ -1382,7 +1390,8 @@
         "preview": "You are previewing this page, so nothing was saved."
       }
     },
-    "physioPhotoAlt": "Photo of {name}"
+    "physioPhotoAlt": "Photo of {name}",
+    "dayNote": "Note for the day"
   },
   "Workout": {
     "label": "Workout: {name}",
@@ -1594,7 +1603,8 @@
         "notes": "Notes",
         "instructions": "Instructions",
         "video": "Video link"
-      }
+      },
+      "notes": "Notes"
     }
   },
   "History": {

@@ -927,6 +927,14 @@
       },
       "name": "Nombre del plan",
       "rename": "Cambiar el nombre del plan"
+    },
+    "dayNotes": {
+      "edit": "Editar nota del {day}",
+      "title": "Nota del {day}",
+      "placeholder": "Algo para el paciente ese día, por ejemplo \"Día suave, frená si duele\"",
+      "save": "Guardar",
+      "remove": "Quitar",
+      "saved": "Guardado"
     }
   },
   "Templates": {
@@ -1382,7 +1390,8 @@
         "preview": "Estás viendo una vista previa, así que no se guardó nada."
       }
     },
-    "physioPhotoAlt": "Foto de {name}"
+    "physioPhotoAlt": "Foto de {name}",
+    "dayNote": "Nota del día"
   },
   "Workout": {
     "label": "Entrenamiento: {name}",
@@ -1594,7 +1603,8 @@
         "notes": "Notas",
         "instructions": "Indicaciones",
         "video": "Enlace al video"
-      }
+      },
+      "notes": "Notas"
     }
   },
   "History": {

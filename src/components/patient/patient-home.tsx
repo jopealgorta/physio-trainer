@@ -131,6 +131,12 @@ export async function PatientHome({
                   {plan.name}
                 </h3>
               ) : null}
+              {plan.dayNotes ? (
+                <p className="bg-muted rounded-lg p-3 text-sm wrap-anywhere whitespace-pre-line">
+                  <span className="sr-only">{t("dayNote")}: </span>
+                  {plan.dayNotes}
+                </p>
+              ) : null}
               {plan.entries.length === 0 ? (
                 <p className="text-muted-foreground text-sm">{t("restDay", { day: dayName })}</p>
               ) : (

@@ -72,6 +72,8 @@ const styles = StyleSheet.create({
   weekDay: { width: 90, fontWeight: 700, fontSize: 9.5 },
   weekEntries: { flex: 1, fontSize: 9.5, lineHeight: 1.3 },
   rest: { color: MUTED },
+  // No italic face is bundled (Outfit regular/bold only), so the note is set apart by colour.
+  dayNote: { color: SECONDARY, marginTop: 2 },
   trackHeader: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -233,6 +235,7 @@ function PlanSection({ plan, spaced, doc, t }: Context & { plan: ExportPlan; spa
                   </Text>
                 ))
               )}
+              {day.notes ? <Text style={styles.dayNote}>{day.notes}</Text> : null}
             </View>
           </View>
         ))}

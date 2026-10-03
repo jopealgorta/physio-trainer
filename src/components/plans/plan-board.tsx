@@ -20,13 +20,15 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, StickyNoteIcon } from "lucide-react";
 import type { Route } from "next";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useOptimistic, useState, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  DAY_NOTES_MAX,
   dayHasRoom,
   groupByDay,
   MAX_ENTRIES_PER_DAY,
@@ -50,6 +53,7 @@ import {
   makeSeparateCopyAction,
   moveEntryAction,
   removeEntryAction,
+  setDayNotesAction,
   setEntryLabelAction,
 } from "@/server/plans/actions";
 import type { PlanEntryDetail, AttachableRoutine } from "@/server/plans/queries";
@@ -66,6 +70,7 @@ type OptimisticChange =
   | { type: "move"; id: string; weekday: number; index: number }
   | { type: "label"; id: string; label: string | null }
   | { type: "remove"; id: string };
+type NotesChange = { weekday: number; notes: string };
 
 function applyChange(entries: Entry[], change: OptimisticChange): Entry[] {
   switch (change.type) {
@@ -104,10 +109,13 @@ const weekdayOfDroppable = (id: string | number) => {
 export function PlanBoard({
   planId,
   entries: serverEntries,
+  dayNotes: serverDayNotes,
   routines,
 }: {
   planId: string;
   entries: PlanEntryDetail[];
+  /** The plan's note for each weekday that has one. */
+  dayNotes: Record<number, string>;
   /** The routines that can be attached: the customer's, or the template routines for a template. */
   routines: AttachableRoutine[];
 }) {
@@ -115,6 +123,15 @@ export function PlanBoard({
   const locale = useLocale();
   const dndId = useId();
   const [entries, applyOptimistic] = useOptimistic(serverEntries, applyChange);
+  const [dayNotes, applyNotes] = useOptimistic(
+    serverDayNotes,
+    (notes: Record<number, string>, change: NotesChange) => {
+      const next = { ...notes };
+      if (change.notes) next[change.weekday] = change.notes;
+      else delete next[change.weekday];
+      return next;
+    },
+  );
   const [, startAction] = useTransition();
   const [error, setError] = useState<PlanActionError | "generic" | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
@@ -135,12 +152,13 @@ export function PlanBoard({
 
   /** Shows `change` at once, then runs the server action; a refusal rolls the board back. */
   function run(
-    change: OptimisticChange | null,
+    change: OptimisticChange | ({ type: "note" } & NotesChange) | null,
     call: () => Promise<{ ok: true } | { ok: false; error: PlanActionError }>,
   ) {
     setError(null);
     startAction(async () => {
-      if (change) applyOptimistic(change);
+      if (change?.type === "note") applyNotes(change);
+      else if (change) applyOptimistic(change);
       try {
         const result = await call();
         if (!result.ok) setError(result.error);
@@ -284,6 +302,12 @@ export function PlanBoard({
                 name={dayName(weekday)}
                 count={dayEntries.length}
                 full={fullDays.has(weekday)}
+                note={dayNotes[weekday] ?? ""}
+                onSaveNote={(notes) =>
+                  run({ type: "note", weekday, notes }, () =>
+                    setDayNotesAction({ planId, weekday, notes }),
+                  )
+                }
                 onAddExisting={() => setDialog({ kind: "attach", weekday })}
                 onAddNew={() => setDialog({ kind: "new", weekday })}
               >
@@ -411,6 +435,8 @@ function DayColumn({
   name,
   count,
   full,
+  note,
+  onSaveNote,
   onAddExisting,
   onAddNew,
   children,
@@ -419,6 +445,8 @@ function DayColumn({
   name: string;
   count: number;
   full: boolean;
+  note: string;
+  onSaveNote: (notes: string) => void;
   onAddExisting: () => void;
   onAddNew: () => void;
   children: React.ReactNode;
@@ -444,31 +472,108 @@ function DayColumn({
           <p className="text-muted-foreground text-xs">
             {count === 0 ? t("rest") : t("count", { count })}
           </p>
+          {note ? (
+            <p className="text-muted-foreground mt-1 line-clamp-3 text-xs whitespace-pre-line">
+              {note}
+            </p>
+          ) : null}
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              disabled={full}
-              aria-label={t("add", { day: name })}
-              title={full ? t("full", { max: MAX_ENTRIES_PER_DAY }) : t("add", { day: name })}
-            >
-              <PlusIcon aria-hidden />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onAddExisting}>{t("addExisting")}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={onAddNew}>{t("addNew")}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex shrink-0 items-center gap-1">
+          <DayNotePopover name={name} note={note} onSave={onSaveNote} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                disabled={full}
+                aria-label={t("add", { day: name })}
+                title={full ? t("full", { max: MAX_ENTRIES_PER_DAY }) : t("add", { day: name })}
+              >
+                <PlusIcon aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onAddExisting}>{t("addExisting")}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onAddNew}>{t("addNew")}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
       {/* The droppable covers the whole list so an empty day can still receive a card. */}
       <div ref={setNodeRef} className="min-h-10 rounded-md">
         {children}
       </div>
     </section>
+  );
+}
+
+/** The note button of a day column and the popover (a sheet on phones) that edits it. */
+function DayNotePopover({
+  name,
+  note,
+  onSave,
+}: {
+  name: string;
+  note: string;
+  onSave: (notes: string) => void;
+}) {
+  const t = useTranslations("Plans.dayNotes");
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(note);
+  const id = useId();
+
+  function save(notes: string) {
+    setOpen(false);
+    onSave(notes);
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        // Starts from the saved note every time it opens.
+        if (next) setDraft(note);
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("edit", { day: name })}
+          title={t("edit", { day: name })}
+        >
+          <StickyNoteIcon aria-hidden className={note ? "text-primary" : undefined} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="grid gap-3 sm:w-80">
+        <PopoverTitle>{t("title", { day: name })}</PopoverTitle>
+        <Textarea
+          id={id}
+          aria-label={t("title", { day: name })}
+          value={draft}
+          maxLength={DAY_NOTES_MAX}
+          rows={4}
+          placeholder={t("placeholder")}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <p className="text-muted-foreground text-right text-xs" aria-live="polite">
+          {draft.length}/{DAY_NOTES_MAX}
+        </p>
+        <div className="flex justify-end gap-2">
+          {note ? (
+            <Button type="button" variant="ghost" onClick={() => save("")}>
+              {t("remove")}
+            </Button>
+          ) : null}
+          <Button type="button" onClick={() => save(draft.trim())}>
+            {t("save")}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

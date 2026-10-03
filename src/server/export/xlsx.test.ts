@@ -157,6 +157,7 @@ describe("renderExportXlsx", () => {
             name,
             notes: null,
             phase: null,
+            days: [{ weekday: 3, notes: "Día suave" }],
             entries: [
               { weekday: 1, label: "Mañana", routineId: "R" },
               { weekday: 3, label: null, routineId: "S" },
@@ -183,6 +184,9 @@ describe("renderExportXlsx", () => {
     expect(overview.getCell("B2").value).toBe("Ñandú");
     expect(overview.getCell("A5").value).toBe(name);
     expect(overview.getCell("B7").value).toBe(`Mañana: ${name}`);
+    expect(overview.getCell("C6").value).toBe(t("xlsx.notes"));
+    expect(overview.getCell("C7").value).toBeNull();
+    expect(overview.getCell("C9").value).toBe("Día suave");
 
     const sheet = workbook.worksheets[1];
     expect(sheet.getCell("A1").value).toBe(t("xlsx.clinic"));
@@ -295,6 +299,7 @@ describe("renderExportXlsx", () => {
             name: "Plan",
             notes: "Caminá los días libres.",
             phase: null,
+            days: [],
             entries: [{ weekday: 1, label: null, routineId: "R" }],
           },
         ],

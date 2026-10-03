@@ -91,7 +91,7 @@ function overviewSheet(
     sheet.addRow([]);
     sheet.addRow([plan.name]).font = { bold: true };
     if (plan.notes) notesRow(sheet, plan.notes, 2, 80);
-    sheet.addRow([t("xlsx.day"), t("xlsx.routines")]).font = { bold: true };
+    sheet.addRow([t("xlsx.day"), t("xlsx.routines"), t("xlsx.notes")]).font = { bold: true };
     for (const day of plan.week) {
       sheet.addRow([
         weekdayName(doc.locale, day.weekday as 1),
@@ -100,6 +100,7 @@ function overviewSheet(
             entry.label ? `${entry.label}: ${entry.routineName}` : entry.routineName,
           )
           .join("; "),
+        day.notes,
       ]);
     }
   }
@@ -110,6 +111,7 @@ function overviewSheet(
   }
   sheet.getColumn(1).width = 20;
   sheet.getColumn(2).width = 60;
+  sheet.getColumn(3).width = 50;
 }
 
 function itemRow(item: ExportItem, summary: PrescriptionTranslate): ExcelJS.CellValue[] {

@@ -21,6 +21,8 @@ export type SourcePlan = {
   name: string;
   notes: string | null;
   phase: ExportPhase | null;
+  /** The plan's day notes (a weekday without a note has no row). */
+  days: { weekday: number; notes: string }[];
   entries: { weekday: number; label: string | null; routineId: string }[]; // ordered by weekday, position
 };
 /** What a loader returns (physio or patient side). */
@@ -82,6 +84,7 @@ export type ExportRoutine = {
 };
 export type ExportWeekDay = {
   weekday: number;
+  notes: string | null;
   entries: { label: string | null; routineName: string }[];
 };
 export type ExportPlan = {
@@ -208,6 +211,7 @@ export function buildExportDocument(
   const exportPlans = plans.map((plan): ExportPlan => {
     const week: ExportWeekDay[] = Array.from({ length: 7 }, (_, index) => ({
       weekday: index + 1,
+      notes: plan.days.find((day) => day.weekday === index + 1)?.notes ?? null,
       entries: [],
     }));
     for (const entry of plan.entries) {

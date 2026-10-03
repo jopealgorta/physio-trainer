@@ -33,6 +33,7 @@ export type ExportKey =
   | "xlsx.generated"
   | "xlsx.day"
   | "xlsx.routines"
+  | "xlsx.notes"
   | "xlsx.standalone"
   | "xlsx.sheetFallback"
   | "xlsx.columns.group"

@@ -181,6 +181,7 @@ describe("renderExportPdf", () => {
             name: "Rodilla – fase 2 ñ",
             notes: "Caminá 20 minutos los días de descanso.",
             phase: { label: "Fase 2", startsOn: "2026-09-01", endsOn: "2026-10-31" },
+            days: [{ weekday: 3, notes: "Día suave, parás si duele." }],
             entries: [
               { weekday: 1, label: "Mañana", routineId: "R" },
               { weekday: 3, label: null, routineId: "R" },

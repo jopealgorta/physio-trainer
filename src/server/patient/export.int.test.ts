@@ -74,6 +74,7 @@ describe("getPatientExport", () => {
         // Cannot happen through the app, but the patient layer must not trust it.
         { weekday: 3, routineId: foreign },
       ],
+      days: [{ weekday: 5, notes: "Easy day" }],
     });
     otherPlanId = await insertPlan(physio.id, customerId, {
       name: "Another week",
@@ -103,6 +104,14 @@ describe("getPatientExport", () => {
     const ids = [...data.routines, ...data.planRoutines].map((routine) => routine.id);
     expect(ids).not.toContain(foreign);
     expect(allPhases(data).every((phase) => phase === null)).toBe(true);
+  });
+
+  it("carries the plan's day notes, and none of another plan's", async () => {
+    const data = await exportOf({ target: "customer", customerId });
+    expect(data.plans.find((plan) => plan.id === planId)!.days).toEqual([
+      { weekday: 5, notes: "Easy day" },
+    ]);
+    expect(data.plans.find((plan) => plan.id === otherPlanId)!.days).toEqual([]);
   });
 
   it("a plan link exports only that plan", async () => {
