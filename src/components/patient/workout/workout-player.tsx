@@ -3,7 +3,6 @@
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  DumbbellIcon,
   PartyPopperIcon,
   Volume2Icon,
   VolumeXIcon,
@@ -23,7 +22,6 @@ import {
   type ReactNode,
 } from "react";
 
-import { YouTubePreview } from "@/components/library/youtube-preview";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +33,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { distanceDisplay } from "@/lib/distance";
+import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { useCues } from "@/lib/workout/cues";
 import { countdownSeconds, formatCountdown } from "@/lib/workout/format";
@@ -62,6 +62,8 @@ import {
 import { useWakeLock } from "@/lib/workout/use-wake-lock";
 import type { PatientItem, PatientRoutine } from "@/server/patient/view";
 
+import { ExerciseList, type ExerciseLogging } from "../exercise-list";
+import { ExerciseLogButton } from "../exercise-log-button";
 import { Confetti, SetDoneBurst } from "./set-done-burst";
 
 const TICK_MS = 250;
@@ -71,21 +73,16 @@ const SWIPE_DISTANCE = 60;
 const BURST_MS = 900;
 const BIG_BURST_MS = 1600;
 
-/**
- * Wide (16:9) videos on a portrait phone are as tall as the screen is wide, so they are scaled to
- * cover this window instead, trimming a little off the sides. Shorts (9:16) fill the stage.
- */
-const WIDE_VIDEO_WINDOW = "aspect-[4/3]";
-
 type Notice = { text: string; /** Shown on screen too, not only announced. */ visible: boolean };
 type Celebration = { id: number; big: boolean };
 
 type Translate = ReturnType<typeof useTranslations<"Workout">>;
 
 /**
- * Full-screen guided workout (spec 12): one set at a time with the exercise's looping video, the
- * set's target, optional hold and timed countdowns and a rest between sets. Everything lives in
- * the browser; the state machine is `@/lib/workout/machine` and timers are timestamps, so a tab
+ * Full-screen guided workout (spec 12, laid out by spec 19): the routine's exercise list with the
+ * current exercise highlighted, and a bottom bar with the set's target, optional hold and timed
+ * countdowns, the rest between sets and the controls. Videos open from the list. Everything lives
+ * in the browser; the state machine is `@/lib/workout/machine` and timers are timestamps, so a tab
  * that was hidden catches up on return. Reps are not counted: the patient taps "Set done".
  */
 export function WorkoutPlayer(props: PlayerProps) {
@@ -109,9 +106,19 @@ type PlayerProps = {
   label: string;
   /** Shown on the "Well done" screen: where the patient logs the session (spec 13). */
   finishSlot?: ReactNode;
+  /** Today's exercise logs for this routine (and entry), for the list and the bar's Log button. */
+  exerciseLogging?: ExerciseLogging;
 };
 
-function Player({ routine, code, today, exitHref, label, finishSlot }: PlayerProps) {
+function Player({
+  routine,
+  code,
+  today,
+  exitHref,
+  label,
+  finishSlot,
+  exerciseLogging,
+}: PlayerProps) {
   const t = useTranslations("Workout");
   const router = useRouter();
   const { soundOn, toggleSound, unlock, cue } = useCues();
@@ -250,12 +257,30 @@ function Player({ routine, code, today, exitHref, label, finishSlot }: PlayerPro
   const step = steps[Math.min(state.stepIndex, steps.length - 1)]!;
   const item = items.get(step.itemId)!;
   const set = item.sets[step.setIndex] ?? item.sets[0];
-  const inGroup = routine.blocks.some(
-    (block) => block.kind === "group" && block.items.some((member) => member.id === item.id),
-  );
-  const media = item.media[0];
   const seconds = countdownSeconds(remainingMs(state, now));
   const inProgress = state.stepIndex > 0 || state.phase !== "ready";
+
+  // The list ticks the sets already behind the patient, per exercise.
+  const doneSets = useMemo(() => {
+    const done: Record<string, number> = {};
+    for (const behind of steps.slice(0, state.stepIndex)) {
+      done[behind.itemId] = (done[behind.itemId] ?? 0) + 1;
+    }
+    return done;
+  }, [steps, state.stepIndex]);
+
+  // Keep the current exercise's row in view as the workout moves on (not on every set).
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const currentRow = useRef<HTMLLIElement | null>(null);
+  const currentRef = useCallback((element: HTMLLIElement | null) => {
+    currentRow.current = element;
+  }, []);
+  useEffect(() => {
+    currentRow.current?.scrollIntoView({
+      block: "nearest",
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
+  }, [step.exerciseIndex, reducedMotion]);
 
   const exit = () => {
     clearWorkoutState(window.sessionStorage, storageKey);
@@ -315,6 +340,11 @@ function Player({ routine, code, today, exitHref, label, finishSlot }: PlayerPro
 
   const progress = (state.stepIndex / steps.length) * 100;
   const target = setTargets(set, t);
+  const canLog = exerciseLogging !== undefined && exerciseLogging.days.length > 0;
+  const timed = step.durationSeconds !== null;
+  const counting = state.phase === "rest" || state.phase === "timed";
+  const onSkip = () => act((current, at) => skipTimer(steps, current, at), state.phase === "timed");
+  const onAdd = () => act((current) => adjust(current, ADD_SECONDS * 1000));
 
   return (
     <Shell label={label} onPointerDown={unlock}>
@@ -328,31 +358,7 @@ function Player({ routine, code, today, exitHref, label, finishSlot }: PlayerPro
         >
           <XIcon aria-hidden />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-12"
-          aria-label={t("previous")}
-          disabled={state.stepIndex === 0 && state.phase === "ready"}
-          onClick={() => act((current) => goTo(steps, current, current.stepIndex - 1))}
-        >
-          <ChevronLeftIcon aria-hidden />
-        </Button>
-        <p
-          key={step.exerciseIndex}
-          className="motion-safe:animate-workout-bump min-w-0 flex-1 truncate text-center text-sm font-medium"
-        >
-          {t("progress", { current: step.exerciseIndex + 1, total: exerciseCount })}
-        </p>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-12"
-          aria-label={t("next")}
-          onClick={() => act((current) => nextStep(steps, current))}
-        >
-          <ChevronRightIcon aria-hidden />
-        </Button>
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">{routine.name}</h1>
         <Button
           variant="ghost"
           size="icon"
@@ -381,106 +387,66 @@ function Player({ routine, code, today, exitHref, label, finishSlot }: PlayerPro
         </div>
       </div>
 
-      {/* Portrait: the video fills the stage and the details sit over its bottom edge. Landscape:
-          video on the left half, details on the right. */}
-      <div className="relative flex min-h-0 flex-1 flex-col landscape:flex-row">
-        <div className="bg-muted absolute inset-0 flex justify-center landscape:static landscape:w-1/2 landscape:shrink-0 landscape:items-center">
-          {media ? (
-            media.isShort ? (
-              <YouTubePreview
-                key={media.videoId}
-                videoId={media.videoId}
-                isShort
-                title={item.name}
-                autoPlay
-                className="h-full w-auto max-w-full rounded-none"
-              />
-            ) : (
-              <div
-                className={cn(
-                  "relative w-full self-start overflow-hidden landscape:self-center",
-                  WIDE_VIDEO_WINDOW,
-                )}
-              >
-                <YouTubePreview
-                  key={media.videoId}
-                  videoId={media.videoId}
-                  isShort={false}
-                  title={item.name}
-                  autoPlay
-                  className="absolute top-0 left-1/2 h-full w-auto -translate-x-1/2 rounded-none"
-                />
-              </div>
-            )
-          ) : (
-            <div className="text-muted-foreground flex flex-col items-center gap-2 self-start pt-20 text-sm landscape:self-center landscape:pt-0">
-              <DumbbellIcon aria-hidden className="size-10" />
-              {t("noVideo")}
-            </div>
-          )}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div className="mx-auto max-w-2xl">
+          <ExerciseList
+            blocks={routine.blocks}
+            currentItemId={step.itemId}
+            doneSets={doneSets}
+            currentRef={currentRef}
+            logging={exerciseLogging}
+          />
         </div>
+      </div>
 
+      {/* The bottom bar: horizontal swipes here move between steps. */}
+      <section
+        aria-label={t("current")}
+        className="bg-background relative touch-pan-y border-t px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => (swipeStart.current = null)}
+      >
         {celebration ? <SetDoneBurst key={celebration.id} big={celebration.big} /> : null}
-
-        <div className="from-background via-background/85 relative mt-auto flex max-h-[60%] min-h-0 flex-col bg-linear-to-t to-transparent pt-8 landscape:mt-0 landscape:max-h-none landscape:flex-1 landscape:border-l landscape:bg-none landscape:pt-0">
-          <div
-            className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-4 py-2"
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-            onPointerCancel={() => (swipeStart.current = null)}
-          >
-            <div className="grid gap-2">
+        <div className="mx-auto grid w-full max-w-2xl gap-3">
+          <div className="grid min-w-0 gap-1.5">
+            <p className="text-muted-foreground text-xs font-medium">
+              <span
+                key={step.exerciseIndex}
+                className="motion-safe:animate-workout-bump inline-block origin-left"
+              >
+                {t("progress", { current: step.exerciseIndex + 1, total: exerciseCount })}
+              </span>
+              <span aria-hidden> · </span>
+              <span
+                key={state.stepIndex}
+                className="motion-safe:animate-workout-bump inline-block origin-left"
+              >
+                {t("setOf", { current: step.setIndex + 1, total: step.setCount })}
+              </span>
+            </p>
+            <div className="flex min-w-0 items-baseline gap-2">
               {state.phase === "rest" ? (
-                <p className="text-muted-foreground text-sm font-medium">{t("upNext")}</p>
+                <p className="text-muted-foreground shrink-0 text-sm font-medium">{t("upNext")}</p>
               ) : null}
-              <div className="grid gap-0.5">
-                {inGroup ? (
-                  <p className="text-muted-foreground text-xs font-semibold uppercase">
-                    {t("superset")}
-                  </p>
-                ) : null}
-                <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{item.name}</h1>
-                <p
-                  key={state.stepIndex}
-                  className="text-muted-foreground motion-safe:animate-workout-bump w-fit origin-left text-sm"
-                >
-                  {t("setOf", { current: step.setIndex + 1, total: step.setCount })}
-                </p>
-              </div>
-              <ul className="flex flex-wrap gap-2 text-base font-medium">
+              <p className="min-w-0 truncate text-lg font-semibold">{item.name}</p>
+            </div>
+            {step.side || target.length > 0 ? (
+              <ul className="flex flex-wrap gap-1.5 text-sm font-medium">
                 {step.side ? <Chip primary>{t(`side.${step.side}`)}</Chip> : null}
-                {target.map((label) => (
-                  <Chip key={label}>{label}</Chip>
+                {target.map((value) => (
+                  <Chip key={value}>{value}</Chip>
                 ))}
               </ul>
-              {item.notes ? (
-                <p className="line-clamp-2 text-sm wrap-anywhere landscape:line-clamp-none">
-                  <span className="font-medium">{t("notes")}: </span>
-                  {item.notes}
-                </p>
-              ) : null}
-              {item.instructions ? (
-                <details className="text-sm">
-                  <summary className="focus-visible:ring-ring/50 cursor-pointer rounded-sm py-1 font-medium outline-none focus-visible:ring-[3px]">
-                    {t("instructions")}
-                  </summary>
-                  <p className="text-muted-foreground mt-1 wrap-anywhere whitespace-pre-line">
-                    {item.instructions}
-                  </p>
-                </details>
-              ) : null}
-            </div>
-          </div>
-
-          <footer className="grid gap-3 px-4 pt-2 pb-4 landscape:border-t landscape:pt-4">
-            <p
-              role="status"
-              className={cn("text-center text-sm font-medium", !notice?.visible && "sr-only")}
-            >
+            ) : null}
+            <p role="status" className={cn("text-sm font-medium", !notice?.visible && "sr-only")}>
               {notice?.text}
             </p>
-            {state.endsAt !== null ? (
-              <div className="grid gap-1 text-center">
+          </div>
+
+          {state.endsAt !== null ? (
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
                 <p className="text-muted-foreground text-sm">
                   {state.phase === "rest"
                     ? t("rest")
@@ -488,27 +454,79 @@ function Player({ routine, code, today, exitHref, label, finishSlot }: PlayerPro
                       ? t("hold")
                       : t("timeLeft")}
                 </p>
-                <p className="text-5xl font-semibold tabular-nums landscape:text-4xl" role="timer">
+                <p className="text-4xl font-semibold tabular-nums" role="timer">
                   {formatCountdown(seconds)}
                 </p>
               </div>
-            ) : null}
+              <Button variant="outline" className="h-12 shrink-0 text-base" onClick={onAdd}>
+                <span aria-hidden>{t("addTime")}</span>
+                <span className="sr-only">{t("addTimeLabel")}</span>
+              </Button>
+              {/* A hold runs inside the set: its Skip sits here, Set done stays the main action. */}
+              {state.phase === "hold" ? (
+                <Button variant="outline" className="h-12 shrink-0 text-base" onClick={onSkip}>
+                  {t("skip")}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
 
-            <Controls
-              t={t}
-              phase={state.phase}
-              step={step}
-              onSetDone={() => act((current, at) => completeSet(steps, current, at), true)}
-              onStartTimer={() => act((current, at) => startTimed(steps, current, at))}
-              onStartHold={() => act((current, at) => startHold(steps, current, at))}
-              onSkip={() =>
-                act((current, at) => skipTimer(steps, current, at), state.phase === "timed")
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-12 shrink-0"
+              aria-label={t("previous")}
+              disabled={state.stepIndex === 0 && state.phase === "ready"}
+              onClick={() => act((current) => goTo(steps, current, current.stepIndex - 1))}
+            >
+              <ChevronLeftIcon aria-hidden />
+            </Button>
+            {/* Long labels (Spanish "Iniciar cuenta regresiva") wrap inside the button. */}
+            <Button
+              className="h-12 min-w-0 flex-1 text-base leading-tight whitespace-normal"
+              onClick={
+                counting
+                  ? onSkip
+                  : timed
+                    ? () => act((current, at) => startTimed(steps, current, at))
+                    : () => act((current, at) => completeSet(steps, current, at), true)
               }
-              onAdd={() => act((current) => adjust(current, ADD_SECONDS * 1000))}
+            >
+              {counting ? t("skip") : timed ? t("startTimer") : t("setDone")}
+            </Button>
+            {state.phase === "ready" && step.holdSeconds !== null && !timed ? (
+              <Button
+                variant="outline"
+                className="h-12 shrink-0 text-base"
+                onClick={() => act((current, at) => startHold(steps, current, at))}
+              >
+                {t("startHold", { value: step.holdSeconds })}
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-12 shrink-0"
+              aria-label={t("next")}
+              onClick={() => act((current) => nextStep(steps, current))}
+            >
+              <ChevronRightIcon aria-hidden />
+            </Button>
+          </div>
+
+          {canLog ? (
+            <ExerciseLogButton
+              // A fresh sheet for each exercise.
+              key={item.id}
+              variant="bar"
+              logging={exerciseLogging}
+              exerciseId={item.exerciseId}
+              exerciseName={item.name}
             />
-          </footer>
+          ) : null}
         </div>
-      </div>
+      </section>
 
       <AlertDialog open={confirmExit} onOpenChange={setConfirmExit}>
         <AlertDialogContent>
@@ -551,7 +569,7 @@ function Chip({ children, primary = false }: { children: React.ReactNode; primar
   return (
     <li
       className={cn(
-        "rounded-md px-2.5 py-1",
+        "rounded-md px-2 py-0.5",
         primary ? "bg-primary text-primary-foreground" : "bg-muted",
       )}
     >
@@ -572,64 +590,15 @@ function setTargets(set: PatientItem["sets"][number] | undefined, t: Translate):
   }
   if (set.durationSeconds !== null)
     labels.push(t("target.duration", { value: set.durationSeconds }));
-  if (set.load) labels.push(t("target.load", { value: set.load }));
-  return labels;
-}
-
-function Controls({
-  t,
-  phase,
-  step,
-  onSetDone,
-  onStartTimer,
-  onStartHold,
-  onSkip,
-  onAdd,
-}: {
-  t: Translate;
-  phase: WorkoutState["phase"];
-  step: { durationSeconds: number | null; holdSeconds: number | null };
-  onSetDone: () => void;
-  onStartTimer: () => void;
-  onStartHold: () => void;
-  onSkip: () => void;
-  onAdd: () => void;
-}) {
-  const big = "h-14 text-base";
-  if (phase === "rest" || phase === "timed") {
-    return (
-      <div className="grid grid-cols-2 gap-3">
-        <Button size="lg" variant="outline" className={big} onClick={onAdd}>
-          <span aria-hidden>{t("addTime")}</span>
-          <span className="sr-only">{t("addTimeLabel")}</span>
-        </Button>
-        <Button size="lg" className={big} onClick={onSkip}>
-          {t("skip")}
-        </Button>
-      </div>
+  if (set.distanceMeters !== null) {
+    const distance = distanceDisplay(set.distanceMeters);
+    labels.push(
+      t(distance.unit === "km" ? "target.distanceKm" : "target.distanceM", {
+        value: distance.value,
+      }),
     );
   }
-  const timed = step.durationSeconds !== null;
-  return (
-    <div className="grid gap-3">
-      <Button size="lg" className={big} onClick={timed ? onStartTimer : onSetDone}>
-        {timed ? t("startTimer") : t("setDone")}
-      </Button>
-      {phase === "hold" ? (
-        <div className="grid grid-cols-2 gap-3">
-          <Button size="lg" variant="outline" className={big} onClick={onAdd}>
-            <span aria-hidden>{t("addTime")}</span>
-            <span className="sr-only">{t("addTimeLabel")}</span>
-          </Button>
-          <Button size="lg" variant="outline" className={big} onClick={onSkip}>
-            {t("skip")}
-          </Button>
-        </div>
-      ) : step.holdSeconds !== null && !timed ? (
-        <Button size="lg" variant="outline" className={big} onClick={onStartHold}>
-          {t("startHold", { value: step.holdSeconds })}
-        </Button>
-      ) : null}
-    </div>
-  );
+  if (set.load) labels.push(t("target.load", { value: set.load }));
+  if (set.intensity) labels.push(t("target.intensity", { value: set.intensity }));
+  return labels;
 }

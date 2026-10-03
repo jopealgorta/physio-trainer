@@ -1441,7 +1441,6 @@
     "label": "Workout: {name}",
     "progress": "Exercise {current, number} of {total, number}",
     "setOf": "Set {current, number} of {total, number}",
-    "superset": "Superset",
     "side": {
       "left": "Left side",
       "right": "Right side",
@@ -1451,7 +1450,10 @@
       "reps": "{count, plural, one {# rep} other {# reps}}",
       "range": "{min, number}–{max, number} reps",
       "duration": "{value, number} s",
-      "load": "Load: {value}"
+      "load": "Load: {value}",
+      "distanceKm": "{value, number} km",
+      "distanceM": "{value, number} m",
+      "intensity": "Intensity: {value}"
     },
     "exit": "Exit workout",
     "exitDialog": {
@@ -1460,6 +1462,7 @@
       "stay": "Keep going",
       "leave": "Leave"
     },
+    "current": "Current exercise",
     "previous": "Previous",
     "next": "Next",
     "setDone": "Set done",
@@ -1472,9 +1475,7 @@
     "skip": "Skip",
     "addTime": "+15 s",
     "addTimeLabel": "Add 15 seconds",
-    "notes": "Note",
-    "instructions": "How to do it",
-    "noVideo": "No video for this exercise",
+    "logExercise": "Log exercise",
     "sound": {
       "on": "Sound on",
       "off": "Sound off"

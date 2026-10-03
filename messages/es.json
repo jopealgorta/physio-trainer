@@ -1441,7 +1441,6 @@
     "label": "Entrenamiento: {name}",
     "progress": "Ejercicio {current, number} de {total, number}",
     "setOf": "Serie {current, number} de {total, number}",
-    "superset": "Superserie",
     "side": {
       "left": "Lado izquierdo",
       "right": "Lado derecho",
@@ -1451,7 +1450,10 @@
       "reps": "{count, plural, one {# repetición} other {# repeticiones}}",
       "range": "{min, number}–{max, number} repeticiones",
       "duration": "{value, number} s",
-      "load": "Carga: {value}"
+      "load": "Carga: {value}",
+      "distanceKm": "{value, number} km",
+      "distanceM": "{value, number} m",
+      "intensity": "Intensidad: {value}"
     },
     "exit": "Salir del entrenamiento",
     "exitDialog": {
@@ -1460,6 +1462,7 @@
       "stay": "Seguir",
       "leave": "Salir"
     },
+    "current": "Ejercicio actual",
     "previous": "Anterior",
     "next": "Siguiente",
     "setDone": "Serie lista",
@@ -1472,9 +1475,7 @@
     "skip": "Saltar",
     "addTime": "+15 s",
     "addTimeLabel": "Sumar 15 segundos",
-    "notes": "Nota",
-    "instructions": "Cómo hacerlo",
-    "noVideo": "Este ejercicio no tiene video",
+    "logExercise": "Registrar ejercicio",
     "sound": {
       "on": "Sonido activado",
       "off": "Sonido desactivado"

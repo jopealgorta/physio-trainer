@@ -8,6 +8,15 @@ import {
   isoWeekdayIn,
 } from "./helpers/patient";
 import { hasNoHorizontalOverflow } from "./helpers/routines";
+import type { Page } from "@playwright/test";
+
+/** The workout's bottom bar (current set, countdown, controls). */
+const bar = (page: Page) => page.getByRole("region", { name: "Current exercise" });
+/** The bar names the current exercise and the list highlights its row. */
+async function expectCurrent(page: Page, name: string) {
+  await expect(bar(page).getByText(name, { exact: true })).toBeVisible();
+  await expect(page.locator('[aria-current="step"]')).toContainText(name);
+}
 
 test.describe("workout mode", () => {
   test("steps through a routine with a hold, a rest and a timed set", async ({ page, physio }) => {
@@ -19,7 +28,7 @@ test.describe("workout mode", () => {
     await page.goto(link.path);
     await page.getByRole("link", { name: "Start workout" }).click();
     await expect(page).toHaveURL(/\/workout\/[0-9a-f-]{36}$/);
-    await expect(page.getByRole("heading", { name: "Bridge" })).toBeVisible();
+    await expectCurrent(page, "Bridge");
     await expect(page.getByText("Exercise 1 of 2")).toBeVisible();
     await expect(page.getByText("Set 1 of 2")).toBeVisible();
     await expect(page.getByText("8 reps")).toBeVisible();
@@ -49,7 +58,7 @@ test.describe("workout mode", () => {
 
     await page.getByRole("button", { name: "Set done" }).click();
     await page.getByRole("button", { name: "Skip" }).click();
-    await expect(page.getByRole("heading", { name: "Plank" })).toBeVisible();
+    await expectCurrent(page, "Plank");
     await expect(page.getByText("Exercise 2 of 2")).toBeVisible();
 
     await page.getByRole("button", { name: "Start timer" }).click();
@@ -76,7 +85,7 @@ test.describe("workout mode", () => {
     await page.getByRole("button", { name: "Exit workout" }).click();
     await expect(page.getByRole("alertdialog", { name: "Leave this workout?" })).toBeVisible();
     await page.getByRole("button", { name: "Keep going" }).click();
-    await expect(page.getByRole("heading", { name: "Bridge" })).toBeVisible();
+    await expectCurrent(page, "Bridge");
 
     await page.getByRole("button", { name: "Exit workout" }).click();
     await page.getByRole("button", { name: "Leave" }).click();
@@ -110,7 +119,7 @@ test.describe("workout mode", () => {
     await page.goto(link.path);
     // Client-side navigation keeps the stub's counters.
     await page.getByRole("link", { name: "Start workout" }).click();
-    await expect(page.getByRole("heading", { name: "Bridge" })).toBeVisible();
+    await expectCurrent(page, "Bridge");
     const wake = () =>
       page.evaluate(
         () => (window as unknown as { __wake: { requested: number; released: number } }).__wake,
@@ -121,7 +130,7 @@ test.describe("workout mode", () => {
     await expect.poll(async () => (await wake()).released).toBeGreaterThan(0);
   });
 
-  test("fits a 360 px phone with large targets, and splits in landscape", async ({
+  test("fits a 360 px phone with large targets, and keeps the bar in view", async ({
     page,
     physio,
   }) => {
@@ -135,15 +144,36 @@ test.describe("workout mode", () => {
     const done = page.getByRole("button", { name: "Set done" });
     await expect(done).toBeVisible();
     expect(await hasNoHorizontalOverflow(page)).toBe(true);
-    for (const name of ["Set done", "Hold 5 s", "Next", "Exit workout"]) {
-      const box = await page.getByRole("button", { name }).boundingBox();
+    for (const name of [
+      "Set done",
+      "Hold 5 s",
+      "Previous",
+      "Next",
+      "Log exercise",
+      "Exit workout",
+      "Sound on",
+    ]) {
+      const box = await page.getByRole("button", { name, exact: true }).boundingBox();
       expect(box!.height, name).toBeGreaterThanOrEqual(48);
+      expect(box!.width, name).toBeGreaterThanOrEqual(48);
     }
 
-    await page.setViewportSize({ width: 740, height: 360 });
-    const media = await page.getByText("No video for this exercise").boundingBox();
-    const controls = await done.boundingBox();
-    expect(media!.x + media!.width).toBeLessThan(controls!.x);
+    // A short screen: the list scrolls under the top bar while the bottom bar stays put.
+    await page.setViewportSize({ width: 360, height: 420 });
+    // The list's scroll box: the nearest ancestor of the current row that scrolls.
+    const scrolled = await page.locator('[aria-current="step"]').evaluate((row) => {
+      let box = row.parentElement;
+      while (box && getComputedStyle(box).overflowY !== "auto") box = box.parentElement;
+      if (!box || box.scrollHeight <= box.clientHeight) return false;
+      box.scrollTo({ top: box.scrollHeight });
+      return true;
+    });
+    expect(scrolled).toBe(true);
+    await expect(page.getByRole("heading", { name: "Plank" })).toBeInViewport();
+    const box = (await bar(page).boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(420);
+    await expect(done).toBeInViewport();
+    expect(await hasNoHorizontalOverflow(page)).toBe(true);
   });
 
   test("a swipe moves to the next set", async ({ page, physio, browserName }) => {
@@ -155,7 +185,7 @@ test.describe("workout mode", () => {
     await page.getByRole("link", { name: "Start workout" }).click();
     await expect(page.getByText("Set 1 of 2")).toBeVisible();
 
-    const area = page.getByRole("heading", { name: "Bridge" });
+    const area = bar(page);
     const box = (await area.boundingBox())!;
     const y = box.y + 10;
     await page.mouse.move(box.x + 250, y);
@@ -191,7 +221,7 @@ test.describe("workout mode", () => {
     await page.goto(link.path);
     await page.getByRole("link", { name: "Start workout" }).click();
     await expect(page).toHaveURL(new RegExp(`/workout/${routineId}\\?entry=[0-9a-f-]{36}$`));
-    await expect(page.getByRole("heading", { name: "Squat" })).toBeVisible();
+    await expectCurrent(page, "Squat");
     await expect(page.getByText("Set 1 of 3")).toBeVisible();
   });
 
@@ -241,7 +271,7 @@ test.describe("workout mode", () => {
     const locked = await insertCustomerLink(physio, protectedCustomer, { pin: "4821" });
     await page.goto(`${locked.path}/workout/${protectedRoutine}`);
     await expect(page.getByRole("heading", { name: "Enter your PIN" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Bridge" })).toHaveCount(0);
+    await expect(page.getByText("Bridge")).toHaveCount(0);
 
     const revokedCustomer = await insertCustomer(physio.id, { firstName: "Gone" });
     const revokedRoutine = await insertWorkoutRoutine(physio.id, revokedCustomer);

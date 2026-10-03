@@ -2,6 +2,8 @@ import type { Route } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import type { ExerciseLogging } from "@/components/patient/exercise-list";
+import type { LoggableDay } from "@/components/patient/log-sheet";
 import { LogSessionButton } from "@/components/patient/log-session-button";
 import { PinGate } from "@/components/patient/pin-gate";
 import { Unavailable } from "@/components/patient/unavailable";
@@ -11,6 +13,7 @@ import { firstParam } from "@/lib/search-params";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { getLinkAccess } from "@/server/patient/access";
 import { loadLink } from "@/server/patient/load";
+import { getPatientExerciseLogs } from "@/server/patient/log-exercise";
 import { getPatientLogs } from "@/server/patient/log-session";
 import { getReachableRoutine, isReachable } from "@/server/patient/view";
 import { todayIn } from "@/lib/calendar-date";
@@ -66,11 +69,22 @@ export default async function WorkoutPage({
       ? requestedEntry
       : null;
 
-  const [t, tLogging, logs] = await Promise.all([
+  const [t, tLogging, logs, exerciseLogs] = await Promise.all([
     getTranslations({ locale: shell.locale, namespace: "Workout" }),
     getTranslations({ locale: shell.locale, namespace: "Patient.logging" }),
     getPatientLogs(shell, link, today, today),
+    getPatientExerciseLogs(shell, link, today, today),
   ]);
+  // The workout logs today only; the owner previewing the link sees the chips but never writes.
+  const days: LoggableDay[] = owner ? [] : [{ date: today, relative: "today" }];
+  const exerciseLogging: ExerciseLogging = {
+    code: shell.code,
+    routineId: routine.id,
+    entryId,
+    days,
+    shownDate: today,
+    logs: exerciseLogs.filter((log) => log.routineId === routine.id && log.entryId === entryId),
+  };
   // The finish screen hands off to the log sheet; the owner previewing the link only sees the state.
   const finishSlot = (
     <div className="grid justify-items-center gap-3">
@@ -82,7 +96,7 @@ export default async function WorkoutPage({
           routineId={routine.id}
           entryId={entryId}
           routineName={routine.name}
-          days={owner ? [] : [{ date: today, relative: "today" }]}
+          days={days}
           logs={logs.filter((log) => log.routineId === routine.id && log.entryId === entryId)}
           shownDate={today}
           defaultOpen={!owner}
@@ -99,6 +113,7 @@ export default async function WorkoutPage({
       today={today}
       exitHref={path}
       finishSlot={finishSlot}
+      exerciseLogging={exerciseLogging}
     />
   );
 }

@@ -181,6 +181,15 @@ describe("ExerciseLogButton", () => {
     expect(await screen.findByRole("dialog", { name: "How did Squat go?" })).toBeInTheDocument();
   });
 
+  it("says what it does in the workout bar", async () => {
+    const user = userEvent.setup();
+    setup({ variant: "bar" });
+    const button = screen.getByRole("button", { name: "Log exercise" });
+    expect(button).toHaveTextContent("Log exercise");
+    await user.click(button);
+    expect(screen.getByRole("dialog", { name: "How did Squat go?" })).toBeInTheDocument();
+  });
+
   it("renders nothing when no day can be logged", () => {
     const { container } = setup({ logging: logging({ days: [], logs: [saved()] }) });
     expect(container).toBeEmptyDOMElement();

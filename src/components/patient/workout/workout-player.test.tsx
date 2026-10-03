@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,10 +7,12 @@ import messages from "../../../../messages/en.json";
 import es from "../../../../messages/es.json";
 import { workoutStorageKey } from "@/lib/workout/storage";
 import type { PatientItem, PatientRoutine } from "@/server/patient/view";
+import type { ExerciseLogging } from "../exercise-list";
 import { WorkoutPlayer } from "./workout-player";
 
-const m = vi.hoisted(() => ({ push: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: m.push }) }));
+const m = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: m.push, refresh: m.refresh }) }));
+vi.mock("@/server/patient/actions", () => ({ logExerciseAction: vi.fn() }));
 
 const item = (id: string, name: string, values: Partial<PatientItem> = {}): PatientItem => ({
   id,
@@ -58,7 +60,12 @@ function routineOf(...items: PatientItem[]): PatientRoutine {
 const KEY = workoutStorageKey("7k2m9qpx", "routine-1", "2026-10-01");
 const T0 = new Date("2026-10-01T10:00:00Z");
 
-function setup(routine: PatientRoutine, locale: "en" | "es" = "en", finishSlot?: React.ReactNode) {
+function setup(
+  routine: PatientRoutine,
+  locale: "en" | "es" = "en",
+  finishSlot?: React.ReactNode,
+  exerciseLogging?: ExerciseLogging,
+) {
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? messages : es}>
@@ -69,11 +76,36 @@ function setup(routine: PatientRoutine, locale: "en" | "es" = "en", finishSlot?:
         exitHref="/maria/ana-7k2m9qpx"
         label="Workout: Knee rehab"
         finishSlot={finishSlot}
+        exerciseLogging={exerciseLogging}
       />
     </NextIntlClientProvider>,
   );
   return user;
 }
+
+const logging = (patch: Partial<ExerciseLogging> = {}): ExerciseLogging => ({
+  code: "7k2m9qpx",
+  routineId: "routine-1",
+  entryId: null,
+  days: [{ date: "2026-10-01", relative: "today" }],
+  shownDate: "2026-10-01",
+  logs: [],
+  ...patch,
+});
+
+/** The bottom bar: the current set, its countdown and the controls. */
+const bar = () => screen.getByRole("region", { name: "Current exercise" });
+/** The list row of the exercise being done. */
+const currentRow = () => {
+  const rows = document.querySelectorAll<HTMLElement>('[aria-current="step"]');
+  expect(rows).toHaveLength(1);
+  return rows[0]!;
+};
+/** The bar and the list both name the current exercise. */
+const expectCurrent = (name: string) => {
+  expect(within(bar()).getByText(name, { selector: "p" })).toBeInTheDocument();
+  expect(currentRow()).toHaveTextContent(name);
+};
 
 const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
 
@@ -107,7 +139,7 @@ describe("WorkoutPlayer", () => {
       ),
     );
     expect(screen.getByRole("region", { name: "Workout: Knee rehab" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Squat" })).toBeInTheDocument();
+    expectCurrent("Squat");
     expect(screen.getByText("Exercise 1 of 2")).toBeInTheDocument();
     expect(screen.getByText("Set 1 of 1")).toBeInTheDocument();
     expect(screen.getByText("8–12 reps")).toBeInTheDocument();
@@ -218,11 +250,75 @@ describe("WorkoutPlayer", () => {
     const user = setup(routineOf(item("a", "Squat"), item("b", "Bridge")));
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByRole("heading", { name: "Bridge" })).toBeInTheDocument();
+    expectCurrent("Bridge");
     expect(screen.getByText("Exercise 2 of 2")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Previous" }));
-    expect(screen.getByRole("heading", { name: "Squat" })).toBeInTheDocument();
+    expectCurrent("Squat");
     expect(screen.getByText("Set 2 of 2")).toBeInTheDocument();
+  });
+
+  it("lists every exercise of the routine and ticks the sets done", async () => {
+    const user = setup(routineOf(item("a", "Squat"), item("b", "Bridge"), item("c", "Plank")));
+    const names = screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent);
+    expect(names).toEqual(["1.Squat", "2.Bridge", "3.Plank"]);
+    const dots = (row: HTMLElement) =>
+      within(row)
+        .getAllByTestId("set-dot")
+        .map((dot) => dot.dataset.done);
+    expect(dots(currentRow())).toEqual(["false", "false"]);
+    await user.click(screen.getByRole("button", { name: "Set done" }));
+    expect(dots(currentRow())).toEqual(["true", "false"]);
+  });
+
+  it("scrolls the current exercise into view as it changes", async () => {
+    const scroll = vi.spyOn(Element.prototype, "scrollIntoView");
+    const user = setup(routineOf(item("a", "Squat"), item("b", "Bridge")));
+    scroll.mockClear();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    // Same exercise, next set: the list stays put.
+    expect(scroll).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(scroll.mock.contexts[0]).toHaveTextContent("Bridge");
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest", behavior: "smooth" });
+    scroll.mockRestore();
+  });
+
+  it("shows the distance and intensity targets of an aerobic set", () => {
+    const aerobic = (distanceMeters: number, intensity: string | null) => ({
+      reps: null,
+      repsMax: null,
+      durationSeconds: null,
+      load: null,
+      distanceMeters,
+      intensity,
+    });
+    setup(
+      routineOf(
+        item("a", "Row", { kind: "aerobic", sets: [aerobic(2500, "Moderate")] }),
+        item("b", "Run", { kind: "aerobic", sets: [aerobic(800, null)] }),
+      ),
+    );
+    expect(within(bar()).getByText("2.5 km")).toBeInTheDocument();
+    expect(within(bar()).getByText("Intensity: Moderate")).toBeInTheDocument();
+  });
+
+  it("logs the current exercise from the bar", async () => {
+    const user = setup(
+      routineOf(item("a", "Squat"), item("b", "Bridge")),
+      "en",
+      undefined,
+      logging(),
+    );
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
+    expect(await screen.findByRole("dialog", { name: "How did Bridge go?" })).toBeInTheDocument();
+  });
+
+  it("has no log button when nothing can be logged (the physio previewing)", () => {
+    setup(routineOf(item("a", "Squat")), "en", undefined, logging({ days: [] }));
+    expect(within(bar()).queryByRole("button", { name: "Log exercise" })).not.toBeInTheDocument();
   });
 
   it("next during a rest ends the rest and keeps the set that follows", async () => {
@@ -267,6 +363,18 @@ describe("WorkoutPlayer", () => {
     expect(screen.getByText("Set 2 of 2")).toBeInTheDocument();
   });
 
+  it("highlights the exercise a saved state resumes at", () => {
+    // Saved by the player before the list layout: same key, same shape.
+    window.sessionStorage.setItem(
+      KEY,
+      JSON.stringify({ stepIndex: 2, phase: "ready", endsAt: null }),
+    );
+    setup(routineOf(item("a", "Squat"), item("b", "Bridge")));
+    expectCurrent("Bridge");
+    expect(screen.getByText("Exercise 2 of 2")).toBeInTheDocument();
+    expect(screen.getByText("Set 1 of 2")).toBeInTheDocument();
+  });
+
   it("ignores a saved state that does not fit the routine", () => {
     window.sessionStorage.setItem(
       KEY,
@@ -296,7 +404,7 @@ describe("WorkoutPlayer", () => {
       window.localStorage.removeItem("workout:sound");
     });
 
-    it("pops a check over the video, announces the set and vibrates briefly", async () => {
+    it("pops a check over the bar, announces the set and vibrates briefly", async () => {
       const user = setup(routineOf(item("a", "Squat"), item("b", "Bridge")));
       expect(screen.queryByTestId("set-done-burst")).not.toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Set done" }));

@@ -41,7 +41,8 @@ export function exerciseLogFor(
 /**
  * "Log" for one exercise (spec 19): a bottom sheet with pain, RPE, the weight used and a comment,
  * all optional; saving with everything empty clears the log. The row variant is a small icon
- * button, filled once the shown day is logged; the bar variant sits in the workout's bottom bar.
+ * button, filled once the shown day is logged; the bar variant is the workout bottom bar's
+ * full-width "Log exercise" button (the bar names the exercise right above it).
  */
 export function ExerciseLogButton({
   logging,
@@ -58,6 +59,7 @@ export function ExerciseLogButton({
   variant?: "row" | "bar";
 }) {
   const t = useTranslations("Patient");
+  const tWorkout = useTranslations("Workout");
   const router = useRouter();
   const { days, shownDate } = logging;
   const [open, setOpen] = useState(defaultOpen && days.length > 0);
@@ -69,6 +71,7 @@ export function ExerciseLogButton({
   if (!day) return null;
 
   const logged = logFor(shownDate) !== null;
+  const bar = variant === "bar";
   const label = t("exercise.log", { name: exerciseName });
 
   const onSaved = (date: string, log: PatientExerciseLog | null) => {
@@ -81,12 +84,13 @@ export function ExerciseLogButton({
     <>
       <Button
         type="button"
-        variant={variant === "bar" ? "outline" : "ghost"}
-        size="icon"
-        aria-label={label}
-        title={label}
+        variant={bar ? "outline" : "ghost"}
+        size={bar ? "lg" : "icon"}
+        // The bar's visible text is its name; the row's icon needs one.
+        aria-label={bar ? undefined : label}
+        title={bar ? undefined : label}
         className={cn(
-          variant === "bar" ? "size-12 flex-none" : "size-10 flex-none self-center",
+          bar ? "h-12 w-full text-base" : "size-10 flex-none self-center",
           logged && "text-primary",
         )}
         onClick={() => {
@@ -95,6 +99,7 @@ export function ExerciseLogButton({
         }}
       >
         <NotebookPenIcon aria-hidden className={cn("size-5", logged && "stroke-[2.5]")} />
+        {bar ? tWorkout("logExercise") : null}
       </Button>
       <LogSheet
         open={open}
