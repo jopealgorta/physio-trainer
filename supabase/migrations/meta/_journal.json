@@ -225,6 +225,20 @@
       "when": 1791031044120,
       "tag": "20261003123724_session-logs-rpe-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791031720780,
+      "tag": "20261003124840_exercise-logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791031721563,
+      "tag": "20261003124841_exercise-logs-extras",
+      "breakpoints": true
     }
   ]
 }

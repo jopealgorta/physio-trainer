@@ -8,6 +8,7 @@ import {
   isLoggableDate,
   loggableDates,
   normalizeComment,
+  parseWeight,
 } from "./session-logs";
 
 // 2026-10-02 is a Friday, 2026-10-05 a Monday.
@@ -80,5 +81,23 @@ describe("loggedWeekdays", () => {
 
   it("counts yesterday's log on the Sunday of a Monday's strip", () => {
     expect(loggedWeekdays("2026-10-05", [log("2026-10-04"), log("2026-10-05")])).toEqual([1, 7]);
+  });
+});
+
+describe("parseWeight", () => {
+  it("accepts a comma or a dot and rounds to 0.1", () => {
+    expect(parseWeight("12,5")).toBe(12.5);
+    expect(parseWeight("12.46")).toBe(12.5);
+    expect(parseWeight(" 0 ")).toBe(0);
+    expect(parseWeight("999,9")).toBe(999.9);
+  });
+
+  it("is null when blank and undefined when invalid", () => {
+    expect(parseWeight("")).toBeNull();
+    expect(parseWeight("  ")).toBeNull();
+    expect(parseWeight("abc")).toBeUndefined();
+    expect(parseWeight("1000")).toBeUndefined();
+    expect(parseWeight("-1")).toBeUndefined();
+    expect(parseWeight("1,2,3")).toBeUndefined();
   });
 });

@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const m = vi.hoisted(() => ({ resolveLink: vi.fn(), getLinkAccess: vi.fn(), logSession: vi.fn() }));
+const m = vi.hoisted(() => ({
+  resolveLink: vi.fn(),
+  getLinkAccess: vi.fn(),
+  logSession: vi.fn(),
+  logExercise: vi.fn(),
+}));
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 vi.mock("next/navigation", () => ({ notFound: vi.fn(), redirect: vi.fn() }));
@@ -9,8 +14,9 @@ vi.mock("@/server/sharing/pin-hash", () => ({ verifyPin: vi.fn() }));
 vi.mock("./resolve-link", () => ({ resolveLink: m.resolveLink }));
 vi.mock("./access", () => ({ getLinkAccess: m.getLinkAccess }));
 vi.mock("./log-session", () => ({ logSession: m.logSession }));
+vi.mock("./log-exercise", () => ({ logExercise: m.logExercise }));
 
-import { logSessionAction } from "./actions";
+import { logExerciseAction, logSessionAction } from "./actions";
 
 const ID = "3e473832-bc4d-475b-9a6a-0356874dc603";
 const input = {
@@ -78,5 +84,46 @@ describe("logSessionAction", () => {
       ok: false,
       error: "unreachable",
     });
+  });
+});
+
+describe("logExerciseAction", () => {
+  const exerciseInput = {
+    routineId: ID,
+    entryId: null,
+    exerciseId: ID,
+    performedOn: "2026-10-07",
+    pain: null,
+    rpe: 5,
+    weightKg: 12.46,
+    comment: null,
+  };
+
+  it("rejects malformed input", async () => {
+    expect(await logExerciseAction("7k2m9qpx", { ...exerciseInput, weightKg: 1000 })).toEqual({
+      ok: false,
+      error: "invalid",
+    });
+  });
+
+  it("never writes for the signed-in physio previewing the link", async () => {
+    m.getLinkAccess.mockResolvedValue({ owner: true, unlocked: true });
+    expect(await logExerciseAction("7k2m9qpx", exerciseInput)).toEqual({
+      ok: false,
+      error: "preview",
+    });
+    expect(m.logExercise).not.toHaveBeenCalled();
+  });
+
+  it("refuses a locked link and logs through the resolved link otherwise", async () => {
+    m.getLinkAccess.mockResolvedValue({ owner: false, unlocked: false });
+    expect(await logExerciseAction("7k2m9qpx", exerciseInput)).toEqual({
+      ok: false,
+      error: "unavailable",
+    });
+    m.getLinkAccess.mockResolvedValue({ owner: false, unlocked: true });
+    m.logExercise.mockResolvedValue({ ok: true, data: null });
+    expect(await logExerciseAction("7k2m9qpx", exerciseInput)).toEqual({ ok: true, data: null });
+    expect(m.logExercise.mock.calls[0]![2]).toMatchObject({ weightKg: 12.5 });
   });
 });

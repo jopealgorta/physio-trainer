@@ -18,6 +18,21 @@ export const RPE_MAX = 10;
 /** 0..10, the values of the patient's effort control. */
 export const RPE_SCALE = Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, i) => i + RPE_MIN);
 
+/** Heaviest weight (kg) a patient can log for one exercise; one decimal. */
+export const WEIGHT_MAX = 999.9;
+
+/**
+ * Parses what a patient typed as a weight in kg: comma or dot, rounded to 0.1. Null when blank,
+ * undefined when it is not a number in 0..WEIGHT_MAX.
+ */
+export function parseWeight(value: string): number | null | undefined {
+  const text = value.trim().replace(",", ".");
+  if (text === "") return null;
+  if (!/^\d+(\.\d+)?$/.test(text)) return undefined;
+  const rounded = Math.round(Number(text) * 10) / 10;
+  return rounded <= WEIGHT_MAX ? rounded : undefined;
+}
+
 /** The days a patient may still log, oldest first: yesterday and today (the physio's days). */
 export function loggableDates(today: string): [string, string] {
   return [addDays(today, -1), today];
