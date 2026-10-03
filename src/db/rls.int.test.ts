@@ -33,7 +33,7 @@ describe("runAsPhysio (RLS on physios)", () => {
     });
     expect(inside).toEqual({ role: "authenticated", sub: a.id, uid: a.id });
 
-    // SET LOCAL semantics: the pooled connection goes back to the owner role and no claims.
+    // SET LOCAL semantics: outside the transaction the pool runs as the owner, with no claims.
     const [after] = await db.execute<{ role: string; claims: string | null }>(
       sql`select current_user as role, nullif(current_setting('request.jwt.claims', true), '') as claims`,
     );

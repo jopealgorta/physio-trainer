@@ -9,6 +9,7 @@ import { useState, useTransition } from "react";
 import { StatusBadge } from "@/components/routines/status-badge";
 import { WeekStrip } from "@/components/plans/week-strip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DEFAULT_PLAN_FILTERS, plansHref } from "@/lib/plan-params";
@@ -205,7 +206,10 @@ export function NoTemplateResults({ kind, canClear }: { kind: TemplateKind; canC
         <p className="text-muted-foreground text-sm">{t("noResults")}</p>
         {canClear ? (
           <Button asChild variant="outline">
-            <Link href={href}>{t("clearFilters")}</Link>
+            <Link href={href} className="relative">
+              {t("clearFilters")}
+              <LinkPendingHint className="inset-x-3 bottom-1" />
+            </Link>
           </Button>
         ) : null}
       </CardContent>

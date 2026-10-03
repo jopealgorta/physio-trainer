@@ -14,8 +14,8 @@ const renderIn = (locale: "en" | "es", ui: React.ReactNode) =>
   );
 
 describe("LoadingPage", () => {
-  it("announces loading and marks the region busy", () => {
-    const { container } = renderIn(
+  it("announces loading", () => {
+    renderIn(
       "en",
       <LoadingPage>
         <HeaderSkeleton back description actions={1} />
@@ -23,7 +23,6 @@ describe("LoadingPage", () => {
       </LoadingPage>,
     );
     expect(screen.getByRole("status")).toHaveTextContent("Loading…");
-    expect(container.firstElementChild).toHaveAttribute("aria-busy", "true");
   });
 
   it("hides the placeholder shapes from assistive tech", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { LayoutGridIcon, ListIcon, SearchIcon, SlidersHorizontalIcon } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -221,8 +222,16 @@ export function LibraryToolbar({
           </SheetHeader>
           <div
             className="grid gap-4 px-6 pb-6"
-            onClick={(event) => {
-              if ((event.target as HTMLElement).closest("a")) setSheetOpen(false);
+            onClickCapture={(event) => {
+              const anchor = (event.target as HTMLElement).closest("a");
+              if (!anchor) return;
+              setSheetOpen(false);
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+              // A category link unmounts with the sheet (and its pending hint with it) before the
+              // results arrive, so navigate from here, as a transition the page scope outlives.
+              event.preventDefault();
+              const href = anchor.getAttribute("href");
+              if (href) startNavigation(() => router.push(href as Route));
             }}
           >
             <FilterSelects

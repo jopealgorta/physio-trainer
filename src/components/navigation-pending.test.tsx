@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const linkStatus = vi.hoisted(() => ({ pending: false }));
@@ -81,6 +82,33 @@ describe("PendingContent", () => {
       </PendingScope>,
     );
     expect(screen.getByText("results")).toHaveAttribute("aria-busy", "true");
+  });
+});
+
+describe("PendingScope link counting", () => {
+  const page = (hint: boolean) => (
+    <StrictMode>
+      <PendingScope>
+        {hint ? <LinkPendingHint /> : null}
+        <PendingContent>results</PendingContent>
+      </PendingScope>
+    </StrictMode>
+  );
+
+  it("settles when the link stops pending (StrictMode double effects included)", () => {
+    linkStatus.pending = true;
+    const { rerender } = render(page(true));
+    expect(screen.getByText("results")).toHaveAttribute("aria-busy", "true");
+    linkStatus.pending = false;
+    rerender(page(true));
+    expect(screen.getByText("results")).not.toHaveAttribute("aria-busy");
+  });
+
+  it("settles when a pending link unmounts", () => {
+    linkStatus.pending = true;
+    const { rerender } = render(page(true));
+    rerender(page(false));
+    expect(screen.getByText("results")).not.toHaveAttribute("aria-busy");
   });
 });
 

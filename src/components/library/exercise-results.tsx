@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 
 import { BodyAreaBadge } from "@/components/body-areas/body-area-badge";
 import { Badge } from "@/components/ui/badge";
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DEFAULT_LIBRARY_FILTERS, libraryHref, type LibraryView } from "@/lib/library-params";
@@ -133,7 +134,10 @@ export async function NoResults({ view }: { view: LibraryView }) {
         <h2 className="text-base font-semibold">{t("title")}</h2>
         <p className="text-muted-foreground text-sm">{t("body")}</p>
         <Button asChild variant="outline">
-          <Link href={libraryHref(DEFAULT_LIBRARY_FILTERS, { view })}>{t("clear")}</Link>
+          <Link href={libraryHref(DEFAULT_LIBRARY_FILTERS, { view })} className="relative">
+            {t("clear")}
+            <LinkPendingHint className="inset-x-3 bottom-1" />
+          </Link>
         </Button>
       </CardContent>
     </Card>

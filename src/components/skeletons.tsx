@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 const times = (count: number) => Array.from({ length: count }, (_, index) => index);
 
 /**
- * The fallback's root: busy for assistive tech, with one "Loading…" announcement; the shapes
- * themselves are hidden from the accessibility tree.
+ * The fallback's root: one "Loading…" status for assistive tech (not inside a busy region, which
+ * screen readers may keep quiet); the shapes themselves are hidden from the accessibility tree.
  */
 export function LoadingPage({
   className,
@@ -23,7 +23,7 @@ export function LoadingPage({
 }) {
   const t = useTranslations("Loading");
   return (
-    <div aria-busy="true" className={cn("grid gap-6", className)}>
+    <div className={cn("grid gap-6", className)}>
       <p role="status" className="sr-only">
         {t("label")}
       </p>

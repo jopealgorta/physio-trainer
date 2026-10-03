@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { StatusBadge } from "@/components/routines/status-badge";
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PhaseChips } from "@/components/phases/phase-chips";
@@ -155,7 +156,10 @@ export function NoPlanResults({ canClear }: { canClear: boolean }) {
         <p className="text-muted-foreground text-sm">{t("noResults")}</p>
         {canClear ? (
           <Button asChild variant="outline">
-            <Link href={plansHref(DEFAULT_PLAN_FILTERS)}>{t("clearFilters")}</Link>
+            <Link href={plansHref(DEFAULT_PLAN_FILTERS)} className="relative">
+              {t("clearFilters")}
+              <LinkPendingHint className="inset-x-3 bottom-1" />
+            </Link>
           </Button>
         ) : null}
       </CardContent>
