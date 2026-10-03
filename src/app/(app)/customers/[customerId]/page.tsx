@@ -11,13 +11,15 @@ import { CustomerActivity } from "@/components/activity/customer-activity";
 import { CustomerPlans } from "@/components/plans/customer-plans";
 import { CustomerRoutines } from "@/components/routines/customer-routines";
 import { CustomerNotes } from "@/components/visit-notes/customer-notes";
+import { PendingContent, PendingScope } from "@/components/navigation-pending";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ageInYears, todayIn } from "@/lib/calendar-date";
-import { customerName, parseCustomerTab } from "@/lib/customers";
+import { customerName, parseCustomerTab, type CustomerTab } from "@/lib/customers";
 import { firstParam } from "@/lib/search-params";
-import { parseNotesParams } from "@/lib/visit-notes";
+import { parseNotesParams, type NotesFilters } from "@/lib/visit-notes";
 import { withPhysio } from "@/server/auth/session";
 import { loadCustomer } from "@/server/customers/load";
+import type { CustomerDetail } from "@/server/customers/queries";
 import { latestVisitNote } from "@/server/visit-notes/queries";
 
 export async function generateMetadata({
@@ -42,12 +44,6 @@ export default async function CustomerPage({
   const t = await getTranslations("Customers");
 
   const age = customer.dateOfBirth ? ageInYears(customer.dateOfBirth, timezone) : null;
-  const name = customerName(customer.firstName, customer.lastName);
-  const caseOptions = customer.cases.map(({ id, title }) => ({ id, title }));
-  const latestNote =
-    tab === "overview"
-      ? await withPhysio((tx, physioId) => latestVisitNote(tx, physioId, customer.id))
-      : null;
 
   return (
     <div className="grid gap-6">
@@ -66,37 +62,77 @@ export default async function CustomerPage({
           <AlertDescription>{t("detail.archivedNotice")}</AlertDescription>
         </Alert>
       ) : null}
-      <CustomerTabs customerId={customer.id} active={tab} />
-      {tab === "overview" ? (
-        <CustomerOverview customer={customer} today={todayIn(timezone)} latestNote={latestNote} />
-      ) : tab === "routines" ? (
+      <PendingScope>
+        <CustomerTabs customerId={customer.id} active={tab} />
+        <PendingContent>
+          <TabContent
+            tab={tab}
+            customer={customer}
+            timeZone={timezone}
+            notesFilters={parseNotesParams(sp)}
+          />
+        </PendingContent>
+      </PendingScope>
+    </div>
+  );
+}
+
+async function TabContent({
+  tab,
+  customer,
+  timeZone,
+  notesFilters,
+}: {
+  tab: CustomerTab;
+  customer: CustomerDetail;
+  timeZone: string;
+  notesFilters: NotesFilters;
+}) {
+  const name = customerName(customer.firstName, customer.lastName);
+  const caseOptions = customer.cases.map(({ id, title }) => ({ id, title }));
+  const archived = customer.archivedAt !== null;
+
+  switch (tab) {
+    case "overview": {
+      const latestNote = await withPhysio((tx, physioId) =>
+        latestVisitNote(tx, physioId, customer.id),
+      );
+      return (
+        <CustomerOverview customer={customer} today={todayIn(timeZone)} latestNote={latestNote} />
+      );
+    }
+    case "routines":
+      return (
         <CustomerRoutines
           customerId={customer.id}
           customerName={name}
           cases={caseOptions}
-          archived={customer.archivedAt !== null}
-          timeZone={timezone}
+          archived={archived}
+          timeZone={timeZone}
         />
-      ) : tab === "plans" ? (
+      );
+    case "plans":
+      return (
         <CustomerPlans
           customerId={customer.id}
           customerName={name}
           cases={caseOptions}
-          archived={customer.archivedAt !== null}
-          timeZone={timezone}
+          archived={archived}
+          timeZone={timeZone}
         />
-      ) : tab === "notes" ? (
+      );
+    case "notes":
+      return (
         <CustomerNotes
           customerId={customer.id}
           customerName={name}
           cases={caseOptions}
-          today={todayIn(timezone)}
-          timeZone={timezone}
-          filters={parseNotesParams(sp)}
+          today={todayIn(timeZone)}
+          timeZone={timeZone}
+          filters={notesFilters}
         />
-      ) : (
-        <CustomerActivity customerId={customer.id} customerName={name} timeZone={timezone} />
-      )}
-    </div>
-  );
+      );
+    case "activity":
+      return <CustomerActivity customerId={customer.id} customerName={name} timeZone={timeZone} />;
+  }
 }

@@ -18,8 +18,11 @@ export async function runAsPhysio<T>(
   fn: (tx: Tx, physioId: string) => Promise<T>,
 ): Promise<T> {
   return db.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true)`);
-    await tx.execute(sql`set local role authenticated`);
+    // One round trip for both: set_config('role', …, true) is what SET LOCAL ROLE does (same
+    // membership check, reset at commit), and how PostgREST switches roles.
+    await tx.execute(
+      sql`select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true), set_config('role', 'authenticated', true)`,
+    );
     return fn(tx, claims.sub);
   });
 }

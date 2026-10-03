@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { IntentLink } from "@/components/intent-link";
 import { StatusBadge } from "@/components/routines/status-badge";
 import { Badge } from "@/components/ui/badge";
 import type { RoutineStatus } from "@/lib/routines";
@@ -39,12 +39,13 @@ export function PhaseTimeline({
     <div className="grid min-w-0 gap-2 rounded-lg border p-3">
       <h3 className="truncate text-sm font-medium">{items[0].name}</h3>
       <ol aria-label={t("title")} className="flex gap-2 overflow-x-auto pb-1">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const state = scheduleState(item, today);
           return (
             <li key={item.id} className="shrink-0">
-              <Link
+              <IntentLink
                 href={`${base}/${item.id}`}
+                eager={index === 0}
                 aria-current={state === "active" ? "step" : undefined}
                 className={cn(
                   "hover:bg-muted focus-visible:ring-ring/30 grid h-full w-44 gap-1 rounded-md border p-2 text-sm outline-none focus-visible:ring-2",
@@ -69,7 +70,7 @@ export function PhaseTimeline({
                     </Badge>
                   )}
                 </span>
-              </Link>
+              </IntentLink>
             </li>
           );
         })}

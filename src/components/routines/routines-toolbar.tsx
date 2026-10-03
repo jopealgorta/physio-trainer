@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
+import { usePendingNavigation } from "@/components/navigation-pending";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +33,7 @@ export function RoutinesToolbar({
 }) {
   const t = useTranslations("Routines");
   const router = useRouter();
+  const { navigate: startNavigation } = usePendingNavigation();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +51,10 @@ export function RoutinesToolbar({
     const pending = (flushSearch || timer.current !== null) && searchRef.current;
     const q = pending ? searchRef.current!.value.trim() : latest.current.q;
     cancelTimer();
-    router.replace(routinesHref({ ...latest.current, q }, changes), { scroll: false });
+    // A transition, so the results show they are updating until the new ones arrive.
+    startNavigation(() =>
+      router.replace(routinesHref({ ...latest.current, q }, changes), { scroll: false }),
+    );
   };
   useEffect(() => cancelTimer, []);
   // Keep the box in step when the URL changes elsewhere (e.g. "Clear filters"), but never

@@ -24,6 +24,18 @@ describe("runAsPhysio (RLS on physios)", () => {
     expect(await runAsPhysio(a.claims, async (_tx, physioId) => physioId)).toBe(a.id);
   });
 
+  it("runs as the authenticated role with the claims, for that transaction only", async () => {
+    const inside = await runAsPhysio(a.claims, async (tx) => {
+      const [row] = await tx.execute<{ role: string; sub: string; uid: string }>(
+        sql`select current_user as role, current_setting('request.jwt.claims', true)::json->>'sub' as sub, auth.uid()::text as uid`,
+      );
+      return row;
+    });
+    expect(inside).toEqual({ role: "authenticated", sub: a.id, uid: a.id });
+    // That both settings end with the transaction is checked on one connection in
+    // rls-reset.int.test.ts.
+  });
+
   it("shows a physio only their own row", async () => {
     const rows = await runAsPhysio(a.claims, (tx) => tx.select({ id: physios.id }).from(physios));
     expect(rows).toEqual([{ id: a.id }]);

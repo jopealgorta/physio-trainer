@@ -1637,5 +1637,8 @@
   },
   "PageActions": {
     "more": "More actions"
+  },
+  "Loading": {
+    "label": "Loading…"
   }
 }

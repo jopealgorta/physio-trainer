@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
+import { IntentLink } from "@/components/intent-link";
 import { StatusBadge } from "@/components/routines/status-badge";
 import { WeekStrip } from "@/components/plans/week-strip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DEFAULT_PLAN_FILTERS, plansHref } from "@/lib/plan-params";
@@ -92,13 +94,14 @@ export function TemplateList({
       disabled={pending}
     />
   );
-  const link = (row: TemplateRow) => (
-    <Link
+  const link = (row: TemplateRow, eager: boolean) => (
+    <IntentLink
       href={`${PATHS[kind]}/${row.id}`}
+      eager={eager}
       className="focus-visible:ring-ring/30 block min-w-0 truncate rounded-md font-medium outline-none hover:underline focus-visible:ring-2"
     >
       {row.name}
-    </Link>
+    </IntentLink>
   );
 
   return (
@@ -132,9 +135,9 @@ export function TemplateList({
           </tr>
         </thead>
         <tbody className="divide-y">
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <tr key={row.id}>
-              <td className="min-w-0 py-2 pr-3">{link(row)}</td>
+              <td className="min-w-0 py-2 pr-3">{link(row, index === 0)}</td>
               <td className="py-2 pr-3">
                 <StatusBadge status={row.status} />
               </td>
@@ -146,10 +149,10 @@ export function TemplateList({
         </tbody>
       </table>
       <ul className="grid gap-3 md:hidden">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <li key={row.id} className="grid min-w-0 gap-2 rounded-lg border p-3">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              {link(row)}
+              {link(row, index === 0)}
               <div className="flex shrink-0 items-center gap-1">
                 <StatusBadge status={row.status} />
                 {menu(row)}
@@ -205,7 +208,10 @@ export function NoTemplateResults({ kind, canClear }: { kind: TemplateKind; canC
         <p className="text-muted-foreground text-sm">{t("noResults")}</p>
         {canClear ? (
           <Button asChild variant="outline">
-            <Link href={href}>{t("clearFilters")}</Link>
+            <Link href={href} className="relative">
+              {t("clearFilters")}
+              <LinkPendingHint className="inset-x-3 bottom-1" />
+            </Link>
           </Button>
         ) : null}
       </CardContent>

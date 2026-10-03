@@ -2,6 +2,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { LIST_TABS, type ListTab, type TemplateKind } from "@/lib/templates";
 import { cn } from "@/lib/utils";
 
@@ -25,13 +26,14 @@ export function ListTabs({ kind, active }: { kind: TemplateKind; active: ListTab
                 href={href as Route}
                 aria-current={current ? "page" : undefined}
                 className={cn(
-                  "focus-visible:ring-ring/30 inline-block rounded-t-md border-b-2 px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset",
+                  "focus-visible:ring-ring/30 relative inline-block rounded-t-md border-b-2 px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset",
                   current
                     ? "border-primary text-foreground"
                     : "text-muted-foreground hover:text-foreground border-transparent",
                 )}
               >
                 {t(tab)}
+                <LinkPendingHint />
               </Link>
             </li>
           );
