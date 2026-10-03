@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { createPhysio, deletePhysio, expect, signIn, test } from "./helpers/auth";
+import { insertPlan, insertRoutine } from "./helpers/patient";
 import { chooseOption } from "./helpers/select";
 
 const CUSTOMER_URL = /\/customers\/[0-9a-f-]{36}$/;
@@ -246,8 +247,17 @@ test("customer pages do not overflow horizontally with a very long name", async 
   await expect.poll(() => hasNoHorizontalOverflow(page)).toBe(true);
 });
 
-test("a physio cannot see another physio's customers", async ({ physioPage: page, browser }) => {
+test("a physio cannot see another physio's customers", async ({
+  physio,
+  physioPage: page,
+  browser,
+}) => {
   const path = await createCustomer(page, "Private", "Patient");
+  const customerId = path.split("/").pop()!;
+  const routineId = await insertRoutine(physio.id, customerId, "Secret routine");
+  const planId = await insertPlan(physio.id, customerId, "Secret plan", [
+    { weekday: 1, routineId },
+  ]);
 
   const other = await createPhysio({ onboarded: true });
   const context = await browser.newContext({ locale: "en-US" });
@@ -258,12 +268,20 @@ test("a physio cannot see another physio's customers", async ({ physioPage: page
 
     // The page streams behind its loading.tsx, so a miss is the not-found page with a 200
     // status and a noindex tag (Next's streamed 404), not a 404 status.
-    await otherPage.goto(path);
-    await expect(otherPage.getByRole("heading", { name: "Page not found" })).toBeVisible();
-    await expect(
-      otherPage.locator('meta[name="robots"][content="noindex"]').first(),
-    ).toBeAttached();
-    await expect(otherPage.getByText("Private Patient")).toHaveCount(0);
+    // Neither the page nor its title (generateMetadata) gives the other physio's data away.
+    for (const [detail, secret] of [
+      [path, /Private|Patient/],
+      [`/routines/${routineId}`, /Secret routine/],
+      [`/plans/${planId}`, /Secret plan/],
+    ] as const) {
+      await otherPage.goto(detail);
+      await expect(otherPage.getByRole("heading", { name: "Page not found" })).toBeVisible();
+      await expect(
+        otherPage.locator('meta[name="robots"][content="noindex"]').first(),
+      ).toBeAttached();
+      await expect(otherPage.getByText(secret)).toHaveCount(0);
+      await expect(otherPage).not.toHaveTitle(secret);
+    }
 
     await otherPage.goto("/customers");
     await expect(otherPage.getByRole("heading", { name: "Add your first customer" })).toBeVisible();

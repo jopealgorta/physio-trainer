@@ -241,9 +241,11 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   (tabs, filters) does not show `loading.tsx`: wrap the controls and the content in
   `PendingScope`, the content in `PendingContent`, put `LinkPendingHint` inside tab/filter
   `<Link>`s and run `router.replace` through `usePendingNavigation().navigate`
-  (`src/components/navigation-pending.tsx`). Client cache `staleTimes` stays at the default
-  (0s for dynamic pages): `router.refresh()` only clears the current route, and patients write
-  data the physio's cache would never hear about.
+  (`src/components/navigation-pending.tsx`). Links in long lists (one per row) use `IntentLink`
+  (`src/components/intent-link.tsx`, first row `eager`): a plain `<Link>` prefetches every row
+  in view, each one a server render and a database transaction. Client cache `staleTimes`
+  stays at the default (0s for dynamic pages): `router.refresh()` only clears the current
+  route, and patients write data the physio's cache would never hear about.
 - **Handles and top-level routes**: adding a top-level route requires adding it to
   `RESERVED_HANDLES` in `src/lib/handles.ts` (a unit test enforces this).
 

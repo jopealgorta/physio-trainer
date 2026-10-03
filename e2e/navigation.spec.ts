@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
-import { insertCustomer } from "./helpers/patient";
+import { insertCustomer, insertRoutine } from "./helpers/patient";
 
 /** How long a held-back navigation takes; feedback must show well before it ends. */
 const SLOW_MS = 2_500;
@@ -34,6 +34,30 @@ test("a path change shows the page's skeleton at once", async ({ physioPage: pag
 
   await expect(page.getByRole("heading", { name: "Routines", level: 1 })).toBeVisible();
   await expect(loading(page)).toHaveCount(0);
+});
+
+test("a list row opens on the skeleton at once, even before its own prefetch", async ({
+  physio,
+  physioPage: page,
+}) => {
+  const customerId = await insertCustomer(physio.id, { firstName: "Rowan" });
+  for (const name of ["Row one", "Row two", "Row three"]) {
+    await insertRoutine(physio.id, customerId, name);
+  }
+  await page.goto("/routines");
+  await page.waitForLoadState("networkidle");
+  await slowNavigations(page);
+
+  // Rows prefetch on intent; only the first prefetches on sight, and the route's loading state
+  // it brings serves every row. A click with no hover first (as a fast tap can be) on the last
+  // row must still show the skeleton straight away.
+  const rows = page.getByRole("link", { name: /^Row (one|two|three)$/ }).filter({ visible: true });
+  await expect(rows).toHaveCount(3);
+  await rows.last().dispatchEvent("click");
+  await expect(loading(page)).toBeAttached({ timeout: FEEDBACK_MS });
+  await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await expect(loading(page)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Back to routines" })).toBeVisible();
 });
 
 test("a tab change marks the tab and dims the list until it loads", async ({

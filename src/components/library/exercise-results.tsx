@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
+import { IntentLink } from "@/components/intent-link";
 import { BodyAreaBadge } from "@/components/body-areas/body-area-badge";
 import { Badge } from "@/components/ui/badge";
 import { LinkPendingHint } from "@/components/navigation-pending";
@@ -75,10 +76,11 @@ export async function ExerciseResults({
       ) : null}
       {view === "list" ? (
         <ul className="divide-y rounded-lg border">
-          {exercises.map((exercise) => (
+          {exercises.map((exercise, index) => (
             <li key={exercise.id}>
-              <Link
+              <IntentLink
                 href={href(exercise.id)}
+                eager={index === 0}
                 className="hover:bg-muted/50 focus-visible:ring-ring/30 flex items-center gap-3 p-3 outline-none focus-visible:ring-2"
               >
                 <div className="bg-muted aspect-video w-20 shrink-0 overflow-hidden rounded-md">
@@ -93,16 +95,17 @@ export async function ExerciseResults({
                     <Tags tags={exercise.tags} />
                   </div>
                 </div>
-              </Link>
+              </IntentLink>
             </li>
           ))}
         </ul>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {exercises.map((exercise) => (
+          {exercises.map((exercise, index) => (
             <li key={exercise.id}>
-              <Link
+              <IntentLink
                 href={href(exercise.id)}
+                eager={index === 0}
                 className="focus-visible:ring-ring/30 block rounded-lg outline-none focus-visible:ring-2"
               >
                 <Card className="hover:bg-muted/30 h-full overflow-hidden pt-0">
@@ -117,7 +120,7 @@ export async function ExerciseResults({
                     <Tags tags={exercise.tags} />
                   </CardContent>
                 </Card>
-              </Link>
+              </IntentLink>
             </li>
           ))}
         </ul>

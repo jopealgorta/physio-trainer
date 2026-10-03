@@ -226,7 +226,10 @@ export function LibraryToolbar({
               const anchor = (event.target as HTMLElement).closest("a");
               if (!anchor) return;
               setSheetOpen(false);
-              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+              // New tab/window, download or a link with its own target: leave it to the browser.
+              const modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+              if (event.button !== 0 || modified) return;
+              if (anchor.hasAttribute("target") || anchor.hasAttribute("download")) return;
               // A category link unmounts with the sheet (and its pending hint with it) before the
               // results arrive, so navigate from here, as a transition the page scope outlives.
               event.preventDefault();

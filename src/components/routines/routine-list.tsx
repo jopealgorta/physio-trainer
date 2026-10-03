@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { DumbbellIcon } from "lucide-react";
 
+import { IntentLink } from "@/components/intent-link";
 import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,14 +15,15 @@ import type { RoutineSummary } from "@/server/routines/queries";
 
 import { StatusBadge } from "./status-badge";
 
-function RoutineLink({ routine }: { routine: RoutineSummary }) {
+function RoutineLink({ routine, eager }: { routine: RoutineSummary; eager: boolean }) {
   return (
-    <Link
+    <IntentLink
       href={`/routines/${routine.id}`}
+      eager={eager}
       className="focus-visible:ring-ring/30 block min-w-0 truncate rounded-md font-medium outline-none hover:underline focus-visible:ring-2"
     >
       {routine.name}
-    </Link>
+    </IntentLink>
   );
 }
 
@@ -97,10 +99,10 @@ export function RoutineList({
           </tr>
         </thead>
         <tbody className="divide-y">
-          {routines.map((routine) => (
+          {routines.map((routine, index) => (
             <tr key={routine.id}>
               <td className="min-w-0 py-2 pr-3">
-                <RoutineLink routine={routine} />
+                <RoutineLink routine={routine} eager={index === 0} />
                 <RoutineChips routine={routine} today={today} />
               </td>
               {showCustomer ? (
@@ -118,10 +120,10 @@ export function RoutineList({
         </tbody>
       </table>
       <ul className="grid gap-3 md:hidden">
-        {routines.map((routine) => (
+        {routines.map((routine, index) => (
           <li key={routine.id} className="grid min-w-0 gap-2 rounded-lg border p-3">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <RoutineLink routine={routine} />
+              <RoutineLink routine={routine} eager={index === 0} />
               <StatusBadge status={routine.status} />
             </div>
             <RoutineChips routine={routine} today={today} />

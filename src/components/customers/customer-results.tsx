@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { IntentLink } from "@/components/intent-link";
 import { BodyAreaBadge } from "@/components/body-areas/body-area-badge";
 import { Badge } from "@/components/ui/badge";
 import { customerName } from "@/lib/customers";
@@ -8,11 +8,12 @@ import type { CustomerSummary } from "@/server/customers/queries";
 
 import { CustomerAvatar } from "./customer-avatar";
 
-function NameLink({ customer }: { customer: CustomerSummary }) {
+function NameLink({ customer, eager }: { customer: CustomerSummary; eager: boolean }) {
   const t = useTranslations("Customers");
   return (
-    <Link
+    <IntentLink
       href={`/customers/${customer.id}`}
+      eager={eager}
       className="focus-visible:ring-ring/30 flex min-w-0 items-center gap-3 rounded-md font-medium outline-none hover:underline focus-visible:ring-2"
     >
       <CustomerAvatar firstName={customer.firstName} lastName={customer.lastName} size="sm" />
@@ -20,7 +21,7 @@ function NameLink({ customer }: { customer: CustomerSummary }) {
         {customerName(customer.firstName, customer.lastName)}
       </span>
       {customer.archivedAt ? <Badge variant="secondary">{t("archivedBadge")}</Badge> : null}
-    </Link>
+    </IntentLink>
   );
 }
 
@@ -67,10 +68,10 @@ export function CustomerResults({
           </tr>
         </thead>
         <tbody className="divide-y">
-          {customers.map((customer) => (
+          {customers.map((customer, index) => (
             <tr key={customer.id}>
               <td className="min-w-0 py-2 pr-3">
-                <NameLink customer={customer} />
+                <NameLink customer={customer} eager={index === 0} />
               </td>
               <td className="min-w-0 py-2 pr-3">
                 <ActiveCase customer={customer} />
@@ -81,9 +82,9 @@ export function CustomerResults({
         </tbody>
       </table>
       <ul className="grid gap-3 md:hidden">
-        {customers.map((customer) => (
+        {customers.map((customer, index) => (
           <li key={customer.id} className="grid min-w-0 gap-2 rounded-lg border p-3">
-            <NameLink customer={customer} />
+            <NameLink customer={customer} eager={index === 0} />
             <ActiveCase customer={customer} />
             <p className="text-muted-foreground text-xs">
               {t("lastActivity")}: {t("lastActivityNone")}
