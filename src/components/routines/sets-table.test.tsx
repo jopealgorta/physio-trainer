@@ -46,6 +46,78 @@ const sets = () => flatItems(latest)[0].sets;
 
 beforeEach(() => onChange.mockReset());
 
+describe("SetsTable aerobic", () => {
+  const aerobic = (sets = [set("s1")]) => [single("a", { exerciseKind: "aerobic", sets })];
+
+  it("shows duration, distance and intensity inputs and no reps, max or load", () => {
+    setup(aerobic(), "a");
+    expect(screen.getByRole("textbox", { name: "Set 1: Duration (min)" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Set 1: Distance (km)" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Set 1: Intensity" })).toBeInTheDocument();
+    expect(screen.queryByText("Reps")).not.toBeInTheDocument();
+    expect(screen.queryByText("Max reps")).not.toBeInTheDocument();
+    expect(screen.queryByText("Load")).not.toBeInTheDocument();
+  });
+
+  it("parses a comma decimal distance into meters", async () => {
+    const user = userEvent.setup();
+    setup(aerobic(), "a");
+    await user.type(screen.getByRole("textbox", { name: "Set 1: Distance (km)" }), "2,5");
+    expect(sets()[0].distanceMeters).toBe(2500);
+  });
+
+  it("parses minutes and m:ss durations into seconds", async () => {
+    const user = userEvent.setup();
+    setup(aerobic(), "a");
+    const duration = screen.getByRole("textbox", { name: "Set 1: Duration (min)" });
+    await user.type(duration, "1:30");
+    expect(sets()[0].durationSeconds).toBe(90);
+    await user.clear(duration);
+    await user.type(duration, "30");
+    expect(sets()[0].durationSeconds).toBe(1800);
+  });
+
+  it("shows an error and keeps the last valid value for invalid text", async () => {
+    const user = userEvent.setup();
+    setup(aerobic([set("s1", { durationSeconds: 600 })]), "a");
+    const duration = screen.getByRole("textbox", { name: "Set 1: Duration (min)" });
+    expect(duration).toHaveValue("10");
+    await user.type(duration, "x");
+    expect(screen.getByText("Enter minutes from 1 to 240, like 30 or 1:30.")).toBeInTheDocument();
+    expect(sets()[0].durationSeconds).toBe(600);
+    await user.clear(duration);
+    await user.type(duration, "0");
+    expect(screen.getByText("Enter minutes from 1 to 240, like 30 or 1:30.")).toBeInTheDocument();
+  });
+
+  it("flags a bad distance and stores the intensity text", async () => {
+    const user = userEvent.setup();
+    setup(aerobic(), "a");
+    await user.type(screen.getByRole("textbox", { name: "Set 1: Distance (km)" }), "abc");
+    expect(screen.getByText("Enter a distance up to 200 km, like 5 or 2.5.")).toBeInTheDocument();
+    expect(sets()[0].distanceMeters).toBeNull();
+    await user.type(screen.getByRole("textbox", { name: "Set 1: Intensity" }), "Zone 2");
+    expect(sets()[0].intensity).toBe("Zone 2");
+  });
+
+  it("rejects out-of-range duration and distance without storing them", async () => {
+    const user = userEvent.setup();
+    setup(aerobic(), "a");
+    await user.type(screen.getByRole("textbox", { name: "Set 1: Duration (min)" }), "500");
+    expect(screen.getByText("Enter minutes from 1 to 240, like 30 or 1:30.")).toBeInTheDocument();
+    expect(sets()[0].durationSeconds).toBe(3000); // last valid text, "50"
+    await user.type(screen.getByRole("textbox", { name: "Set 1: Distance (km)" }), "300");
+    expect(screen.getByText("Enter a distance up to 200 km, like 5 or 2.5.")).toBeInTheDocument();
+    expect(sets()[0].distanceMeters).toBe(30000); // last valid text, "30"
+  });
+
+  it("keeps the strength columns for a strength item", () => {
+    setup([single("a", { sets: [set("s1")] })], "a");
+    expect(screen.getByText("Reps")).toBeInTheDocument();
+    expect(screen.queryByText("Intensity")).not.toBeInTheDocument();
+  });
+});
+
 describe("SetsTable", () => {
   it("renders one row per set", () => {
     setup(

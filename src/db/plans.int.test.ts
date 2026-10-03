@@ -4,7 +4,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { isCheckViolation, isForeignKeyViolation } from "@/db/errors";
 import { runAsPhysio } from "@/db/rls";
-import { cases, customers, routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+import {
+  cases,
+  customers,
+  routines,
+  weeklyPlanDays,
+  weeklyPlanEntries,
+  weeklyPlans,
+} from "@/db/schema";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
 const rejectsWith = (code: string) => ({ cause: expect.objectContaining({ code }) });
@@ -109,6 +116,28 @@ describe("weekly plan tables", () => {
         }),
       ),
     ).rejects.toMatchObject(rejectsWith("42501"));
+  });
+
+  it("RLS keeps day notes private: no read, no insert, no update", async () => {
+    await db
+      .insert(weeklyPlanDays)
+      .values({ physioId: a.id, weeklyPlanId: aPlan, weekday: 2, notes: "Mine" });
+    expect(await runAsPhysio(b.claims, (tx) => tx.select().from(weeklyPlanDays))).toEqual([]);
+    expect(
+      (await runAsPhysio(a.claims, (tx) => tx.select().from(weeklyPlanDays))).map((r) => r.notes),
+    ).toContain("Mine");
+    await expect(
+      runAsPhysio(b.claims, (tx) =>
+        tx
+          .insert(weeklyPlanDays)
+          .values({ physioId: a.id, weeklyPlanId: aPlan, weekday: 3, notes: "Planted" }),
+      ),
+    ).rejects.toMatchObject(rejectsWith("42501"));
+    expect(
+      await runAsPhysio(b.claims, (tx) =>
+        tx.update(weeklyPlanDays).set({ notes: "Hijacked" }).returning(),
+      ),
+    ).toEqual([]);
   });
 
   describe("composite foreign keys", () => {

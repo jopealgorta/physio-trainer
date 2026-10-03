@@ -259,12 +259,18 @@
       "notAWholeNumber": "Enter a whole number.",
       "outOfRange": "Enter a number from {min, number} to {max, number}.",
       "repsMaxWithoutReps": "Enter reps first.",
-      "repsMaxNotAboveReps": "Must be more than reps."
+      "repsMaxNotAboveReps": "Must be more than reps.",
+      "notADuration": "Enter minutes from 1 to 240, like 30 or 1:30.",
+      "notADistance": "Enter a distance up to 200 km, like 5 or 2.5."
     },
     "summary": {
       "count": "{value, number}",
       "range": "{min, number}–{max, number}",
       "seconds": "{value, number} s",
+      "minutes": "{value, number} min",
+      "minutesSeconds": "{minutes, number}:{seconds} min",
+      "distanceKm": "{value, number} km",
+      "distanceM": "{value, number} m",
       "sets": "{count, plural, one {# set} other {# sets}}",
       "blank": "–",
       "hold": "hold {value, number} s",
@@ -312,6 +318,11 @@
         "create": "Create category",
         "creating": "Creating…",
         "cancel": "Cancel"
+      },
+      "kind": {
+        "label": "Type",
+        "strength": "Strength",
+        "aerobic": "Aerobic"
       }
     },
     "detail": {
@@ -416,6 +427,9 @@
         "tooDeep": "Sub-categories can't have sub-categories.",
         "unknown": "Something went wrong. Try again."
       }
+    },
+    "kindBadge": {
+      "aerobic": "Aerobic"
     }
   },
   "Customers": {
@@ -712,7 +726,13 @@
         "add": "Add set",
         "remove": "Remove set {n, number}",
         "syncHint": "Sets stay in sync across the superset.",
-        "limit": "Up to {max, number} sets."
+        "limit": "Up to {max, number} sets.",
+        "distance": "Distance (km)",
+        "distanceHint": "5 or 2.5",
+        "intensity": "Intensity",
+        "intensityPlaceholder": "Zone 2, RPE 5, 5:30/km",
+        "durationMinutes": "Duration (min)",
+        "durationHint": "30 or 1:30"
       },
       "fields": {
         "hold": "Hold (s)",
@@ -908,6 +928,13 @@
       },
       "name": "Plan name",
       "rename": "Rename plan"
+    },
+    "dayNotes": {
+      "edit": "Edit note for {day}",
+      "title": "Note for {day}",
+      "placeholder": "Something for the patient that day, e.g. \"Easy day, stop if it hurts\"",
+      "save": "Save",
+      "remove": "Remove"
     }
   },
   "Templates": {
@@ -1285,7 +1312,13 @@
       "notes": "Note",
       "superset": "Superset",
       "supersetRest": "Rest {value, number} s after each round",
-      "noMedia": "No video"
+      "noMedia": "No video",
+      "open": "Watch {name}",
+      "detailTitle": "About {name}",
+      "log": "Log {name}",
+      "logged": "Logged",
+      "noVideo": "No video for this exercise",
+      "thumbnailAlt": "{name}, video {number, number}"
     },
     "empty": {
       "title": "Nothing scheduled for today",
@@ -1343,9 +1376,22 @@
       "pain": {
         "legend": "Pain (optional)",
         "hint": "0 is no pain, 10 is the worst pain you can imagine.",
-        "none": "No pain",
-        "worst": "Worst pain",
         "clear": "Clear"
+      },
+      "rpe": {
+        "legend": "Effort (RPE)",
+        "hint": "How hard was it? 0 = rest, 10 = maximal.",
+        "clear": "Clear",
+        "selected": "{value, number} · {label}",
+        "descriptors": {
+          "rest": "Rest",
+          "veryEasy": "Very easy",
+          "easy": "Easy / moderate",
+          "hard": "Hard",
+          "veryHard": "Very hard",
+          "extreme": "Extremely hard",
+          "max": "Maximal"
+        }
       },
       "comment": {
         "label": "Comment (optional)",
@@ -1363,13 +1409,41 @@
         "preview": "You are previewing this page, so nothing was saved."
       }
     },
-    "physioPhotoAlt": "Photo of {name}"
+    "exerciseLog": {
+      "title": "How did {name} go?",
+      "weight": {
+        "label": "Weight (optional)",
+        "hint": "In kg, for example 12.5",
+        "invalid": "Enter a weight between 0 and {max, number} kg."
+      },
+      "comment": {
+        "label": "Comment (optional)",
+        "placeholder": "How did it feel? Anything your physio should know?"
+      },
+      "save": "Save",
+      "clear": "Clear log",
+      "close": "Close",
+      "chips": {
+        "pain": "Pain {value, number}",
+        "rpe": "RPE {value, number}",
+        "weight": "{value, number} kg"
+      },
+      "errors": {
+        "generic": "Something went wrong. Try again.",
+        "invalid": "Check what you entered and try again.",
+        "date": "You can only log today or yesterday.",
+        "unreachable": "This exercise was not part of your plan on that day.",
+        "unavailable": "This link is no longer available.",
+        "preview": "You are previewing this page, so nothing was saved."
+      }
+    },
+    "physioPhotoAlt": "Photo of {name}",
+    "dayNote": "Note for the day"
   },
   "Workout": {
     "label": "Workout: {name}",
     "progress": "Exercise {current, number} of {total, number}",
     "setOf": "Set {current, number} of {total, number}",
-    "superset": "Superset",
     "side": {
       "left": "Left side",
       "right": "Right side",
@@ -1379,7 +1453,12 @@
       "reps": "{count, plural, one {# rep} other {# reps}}",
       "range": "{min, number}–{max, number} reps",
       "duration": "{value, number} s",
-      "load": "Load: {value}"
+      "minutes": "{value, number} min",
+      "minutesSeconds": "{minutes, number}:{seconds} min",
+      "load": "Load: {value}",
+      "distanceKm": "{value, number} km",
+      "distanceM": "{value, number} m",
+      "intensity": "Intensity: {value}"
     },
     "exit": "Exit workout",
     "exitDialog": {
@@ -1388,6 +1467,7 @@
       "stay": "Keep going",
       "leave": "Leave"
     },
+    "current": "Current exercise",
     "previous": "Previous",
     "next": "Next",
     "setDone": "Set done",
@@ -1400,9 +1480,7 @@
     "skip": "Skip",
     "addTime": "+15 s",
     "addTimeLabel": "Add 15 seconds",
-    "notes": "Note",
-    "instructions": "How to do it",
-    "noVideo": "No video for this exercise",
+    "logExercise": "Log exercise",
     "sound": {
       "on": "Sound on",
       "off": "Sound off"
@@ -1479,7 +1557,18 @@
       "empty": "No comments yet.",
       "new": "New",
       "newCount": "{count, plural, one {# new comment} other {# new comments}}",
-      "painValue": "Pain {value, number}/10"
+      "painValue": "Pain {value, number}/10",
+      "rpeValue": "RPE {value, number}/10"
+    },
+    "exercises": {
+      "title": "Exercise log",
+      "description": "What the patient noted on each exercise.",
+      "empty": "No exercise logs yet.",
+      "group": "{date} · {routine}",
+      "pain": "Pain {value, number}/10",
+      "rpe": "RPE {value, number}/10",
+      "weight": "{value} kg",
+      "new": "New"
     }
   },
   "Dashboard": {
@@ -1503,7 +1592,8 @@
       "description": "What patients wrote that you haven't opened yet.",
       "empty": "No new comments.",
       "count": "{count, plural, one {# new comment} other {# new comments}}",
-      "context": "{routine} · {date}"
+      "context": "{routine} · {date}",
+      "contextExercise": "{routine} · {exercise} · {date}"
     },
     "recent": {
       "title": "Recently active",
@@ -1569,11 +1659,14 @@
         "duration": "Duration (s)",
         "rest": "Rest (s)",
         "load": "Load",
+        "distance": "Distance",
+        "intensity": "Intensity",
         "side": "Side",
         "notes": "Notes",
         "instructions": "Instructions",
         "video": "Video link"
-      }
+      },
+      "notes": "Notes"
     }
   },
   "History": {
@@ -1603,6 +1696,8 @@
       "repsMax": "Max reps",
       "durationSeconds": "Duration",
       "load": "Load",
+      "distanceMeters": "Distance",
+      "intensity": "Intensity",
       "sets": "Sets",
       "holdSeconds": "Hold",
       "restSeconds": "Rest",
@@ -1610,6 +1705,7 @@
       "notes": "Notes",
       "group": "Superset",
       "label": "Label",
+      "dayNotes": "Day notes",
       "routine": "Routine",
       "name": "Name",
       "status": "Status",

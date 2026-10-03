@@ -46,6 +46,7 @@ function mk(
     key: nk(),
     exerciseId: `ex-${exerciseName}`,
     exerciseName,
+    exerciseKind: "strength",
     exerciseArchived: false,
     cover: null,
     sets: sets.map((set) => ({ ...EMPTY_SET, ...set, key: nk() })),
@@ -87,7 +88,13 @@ function deepFreeze<T>(value: T): T {
 describe("items", () => {
   it("newItem has exactly one empty set and an empty prescription", () => {
     const item = newItem(
-      { id: "e1", name: "Squat", archived: false, cover: { videoId: "v", isShort: true } },
+      {
+        id: "e1",
+        name: "Squat",
+        kind: "aerobic",
+        archived: false,
+        cover: { videoId: "v", isShort: true },
+      },
       nk,
     );
     expect(item.sets).toHaveLength(1);
@@ -96,6 +103,7 @@ describe("items", () => {
       ...EMPTY_ITEM_PRESCRIPTION,
       exerciseId: "e1",
       exerciseName: "Squat",
+      exerciseKind: "aerobic",
       exerciseArchived: false,
       cover: { videoId: "v", isShort: true },
     });
@@ -425,7 +433,16 @@ describe("toSaveBlocks", () => {
       restSeconds: 20,
       side: "left",
       notes: "x",
-      sets: [{ reps: 8, repsMax: null, durationSeconds: null, load: null }],
+      sets: [
+        {
+          reps: 8,
+          repsMax: null,
+          durationSeconds: null,
+          load: null,
+          distanceMeters: null,
+          intensity: null,
+        },
+      ],
     });
     assertValid(blocks);
   });
@@ -456,12 +473,33 @@ describe("fromLoaded", () => {
     ...EMPTY_ITEM_PRESCRIPTION,
     id,
     exerciseId: `ex-${id}`,
+    exerciseKind: "strength",
     exerciseName: id,
     exerciseArchived: false,
     cover: null,
     groupId,
     sets: sets.map((s) => ({ ...EMPTY_SET, ...s })),
     ...extra,
+  });
+
+  it("carries the exercise kind and the aerobic set fields", () => {
+    const out = fromLoaded(
+      [
+        loaded(
+          "run",
+          null,
+          [{ durationSeconds: 1800, distanceMeters: 5000, intensity: "Zone 2" }],
+          {
+            exerciseKind: "aerobic",
+          },
+        ),
+      ],
+      [],
+      nk,
+    );
+    const [run] = flatItems(out);
+    expect(run.exerciseKind).toBe("aerobic");
+    expect(run.sets[0]).toMatchObject({ distanceMeters: 5000, intensity: "Zone 2" });
   });
 
   it("groups consecutive items by groupId, keeps group rest and block key = group id", () => {
@@ -560,7 +598,13 @@ describe("invariants under random operation sequences", () => {
             blocks = addItem(
               blocks,
               newItem(
-                { id: `e${exercise}`, name: `E${exercise++}`, archived: false, cover: null },
+                {
+                  id: `e${exercise}`,
+                  name: `E${exercise++}`,
+                  kind: "strength",
+                  archived: false,
+                  cover: null,
+                },
                 nk,
               ),
             );

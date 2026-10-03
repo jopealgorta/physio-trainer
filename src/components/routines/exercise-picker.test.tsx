@@ -18,6 +18,7 @@ const exercise = (id: string, name: string, over: Partial<ExerciseSummary> = {})
   ({
     id,
     name,
+    kind: "strength",
     categoryId: null,
     bodyAreas: ["knee"],
     tags: [],
@@ -256,6 +257,7 @@ describe("ExercisePicker", () => {
     await user.click(within(list()).getByRole("button", { name: "Squat" }));
     expect(onPick).toHaveBeenCalledWith({
       id: "e1",
+      kind: "strength",
       name: "Squat",
       archived: false,
       cover: { videoId: "abcdefghijk", isShort: false },

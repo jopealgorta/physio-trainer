@@ -76,6 +76,7 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
         defaults={{
           id: exercise.id,
           name: exercise.name,
+          kind: exercise.kind,
           categoryId: exercise.categoryId,
           instructions: exercise.instructions,
           bodyAreas: exercise.bodyAreas,

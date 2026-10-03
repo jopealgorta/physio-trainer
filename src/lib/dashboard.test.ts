@@ -26,6 +26,7 @@ const customer = (id: string, extra: Partial<CustomerFacts> = {}): CustomerFacts
   plans: [],
   singles: [],
   logs: [],
+  exercisePain: [],
   hasLink: true,
   ...extra,
 });
@@ -93,6 +94,36 @@ describe("buildDashboard", () => {
       { customerId: "b", name: "B", count: 1, latest: unseen[1]!.latest },
       { customerId: "a", name: "A", count: 2, latest: unseen[0]!.latest },
     ]);
+  });
+
+  it("counts an unseen exercise comment and names its exercise", () => {
+    const unseen: UnseenSummary[] = [
+      {
+        customerId: "a",
+        count: 1,
+        latest: { comment: "session", performedOn: "2026-10-06", routineName: "Knee" },
+      },
+      {
+        customerId: "a",
+        count: 2,
+        latest: {
+          comment: "exercise",
+          performedOn: "2026-10-07",
+          routineName: "Knee",
+          exerciseName: "Squat",
+        },
+      },
+    ];
+    expect(build([customer("a")], unseen).newComments).toEqual([
+      { customerId: "a", name: "A", count: 3, latest: unseen[1]!.latest },
+    ]);
+  });
+
+  it("flags high pain logged on an exercise", () => {
+    const result = build([
+      customer("a", { exercisePain: [{ performedOn: "2026-10-07", pain: 8 }] }),
+    ]);
+    expect(result.attention[0]!.reasons).toEqual([{ rule: "highPain", pain: 8 }]);
   });
 
   it("ignores comments of customers that are not active", () => {

@@ -13,11 +13,20 @@ import {
 } from "./model";
 
 const t: PrescriptionTranslate = (k, v) => k + JSON.stringify(v ?? {});
-const S = { reps: null, repsMax: null, durationSeconds: null, load: null };
+const S = {
+  reps: null,
+  repsMax: null,
+  durationSeconds: null,
+  load: null,
+  distanceMeters: null,
+  intensity: null,
+};
 
 function item(id: string, over: Partial<ContentItem> = {}): ContentItem {
   return {
     id,
+    exerciseId: `e-${id}`,
+    kind: "strength",
     name: `Ex ${id}`,
     instructions: null,
     holdSeconds: null,
@@ -72,6 +81,8 @@ describe("setColumns", () => {
       reps: "12",
       duration: null,
       load: null,
+      distance: null,
+      intensity: null,
     });
   });
   it("joins differing values", () => {
@@ -89,7 +100,26 @@ describe("setColumns", () => {
     expect(c.duration).toBe("30");
   });
   it("handles no sets", () => {
-    expect(setColumns([])).toEqual({ count: 0, reps: null, duration: null, load: null });
+    expect(setColumns([])).toEqual({
+      count: 0,
+      reps: null,
+      duration: null,
+      load: null,
+      distance: null,
+      intensity: null,
+    });
+  });
+  it("formats distance with the locale and lists intensity per set", () => {
+    const c = setColumns(
+      [
+        { ...S, distanceMeters: 2500, intensity: "Zone 2" },
+        { ...S, distanceMeters: 800, intensity: "Zone 2" },
+      ],
+      "es",
+    );
+    expect(c.distance).toBe("2,5 km / 800 m");
+    expect(c.intensity).toBe("Zone 2");
+    expect(setColumns([{ ...S, distanceMeters: 5000 }], "en").distance).toBe("5 km");
   });
 });
 
@@ -99,6 +129,7 @@ describe("buildExportDocument", () => {
     name: "Plan",
     notes: null,
     phase: null,
+    days: [{ weekday: 3, notes: "Easy day" }],
     entries: [
       { weekday: 1, label: "AM", routineId: "R" },
       { weekday: 1, label: null, routineId: "S" },
@@ -124,6 +155,7 @@ describe("buildExportDocument", () => {
       { label: null, routineName: "R S" },
     ]);
     expect(week[4].entries).toEqual([]);
+    expect(week.map((day) => day.notes)).toEqual([null, null, "Easy day", null, null, null, null]);
   });
   it("labels supersets", () => {
     const doc = buildExportDocument(

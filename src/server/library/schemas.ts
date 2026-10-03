@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { BODY_AREAS } from "@/lib/body-areas";
+import { EXERCISE_KINDS } from "@/lib/exercise-kinds";
 import {
   CATEGORY_NAME_MAX_LENGTH,
   EXERCISE_NAME_MAX_LENGTH,
@@ -57,6 +58,7 @@ const BODY_AREA_ORDER = new Map(BODY_AREAS.map((area, index) => [area, index]));
 
 export const exerciseSchema = z.object({
   name: z.string().trim().min(1, "nameRequired").max(EXERCISE_NAME_MAX_LENGTH, "nameTooLong"),
+  kind: z.enum(EXERCISE_KINDS).default("strength"),
   categoryId: z.preprocess(
     (value) => (value === "" || value === undefined ? null : value),
     z.uuid("categoryInvalid").nullable(),
@@ -99,7 +101,8 @@ export function exerciseFormValues(formData: FormData): Record<string, unknown> 
   return values;
 }
 
-export type ExerciseField = "name" | "categoryId" | "instructions" | "bodyAreas" | "tags" | "media";
+export type ExerciseField =
+  "name" | "kind" | "categoryId" | "instructions" | "bodyAreas" | "tags" | "media";
 export type ExerciseFieldErrors = Partial<Record<ExerciseField, string>>;
 
 const KNOWN_CODES = new Set([

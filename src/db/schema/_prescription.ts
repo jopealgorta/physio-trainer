@@ -3,6 +3,7 @@ import { check, integer, smallint, text, type AnyPgColumn } from "drizzle-orm/pg
 
 // Relative imports: drizzle-kit loads the schema without the "@/" alias.
 import {
+  INTENSITY_MAX_LENGTH,
   LOAD_MAX_LENGTH,
   PRESCRIPTION_LIMITS,
   PRESCRIPTION_NOTES_MAX_LENGTH,
@@ -21,7 +22,14 @@ export function itemPrescriptionColumns() {
 
 /** Per-set fields of a routine item set (spec 05). */
 export function setPrescriptionColumns() {
-  return { reps: smallint(), repsMax: smallint(), durationSeconds: integer(), load: text() };
+  return {
+    reps: smallint(),
+    repsMax: smallint(),
+    durationSeconds: integer(),
+    load: text(),
+    distanceMeters: integer(),
+    intensity: text(),
+  };
 }
 
 type PrescriptionColumns = Record<
@@ -59,7 +67,10 @@ export function itemPrescriptionChecks(
 /** Backstops for a routine item set's fields. */
 export function setPrescriptionChecks(
   table: string,
-  c: Pick<PrescriptionColumns, "reps" | "repsMax" | "durationSeconds" | "load">,
+  c: Pick<
+    PrescriptionColumns,
+    "reps" | "repsMax" | "durationSeconds" | "load" | "distanceMeters" | "intensity"
+  >,
 ) {
   return [
     rangeCheck(table, "reps", c.reps, PRESCRIPTION_LIMITS.reps),
@@ -72,6 +83,11 @@ export function setPrescriptionChecks(
     check(
       `${table}_load_length`,
       sql`char_length(${c.load}) <= ${sql.raw(String(LOAD_MAX_LENGTH))}`,
+    ),
+    rangeCheck(table, "distance_meters", c.distanceMeters, PRESCRIPTION_LIMITS.distanceMeters),
+    check(
+      `${table}_intensity_length`,
+      sql`char_length(${c.intensity}) <= ${sql.raw(String(INTENSITY_MAX_LENGTH))}`,
     ),
   ];
 }

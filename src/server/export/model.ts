@@ -6,6 +6,7 @@ import {
   type PrescriptionTranslate,
   type SetPrescription,
 } from "@/lib/prescription";
+import { distanceDisplay } from "@/lib/distance";
 import { shareSlug } from "@/lib/share-links";
 import { youtubeWatchUrl } from "@/lib/youtube";
 import type { ContentItem, RoutineContent } from "@/server/routines/content";
@@ -20,6 +21,8 @@ export type SourcePlan = {
   name: string;
   notes: string | null;
   phase: ExportPhase | null;
+  /** The plan's day notes (a weekday without a note has no row). */
+  days: { weekday: number; notes: string }[];
   entries: { weekday: number; label: string | null; routineId: string }[]; // ordered by weekday, position
 };
 /** What a loader returns (physio or patient side). */
@@ -47,6 +50,8 @@ export type SetColumns = {
   reps: string | null;
   duration: string | null;
   load: string | null;
+  distance: string | null;
+  intensity: string | null;
 };
 export type ExportItem = {
   id: string;
@@ -79,6 +84,7 @@ export type ExportRoutine = {
 };
 export type ExportWeekDay = {
   weekday: number;
+  notes: string | null;
   entries: { label: string | null; routineName: string }[];
 };
 export type ExportPlan = {
@@ -106,7 +112,8 @@ function column(values: (string | null)[]): string | null {
   return values.map((value) => value ?? "–").join(" / ");
 }
 
-export function setColumns(sets: SetPrescription[]): SetColumns {
+export function setColumns(sets: SetPrescription[], locale: string = "en"): SetColumns {
+  const numbers = new Intl.NumberFormat(locale);
   return {
     count: sets.length,
     reps: column(
@@ -122,17 +129,30 @@ export function setColumns(sets: SetPrescription[]): SetColumns {
       sets.map((set) => (set.durationSeconds === null ? null : `${set.durationSeconds}`)),
     ),
     load: column(sets.map((set) => set.load)),
+    distance: column(
+      sets.map((set) => {
+        if (set.distanceMeters === null) return null;
+        const { unit, value } = distanceDisplay(set.distanceMeters);
+        return `${numbers.format(value)} ${unit}`;
+      }),
+    ),
+    intensity: column(sets.map((set) => set.intensity)),
   };
 }
 
-function exportItem(item: ContentItem, label: string | null, summary: PrescriptionTranslate) {
+function exportItem(
+  item: ContentItem,
+  label: string | null,
+  summary: PrescriptionTranslate,
+  locale: string,
+) {
   const media = item.media[0] ?? null;
   return {
     id: item.id,
     name: item.name,
     label,
     summary: formatPrescription(item, summary),
-    columns: setColumns(item.sets),
+    columns: setColumns(item.sets, locale),
     holdSeconds: item.holdSeconds,
     restSeconds: item.restSeconds,
     side: item.side,
@@ -147,18 +167,21 @@ function exportRoutine(
   routine: SourceRoutine,
   weekdays: number[],
   summary: PrescriptionTranslate,
+  locale: string,
 ): ExportRoutine {
   let groupIndex = 0;
   const blocks = routine.blocks.map((block): ExportBlock => {
     if (block.kind === "single") {
-      return { kind: "single", item: exportItem(block.item, null, summary) };
+      return { kind: "single", item: exportItem(block.item, null, summary, locale) };
     }
     const letter = String.fromCharCode(65 + groupIndex++);
     return {
       kind: "group",
       label: letter,
       restSeconds: block.restSeconds,
-      items: block.items.map((item, index) => exportItem(item, `${letter}${index + 1}`, summary)),
+      items: block.items.map((item, index) =>
+        exportItem(item, `${letter}${index + 1}`, summary, locale),
+      ),
     };
   });
   return {
@@ -188,6 +211,7 @@ export function buildExportDocument(
   const exportPlans = plans.map((plan): ExportPlan => {
     const week: ExportWeekDay[] = Array.from({ length: 7 }, (_, index) => ({
       weekday: index + 1,
+      notes: plan.days.find((day) => day.weekday === index + 1)?.notes ?? null,
       entries: [],
     }));
     for (const entry of plan.entries) {
@@ -211,7 +235,7 @@ export function buildExportDocument(
     const routine = byId.get(id);
     if (!routine) return [];
     const weekdays = [...(weekdaysById.get(id) ?? [])].sort((a, b) => a - b);
-    return [exportRoutine(routine, weekdays, summary)];
+    return [exportRoutine(routine, weekdays, summary, source.locale)];
   });
 
   const hasItems = exportRoutines.some((routine) => routine.blocks.length > 0);

@@ -10,12 +10,15 @@ import {
   routineItems,
   routines,
 } from "@/db/schema";
+import type { ExerciseKind } from "@/lib/exercise-kinds";
 import type { ItemPrescription, SetPrescription } from "@/lib/prescription";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import type { Queryable } from "@/server/branding/queries";
 
 export type ContentItem = ItemPrescription & {
   id: string;
+  exerciseId: string;
+  kind: ExerciseKind;
   name: string;
   instructions: string | null;
   sets: SetPrescription[];
@@ -77,6 +80,7 @@ export async function loadRoutineContent(
         routineId: routineItems.routineId,
         exerciseId: routineItems.exerciseId,
         groupId: routineItems.groupId,
+        kind: exercises.kind,
         name: exercises.name,
         instructions: exercises.instructions,
         holdSeconds: routineItems.holdSeconds,
@@ -107,6 +111,8 @@ export async function loadRoutineContent(
             repsMax: routineItemSets.repsMax,
             durationSeconds: routineItemSets.durationSeconds,
             load: routineItemSets.load,
+            distanceMeters: routineItemSets.distanceMeters,
+            intensity: routineItemSets.intensity,
           })
           .from(routineItemSets)
           .where(
@@ -153,6 +159,8 @@ export async function loadRoutineContent(
     for (const row of itemRows.filter((item) => item.routineId === header.id)) {
       const item: ContentItem = {
         id: row.id,
+        exerciseId: row.exerciseId,
+        kind: row.kind,
         name: row.name,
         instructions: row.instructions,
         holdSeconds: row.holdSeconds,

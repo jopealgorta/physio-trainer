@@ -4,7 +4,14 @@ import { and, eq, sql } from "drizzle-orm";
 
 import { isForeignKeyViolation } from "@/db/errors";
 import type { Tx } from "@/db/rls";
-import { cases, customers, routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+import {
+  cases,
+  customers,
+  routines,
+  weeklyPlanDays,
+  weeklyPlanEntries,
+  weeklyPlans,
+} from "@/db/schema";
 import {
   appendEntry,
   changedEntries,
@@ -29,6 +36,7 @@ import {
   type RemoveEntryInput,
   type Result,
   type SeparateCopyInput,
+  type SetDayNotesInput,
   type SetLabelInput,
   type RenamePlanInput,
   type UpdatePlanError,
@@ -417,6 +425,42 @@ export async function setEntryLabel(
   return ok({});
 }
 
+/** Sets a weekday's note; a blank note removes it. */
+export async function setDayNotes(
+  tx: Tx,
+  physioId: string,
+  input: SetDayNotesInput,
+): Promise<BoardResult> {
+  const plan = await lockPlan(tx, physioId, input.planId);
+  if (!plan) return fail("notFound");
+  if (input.notes === null) {
+    await tx
+      .delete(weeklyPlanDays)
+      .where(
+        and(
+          eq(weeklyPlanDays.physioId, physioId),
+          eq(weeklyPlanDays.weeklyPlanId, plan.id),
+          eq(weeklyPlanDays.weekday, input.weekday),
+        ),
+      );
+  } else {
+    await tx
+      .insert(weeklyPlanDays)
+      .values({
+        physioId,
+        weeklyPlanId: plan.id,
+        weekday: input.weekday,
+        notes: input.notes,
+      })
+      .onConflictDoUpdate({
+        target: [weeklyPlanDays.physioId, weeklyPlanDays.weeklyPlanId, weeklyPlanDays.weekday],
+        set: { notes: input.notes },
+      });
+  }
+  await bumpAndRecord(tx, physioId, plan.id);
+  return ok({});
+}
+
 /**
  * Removes an entry. With `deleteRoutine`, also deletes its routine when this was the last entry
  * (in any plan) that referenced it and it is not standalone (rule 3).
@@ -618,6 +662,15 @@ export async function copyPlan(
         label: entry.label,
       })),
     );
+  }
+  const days = await tx
+    .select({ weekday: weeklyPlanDays.weekday, notes: weeklyPlanDays.notes })
+    .from(weeklyPlanDays)
+    .where(and(eq(weeklyPlanDays.physioId, physioId), eq(weeklyPlanDays.weeklyPlanId, source.id)));
+  if (days.length > 0) {
+    await tx
+      .insert(weeklyPlanDays)
+      .values(days.map((day) => ({ physioId, weeklyPlanId: plan.id, ...day })));
   }
   await recordPlanVersion(tx, physioId, plan.id, { kind: "created" });
   return ok({ id: plan.id });

@@ -9,6 +9,7 @@ import {
   routineItemSets,
   routineItems,
   routines,
+  weeklyPlanDays,
   weeklyPlanEntries,
   weeklyPlans,
 } from "@/db/schema";
@@ -417,6 +418,25 @@ describe("phases server layer", () => {
         { weekday: 3, position: 0, label: "AM", name: "Knee rehab" },
         { weekday: 3, position: 1, label: null, name: "Second" },
       ]);
+    });
+
+    it("copies the plan's day notes", async () => {
+      const c = await customer(a);
+      const r1 = await routine(a, c, {}, 1);
+      const source = await plan(a, c);
+      await db
+        .insert(weeklyPlanEntries)
+        .values({ physioId: a.id, weeklyPlanId: source, routineId: r1, weekday: 3, position: 0 });
+      await db
+        .insert(weeklyPlanDays)
+        .values({ physioId: a.id, weeklyPlanId: source, weekday: 3, notes: "Easy day" });
+      const result = await as(a, (tx, id) => copyIntoNextPhase(tx, id, copyInput("plan", source)));
+      if (!result.ok) throw new Error(result.error);
+      const days = await db
+        .select({ weekday: weeklyPlanDays.weekday, notes: weeklyPlanDays.notes })
+        .from(weeklyPlanDays)
+        .where(eq(weeklyPlanDays.weeklyPlanId, result.data.id));
+      expect(days).toEqual([{ weekday: 3, notes: "Easy day" }]);
     });
 
     it("makes a draft copy of an empty plan or one holding an archived routine", async () => {

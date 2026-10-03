@@ -7,6 +7,6 @@ it("splits the routine prescription into per-item and per-set columns", () => {
     ["holdSeconds", "notes", "restSeconds", "side"].sort(),
   );
   expect(Object.keys(setPrescriptionColumns()).sort()).toEqual(
-    ["durationSeconds", "load", "reps", "repsMax"].sort(),
+    ["distanceMeters", "durationSeconds", "intensity", "load", "reps", "repsMax"].sort(),
   );
 });

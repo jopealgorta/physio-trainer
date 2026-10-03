@@ -9,6 +9,7 @@ const valid = {
   performedOn: "2026-10-07",
   completed: true,
   pain: 5,
+  rpe: null,
   comment: "ok",
 };
 
@@ -16,6 +17,20 @@ describe("logSessionSchema", () => {
   it("accepts a complete log", () => {
     expect(logSessionSchema.parse(valid)).toEqual(valid);
     expect(logSessionSchema.parse({ ...valid, entryId: ID, pain: null }).entryId).toBe(ID);
+  });
+
+  it("accepts RPE 0-10 and rejects anything else", () => {
+    expect(logSessionSchema.parse({ ...valid, rpe: 7 }).rpe).toBe(7);
+    expect(logSessionSchema.safeParse({ ...valid, rpe: 0 }).success).toBe(true);
+    for (const rpe of [-1, 11, 2.5, "3"]) {
+      expect(logSessionSchema.safeParse({ ...valid, rpe }).success).toBe(false);
+    }
+  });
+
+  it("parses a missing rpe (an old client) to null", () => {
+    const old: Record<string, unknown> = { ...valid };
+    delete old.rpe;
+    expect(logSessionSchema.parse(old).rpe).toBeNull();
   });
 
   it("trims the comment and turns a blank one into null", () => {

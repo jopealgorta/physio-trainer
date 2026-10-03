@@ -66,8 +66,9 @@ export function DashboardView({ data, timeZone }: { data: Dashboard; timeZone: s
             >
               <p className="line-clamp-2 text-sm wrap-anywhere">{entry.latest.comment}</p>
               <p className="text-muted-foreground text-xs">
-                {t("comments.context", {
+                {t(entry.latest.exerciseName ? "comments.contextExercise" : "comments.context", {
                   routine: entry.latest.routineName,
+                  exercise: entry.latest.exerciseName ?? "",
                   date: format.dateTime(
                     calendarDateToDate(entry.latest.performedOn),
                     CALENDAR_DATE_FORMAT,

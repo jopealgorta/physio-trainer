@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  DAY_NOTES_MAX,
   ENTRY_LABEL_MAX,
   MAX_ENTRIES_PER_DAY,
   PLAN_NAME_MAX,
@@ -36,6 +37,12 @@ const label = z.preprocess(
     error: "invalid",
   }),
 );
+
+const dayNotes = z
+  .preprocess((value) => value ?? "", z.string())
+  .transform((value) => value.trim())
+  .pipe(z.string().max(DAY_NOTES_MAX, "tooLong"))
+  .transform((value) => value || null);
 
 const weekday = z.number().int().min(WEEKDAYS[0]).max(WEEKDAYS[6]);
 
@@ -98,6 +105,9 @@ export type CopyEntryInput = z.output<typeof copyEntrySchema>;
 
 export const setLabelSchema = z.object({ planId: z.uuid(), entryId: z.uuid(), label });
 export type SetLabelInput = z.output<typeof setLabelSchema>;
+
+export const setDayNotesSchema = z.object({ planId: z.uuid(), weekday, notes: dayNotes });
+export type SetDayNotesInput = z.output<typeof setDayNotesSchema>;
 
 export const removeEntrySchema = z.object({
   planId: z.uuid(),

@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, eq, inArray, ne, type SQL } from "drizzle-orm";
 
 import type { Tx } from "@/db/rls";
-import { customers, routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+import { customers, routines, weeklyPlanDays, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
 import { env } from "@/env";
 import { isUuid } from "@/lib/patient-paths";
 import { buildShareUrl } from "@/lib/share-links";
@@ -71,8 +71,25 @@ async function planEntries(
     .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position));
 }
 
+/** The day notes of the plans, ordered by weekday. */
+async function planDays(tx: Tx, physioId: string, planIds: string[]) {
+  if (planIds.length === 0) return [];
+  return tx
+    .select({
+      planId: weeklyPlanDays.weeklyPlanId,
+      weekday: weeklyPlanDays.weekday,
+      notes: weeklyPlanDays.notes,
+    })
+    .from(weeklyPlanDays)
+    .where(
+      and(eq(weeklyPlanDays.physioId, physioId), inArray(weeklyPlanDays.weeklyPlanId, planIds)),
+    )
+    .orderBy(asc(weeklyPlanDays.weekday));
+}
+
 type PlanRow = PhaseColumns & { id: string; name: string; notes: string | null };
 type EntryRow = Awaited<ReturnType<typeof planEntries>>[number];
+type DayRow = Awaited<ReturnType<typeof planDays>>[number];
 
 /**
  * Loads the content of `routineRows` (standalone, keeping their phase) and of the routines the
@@ -84,6 +101,7 @@ async function assemble(
   customerId: string,
   planRows: PlanRow[],
   entryRows: EntryRow[],
+  dayRows: DayRow[],
   routineRows: (PhaseColumns & { id: string })[],
 ): Promise<Pick<ExportSourceData, "plans" | "routines" | "planRoutines">> {
   const routineIds = routineRows.map((row) => row.id);
@@ -98,6 +116,9 @@ async function assemble(
   const plans = planRows.map(({ phaseLabel, startsOn, endsOn, ...plan }): SourcePlan => ({
     ...plan,
     phase: phaseOf({ phaseLabel, startsOn, endsOn }),
+    days: dayRows
+      .filter((day) => day.planId === plan.id)
+      .map(({ weekday, notes }) => ({ weekday, notes })),
     entries: entryRows
       .filter((entry) => entry.planId === plan.id && content.has(entry.routineId))
       .map(({ weekday, label, routineId }) => ({ weekday, label, routineId })),
@@ -139,6 +160,7 @@ export async function getRoutineExport(
     row.customer.id,
     [],
     [],
+    [],
     [{ id: routineId, ...row.routine }],
   );
   return { customer: row.customer, title: row.name, ...data };
@@ -174,7 +196,8 @@ export async function getPlanExport(
     [planId],
     ne(routines.status, "archived"),
   );
-  const data = await assemble(tx, physioId, row.customer.id, [row.plan], entryRows, []);
+  const dayRows = await planDays(tx, physioId, [planId]);
+  const data = await assemble(tx, physioId, row.customer.id, [row.plan], entryRows, dayRows, []);
   return { customer: row.customer, title: row.plan.name, ...data };
 }
 
@@ -222,15 +245,13 @@ export async function getCustomerExport(
       )
       .orderBy(asc(weeklyPlans.name), asc(weeklyPlans.id)),
   ]);
-  const entryRows = await planEntries(
-    tx,
-    physioId,
-    customerId,
-    planRows.map((plan) => plan.id),
-    eq(routines.status, "active"),
-  );
+  const planIds = planRows.map((plan) => plan.id);
+  const [entryRows, dayRows] = await Promise.all([
+    planEntries(tx, physioId, customerId, planIds, eq(routines.status, "active")),
+    planDays(tx, physioId, planIds),
+  ]);
 
-  const data = await assemble(tx, physioId, customerId, planRows, entryRows, routineRows);
+  const data = await assemble(tx, physioId, customerId, planRows, entryRows, dayRows, routineRows);
   return { customer, title: null, ...data };
 }
 

@@ -10,7 +10,7 @@ import { loadRoutineContent } from "@/server/routines/content";
 import { scheduleFilter } from "@/server/schedule/active";
 
 import type { ActiveLink, LinkShell } from "./resolve-link";
-import { linkPlanEntries, linkScopes } from "./view";
+import { linkPlanDays, linkPlanEntries, linkScopes } from "./view";
 
 export type PatientExportData = Omit<ExportSourceData, "customer"> & { today: string };
 
@@ -54,11 +54,11 @@ export async function getPatientExport(
   ]);
 
   // The page's rule, every weekday: the customer's own, finished routines only.
-  const entryRows = await linkPlanEntries(
-    shell,
-    link,
-    planRows.map((plan) => plan.id),
-  );
+  const planIds = planRows.map((plan) => plan.id);
+  const [entryRows, dayRows] = await Promise.all([
+    linkPlanEntries(shell, link, planIds),
+    linkPlanDays(shell, planIds),
+  ]);
 
   const routineIds = routineRows.map((row) => row.id);
   const planRoutineIds = [...new Set(entryRows.map((entry) => entry.routineId))].filter(
@@ -76,6 +76,9 @@ export async function getPatientExport(
   const plans = planRows.map((plan): SourcePlan => ({
     ...plan,
     phase: null,
+    days: dayRows
+      .filter((day) => day.planId === plan.id)
+      .map(({ weekday, notes }) => ({ weekday, notes })),
     entries: entryRows
       .filter((entry) => entry.planId === plan.id && content.has(entry.routineId))
       .map(({ weekday, label, routineId }) => ({ weekday, label, routineId })),

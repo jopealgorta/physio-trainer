@@ -11,6 +11,7 @@ import {
   routineItemSets,
   routineItems,
   routines,
+  weeklyPlanDays,
   weeklyPlanEntries,
   weeklyPlans,
 } from "@/db/schema";
@@ -303,6 +304,41 @@ describe("templates server layer", () => {
       // Original untouched.
       expect(await routineRow(original)).toMatchObject({ customerId: c, isTemplate: false });
       expect((await shape(original)).shape).toEqual(before.shape);
+    });
+
+    it("copies a plan's day notes into the template and into a plan made from it", async () => {
+      const c = await customer(a);
+      const { planId } = await customerPlan(a, c);
+      await db.insert(weeklyPlanDays).values([
+        { physioId: a.id, weeklyPlanId: planId, weekday: 3, notes: "Easy day" },
+        { physioId: a.id, weeklyPlanId: planId, weekday: 6, notes: "Long walk" },
+      ]);
+      const dayNotes = async (id: string) =>
+        (await db.select().from(weeklyPlanDays).where(eq(weeklyPlanDays.weeklyPlanId, id)))
+          .map((row) => [row.weekday, row.notes])
+          .sort();
+      const saved = await as(a, (tx, pid) =>
+        saveAsTemplate(tx, pid, { kind: "plan", sourceId: planId, name: "T" }),
+      );
+      if (!saved.ok) throw new Error(saved.error);
+      const expected = [
+        [3, "Easy day"],
+        [6, "Long walk"],
+      ];
+      expect(await dayNotes(saved.data.id)).toEqual(expected);
+      expect(await dayNotes(planId)).toEqual(expected);
+      const assigned = await as(a, (tx, pid) =>
+        assignTemplate(tx, pid, {
+          kind: "plan",
+          templateId: saved.data.id,
+          customerId: c,
+          caseId: null,
+          name: "From template",
+          status: "draft",
+        }),
+      );
+      if (!assigned.ok) throw new Error(assigned.error);
+      expect(await dayNotes(assigned.data.id)).toEqual(expected);
     });
 
     it("deep-copies a customer plan: shared routines stay shared inside the copy", async () => {

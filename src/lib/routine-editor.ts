@@ -5,6 +5,7 @@ import {
   type ItemPrescription,
   type SetPrescription,
 } from "./prescription";
+import type { ExerciseKind } from "./exercise-kinds";
 import { GROUP_MAX, GROUP_MIN, MAX_ITEMS, MAX_SETS } from "./routines";
 
 /**
@@ -18,6 +19,7 @@ export type EditorSet = SetPrescription & { key: string };
 export type ExerciseRef = {
   id: string;
   name: string;
+  kind: ExerciseKind;
   archived: boolean;
   cover: { videoId: string; isShort: boolean } | null;
 };
@@ -25,6 +27,7 @@ export type EditorItem = ItemPrescription & {
   key: string;
   exerciseId: string;
   exerciseName: string;
+  exerciseKind: ExerciseKind;
   exerciseArchived: boolean;
   cover: { videoId: string; isShort: boolean } | null;
   sets: EditorSet[];
@@ -48,6 +51,7 @@ export type SaveBlocks = { groups: SaveGroup[]; items: SaveItem[] };
 export type LoadedItem = ItemPrescription & {
   id: string;
   exerciseId: string;
+  exerciseKind: ExerciseKind;
   exerciseName: string;
   exerciseArchived: boolean;
   cover: { videoId: string; isShort: boolean } | null;
@@ -90,6 +94,8 @@ const copySet = (set: SetPrescription, newKey: NewKey): EditorSet => ({
   repsMax: set.repsMax,
   durationSeconds: set.durationSeconds,
   load: set.load,
+  distanceMeters: set.distanceMeters,
+  intensity: set.intensity,
   key: newKey(),
 });
 
@@ -99,6 +105,7 @@ export function newItem(exercise: ExerciseRef, newKey: NewKey): EditorItem {
     key: newKey(),
     exerciseId: exercise.id,
     exerciseName: exercise.name,
+    exerciseKind: exercise.kind,
     exerciseArchived: exercise.archived,
     cover: exercise.cover,
     sets: [{ ...EMPTY_SET, key: newKey() }],
@@ -353,6 +360,8 @@ export function toSaveBlocks(blocks: EditorBlock[]): SaveBlocks {
           repsMax: set.repsMax,
           durationSeconds: set.durationSeconds,
           load: set.load,
+          distanceMeters: set.distanceMeters,
+          intensity: set.intensity,
         })),
       });
     }
@@ -370,6 +379,7 @@ export function fromLoaded(
     key: newKey(),
     exerciseId: item.exerciseId,
     exerciseName: item.exerciseName,
+    exerciseKind: item.exerciseKind,
     exerciseArchived: item.exerciseArchived,
     cover: item.cover,
     holdSeconds: item.holdSeconds,

@@ -8,9 +8,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import type { BodyArea } from "@/lib/body-areas";
 import type { CategoryNode } from "@/lib/category-tree";
+import { EXERCISE_KINDS, type ExerciseKind } from "@/lib/exercise-kinds";
 import { EXERCISE_NAME_MAX_LENGTH, INSTRUCTIONS_MAX_LENGTH, MAX_MEDIA } from "@/lib/library-limits";
 import { MAX_TAG_LENGTH, MAX_TAGS } from "@/lib/tags";
 import type { ExerciseFieldErrors, ExerciseFormState } from "@/server/library/schemas";
@@ -22,6 +24,7 @@ import { TagInput } from "./tag-input";
 export type ExerciseFormValues = {
   id?: string;
   name: string;
+  kind: ExerciseKind;
   categoryId: string | null;
   instructions: string | null;
   bodyAreas: BodyArea[];
@@ -115,6 +118,25 @@ export function ExerciseForm({
               aria-describedby={errors.name ? errorId("name") : undefined}
             />
             {errorText("name")}
+          </div>
+
+          <div className="grid gap-2">
+            <Label id={`${id}-kind`}>{t("kind.label")}</Label>
+            <RadioGroup
+              name="kind"
+              defaultValue={defaults.kind}
+              aria-labelledby={`${id}-kind`}
+              className="flex w-auto flex-wrap gap-4"
+            >
+              {EXERCISE_KINDS.map((kind) => (
+                <div key={kind} className="flex items-center gap-2">
+                  <RadioGroupItem id={`${id}-kind-${kind}`} value={kind} />
+                  <Label htmlFor={`${id}-kind-${kind}`} className="font-normal">
+                    {t(`kind.${kind}`)}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
           </div>
 
           <div className="grid gap-2">

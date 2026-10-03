@@ -1,15 +1,13 @@
 import "server-only";
 
-import { and, asc, between, eq, inArray, sql } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 
 import { db } from "@/db";
-import { sessionLogs, weeklyPlanEntries } from "@/db/schema";
-import { todayIn } from "@/lib/calendar-date";
-import { isLoggableDate } from "@/lib/session-logs";
+import { sessionLogs } from "@/db/schema";
 
 import type { LogSessionInput } from "./log-schema";
 import type { ActiveLink, LinkShell } from "./resolve-link";
-import { isReachable } from "./view";
+import { checkLoggable, patientLogScope, resetSeenOnNewComment } from "./log-shared";
 
 export type { LogSessionInput };
 
@@ -20,6 +18,7 @@ export type PatientLog = {
   performedOn: string;
   completed: boolean;
   pain: number | null;
+  rpe: number | null;
   comment: string | null;
 };
 
@@ -39,16 +38,14 @@ export async function logSession(
   input: LogSessionInput,
   now: Date = new Date(),
 ): Promise<LogSessionResult> {
-  if (!isLoggableDate(input.performedOn, todayIn(shell.timeZone, now))) {
-    return { ok: false, error: "date" };
-  }
-  const reachable = await isReachable(
+  const refused = await checkLoggable(
     shell,
     link,
     { routineId: input.routineId, entryId: input.entryId },
     input.performedOn,
+    now,
   );
-  if (!reachable) return { ok: false, error: "unreachable" };
+  if (refused) return { ok: false, error: refused };
 
   const [row] = await db
     .insert(sessionLogs)
@@ -61,6 +58,7 @@ export async function logSession(
       performedOn: input.performedOn,
       completed: input.completed,
       pain: input.pain,
+      rpe: input.rpe,
       comment: input.comment,
     })
     .onConflictDoUpdate({
@@ -69,10 +67,9 @@ export async function logSession(
         shareLinkId: link.id,
         completed: input.completed,
         pain: input.pain,
+        rpe: input.rpe,
         comment: input.comment,
-        // A changed comment is news for the physio again; the same words are not.
-        seenByPhysioAt: sql`case when ${sessionLogs.comment} is not distinct from excluded.comment
-          then ${sessionLogs.seenByPhysioAt} else null end`,
+        seenByPhysioAt: resetSeenOnNewComment(sessionLogs),
       },
     })
     .returning({
@@ -81,6 +78,7 @@ export async function logSession(
       performedOn: sessionLogs.performedOn,
       completed: sessionLogs.completed,
       pain: sessionLogs.pain,
+      rpe: sessionLogs.rpe,
       comment: sessionLogs.comment,
     });
   return { ok: true, data: row! };
@@ -103,30 +101,10 @@ export async function getPatientLogs(
       performedOn: sessionLogs.performedOn,
       completed: sessionLogs.completed,
       pain: sessionLogs.pain,
+      rpe: sessionLogs.rpe,
       comment: sessionLogs.comment,
     })
     .from(sessionLogs)
-    .where(
-      and(
-        eq(sessionLogs.physioId, shell.physioId),
-        eq(sessionLogs.customerId, link.customerId),
-        between(sessionLogs.performedOn, from, to),
-        link.target === "routine" ? eq(sessionLogs.routineId, link.routineId!) : undefined,
-        link.target === "weekly_plan"
-          ? inArray(
-              sessionLogs.weeklyPlanEntryId,
-              db
-                .select({ id: weeklyPlanEntries.id })
-                .from(weeklyPlanEntries)
-                .where(
-                  and(
-                    eq(weeklyPlanEntries.physioId, shell.physioId),
-                    eq(weeklyPlanEntries.weeklyPlanId, link.weeklyPlanId!),
-                  ),
-                ),
-            )
-          : undefined,
-      ),
-    )
+    .where(patientLogScope(sessionLogs, shell, link, from, to))
     .orderBy(asc(sessionLogs.performedOn), asc(sessionLogs.routineId), asc(sessionLogs.createdAt));
 }

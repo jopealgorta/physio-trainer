@@ -18,7 +18,7 @@ import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 
 // Relative imports: drizzle-kit loads the schema without the "@/" alias.
 import { PHASE_LABEL_MAX } from "../../lib/phases";
-import { ENTRY_LABEL_MAX, PLAN_NAME_MAX, PLAN_NOTES_MAX } from "../../lib/plans";
+import { DAY_NOTES_MAX, ENTRY_LABEL_MAX, PLAN_NAME_MAX, PLAN_NOTES_MAX } from "../../lib/plans";
 import { timestamps } from "./_columns";
 import { customers } from "./customers";
 import { routineStatusEnum } from "./enums";
@@ -134,5 +134,33 @@ export const weeklyPlanEntries = pgTable(
   ],
 );
 
+/** A note on one weekday of a plan (spec 19). A row exists only while the note is non-empty. */
+export const weeklyPlanDays = pgTable(
+  "weekly_plan_days",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    physioId: physioId(),
+    weeklyPlanId: uuid().notNull(),
+    weekday: smallint().notNull(),
+    notes: text().notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    foreignKey({
+      name: "weekly_plan_days_plan_fk",
+      columns: [t.physioId, t.weeklyPlanId],
+      foreignColumns: [weeklyPlans.physioId, weeklyPlans.id],
+    }).onDelete("cascade"),
+    unique("weekly_plan_days_plan_weekday_unique").on(t.physioId, t.weeklyPlanId, t.weekday),
+    check("weekly_plan_days_weekday", sql`${t.weekday} between 1 and 7`),
+    check(
+      "weekly_plan_days_notes_length",
+      sql`char_length(${t.notes}) between 1 and ${sql.raw(String(DAY_NOTES_MAX))}`,
+    ),
+    ownRows("weekly_plan_days_own", t.physioId),
+  ],
+);
+
 export type WeeklyPlan = typeof weeklyPlans.$inferSelect;
 export type WeeklyPlanEntry = typeof weeklyPlanEntries.$inferSelect;
+export type WeeklyPlanDay = typeof weeklyPlanDays.$inferSelect;

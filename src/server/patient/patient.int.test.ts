@@ -249,6 +249,24 @@ describe("patient data layer", () => {
   });
 
   describe("getPatientView", () => {
+    it("returns the day note of the shown weekday only, never another customer's", async () => {
+      const customerId = await insertCustomer(physio.id);
+      const otherCustomer = await insertCustomer(physio.id, { firstName: "Other" });
+      await insertPlan(physio.id, customerId, {
+        name: "Week",
+        status: "active",
+        days: [{ weekday: WEDNESDAY, notes: "Easy day" }],
+      });
+      await insertPlan(physio.id, otherCustomer, {
+        name: "Theirs",
+        status: "active",
+        days: [{ weekday: 4, notes: "Secret" }],
+      });
+      const link = await customerLink(physio, customerId);
+      expect((await viewOf(link.code, WEDNESDAY)).plans[0]!.dayNotes).toBe("Easy day");
+      expect((await viewOf(link.code, 4)).plans[0]!.dayNotes).toBeNull();
+    });
+
     it("shows today's plan entries, other days on request, and active single routines", async () => {
       const customerId = await insertCustomer(physio.id);
       const squat = await insertExercise(physio.id, {

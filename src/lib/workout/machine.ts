@@ -1,4 +1,4 @@
-import type { PrescriptionSide, SetPrescription } from "@/lib/prescription";
+import { EMPTY_SET, type PrescriptionSide, type SetPrescription } from "@/lib/prescription";
 
 /**
  * Workout mode state machine (spec 12). Pure: every function takes the clock as `now`
@@ -63,9 +63,7 @@ function sideOf(item: WorkoutItem, setIndex: number): WorkoutSide | null {
 
 /** Items with no sets still get one blank step so the patient sees the exercise. */
 const setsOf = (item: WorkoutItem): SetPrescription[] =>
-  item.sets.length > 0
-    ? item.sets
-    : [{ reps: null, repsMax: null, durationSeconds: null, load: null }];
+  item.sets.length > 0 ? item.sets : [EMPTY_SET];
 
 /**
  * Flattens a routine into steps: an item's sets in order; a superset alternates set by set

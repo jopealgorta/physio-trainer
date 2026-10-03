@@ -16,6 +16,7 @@ const a = vi.hoisted(() => ({
   moveEntryAction: vi.fn(),
   removeEntryAction: vi.fn(),
   setEntryLabelAction: vi.fn(),
+  setDayNotesAction: vi.fn(),
   addNewRoutineEntryAction: vi.fn(),
 }));
 vi.mock("@/server/plans/actions", () => a);
@@ -46,7 +47,7 @@ function setup(
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <PlanBoard planId={PLAN} entries={entries} routines={routines} {...props} />
+      <PlanBoard planId={PLAN} entries={entries} routines={routines} dayNotes={{}} {...props} />
     </NextIntlClientProvider>,
   );
 }
@@ -96,7 +97,12 @@ function hold(action: ReturnType<typeof vi.fn>) {
 
 beforeEach(() => {
   for (const fn of Object.values(a)) fn.mockReset();
-  for (const fn of [a.moveEntryAction, a.copyEntryAction, a.setEntryLabelAction]) {
+  for (const fn of [
+    a.moveEntryAction,
+    a.copyEntryAction,
+    a.setEntryLabelAction,
+    a.setDayNotesAction,
+  ]) {
     fn.mockResolvedValue({ ok: true, data: {} });
   }
   a.removeEntryAction.mockResolvedValue({ ok: true, data: { deletedRoutine: false } });
@@ -477,6 +483,44 @@ describe("adding a routine", () => {
     expect(dialog.querySelector('input[name="planId"]')).toHaveValue(PLAN);
     expect(dialog.querySelector('input[name="weekday"]')).toHaveValue("5");
     expect(within(dialog).getByLabelText("Name")).toBeRequired();
+  });
+});
+
+describe("day notes", () => {
+  it("saves a note for the day and shows it in the column", async () => {
+    const user = userEvent.setup();
+    const release = hold(a.setDayNotesAction);
+    setup();
+    await user.click(screen.getByRole("button", { name: "Edit note for Wednesday" }));
+    await user.type(await screen.findByRole("textbox"), "Easy day");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(a.setDayNotesAction).toHaveBeenCalledWith({
+      planId: PLAN,
+      weekday: 3,
+      notes: "Easy day",
+    });
+    expect(await within(day("Wednesday")).findByText("Easy day")).toBeInTheDocument();
+    await release();
+  });
+
+  it("closes without calling the action when Save changes nothing", async () => {
+    const user = userEvent.setup();
+    setup([], { dayNotes: { 2: "Mobility only" } });
+    await user.click(screen.getByRole("button", { name: "Edit note for Tuesday" }));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    expect(a.setDayNotesAction).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Edit note for Monday" }));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    expect(a.setDayNotesAction).not.toHaveBeenCalled();
+  });
+
+  it("shows the saved notes and removes one", async () => {
+    const user = userEvent.setup();
+    setup([], { dayNotes: { 2: "Mobility only" } });
+    expect(within(day("Tuesday")).getByText("Mobility only")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit note for Tuesday" }));
+    await user.click(await screen.findByRole("button", { name: "Remove" }));
+    expect(a.setDayNotesAction).toHaveBeenCalledWith({ planId: PLAN, weekday: 2, notes: "" });
   });
 });
 

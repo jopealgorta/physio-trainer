@@ -6,10 +6,11 @@ import type { Tx } from "@/db/rls";
 import {
   exercises,
   routineGroups,
-  routineItemSets,
   routineItems,
+  routineItemSets,
   routines,
   routineVersions,
+  weeklyPlanDays,
   weeklyPlanEntries,
   weeklyPlans,
   weeklyPlanVersions,
@@ -95,6 +96,8 @@ async function routineState(tx: Tx, physioId: string, routineId: string) {
         repsMax: routineItemSets.repsMax,
         durationSeconds: routineItemSets.durationSeconds,
         load: routineItemSets.load,
+        distanceMeters: routineItemSets.distanceMeters,
+        intensity: routineItemSets.intensity,
       })
       .from(routineItemSets)
       .where(
@@ -221,7 +224,13 @@ async function planState(tx: Tx, physioId: string, planId: string) {
     )
     .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position));
 
-  const snapshot: PlanSnapshot = { schema: SNAPSHOT_SCHEMA, plan: header, entries };
+  const days = await tx
+    .select({ weekday: weeklyPlanDays.weekday, notes: weeklyPlanDays.notes })
+    .from(weeklyPlanDays)
+    .where(and(eq(weeklyPlanDays.physioId, physioId), eq(weeklyPlanDays.weeklyPlanId, planId)))
+    .orderBy(asc(weeklyPlanDays.weekday));
+
+  const snapshot: PlanSnapshot = { schema: SNAPSHOT_SCHEMA, plan: header, entries, days };
   return { version, snapshot };
 }
 

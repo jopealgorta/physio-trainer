@@ -3,7 +3,7 @@ import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 
 import type { Tx } from "@/db/rls";
-import { routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+import { routines, weeklyPlanDays, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
 import { endPredecessor } from "@/lib/phases";
 import { recordPlanVersion } from "@/server/history/record";
 import { duplicateRoutine } from "@/server/routines/mutations";
@@ -208,6 +208,15 @@ async function copyPlanPhase(
         routineId: copies.get(entry.routineId)!,
       })),
     );
+  }
+  const days = await tx
+    .select({ weekday: weeklyPlanDays.weekday, notes: weeklyPlanDays.notes })
+    .from(weeklyPlanDays)
+    .where(and(eq(weeklyPlanDays.physioId, physioId), eq(weeklyPlanDays.weeklyPlanId, input.id)));
+  if (days.length > 0) {
+    await tx
+      .insert(weeklyPlanDays)
+      .values(days.map((day) => ({ physioId, weeklyPlanId: copy.id, ...day })));
   }
   await recordPlanVersion(tx, physioId, copy.id, { kind: "created" });
 

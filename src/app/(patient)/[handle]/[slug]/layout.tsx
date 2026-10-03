@@ -72,11 +72,13 @@ export default async function PatientLayout({ children, params }: LayoutProps<"/
   const { locale, branding } = shell;
   const t = await getTranslations({ locale, namespace: "Patient" });
 
-  // The client components on this page (PIN form, video preview, workout) get only what they use.
+  // The client components on this page (PIN form, exercise list and logs, video preview, workout)
+  // get only what they use.
   const all = await getMessages({ locale });
   const messages: IntlMessages = {
     Patient: all.Patient,
     Library: { media: all.Library.media },
+    Prescription: all.Prescription,
     Workout: all.Workout,
   };
 

@@ -34,6 +34,7 @@ const BLOCKS: EditorBlock[] = [
     item: {
       key: "k1",
       exerciseId: "00000000-0000-4000-8000-000000000001",
+      exerciseKind: "strength",
       exerciseName: "Squat",
       exerciseArchived: false,
       cover: null,
@@ -41,7 +42,17 @@ const BLOCKS: EditorBlock[] = [
       restSeconds: 30,
       side: null,
       notes: null,
-      sets: [{ key: "s1", reps: 10, repsMax: null, durationSeconds: null, load: null }],
+      sets: [
+        {
+          key: "s1",
+          reps: 10,
+          repsMax: null,
+          durationSeconds: null,
+          load: null,
+          distanceMeters: null,
+          intensity: null,
+        },
+      ],
     },
   },
 ];
@@ -50,6 +61,7 @@ const BLOCKS_ITEM = (BLOCKS[0] as Extract<EditorBlock, { kind: "single" }>).item
 const summary = (id: string, name: string): ExerciseSummary => ({
   id,
   name,
+  kind: "strength",
   categoryId: null,
   bodyAreas: [],
   tags: [],
@@ -322,7 +334,16 @@ describe("RoutineEditor", () => {
           restSeconds: 30,
           side: null,
           notes: null,
-          sets: [{ reps: 10, repsMax: null, durationSeconds: null, load: null }],
+          sets: [
+            {
+              reps: 10,
+              repsMax: null,
+              durationSeconds: null,
+              load: null,
+              distanceMeters: null,
+              intensity: null,
+            },
+          ],
         },
       ],
     });
@@ -545,7 +566,17 @@ describe("RoutineEditor", () => {
         key: "k1",
         item: {
           ...BLOCKS_ITEM,
-          sets: [{ key: "s1", reps: 12, repsMax: 10, durationSeconds: null, load: null }],
+          sets: [
+            {
+              key: "s1",
+              reps: 12,
+              repsMax: 10,
+              durationSeconds: null,
+              load: null,
+              distanceMeters: null,
+              intensity: null,
+            },
+          ],
         },
       },
     ];
@@ -587,7 +618,17 @@ describe("RoutineEditor", () => {
         key: "k1",
         item: {
           ...BLOCKS_ITEM,
-          sets: [{ key: "s1", reps: null, repsMax: 8, durationSeconds: null, load: null }],
+          sets: [
+            {
+              key: "s1",
+              reps: null,
+              repsMax: 8,
+              durationSeconds: null,
+              load: null,
+              distanceMeters: null,
+              intensity: null,
+            },
+          ],
         },
       },
     ];

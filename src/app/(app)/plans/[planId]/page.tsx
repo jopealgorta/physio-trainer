@@ -121,7 +121,12 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
           cases={plan.cases.map(({ id, title }) => ({ id, title }))}
           isTemplate={plan.isTemplate}
         />
-        <PlanBoard planId={plan.id} entries={plan.entries} routines={routines} />
+        <PlanBoard
+          planId={plan.id}
+          entries={plan.entries}
+          dayNotes={plan.dayNotes}
+          routines={routines}
+        />
       </div>
     </PageActions>
   );

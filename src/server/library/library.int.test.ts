@@ -323,6 +323,13 @@ describe("library server layer", () => {
       expect(stored.map((row) => row.position).sort()).toEqual([0, 1, 2]);
     });
 
+    it("stores the exercise kind and defaults to strength", async () => {
+      const run = await exercise(a, exerciseInput({ name: "Run", kind: "aerobic" }));
+      const bridge = await exercise(a, exerciseInput({ name: "Bridge kind" }));
+      expect((await asA((tx, id) => getExercise(tx, id, run)))?.kind).toBe("aerobic");
+      expect((await asA((tx, id) => getExercise(tx, id, bridge)))?.kind).toBe("strength");
+    });
+
     it("refuses other physios' categories and hides other physios' exercises", async () => {
       const bCategory = await category(b, { name: "B exercise cat", parentId: null });
       expect(

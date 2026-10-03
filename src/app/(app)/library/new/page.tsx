@@ -37,6 +37,7 @@ export default async function NewExercisePage() {
         tagSuggestions={tags}
         defaults={{
           name: "",
+          kind: "strength",
           categoryId: null,
           instructions: null,
           bodyAreas: [],

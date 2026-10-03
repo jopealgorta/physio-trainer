@@ -10,10 +10,16 @@ import { buildSharePath } from "@/lib/share-links";
 import { verifyPin } from "@/server/sharing/pin-hash";
 
 import { getLinkAccess } from "./access";
+import { logExerciseSchema } from "./exercise-log-schema";
+import { logExercise, type PatientExerciseLog } from "./log-exercise";
 import { logSessionSchema } from "./log-schema";
 import { logSession, type PatientLog } from "./log-session";
 import { pinCookieMaxAge, pinCookieName, pinToken } from "./pin-cookie";
-import { resolveLink } from "./resolve-link";
+import {
+  resolveLink,
+  type ActiveLink as ResolvedLink,
+  type LinkShell as ResolvedShell,
+} from "./resolve-link";
 
 export type PinFormState = { status: "idle" } | { status: "wrong" } | { status: "invalid" };
 
@@ -48,6 +54,19 @@ export async function verifyPinAction(
   redirect(linkPath);
 }
 
+/** The write gate shared by the log actions: link resolved, PIN unlocked, and not the owner previewing. */
+async function resolveWritableLink(
+  code: string,
+): Promise<{ error: "unavailable" | "preview" } | { shell: ResolvedShell; link: ResolvedLink }> {
+  const resolved = await resolveLink(code);
+  if (resolved.status !== "ok") return { error: "unavailable" };
+  const { shell, link } = resolved;
+  const { owner, unlocked } = await getLinkAccess(shell, link);
+  if (!unlocked) return { error: "unavailable" };
+  if (owner) return { error: "preview" };
+  return { shell, link };
+}
+
 export type LogActionResult =
   | { ok: true; data: PatientLog }
   | { ok: false; error: "invalid" | "unavailable" | "date" | "unreachable" | "preview" };
@@ -62,12 +81,28 @@ export async function logSessionAction(code: string, raw: unknown): Promise<LogA
   const parsed = logSessionSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "invalid" };
 
-  const resolved = await resolveLink(code);
-  if (resolved.status !== "ok") return { ok: false, error: "unavailable" };
-  const { shell, link } = resolved;
-  const { owner, unlocked } = await getLinkAccess(shell, link);
-  if (!unlocked) return { ok: false, error: "unavailable" };
-  if (owner) return { ok: false, error: "preview" };
+  const gate = await resolveWritableLink(code);
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const { shell, link } = gate;
 
   return logSession(shell, link, parsed.data);
+}
+
+export type ExerciseLogActionResult =
+  | { ok: true; data: PatientExerciseLog | null }
+  | { ok: false; error: "invalid" | "unavailable" | "date" | "unreachable" | "preview" };
+
+/** Saves, edits or clears (all fields null) a patient's log of one exercise; same gate as `logSessionAction`. */
+export async function logExerciseAction(
+  code: string,
+  raw: unknown,
+): Promise<ExerciseLogActionResult> {
+  const parsed = logExerciseSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+
+  const gate = await resolveWritableLink(code);
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const { shell, link } = gate;
+
+  return logExercise(shell, link, parsed.data);
 }

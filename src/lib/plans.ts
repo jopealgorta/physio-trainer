@@ -4,6 +4,8 @@
 export const PLAN_NAME_MAX = 80;
 export const PLAN_NOTES_MAX = 2000;
 export const ENTRY_LABEL_MAX = 40;
+/** A note on one weekday of a plan ("Easy day"). */
+export const DAY_NOTES_MAX = 500;
 /** Routines a single day of a plan can hold. */
 export const MAX_ENTRIES_PER_DAY = 6;
 export const PLANS_LIST_LIMIT = 500;

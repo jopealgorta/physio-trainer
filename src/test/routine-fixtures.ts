@@ -6,6 +6,8 @@ export const set = (key: string, patch: Partial<EditorSet> = {}): EditorSet => (
   repsMax: null,
   durationSeconds: null,
   load: null,
+  distanceMeters: null,
+  intensity: null,
   ...patch,
 });
 
@@ -13,6 +15,7 @@ export const item = (key: string, patch: Partial<EditorItem> = {}): EditorItem =
   key,
   exerciseId: `ex-${key}`,
   exerciseName: `Exercise ${key}`,
+  exerciseKind: "strength",
   exerciseArchived: false,
   cover: null,
   holdSeconds: null,

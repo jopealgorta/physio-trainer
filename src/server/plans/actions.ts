@@ -18,6 +18,7 @@ import {
   moveEntry,
   removeEntry,
   renamePlan,
+  setDayNotes,
   setEntryLabel,
   updatePlan,
 } from "./mutations";
@@ -31,6 +32,7 @@ import {
   removeEntrySchema,
   renamePlanSchema,
   separateCopySchema,
+  setDayNotesSchema,
   setLabelSchema,
   updatePlanSchema,
   type PlanActionError,
@@ -159,6 +161,10 @@ export async function copyEntryAction(input: unknown) {
 
 export async function setEntryLabelAction(input: unknown) {
   return board(setLabelSchema, input, setEntryLabel);
+}
+
+export async function setDayNotesAction(input: unknown) {
+  return board(setDayNotesSchema, input, setDayNotes);
 }
 
 export async function removeEntryAction(input: unknown) {

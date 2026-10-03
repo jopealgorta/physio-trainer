@@ -4,7 +4,14 @@ import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import type { Tx } from "@/db/rls";
-import { cases, customers, routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+import {
+  cases,
+  customers,
+  routines,
+  weeklyPlanDays,
+  weeklyPlanEntries,
+  weeklyPlans,
+} from "@/db/schema";
 import type { PlanFilters } from "@/lib/plan-params";
 import { PLANS_LIST_LIMIT, WEEKDAYS } from "@/lib/plans";
 import type { RoutineStatus } from "@/lib/routines";
@@ -147,6 +154,8 @@ export type PlanDetail = {
   startsOn: string | null;
   endsOn: string | null;
   entries: PlanEntryDetail[];
+  /** Note per weekday (1 = Monday); a weekday without a note is absent. */
+  dayNotes: Record<number, string>;
   cases: { id: string; title: string; status: "open" | "closed" }[];
 };
 
@@ -184,7 +193,7 @@ export async function getPlan(tx: Tx, physioId: string, id: string): Promise<Pla
   if (!row) return null;
   const { sourceTemplateId, sourceTemplateName, ...header } = row;
 
-  const [entries, customerCases] = await Promise.all([
+  const [entries, customerCases, dayRows] = await Promise.all([
     tx
       .select({
         id: weeklyPlanEntries.id,
@@ -224,6 +233,10 @@ export async function getPlan(tx: Tx, physioId: string, id: string): Promise<Pla
           .where(and(eq(cases.physioId, physioId), eq(cases.customerId, header.customerId)))
           .orderBy(asc(cases.createdAt), asc(cases.id))
       : Promise.resolve([]),
+    tx
+      .select({ weekday: weeklyPlanDays.weekday, notes: weeklyPlanDays.notes })
+      .from(weeklyPlanDays)
+      .where(and(eq(weeklyPlanDays.physioId, physioId), eq(weeklyPlanDays.weeklyPlanId, id))),
   ]);
 
   return {
@@ -233,6 +246,7 @@ export async function getPlan(tx: Tx, physioId: string, id: string): Promise<Pla
         ? { id: sourceTemplateId, name: sourceTemplateName }
         : null,
     entries,
+    dayNotes: Object.fromEntries(dayRows.map((day) => [day.weekday, day.notes])),
     cases: customerCases,
   };
 }

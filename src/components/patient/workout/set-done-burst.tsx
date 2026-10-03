@@ -47,7 +47,8 @@ export function Confetti() {
 }
 
 /**
- * Feedback for a finished set (spec 12): a check mark pops over the video with a ring pulse, and
+ * Feedback for a finished set (spec 12): a check mark pops just above the workout's bottom bar
+ * (its positioned parent) with a ring pulse, and
  * the last set of an exercise adds confetti and a bigger check. Decorative only: the player's live
  * region announces the set. Under reduced motion the check just shows and fades.
  */
@@ -57,7 +58,7 @@ export function SetDoneBurst({ big }: { big: boolean }) {
       aria-hidden
       data-testid="set-done-burst"
       data-big={big}
-      className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-[55%] items-center justify-center landscape:right-1/2 landscape:h-full"
+      className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex h-48 items-center justify-center"
     >
       <span
         className={cn(

@@ -11,7 +11,13 @@ const log = (performedOn: string, pain: number | null): LogFact => ({
   completed: true,
   pain,
 });
-const base = { today, logs: [] as LogFact[], adherence: null, hasLink: true };
+const base = {
+  today,
+  logs: [] as LogFact[],
+  exercisePain: [] as { performedOn: string; pain: number | null }[],
+  adherence: null,
+  hasLink: true,
+};
 
 describe("attentionWindows", () => {
   it("uses the last 7 days for pain, the 7 before for the comparison, and ends adherence yesterday", () => {
@@ -24,6 +30,14 @@ describe("attentionWindows", () => {
 });
 
 describe("needsAttention", () => {
+  it("flags high pain from an exercise log in the last 7 days when no session has pain", () => {
+    const exercisePain = [{ performedOn: "2026-10-05", pain: 8 }];
+    expect(needsAttention({ ...base, exercisePain })).toEqual([{ rule: "highPain", pain: 8 }]);
+    expect(
+      needsAttention({ ...base, exercisePain: [{ performedOn: "2026-10-01", pain: 8 }] }),
+    ).toEqual([]);
+  });
+
   it("flags nothing for a quiet customer", () => {
     expect(needsAttention(base)).toEqual([]);
   });

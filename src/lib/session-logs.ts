@@ -12,6 +12,27 @@ export const PAIN_MIN = 0;
 export const PAIN_MAX = 10;
 /** 0..10, the values of the patient's pain control. */
 export const PAIN_SCALE = Array.from({ length: PAIN_MAX - PAIN_MIN + 1 }, (_, i) => i + PAIN_MIN);
+/** Borg CR10 rating of perceived exertion, optional on a session log. */
+export const RPE_MIN = 0;
+export const RPE_MAX = 10;
+/** 0..10, the values of the patient's effort control. */
+export const RPE_SCALE = Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, i) => i + RPE_MIN);
+
+/** Heaviest weight (kg) a patient can log for one exercise; one decimal. */
+export const WEIGHT_MAX = 999.9;
+
+/**
+ * Parses what a patient typed as a weight in kg: comma or dot (also leading or trailing), rounded
+ * to 0.1. Null when blank, undefined when it is not a number in 0..WEIGHT_MAX.
+ */
+export function parseWeight(value: string): number | null | undefined {
+  const text = value.trim().replace(",", ".");
+  if (text === "") return null;
+  // "5", "5.5", and the halves a phone keyboard leaves: ".5", "5."
+  if (!/^(\d+(\.\d*)?|\.\d+)$/.test(text)) return undefined;
+  const rounded = Math.round(Number(text) * 10) / 10;
+  return rounded <= WEIGHT_MAX ? rounded : undefined;
+}
 
 /** The days a patient may still log, oldest first: yesterday and today (the physio's days). */
 export function loggableDates(today: string): [string, string] {

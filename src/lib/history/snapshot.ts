@@ -16,6 +16,9 @@ export const snapshotSetSchema = z.object({
   repsMax: z.number().nullable(),
   durationSeconds: z.number().nullable(),
   load: z.string().nullable(),
+  // Added after the first snapshots were stored: older ones parse with null.
+  distanceMeters: z.number().nullable().default(null),
+  intensity: z.string().nullable().default(null),
 });
 export type SnapshotSet = z.infer<typeof snapshotSetSchema>;
 
@@ -73,6 +76,11 @@ export const planSnapshotSchema = z.object({
       routine: z.object({ id: z.string(), name: z.string(), version: z.number().int() }),
     }),
   ),
+  // Added after the first snapshots were stored. Stored jsonb is not re-parsed, so readers must
+  // treat a missing `days` as [] (the default only applies when a snapshot is parsed).
+  days: z
+    .array(z.object({ weekday: z.number().int().min(1).max(7), notes: z.string() }))
+    .default([]),
 });
 
 export type RoutineSnapshot = z.infer<typeof routineSnapshotSchema>;

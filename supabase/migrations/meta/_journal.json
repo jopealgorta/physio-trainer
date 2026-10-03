@@ -190,6 +190,55 @@
       "when": 1790983820001,
       "tag": "20261002233019_physios-avatar-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791028518895,
+      "tag": "20261003115518_aerobic-exercises",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791030127412,
+      "tag": "20261003122207_plan-day-notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791030128142,
+      "tag": "20261003122208_plan-day-notes-extras",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791031043387,
+      "tag": "20261003123723_session-logs-rpe",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791031044120,
+      "tag": "20261003123724_session-logs-rpe-extras",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791031720780,
+      "tag": "20261003124840_exercise-logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791031721563,
+      "tag": "20261003124841_exercise-logs-extras",
+      "breakpoints": true
     }
   ]
 }

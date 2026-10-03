@@ -6,10 +6,10 @@ import {
   insertWorkoutRoutine,
 } from "./helpers/patient";
 
-/** Picks a rating on the pain scale (native radios, visually hidden: click their label). */
-const rate = (page: import("@playwright/test").Page, value: number) =>
+/** Picks a rating on a scale of the log sheet, found by its group name (native radios, visually hidden: click their label). */
+const rate = (page: import("@playwright/test").Page, group: string, value: number) =>
   page
-    .getByRole("dialog")
+    .getByRole("group", { name: group })
     .locator("label")
     .filter({ hasText: new RegExp(`^${value}$`) })
     .click();
@@ -24,7 +24,7 @@ test.describe("session logging", () => {
     await page.goto(link.path);
     await page.getByRole("button", { name: "Mark as done" }).click();
     const dialog = page.getByRole("dialog", { name: "How did it go?" });
-    await rate(page, 6);
+    await rate(page, "Pain (optional)", 6);
     await dialog.getByLabel("Comment (optional)").fill("A bit pinchy on the stairs");
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog).toBeHidden();
@@ -52,7 +52,7 @@ test.describe("session logging", () => {
     await expect(page.getByRole("dialog").getByLabel("Comment (optional)")).toHaveValue(
       "A bit pinchy on the stairs",
     );
-    await rate(page, 8);
+    await rate(page, "Pain (optional)", 8);
     await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("dialog")).toBeHidden();
 
@@ -88,6 +88,38 @@ test.describe("session logging", () => {
       .toContain("No new comments.");
   });
 
+  test("a patient logs one exercise with a decimal-comma weight, then clears it", async ({
+    page,
+    physio,
+  }) => {
+    const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
+    await insertRoutine(physio.id, customerId, "Knee rehab", { exercise: "Squat" });
+    const link = await insertCustomerLink(physio, customerId);
+
+    await page.goto(link.path);
+    await page.getByRole("button", { name: "Log Squat" }).click();
+    const dialog = page.getByRole("dialog", { name: "How did Squat go?" });
+    // A single routine: today or yesterday, like the routine's own log.
+    await expect(dialog.getByText("Yesterday")).toBeVisible();
+    await rate(page, "Pain (optional)", 3);
+    await rate(page, "Effort (RPE)", 6);
+    await dialog.getByLabel("Weight (optional)").fill("12,5");
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(dialog).toBeHidden();
+    const logged = page.getByRole("list", { name: "Logged" });
+    await expect(logged).toContainText("Pain 3");
+    await expect(logged).toContainText("RPE 6");
+    await expect(logged).toContainText("12.5 kg");
+
+    await page.reload();
+    await expect(page.getByRole("list", { name: "Logged" })).toContainText("12.5 kg");
+    await page.getByRole("button", { name: "Log Squat" }).click();
+    await expect(dialog.getByLabel("Weight (optional)")).toHaveValue("12.5");
+    await dialog.getByRole("button", { name: "Clear log" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("list", { name: "Logged" })).toHaveCount(0);
+  });
+
   test("the physio previewing a link cannot log a session", async ({ page, physio }) => {
     const customerId = await insertCustomer(physio.id);
     await insertRoutine(physio.id, customerId, "Knee rehab");
@@ -114,7 +146,7 @@ test.describe("session logging", () => {
     await expect(dialog).toBeVisible();
     await expect(page.getByText("Well done!")).toBeVisible();
 
-    await rate(page, 2);
+    await rate(page, "Pain (optional)", 2);
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("heading", { name: "Well done!" })).toBeVisible();

@@ -33,6 +33,8 @@ const failingFetch = vi.fn(async () => {
 function item(index: number, over: Partial<ContentItem> = {}): ContentItem {
   return {
     id: `item-${index}`,
+    exerciseId: `ex-${index}`,
+    kind: "strength",
     name: `Exercise ${index}`,
     instructions: "Keep your back straight and breathe out on the way up.",
     holdSeconds: index % 3 === 0 ? 5 : null,
@@ -40,8 +42,22 @@ function item(index: number, over: Partial<ContentItem> = {}): ContentItem {
     side: index % 2 === 0 ? "both" : null,
     notes: index % 4 === 0 ? "Stop if it hurts." : null,
     sets: [
-      { reps: 12, repsMax: null, durationSeconds: null, load: null },
-      { reps: 10, repsMax: null, durationSeconds: null, load: "5 kg" },
+      {
+        reps: 12,
+        repsMax: null,
+        durationSeconds: null,
+        load: null,
+        distanceMeters: null,
+        intensity: null,
+      },
+      {
+        reps: 10,
+        repsMax: null,
+        durationSeconds: null,
+        load: "5 kg",
+        distanceMeters: null,
+        intensity: null,
+      },
     ],
     media: [{ videoId: `video${String(index).padStart(6, "0")}`, isShort: false }],
     ...over,
@@ -165,6 +181,7 @@ describe("renderExportPdf", () => {
             name: "Rodilla – fase 2 ñ",
             notes: "Caminá 20 minutos los días de descanso.",
             phase: { label: "Fase 2", startsOn: "2026-09-01", endsOn: "2026-10-31" },
+            days: [{ weekday: 3, notes: "Día suave, parás si duele." }],
             entries: [
               { weekday: 1, label: "Mañana", routineId: "R" },
               { weekday: 3, label: null, routineId: "R" },

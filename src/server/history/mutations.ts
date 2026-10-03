@@ -7,6 +7,7 @@ import {
   exercises,
   routines,
   routineVersions,
+  weeklyPlanDays,
   weeklyPlanEntries,
   weeklyPlans,
   weeklyPlanVersions,
@@ -145,6 +146,21 @@ export async function restorePlanVersion(
         physioId,
         weeklyPlanId: plan.id,
         ...entry,
+      })),
+    );
+  }
+  await tx
+    .delete(weeklyPlanDays)
+    .where(and(eq(weeklyPlanDays.physioId, physioId), eq(weeklyPlanDays.weeklyPlanId, plan.id)));
+  // A snapshot stored before day notes has no `days` (stored jsonb is not re-parsed).
+  const days = row.snapshot.days ?? [];
+  if (days.length > 0) {
+    await tx.insert(weeklyPlanDays).values(
+      days.map((day) => ({
+        physioId,
+        weeklyPlanId: plan.id,
+        weekday: day.weekday,
+        notes: day.notes,
       })),
     );
   }

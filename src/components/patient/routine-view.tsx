@@ -4,16 +4,16 @@ import type { Route } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
-import { YouTubePreview } from "@/components/library/youtube-preview";
+import { ExerciseList, type ExerciseLogging } from "@/components/patient/exercise-list";
 import { PATIENT_ROW_BUTTON } from "@/components/patient/row-button";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
-import { formatPrescription, type PrescriptionTranslate } from "@/lib/prescription";
-import type { PatientBlock, PatientItem, PatientRoutine } from "@/server/patient/view";
+import type { PatientRoutine } from "@/server/patient/view";
 
-type Translate = (key: string, values?: Record<string, string | number>) => string;
-
-/** One routine: its notes and the exercises, supersets as one block. Server-rendered. */
+/**
+ * One routine: its header, actions, notes and the exercises as a compact list (the list is a
+ * client component; it gets only serialisable props).
+ */
 export async function RoutineView({
   routine,
   locale,
@@ -21,6 +21,7 @@ export async function RoutineView({
   label,
   startHref,
   logSlot,
+  exerciseLogging,
 }: {
   routine: PatientRoutine;
   locale: Locale;
@@ -31,12 +32,10 @@ export async function RoutineView({
   startHref?: string;
   /** Where the patient marks this routine as done (spec 13). */
   logSlot?: ReactNode;
+  /** Per-exercise logs (spec 19) for this routine and plan entry. */
+  exerciseLogging?: ExerciseLogging;
 }) {
-  const [t, tPrescription] = await Promise.all([
-    getTranslations({ locale, namespace: "Patient" }),
-    getTranslations({ locale, namespace: "Prescription" }),
-  ]);
-  const summary: PrescriptionTranslate = (key, values) => tPrescription(key, values);
+  const t = await getTranslations({ locale, namespace: "Patient" });
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const frequency = [
     routine.sessionsPerWeek !== null
@@ -77,110 +76,7 @@ export async function RoutineView({
           <p className="wrap-anywhere whitespace-pre-line">{routine.notes}</p>
         </section>
       ) : null}
-      <ol className="grid gap-4">
-        {routine.blocks.map((block, index) => (
-          <li key={block.kind === "single" ? block.item.id : block.key}>
-            <BlockView block={block} position={index + 1} t={t as Translate} summary={summary} />
-          </li>
-        ))}
-      </ol>
+      <ExerciseList blocks={routine.blocks} logging={exerciseLogging} />
     </article>
-  );
-}
-
-function BlockView({
-  block,
-  position,
-  t,
-  summary,
-}: {
-  block: PatientBlock;
-  position: number;
-  t: Translate;
-  summary: PrescriptionTranslate;
-}) {
-  if (block.kind === "single") {
-    return <ExerciseCard item={block.item} position={position} t={t} summary={summary} />;
-  }
-  return (
-    <section className="grid gap-3 rounded-xl border-2 border-dashed p-3">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold">
-          {t("exercise.superset")} · {position}
-        </p>
-        {block.restSeconds !== null ? (
-          <p className="text-muted-foreground text-xs">
-            {t("exercise.supersetRest", { value: block.restSeconds })}
-          </p>
-        ) : null}
-      </header>
-      <ul className="grid gap-3">
-        {block.items.map((item) => (
-          <li key={item.id}>
-            <ExerciseCard item={item} t={t} summary={summary} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function ExerciseCard({
-  item,
-  position,
-  t,
-  summary,
-}: {
-  item: PatientItem;
-  position?: number;
-  t: Translate;
-  summary: PrescriptionTranslate;
-}) {
-  const prescription = formatPrescription(
-    {
-      sets: item.sets,
-      holdSeconds: item.holdSeconds,
-      restSeconds: item.restSeconds,
-      side: item.side,
-    },
-    summary,
-  );
-  return (
-    <div className="bg-card grid gap-3 rounded-xl border p-3">
-      {item.media.map((media) => (
-        <YouTubePreview
-          key={media.videoId}
-          videoId={media.videoId}
-          isShort={media.isShort}
-          title={item.name}
-          className="mx-auto"
-        />
-      ))}
-      <div className="grid gap-1">
-        <h4 className="font-semibold wrap-anywhere">
-          {position ? <span className="text-muted-foreground mr-1.5">{position}.</span> : null}
-          {item.name}
-        </h4>
-        {prescription ? (
-          <p className="bg-muted w-fit rounded-md px-2 py-1 text-sm font-medium">{prescription}</p>
-        ) : null}
-      </div>
-      {item.notes ? (
-        <p className="text-sm wrap-anywhere">
-          <span className="font-medium">{t("exercise.notes")}: </span>
-          {item.notes}
-        </p>
-      ) : null}
-      {item.instructions ? (
-        <details className="group text-sm">
-          <summary className="focus-visible:ring-ring/50 cursor-pointer rounded-sm font-medium outline-none focus-visible:ring-[3px]">
-            {t("exercise.instructions")}
-          </summary>
-          <p className="text-muted-foreground mt-2 wrap-anywhere whitespace-pre-line">
-            {item.instructions}
-          </p>
-        </details>
-      ) : null}
-    </div>
   );
 }

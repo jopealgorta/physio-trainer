@@ -12,6 +12,8 @@ const set = (reps: number | null = 10) => ({
   repsMax: null,
   durationSeconds: null,
   load: null,
+  distanceMeters: null,
+  intensity: null,
 });
 
 function item(exerciseId: string, overrides: ItemOverrides = {}): Item {
@@ -57,6 +59,26 @@ function routine(
 }
 
 describe("diffRoutines", () => {
+  it("reports a changed intensity and distance on a set", () => {
+    const before = routine([item("a", { prescription: { sets: [set()] } })]);
+    const after = routine([
+      item("a", {
+        prescription: { sets: [{ ...set(), intensity: "Zone 2", distanceMeters: 5000 }] },
+      }),
+    ]);
+    const [diff] = diffRoutines(before, after).items;
+    expect(diff.sets).toEqual([
+      {
+        index: 0,
+        kind: "changed",
+        changes: [
+          { field: "distanceMeters", from: null, to: 5000 },
+          { field: "intensity", from: null, to: "Zone 2" },
+        ],
+      },
+    ]);
+  });
+
   it("reports identical routines as unchanged", () => {
     const a = routine([item("a"), item("b")]);
     const diff = diffRoutines(a, structuredClone(a));
@@ -214,7 +236,11 @@ const entry = (id: string, overrides: Partial<Entry> = {}): Entry => ({
   routine: { id: "r1", name: "R1", version: 1 },
   ...overrides,
 });
-const plan = (entries: Entry[], header: Partial<PlanSnapshot["plan"]> = {}): PlanSnapshot => ({
+const plan = (
+  entries: Entry[],
+  header: Partial<PlanSnapshot["plan"]> = {},
+  days: PlanSnapshot["days"] = [],
+): PlanSnapshot => ({
   schema: 1,
   plan: {
     name: "P",
@@ -227,9 +253,45 @@ const plan = (entries: Entry[], header: Partial<PlanSnapshot["plan"]> = {}): Pla
     ...header,
   },
   entries,
+  days,
+});
+
+describe("old-shape snapshots", () => {
+  it("diffs a set without aerobic keys against an identical set with nulls as unchanged", () => {
+    const old = { ...set(10), distanceMeters: undefined, intensity: undefined } as never;
+    const before = routine([item("e1", { prescription: { sets: [old] } })]);
+    const after = routine([item("e1", { prescription: { sets: [set(10)] } })]);
+    const diff = diffRoutines(before, after);
+    expect(diff.items.map((i) => i.status)).toEqual(["unchanged"]);
+    expect(diff.items[0].sets).toEqual([]);
+  });
+
+  it("diffs a plan snapshot without days against one with days: []", () => {
+    const old = { ...plan([entry("n1")]), days: undefined } as unknown as PlanSnapshot;
+    const diff = diffPlans(old, plan([entry("n1")]));
+    expect(diff.days).toEqual([]);
+    expect(diff.header).toEqual([]);
+  });
 });
 
 describe("diffPlans", () => {
+  it("reports an added, changed and removed day note per weekday", () => {
+    const before = plan([], {}, [
+      { weekday: 3, notes: "Easy" },
+      { weekday: 5, notes: "Pool" },
+    ]);
+    const after = plan([], {}, [
+      { weekday: 1, notes: "New" },
+      { weekday: 3, notes: "Hard" },
+    ]);
+    expect(diffPlans(before, after).days).toEqual([
+      { weekday: 1, before: null, after: "New" },
+      { weekday: 3, before: "Easy", after: "Hard" },
+      { weekday: 5, before: "Pool", after: null },
+    ]);
+    expect(diffPlans(before, structuredClone(before)).days).toEqual([]);
+  });
+
   it("reports identical plans as unchanged", () => {
     const p = plan([entry("n1")]);
     const diff = diffPlans(p, structuredClone(p));

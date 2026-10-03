@@ -118,6 +118,7 @@ describe("physio export loaders", () => {
         phaseLabel: "Phase 1",
         startsOn: "2026-10-01",
         endsOn: "2026-10-31",
+        days: [{ weekday: 3, notes: "Easy day" }],
         entries: [
           { weekday: 3, routineId: r1, label: "Morning" },
           { weekday: 1, routineId: r1 },
@@ -137,6 +138,7 @@ describe("physio export loaders", () => {
           name: "Week A",
           notes: "Easy",
           phase: { label: "Phase 1", startsOn: "2026-10-01", endsOn: "2026-10-31" },
+          days: [{ weekday: 3, notes: "Easy day" }],
           entries: [
             { weekday: 1, label: null, routineId: r1 },
             { weekday: 3, label: "Morning", routineId: r1 },

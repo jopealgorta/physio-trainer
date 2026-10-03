@@ -44,7 +44,16 @@ const item = (exerciseId: string, reps = 10): SaveItem => ({
   restSeconds: null,
   side: null,
   notes: null,
-  sets: [{ reps, repsMax: null, durationSeconds: null, load: null }],
+  sets: [
+    {
+      reps,
+      repsMax: null,
+      durationSeconds: null,
+      load: null,
+      distanceMeters: null,
+      intensity: null,
+    },
+  ],
 });
 
 const saveInput = (id: string, version: number, items: SaveItem[]): SaveRoutineInput => ({
@@ -166,7 +175,16 @@ describe("recording versions", () => {
             restSeconds: null,
             side: null,
             notes: null,
-            sets: [{ reps: 12, repsMax: null, durationSeconds: null, load: null }],
+            sets: [
+              {
+                reps: 12,
+                repsMax: null,
+                durationSeconds: null,
+                load: null,
+                distanceMeters: null,
+                intensity: null,
+              },
+            ],
           },
         },
       ]);

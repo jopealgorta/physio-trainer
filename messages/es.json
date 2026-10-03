@@ -259,12 +259,18 @@
       "notAWholeNumber": "Ingresá un número entero.",
       "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
       "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
-      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones."
+      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
+      "notADuration": "Ingresá de 1 a 240 minutos, por ejemplo 30 o 1:30.",
+      "notADistance": "Ingresá una distancia de hasta 200 km, por ejemplo 5 o 2,5."
     },
     "summary": {
       "count": "{value, number}",
       "range": "{min, number}–{max, number}",
       "seconds": "{value, number} s",
+      "minutes": "{value, number} min",
+      "minutesSeconds": "{minutes, number}:{seconds} min",
+      "distanceKm": "{value, number} km",
+      "distanceM": "{value, number} m",
       "sets": "{count, plural, one {# serie} other {# series}}",
       "blank": "–",
       "hold": "sostener {value, number} s",
@@ -312,6 +318,11 @@
         "create": "Crear categoría",
         "creating": "Creando…",
         "cancel": "Cancelar"
+      },
+      "kind": {
+        "label": "Tipo",
+        "strength": "Fuerza",
+        "aerobic": "Aeróbico"
       }
     },
     "detail": {
@@ -416,6 +427,9 @@
         "tooDeep": "Las subcategorías no pueden tener subcategorías.",
         "unknown": "Algo salió mal. Probá de nuevo."
       }
+    },
+    "kindBadge": {
+      "aerobic": "Aeróbico"
     }
   },
   "Customers": {
@@ -712,7 +726,13 @@
         "add": "Agregar serie",
         "remove": "Quitar serie {n, number}",
         "syncHint": "Las series se mantienen sincronizadas en toda la superserie.",
-        "limit": "Hasta {max, number} series."
+        "limit": "Hasta {max, number} series.",
+        "distance": "Distancia (km)",
+        "distanceHint": "5 o 2,5",
+        "intensity": "Intensidad",
+        "intensityPlaceholder": "Zona 2, RPE 5, 5:30/km",
+        "durationMinutes": "Duración (min)",
+        "durationHint": "30 o 1:30"
       },
       "fields": {
         "hold": "Sostener (s)",
@@ -908,6 +928,13 @@
       },
       "name": "Nombre del plan",
       "rename": "Cambiar el nombre del plan"
+    },
+    "dayNotes": {
+      "edit": "Editar nota del {day}",
+      "title": "Nota del {day}",
+      "placeholder": "Algo para el paciente ese día, por ejemplo \"Día suave, frená si duele\"",
+      "save": "Guardar",
+      "remove": "Quitar"
     }
   },
   "Templates": {
@@ -1285,7 +1312,13 @@
       "notes": "Nota",
       "superset": "Superserie",
       "supersetRest": "Descansá {value, number} s después de cada vuelta",
-      "noMedia": "Sin video"
+      "noMedia": "Sin video",
+      "open": "Ver {name}",
+      "detailTitle": "Sobre {name}",
+      "log": "Registrar {name}",
+      "logged": "Registrado",
+      "noVideo": "Este ejercicio no tiene video",
+      "thumbnailAlt": "{name}, video {number, number}"
     },
     "empty": {
       "title": "No hay nada programado para hoy",
@@ -1343,9 +1376,22 @@
       "pain": {
         "legend": "Dolor (opcional)",
         "hint": "0 es sin dolor y 10 es el peor dolor que puedas imaginar.",
-        "none": "Sin dolor",
-        "worst": "Peor dolor",
         "clear": "Borrar"
+      },
+      "rpe": {
+        "legend": "Esfuerzo (RPE)",
+        "hint": "¿Qué tan duro fue? 0 = reposo, 10 = máximo.",
+        "clear": "Borrar",
+        "selected": "{value, number} · {label}",
+        "descriptors": {
+          "rest": "Descanso",
+          "veryEasy": "Muy fácil",
+          "easy": "Fácil / moderado",
+          "hard": "Difícil",
+          "veryHard": "Muy difícil",
+          "extreme": "Extremadamente difícil",
+          "max": "Máximo"
+        }
       },
       "comment": {
         "label": "Comentario (opcional)",
@@ -1363,13 +1409,41 @@
         "preview": "Estás viendo una vista previa, así que no se guardó nada."
       }
     },
-    "physioPhotoAlt": "Foto de {name}"
+    "exerciseLog": {
+      "title": "¿Cómo te fue con {name}?",
+      "weight": {
+        "label": "Peso (opcional)",
+        "hint": "En kg, por ejemplo 12,5",
+        "invalid": "Ingresá un peso entre 0 y {max, number} kg."
+      },
+      "comment": {
+        "label": "Comentario (opcional)",
+        "placeholder": "¿Cómo lo sentiste? ¿Algo que tu fisioterapeuta deba saber?"
+      },
+      "save": "Guardar",
+      "clear": "Borrar registro",
+      "close": "Cerrar",
+      "chips": {
+        "pain": "Dolor {value, number}",
+        "rpe": "RPE {value, number}",
+        "weight": "{value, number} kg"
+      },
+      "errors": {
+        "generic": "Algo salió mal. Probá de nuevo.",
+        "invalid": "Revisá lo que ingresaste y probá de nuevo.",
+        "date": "Solo podés registrar hoy o ayer.",
+        "unreachable": "Este ejercicio no era parte de tu plan ese día.",
+        "unavailable": "Este enlace ya no está disponible.",
+        "preview": "Estás viendo una vista previa, así que no se guardó nada."
+      }
+    },
+    "physioPhotoAlt": "Foto de {name}",
+    "dayNote": "Nota del día"
   },
   "Workout": {
     "label": "Entrenamiento: {name}",
     "progress": "Ejercicio {current, number} de {total, number}",
     "setOf": "Serie {current, number} de {total, number}",
-    "superset": "Superserie",
     "side": {
       "left": "Lado izquierdo",
       "right": "Lado derecho",
@@ -1379,7 +1453,12 @@
       "reps": "{count, plural, one {# repetición} other {# repeticiones}}",
       "range": "{min, number}–{max, number} repeticiones",
       "duration": "{value, number} s",
-      "load": "Carga: {value}"
+      "minutes": "{value, number} min",
+      "minutesSeconds": "{minutes, number}:{seconds} min",
+      "load": "Carga: {value}",
+      "distanceKm": "{value, number} km",
+      "distanceM": "{value, number} m",
+      "intensity": "Intensidad: {value}"
     },
     "exit": "Salir del entrenamiento",
     "exitDialog": {
@@ -1388,6 +1467,7 @@
       "stay": "Seguir",
       "leave": "Salir"
     },
+    "current": "Ejercicio actual",
     "previous": "Anterior",
     "next": "Siguiente",
     "setDone": "Serie lista",
@@ -1400,9 +1480,7 @@
     "skip": "Saltar",
     "addTime": "+15 s",
     "addTimeLabel": "Sumar 15 segundos",
-    "notes": "Nota",
-    "instructions": "Cómo hacerlo",
-    "noVideo": "Este ejercicio no tiene video",
+    "logExercise": "Registrar ejercicio",
     "sound": {
       "on": "Sonido activado",
       "off": "Sonido desactivado"
@@ -1479,7 +1557,18 @@
       "empty": "Todavía no hay comentarios.",
       "new": "Nuevo",
       "newCount": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
-      "painValue": "Dolor {value, number}/10"
+      "painValue": "Dolor {value, number}/10",
+      "rpeValue": "RPE {value, number}/10"
+    },
+    "exercises": {
+      "title": "Registro de ejercicios",
+      "description": "Lo que el paciente anotó en cada ejercicio.",
+      "empty": "Todavía no hay registros de ejercicios.",
+      "group": "{date} · {routine}",
+      "pain": "Dolor {value, number}/10",
+      "rpe": "RPE {value, number}/10",
+      "weight": "{value} kg",
+      "new": "Nuevo"
     }
   },
   "Dashboard": {
@@ -1503,7 +1592,8 @@
       "description": "Lo que escribieron tus pacientes y todavía no abriste.",
       "empty": "No hay comentarios nuevos.",
       "count": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
-      "context": "{routine} · {date}"
+      "context": "{routine} · {date}",
+      "contextExercise": "{routine} · {exercise} · {date}"
     },
     "recent": {
       "title": "Activos recientemente",
@@ -1569,11 +1659,14 @@
         "duration": "Duración (s)",
         "rest": "Descanso (s)",
         "load": "Carga",
+        "distance": "Distancia",
+        "intensity": "Intensidad",
         "side": "Lado",
         "notes": "Notas",
         "instructions": "Indicaciones",
         "video": "Enlace al video"
-      }
+      },
+      "notes": "Notas"
     }
   },
   "History": {
@@ -1603,6 +1696,8 @@
       "repsMax": "Repeticiones máx.",
       "durationSeconds": "Duración",
       "load": "Carga",
+      "distanceMeters": "Distancia",
+      "intensity": "Intensidad",
       "sets": "Series",
       "holdSeconds": "Sostener",
       "restSeconds": "Descanso",
@@ -1610,6 +1705,7 @@
       "notes": "Notas",
       "group": "Superserie",
       "label": "Etiqueta",
+      "dayNotes": "Notas del día",
       "routine": "Rutina",
       "name": "Nombre",
       "status": "Estado",

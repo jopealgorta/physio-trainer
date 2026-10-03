@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import { db } from "@/db";
-import { routines, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
+import { routines, weeklyPlanDays, weeklyPlanEntries, weeklyPlans } from "@/db/schema";
 import { isoWeekday, todayIn } from "@/lib/calendar-date";
 import { nextStart } from "@/lib/schedule";
 import { loadRoutineContent } from "@/server/routines/content";
@@ -25,6 +25,8 @@ export type PatientPlan = {
   id: string;
   name: string;
   notes: string | null;
+  /** The plan's note for the shown weekday, if it has one (shown on rest days too). */
+  dayNotes: string | null;
   /** The routines of the selected weekday, in order, with their entry label ("Morning"). */
   entries: { id: string; label: string | null; routine: PatientRoutine }[];
 };
@@ -129,6 +131,30 @@ export async function linkPlanEntries(
     .orderBy(asc(weeklyPlanEntries.weekday), asc(weeklyPlanEntries.position));
 }
 
+/** The day notes of the given plans (already scoped by `linkScopes`), optionally one weekday. */
+export async function linkPlanDays(
+  shell: Pick<LinkShell, "physioId">,
+  planIds: string[],
+  weekday?: number,
+): Promise<{ planId: string; weekday: number; notes: string }[]> {
+  if (planIds.length === 0) return [];
+  return db
+    .select({
+      planId: weeklyPlanDays.weeklyPlanId,
+      weekday: weeklyPlanDays.weekday,
+      notes: weeklyPlanDays.notes,
+    })
+    .from(weeklyPlanDays)
+    .where(
+      and(
+        eq(weeklyPlanDays.physioId, shell.physioId),
+        inArray(weeklyPlanDays.weeklyPlanId, planIds),
+        weekday === undefined ? undefined : eq(weeklyPlanDays.weekday, weekday),
+      ),
+    )
+    .orderBy(asc(weeklyPlanDays.weekday));
+}
+
 const isWeekdayNumber = (value: number) => Number.isInteger(value) && value >= 1 && value <= 7;
 
 export async function getPatientView(
@@ -164,11 +190,18 @@ export async function getPatientView(
           .orderBy(asc(routines.name), asc(routines.id)),
   ]);
 
-  const entryRows = await linkPlanEntries(
-    shell,
-    link,
-    planRows.map((plan) => plan.id),
-  );
+  const [entryRows, dayNoteRows] = await Promise.all([
+    linkPlanEntries(
+      shell,
+      link,
+      planRows.map((plan) => plan.id),
+    ),
+    linkPlanDays(
+      shell,
+      planRows.map((plan) => plan.id),
+      weekday,
+    ),
+  ]);
 
   const weekdaysWithContent = [...new Set(entryRows.map((entry) => entry.weekday))].sort(
     (a, b) => a - b,
@@ -181,6 +214,7 @@ export async function getPatientView(
 
   const plans: PatientPlan[] = planRows.map((plan) => ({
     ...plan,
+    dayNotes: dayNoteRows.find((row) => row.planId === plan.id)?.notes ?? null,
     entries: dayEntries
       .filter((entry) => entry.planId === plan.id && content.has(entry.routineId))
       .map((entry) => ({

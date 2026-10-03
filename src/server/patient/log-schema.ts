@@ -1,7 +1,14 @@
 import { z } from "zod";
 
 import { isCalendarDate } from "@/lib/calendar-date";
-import { LOG_COMMENT_MAX, PAIN_MAX, PAIN_MIN, normalizeComment } from "@/lib/session-logs";
+import {
+  LOG_COMMENT_MAX,
+  PAIN_MAX,
+  PAIN_MIN,
+  RPE_MAX,
+  RPE_MIN,
+  normalizeComment,
+} from "@/lib/session-logs";
 
 /**
  * What a patient sends when logging a session (spec 13). Every id is only ever matched against
@@ -13,6 +20,8 @@ export const logSessionSchema = z.object({
   performedOn: z.string().refine(isCalendarDate),
   completed: z.boolean(),
   pain: z.number().int().min(PAIN_MIN).max(PAIN_MAX).nullable(),
+  // Optional so a client from before RPE existed still validates.
+  rpe: z.number().int().min(RPE_MIN).max(RPE_MAX).nullable().default(null),
   comment: z
     .string()
     .nullable()

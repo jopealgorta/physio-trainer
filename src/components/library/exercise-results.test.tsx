@@ -19,6 +19,7 @@ const exercises: ExerciseSummary[] = [
   {
     id: "e1",
     name: "Bridge",
+    kind: "strength",
     categoryId: null,
     bodyAreas: ["knee", "hip_groin", "lower_back", "ankle_foot"],
     tags: ["band", "core"],
@@ -28,6 +29,7 @@ const exercises: ExerciseSummary[] = [
   {
     id: "e2",
     name: "Squat",
+    kind: "strength",
     categoryId: null,
     bodyAreas: [],
     tags: [],
@@ -59,6 +61,19 @@ describe("ExerciseResults", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getAllByText("Archived")).toHaveLength(2);
     expect(screen.getByRole("list").className).toContain("divide-y");
+  });
+});
+
+describe("ExerciseResults kind badge", () => {
+  it("badges aerobic exercises only", async () => {
+    await renderAsync(
+      ExerciseResults({
+        exercises: [exercises[0], { ...exercises[1], kind: "aerobic" }],
+        view: "grid",
+        archived: false,
+      }),
+    );
+    expect(screen.getAllByText("Aerobic")).toHaveLength(1);
   });
 });
 

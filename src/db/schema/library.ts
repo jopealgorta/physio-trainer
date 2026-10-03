@@ -16,7 +16,7 @@ import {
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 
 import { timestamps } from "./_columns";
-import { bodyAreaEnum, exerciseMediaKindEnum } from "./enums";
+import { bodyAreaEnum, exerciseKindEnum, exerciseMediaKindEnum } from "./enums";
 import { physios } from "./physios";
 
 /** Tenancy rule 1: a physio reads and writes only their own rows. */
@@ -91,6 +91,7 @@ export const exercises = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'`),
+    kind: exerciseKindEnum().notNull().default("strength"),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,
   },

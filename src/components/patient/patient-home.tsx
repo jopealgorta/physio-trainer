@@ -8,11 +8,14 @@ import { buildWorkoutPath } from "@/lib/patient-paths";
 import { addDays } from "@/lib/phases";
 import { weekdayName, type Weekday } from "@/lib/plans";
 import { dateForWeekday, isLoggableDate, loggedWeekdays } from "@/lib/session-logs";
+import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientLog } from "@/server/patient/log-session";
 import type { PatientView } from "@/server/patient/view";
 
 import { DayStrip } from "./day-strip";
-import { LogSessionButton, type LoggableDay } from "./log-session-button";
+import type { ExerciseLogging } from "./exercise-list";
+import { LogSessionButton } from "./log-session-button";
+import type { LoggableDay } from "./log-sheet";
 import { RoutineView } from "./routine-view";
 
 /** The patient page body: greeting, plans for the chosen day with the week strip, and routines. */
@@ -28,8 +31,16 @@ export async function PatientHome({
   locale: Locale;
   /** Canonical link path (for the day links). */
   path: string;
-  /** Session logging (spec 13): the logs of this week, and whether this visitor may write one. */
-  logging: { code: string; logs: PatientLog[]; canLog: boolean };
+  /**
+   * Session logging (spec 13) and exercise logs (spec 19): this week's logs, and whether this
+   * visitor may write one.
+   */
+  logging: {
+    code: string;
+    logs: PatientLog[];
+    exerciseLogs: PatientExerciseLog[];
+    canLog: boolean;
+  };
 }) {
   const [t, tE, format] = await Promise.all([
     getTranslations({ locale, namespace: "Patient" }),
@@ -69,6 +80,22 @@ export async function PatientHome({
       shownDate={shownDate}
     />
   );
+  // The same days and shown date as the routine's log slot, for each of its exercises.
+  const exerciseLogging = (
+    routineId: string,
+    entryId: string | null,
+    days: LoggableDay[],
+    shownDate: string,
+  ): ExerciseLogging => ({
+    code: logging.code,
+    routineId,
+    entryId,
+    days,
+    shownDate,
+    logs: logging.exerciseLogs.filter(
+      (entry) => entry.routineId === routineId && entry.entryId === entryId,
+    ),
+  });
 
   return (
     <div className="grid gap-8">
@@ -131,6 +158,12 @@ export async function PatientHome({
                   {plan.name}
                 </h3>
               ) : null}
+              {plan.dayNotes ? (
+                <p className="bg-muted rounded-lg p-3 text-sm wrap-anywhere whitespace-pre-line">
+                  <span className="sr-only">{t("dayNote")}: </span>
+                  {plan.dayNotes}
+                </p>
+              ) : null}
               {plan.entries.length === 0 ? (
                 <p className="text-muted-foreground text-sm">{t("restDay", { day: dayName })}</p>
               ) : (
@@ -142,6 +175,7 @@ export async function PatientHome({
                     locale={locale}
                     startHref={buildWorkoutPath(path, entry.routine.id, entry.id)}
                     logSlot={logSlot(entry.routine, entry.id, planDays, dayDate)}
+                    exerciseLogging={exerciseLogging(entry.routine.id, entry.id, planDays, dayDate)}
                   />
                 ))
               )}
@@ -170,6 +204,7 @@ export async function PatientHome({
               headingLevel={routinesHeading ? 3 : 2}
               startHref={buildWorkoutPath(path, routine.id)}
               logSlot={logSlot(routine, null, singleDays, view.today)}
+              exerciseLogging={exerciseLogging(routine.id, null, singleDays, view.today)}
             />
           ))}
         </section>

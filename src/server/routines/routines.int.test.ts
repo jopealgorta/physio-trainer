@@ -16,7 +16,8 @@ import type { SaveItem } from "@/lib/routine-editor";
 import { DEFAULT_ROUTINE_FILTERS, type RoutineFilters } from "@/lib/routine-params";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
-import { createRoutine, saveRoutine } from "./mutations";
+import { loadRoutineContent } from "./content";
+import { copyRoutine, createRoutine, saveRoutine } from "./mutations";
 import { getRoutine, listRecentExercises, listRoutines } from "./queries";
 import { saveRoutineSchema, type SaveRoutineInput } from "./schemas";
 
@@ -31,6 +32,8 @@ const set = (reps: number | null = 10, extra: Record<string, unknown> = {}) => (
   repsMax: null,
   durationSeconds: null,
   load: null,
+  distanceMeters: null,
+  intensity: null,
   ...extra,
 });
 const item = (exerciseId: string, overrides: Partial<SaveItem> = {}): SaveItem => ({
@@ -272,6 +275,49 @@ describe("routines server layer", () => {
         .where(eq(routineItems.routineId, id))
         .orderBy(routineItems.position);
       expect(positions.map((row) => row.position)).toEqual([0, 1, 2]);
+    });
+
+    it("round-trips aerobic sets through save, getRoutine, copyRoutine and loadRoutineContent", async () => {
+      const [run] = await db
+        .insert(exercises)
+        .values({ physioId: a.id, name: "Run", kind: "aerobic" })
+        .returning({ id: exercises.id });
+      const aerobic = set(null, {
+        durationSeconds: 1800,
+        distanceMeters: 5000,
+        intensity: "Zone 2",
+      });
+      const id = await routine(a, customerId, "Aerobic");
+      expect(
+        await save(a, payload(id, { version: 1, items: [item(run.id, { sets: [aerobic] })] })),
+      ).toEqual({
+        ok: true,
+        data: { version: 2 },
+      });
+
+      const detail = await as(a, (tx, p) => getRoutine(tx, p, id));
+      expect(detail!.items[0].exerciseKind).toBe("aerobic");
+      expect(detail!.items[0].sets).toEqual([aerobic]);
+
+      const copied = await as(a, (tx, p) =>
+        copyRoutine(tx, p, id, () => ({
+          name: "Aerobic copy",
+          customerId,
+          caseId: null,
+          isStandalone: true,
+          status: "draft",
+          isTemplate: false,
+          sourceTemplateId: null,
+        })),
+      );
+      if (!copied.ok) throw new Error(copied.error);
+      const copy = await as(a, (tx, p) => getRoutine(tx, p, copied.data.id));
+      expect(copy!.items[0].sets).toEqual([aerobic]);
+
+      const content = await as(a, (tx, p) => loadRoutineContent(tx, p, customerId, [id]));
+      const block = content.get(id)!.blocks[0];
+      if (block.kind !== "single") throw new Error("expected single");
+      expect(block.item).toMatchObject({ exerciseId: run.id, kind: "aerobic", sets: [aerobic] });
     });
 
     it("replaces children on every save and leaves no orphans", async () => {
