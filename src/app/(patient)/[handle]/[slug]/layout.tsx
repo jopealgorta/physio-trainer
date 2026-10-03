@@ -5,8 +5,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 
 import { BrandingStyle } from "@/components/branding/branding-style";
-import { ClinicMark } from "@/components/patient/clinic-mark";
 import { PatientFooter } from "@/components/patient/patient-footer";
+import { PatientHeader } from "@/components/patient/patient-header";
 import { buildPreviewMetadata, previewVersion } from "@/lib/link-preview";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { loadLink } from "@/server/patient/load";
@@ -70,6 +70,7 @@ export default async function PatientLayout({ children, params }: LayoutProps<"/
   const shell = await shellOf((await params).slug);
   if (!shell) notFound();
   const { locale, branding } = shell;
+  const t = await getTranslations({ locale, namespace: "Patient" });
 
   // The client components on this page (PIN form, video preview, workout) get only what they use.
   const all = await getMessages({ locale });
@@ -87,17 +88,12 @@ export default async function PatientLayout({ children, params }: LayoutProps<"/
         className="bg-background text-foreground flex min-h-dvh flex-col"
       >
         <BrandingStyle tokens={branding.tokens} scope="patient" />
-        <header className="border-b">
-          <div className="mx-auto flex w-full max-w-2xl items-center gap-3 px-4 py-3">
-            <ClinicMark
-              name={branding.clinicName}
-              logoUrl={branding.logoUrl}
-              alt=""
-              className="size-9 text-base"
-            />
-            <p className="min-w-0 truncate font-semibold">{branding.clinicName}</p>
-          </div>
-        </header>
+        <PatientHeader
+          clinicName={branding.clinicName}
+          logoUrl={branding.logoUrl}
+          physio={shell.physio}
+          photoAlt={t("physioPhotoAlt", { name: shell.physio.name })}
+        />
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
         <PatientFooter branding={branding} locale={locale} />
       </div>

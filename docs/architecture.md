@@ -155,7 +155,7 @@ erDiagram
 
 | Table                                      | Spec                           | Purpose                                                                                                                |
 | ------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `physios`                                  | 01 (+09 branding columns)      | Profile, 1:1 with `auth.users` (`id` = auth user id). `handle` unique.                                                 |
+| `physios`                                  | 01 (+09 branding columns)      | Profile, 1:1 with `auth.users` (`id` = auth user id). `handle` unique. `avatar_url`: Google photo, set on sign-in.     |
 | `exercise_categories`                      | 03                             | Two-level tree (`parent_id` null = top level).                                                                         |
 | `exercises`, `exercise_media`              | 03                             | Library entries (no prescription of their own) and ordered media.                                                      |
 | `customers`                                | 04                             | Patient contact/basic info, `locale`.                                                                                  |

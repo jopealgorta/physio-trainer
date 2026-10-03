@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { PhysioAvatar } from "@/components/physio-avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,17 +19,19 @@ import { signOut } from "@/server/auth/actions";
 export function UserMenu({
   name,
   email,
+  avatarUrl,
   compact = false,
   className,
 }: {
   name: string;
   email: string;
+  /** The sign-in photo (Google); the initial shows when null or when it fails to load. */
+  avatarUrl: string | null;
   /** Avatar-only trigger for the mobile header. */
   compact?: boolean;
   className?: string;
 }) {
   const t = useTranslations("UserMenu");
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <DropdownMenu>
@@ -41,12 +44,7 @@ export function UserMenu({
             className,
           )}
         >
-          <span
-            aria-hidden
-            className="bg-primary text-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-          >
-            {initial}
-          </span>
+          <PhysioAvatar name={name} src={avatarUrl} alt={t("photoAlt", { name })} />
           {compact ? null : (
             <span className="grid min-w-0 text-left">
               <span className="truncate text-sm font-medium">{name}</span>

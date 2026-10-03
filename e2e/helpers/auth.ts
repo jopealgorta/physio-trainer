@@ -19,7 +19,13 @@ export type E2EPhysio = { id: string; email: string; displayName: string; handle
 
 /** Creates a physio through the admin API (no email). Onboarded physios get a known handle. */
 export async function createPhysio(
-  options: { onboarded?: boolean; displayName?: string; handle?: string } = {},
+  options: {
+    onboarded?: boolean;
+    displayName?: string;
+    handle?: string;
+    /** Extra sign-up metadata, e.g. Google's `avatar_url`. */
+    userMetadata?: Record<string, unknown>;
+  } = {},
 ): Promise<E2EPhysio> {
   const suffix = crypto.randomUUID().slice(0, 8);
   const email = `e2e-${suffix}@example.test`;
@@ -27,7 +33,7 @@ export async function createPhysio(
   const { data, error } = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
-    user_metadata: { full_name: displayName },
+    user_metadata: { full_name: displayName, ...options.userMetadata },
   });
   if (error) throw error;
   const id = data.user.id;
@@ -42,6 +48,12 @@ export async function createPhysio(
   }
   const [row] = await sql<{ handle: string }[]>`select handle from public.physios where id = ${id}`;
   return { id, email, displayName, handle: row.handle };
+}
+
+/** Replaces the auth user's metadata, as a provider does when the profile changes. */
+export async function setUserMetadata(id: string, metadata: Record<string, unknown>) {
+  const { error } = await admin.auth.admin.updateUserById(id, { user_metadata: metadata });
+  if (error) throw error;
 }
 
 export async function deletePhysio(physio: E2EPhysio): Promise<void> {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCategoryTree, type CategoryRow } from "./category-tree";
+import { buildCategoryTree, withCategory, type CategoryRow } from "./category-tree";
 
 const row = (overrides: Partial<CategoryRow> & Pick<CategoryRow, "id">): CategoryRow => ({
   parentId: null,
@@ -34,5 +34,35 @@ describe("buildCategoryTree", () => {
 
   it("drops orphans whose parent is missing", () => {
     expect(buildCategoryTree([row({ id: "child", parentId: "gone" })])).toEqual([]);
+  });
+});
+
+describe("withCategory", () => {
+  const tree = buildCategoryTree([
+    row({ id: "lower", name: "Lower limb" }),
+    row({ id: "glutes", parentId: "lower", name: "Glutes" }),
+    row({ id: "upper", name: "Upper limb", position: 1 }),
+  ]);
+
+  it("appends a new top-level category, empty and with no exercises", () => {
+    const next = withCategory(tree, { id: "core", name: "Core", parentId: null });
+    expect(next.map((node) => node.id)).toEqual(["lower", "upper", "core"]);
+    expect(next[2]).toMatchObject({ name: "Core", activeCount: 0, totalCount: 0, children: [] });
+    expect(tree).toHaveLength(2);
+  });
+
+  it("appends a sub-category to its parent", () => {
+    const next = withCategory(tree, { id: "hams", name: "Hamstrings", parentId: "lower" });
+    expect(next[0].children.map((child) => child.id)).toEqual(["glutes", "hams"]);
+    expect(tree[0].children).toHaveLength(1);
+  });
+
+  it("leaves the tree alone when the category is already in it", () => {
+    expect(withCategory(tree, { id: "glutes", name: "Glutes", parentId: "lower" })).toBe(tree);
+    expect(withCategory(tree, { id: "upper", name: "Upper limb", parentId: null })).toBe(tree);
+  });
+
+  it("leaves the tree alone when the parent is gone", () => {
+    expect(withCategory(tree, { id: "x", name: "X", parentId: "missing" })).toBe(tree);
   });
 });

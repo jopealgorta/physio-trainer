@@ -48,22 +48,10 @@ import {
 } from "@/server/library/actions";
 import type { CategoryError } from "@/server/library/schemas";
 
-type ErrorKey = "nameRequired" | "nameTooLong" | "nameTaken" | "notFound" | "tooDeep" | "unknown";
-
-function errorKey(error: CategoryError): ErrorKey {
-  if (error === "parentNotFound") return "notFound";
-  if (error === "mismatch" || error === "invalid") return "unknown";
-  return error;
-}
+import { categoryErrorKey, useCategoryErrorText, type CategoryErrorKey } from "./category-errors";
 
 /** Marks inline inputs so Escape cancels them without closing the whole dialog. */
 const INLINE_EDIT = "data-inline-edit";
-
-function useErrorText() {
-  const t = useTranslations("Library.categories.errors");
-  return (key: ErrorKey) =>
-    key === "nameTooLong" ? t(key, { max: CATEGORY_NAME_MAX_LENGTH }) : t(key);
-}
 
 function NameForm({
   initial = "",
@@ -78,20 +66,20 @@ function NameForm({
   submitLabel: string;
   /** Rename / add-sub forms: autofocus and cancellable. */
   inline?: boolean;
-  onSubmit: (name: string) => Promise<ErrorKey | null>;
+  onSubmit: (name: string) => Promise<CategoryErrorKey | null>;
   onCancel?: () => void;
 }) {
   const t = useTranslations("Library.categories");
-  const errorText = useErrorText();
+  const errorText = useCategoryErrorText();
   const [value, setValue] = useState(initial);
-  const [error, setError] = useState<ErrorKey | null>(null);
+  const [error, setError] = useState<CategoryErrorKey | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      let failure: ErrorKey | null;
+      let failure: CategoryErrorKey | null;
       try {
         failure = await onSubmit(value);
       } catch {
@@ -163,8 +151,8 @@ type Ctx = {
   focus: (focusKey: string) => void;
   run: (
     call: () => Promise<{ ok: true } | { ok: false; error: CategoryError }>,
-  ) => Promise<ErrorKey | null>;
-  setNotice: (notice: ErrorKey | null) => void;
+  ) => Promise<CategoryErrorKey | null>;
+  setNotice: (notice: CategoryErrorKey | null) => void;
   startTransition: (callback: () => Promise<void>) => void;
 };
 
@@ -303,7 +291,7 @@ function DeleteButton({
 export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
   const t = useTranslations("Library.categories");
   const tLibrary = useTranslations("Library");
-  const errorText = useErrorText();
+  const errorText = useCategoryErrorText();
   const router = useRouter();
   const [items, setItems] = useState(tree);
   const [prevTree, setPrevTree] = useState(tree);
@@ -312,7 +300,7 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
     setItems(tree);
   }
   const [editing, setEditing] = useState<Editing | null>(null);
-  const [notice, setNotice] = useState<ErrorKey | null>(null);
+  const [notice, setNotice] = useState<CategoryErrorKey | null>(null);
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -342,7 +330,7 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
 
   async function run(
     call: () => Promise<{ ok: true } | { ok: false; error: CategoryError }>,
-  ): Promise<ErrorKey | null> {
+  ): Promise<CategoryErrorKey | null> {
     try {
       const result = await call();
       if (result.ok) {
@@ -350,7 +338,7 @@ export function CategoryManager({ tree }: { tree: CategoryNode[] }) {
         router.refresh();
         return null;
       }
-      return errorKey(result.error);
+      return categoryErrorKey(result.error);
     } catch {
       return "unknown";
     }

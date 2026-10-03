@@ -178,3 +178,46 @@ test("deleting an exercise returns to the library", async ({ physioPage: page })
   await expect(page).toHaveURL(/\/library$/);
   await expect(page.getByRole("link", { name: /Throwaway plank/ })).toHaveCount(0);
 });
+
+test("an exercise gets a brand new category without leaving the form", async ({
+  physioPage: page,
+}) => {
+  await page.goto("/library/new");
+  await page.getByLabel("Name").fill("Dead bug");
+  await page.getByLabel("Instructions").fill("Keep the lower back down.");
+
+  // A top-level category, then a sub-category inside it; each is selected as it is created.
+  await page.getByRole("button", { name: "New category" }).click();
+  let dialog = page.getByRole("dialog", { name: "New category" });
+  await dialog.getByLabel("Category name").fill("Core");
+  await dialog.getByRole("button", { name: "Create category" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByLabel("Category")).toHaveText("Core");
+
+  await page.getByRole("button", { name: "New category" }).click();
+  dialog = page.getByRole("dialog", { name: "New category" });
+  await dialog.getByLabel("Category name").fill("Anti-extension");
+  await chooseOption(page, dialog.getByLabel("Inside"), "Core");
+  await dialog.getByRole("button", { name: "Create category" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByLabel("Category")).toHaveText("Core › Anti-extension");
+
+  // A duplicate name is refused inside the dialog.
+  await page.getByRole("button", { name: "New category" }).click();
+  dialog = page.getByRole("dialog", { name: "New category" });
+  await dialog.getByLabel("Category name").fill("Core");
+  await dialog.getByLabel("Category name").press("Enter");
+  await expect(dialog.getByRole("alert")).toHaveText(
+    "There's already a category with this name here.",
+  );
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+
+  // The rest of the form survived, and the exercise saves with the new sub-category.
+  await expect(page.getByLabel("Name")).toHaveValue("Dead bug");
+  await expect(page.getByLabel("Instructions")).toHaveValue("Keep the lower back down.");
+  await page.getByRole("button", { name: "Create exercise" }).click();
+  await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
+  await page.reload();
+  await expect(page.getByLabel("Category")).toHaveText("Core › Anti-extension");
+});

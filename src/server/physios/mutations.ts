@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { isUniqueViolation } from "@/db/errors";
 import type { Tx } from "@/db/rls";
@@ -17,6 +17,17 @@ export function completeOnboarding(tx: Tx, physioId: string, input: ProfileInput
 
 export function updateProfile(tx: Tx, physioId: string, input: ProfileInput) {
   return saveProfile(tx, physioId, input, { onboard: false });
+}
+
+/**
+ * Stores the sign-in provider's photo (post-sign-in step). Writes only when it changed, so an
+ * unchanged photo does not bump `updated_at` (which versions cached link previews, spec 11).
+ */
+export async function setAvatarUrl(tx: Tx, physioId: string, avatarUrl: string): Promise<void> {
+  await tx
+    .update(physios)
+    .set({ avatarUrl })
+    .where(and(eq(physios.id, physioId), sql`${physios.avatarUrl} is distinct from ${avatarUrl}`));
 }
 
 async function saveProfile(

@@ -4,13 +4,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { runAsPhysio } from "@/db/rls";
 import { loginErrorPath } from "@/lib/auth/login-errors";
+import { avatarFromMetadata } from "@/lib/avatar";
 import { setLocaleCookie } from "@/server/i18n/locale-cookie";
+import { setAvatarUrl } from "@/server/physios/mutations";
 import { getProfile } from "@/server/physios/queries";
 
 /**
  * Where to send a physio right after a session was created; restores an onboarded physio's
  * language.
- * New physios go through onboarding first, keeping `next`.
+ * New physios go through onboarding first, keeping `next`. Also refreshes the profile photo
+ * from the provider (Google), which may change between sign-ins.
  */
 export async function postSignInPath(
   supabase: SupabaseClient,
@@ -23,6 +26,17 @@ export async function postSignInPath(
 
     const profile = await runAsPhysio(data.claims, (tx, physioId) => getProfile(tx, physioId));
     if (!profile) throw new Error("signed-in user has no physios row");
+
+    // Magic-link users have no photo in their metadata: keep whatever Google set before. Its own
+    // transaction, and best-effort: a photo must never stand between a physio and their app.
+    const avatarUrl = avatarFromMetadata(data.claims.user_metadata);
+    if (avatarUrl && avatarUrl !== profile.avatarUrl) {
+      await runAsPhysio(data.claims, (tx, physioId) => setAvatarUrl(tx, physioId, avatarUrl)).catch(
+        (error: unknown) => {
+          console.error(`Failed to refresh the profile photo of physio ${profile.id}`, error);
+        },
+      );
+    }
 
     // Before onboarding the row only has the column default; keep the language the physio
     // chose (or their browser's) while signed out. Onboarding saves it to the profile.

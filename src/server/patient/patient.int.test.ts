@@ -127,6 +127,20 @@ describe("patient data layer", () => {
       if (revoked.status === "unavailable") expect(revoked.shell.title).toBe("Knee rehab");
     });
 
+    it("carries only the physio's name and photo for the header", async () => {
+      const photo = "https://lh3.googleusercontent.com/a/dra-maria";
+      await db.update(physios).set({ avatarUrl: photo }).where(eq(physios.id, physio.id));
+      try {
+        const customerId = await insertCustomer(physio.id, { firstName: "Leo" });
+        const result = await resolved((await customerLink(physio, customerId)).code);
+        expect(result.shell.physio).toEqual({ name: "Dra. Maria", avatarUrl: photo });
+        // The physio's sign-in email is not part of what patients get.
+        expect(JSON.stringify(result)).not.toContain(physio.email);
+      } finally {
+        await db.update(physios).set({ avatarUrl: null }).where(eq(physios.id, physio.id));
+      }
+    });
+
     it("reports revoked links as unavailable, with the shell for the friendly page", async () => {
       const customerId = await insertCustomer(physio.id);
       const link = await customerLink(physio, customerId);

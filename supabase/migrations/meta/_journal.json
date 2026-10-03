@@ -176,6 +176,20 @@
       "when": 1790962867478,
       "tag": "20261002174107_version-history",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790983818208,
+      "tag": "20261002233018_physios-avatar",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790983820001,
+      "tag": "20261002233019_physios-avatar-extras",
+      "breakpoints": true
     }
   ]
 }
