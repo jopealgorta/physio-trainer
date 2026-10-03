@@ -244,4 +244,23 @@ describe("LogSessionButton", () => {
     setup({}, "es");
     expect(screen.getByRole("button", { name: "Marcar como hecha" })).toBeInTheDocument();
   });
+
+  it("orders the form fields as: comment, pain, RPE, then buttons", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Mark as done" }));
+
+    const comment = screen.getByLabelText("Comment (optional)");
+    const painGroup = screen.getByRole("group", { name: "Pain (optional)" });
+    const rpeGroup = screen.getByRole("group", { name: "Effort (RPE)" });
+
+    // Comment should come before pain
+    expect(
+      comment.compareDocumentPosition(painGroup) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Pain should come before RPE
+    expect(
+      painGroup.compareDocumentPosition(rpeGroup) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
 });

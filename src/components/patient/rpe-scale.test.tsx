@@ -56,4 +56,16 @@ describe("RpeScale", () => {
     await user.click(screen.getByRole("button", { name: "Clear" }));
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
+
+  it("renders radios in a single compact row with 11 small tiles", () => {
+    setup();
+    const group = screen.getByRole("group", { name: "Effort (RPE)" });
+    const radios = within(group).getAllByRole("radio");
+    expect(radios).toHaveLength(11);
+
+    // Find the container that has the grid class
+    const container = radios[0].closest(".grid");
+    expect(container).toHaveClass("grid-cols-11");
+    expect(container).toHaveClass("gap-1");
+  });
 });

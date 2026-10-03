@@ -26,7 +26,7 @@ const TINT = [
 ] as const;
 
 /**
- * The patient's pain rating, 0-10: big touch targets in two rows, optional (it can be cleared).
+ * The patient's pain rating, 0-10: one compact row of 11 small tiles, optional (it can be cleared).
  * A custom widget on native radios, so the arrow keys and form semantics come for free.
  */
 export function PainScale({
@@ -57,15 +57,15 @@ export function PainScale({
           </button>
         ) : null}
       </div>
-      <p id={hintId} className="text-muted-foreground text-sm">
+      <p id={hintId} className="text-muted-foreground text-xs">
         {t("hint")}
       </p>
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-11 gap-1">
         {PAIN_SCALE.map((rating) => (
           <label
             key={rating}
             className={cn(
-              "has-focus-visible:ring-ring/50 relative flex h-12 cursor-pointer items-center justify-center rounded-lg border text-base font-semibold select-none has-focus-visible:ring-[3px]",
+              "has-focus-visible:ring-ring/50 relative flex h-9 cursor-pointer items-center justify-center rounded-md border text-sm font-semibold select-none has-focus-visible:ring-[3px]",
               TINT[rating],
               value === rating && "border-foreground ring-foreground ring-2",
             )}

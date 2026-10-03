@@ -33,7 +33,7 @@ function descriptorKey(value: number) {
 
 /**
  * The patient's effort rating (Borg CR10, 0-10), optional like the pain. Same native-radio
- * widget as `PainScale`.
+ * widget as `PainScale`. Rendered as one compact row of 11 small tiles.
  */
 export function RpeScale({
   name,
@@ -68,15 +68,15 @@ export function RpeScale({
           </button>
         ) : null}
       </div>
-      <p id={hintId} className="text-muted-foreground text-sm">
+      <p id={hintId} className="text-muted-foreground text-xs">
         {t("hint")}
       </p>
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-11 gap-1">
         {RPE_SCALE.map((rating) => (
           <label
             key={rating}
             className={cn(
-              "has-focus-visible:ring-ring/50 relative flex h-12 cursor-pointer items-center justify-center rounded-lg border text-base font-semibold select-none has-focus-visible:ring-[3px]",
+              "has-focus-visible:ring-ring/50 relative flex h-9 cursor-pointer items-center justify-center rounded-md border text-sm font-semibold select-none has-focus-visible:ring-[3px]",
               TINT[rating],
               value === rating && "border-foreground ring-foreground ring-2",
             )}
@@ -94,7 +94,7 @@ export function RpeScale({
         ))}
       </div>
       {value !== null ? (
-        <p id={descriptorId} className="text-sm font-medium">
+        <p id={descriptorId} className="text-xs font-medium">
           {t("selected", { value, label: t(`descriptors.${descriptorKey(value)}`) })}
         </p>
       ) : null}
