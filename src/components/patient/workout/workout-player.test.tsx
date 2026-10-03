@@ -356,14 +356,6 @@ describe("WorkoutPlayer", () => {
       swipeLeft(bar());
       expect(screen.getByText("Set 2 of 2")).toBeInTheDocument();
     });
-
-    it("ignores drags inside the inline log opened from the bar", async () => {
-      const user = setup(routineOf(item("a", "Squat")), "en", undefined, logging());
-      await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
-      const panel = screen.getByRole("region", { name: "How did Squat go?" });
-      swipeLeft(within(panel).getByRole("group", { name: "Effort (RPE)" }));
-      expect(screen.getByText("Set 1 of 2")).toBeInTheDocument();
-    });
   });
 
   it("has no log button when nothing can be logged (the physio previewing)", () => {

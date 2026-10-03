@@ -262,5 +262,10 @@ describe("LogSessionButton", () => {
     expect(
       painGroup.compareDocumentPosition(rpeGroup) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // The buttons come last
+    expect(
+      rpeGroup.compareDocumentPosition(screen.getByRole("button", { name: "Save" })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

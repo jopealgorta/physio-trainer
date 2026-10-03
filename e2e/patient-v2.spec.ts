@@ -11,7 +11,10 @@ import {
 } from "./helpers/patient";
 import { addExercises, hasNoHorizontalOverflow } from "./helpers/routines";
 
-/** Picks a rating on a scale of the log sheet, found by its group name (native radios: click the label). */
+/**
+ * Picks a rating on a scale (inline log or session sheet), found by its group name (native
+ * radios: click the label).
+ */
 const rate = (page: Page, group: string, value: number) =>
   page
     .getByRole("group", { name: group })

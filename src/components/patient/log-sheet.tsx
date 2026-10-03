@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 export type LoggableDay = { date: string; relative: "today" | "yesterday" };
 
 /**
- * The bottom sheet both patient logs open in (the routine's "Mark as done" and an exercise's
- * "Log"): a title, an optional description, a close button and a scrolling body.
+ * The bottom sheet the routine's "Mark as done" log opens in (an exercise's log is inline since
+ * spec 20): a title, an optional description, a close button and a scrolling body.
  */
 export function LogSheet({
   open,
