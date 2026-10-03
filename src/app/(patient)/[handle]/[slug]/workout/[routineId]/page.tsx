@@ -75,16 +75,19 @@ export default async function WorkoutPage({
   const finishSlot = (
     <div className="grid justify-items-center gap-3">
       <p className="text-muted-foreground max-w-xs text-sm">{tLogging("finished")}</p>
-      <LogSessionButton
-        code={shell.code}
-        routineId={routine.id}
-        entryId={entryId}
-        routineName={routine.name}
-        days={owner ? [] : [{ date: today, relative: "today" }]}
-        logs={logs.filter((log) => log.routineId === routine.id && log.entryId === entryId)}
-        shownDate={today}
-        defaultOpen={!owner}
-      />
+      {/* The button's row (it lays out as items of its parent, as on the routine card). */}
+      <div className="flex w-full max-w-xs items-center justify-center gap-3 empty:hidden">
+        <LogSessionButton
+          code={shell.code}
+          routineId={routine.id}
+          entryId={entryId}
+          routineName={routine.name}
+          days={owner ? [] : [{ date: today, relative: "today" }]}
+          logs={logs.filter((log) => log.routineId === routine.id && log.entryId === entryId)}
+          shownDate={today}
+          defaultOpen={!owner}
+        />
+      </div>
     </div>
   );
 

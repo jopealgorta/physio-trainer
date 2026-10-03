@@ -17,6 +17,7 @@ import {
   makeSeparateCopy,
   moveEntry,
   removeEntry,
+  renamePlan,
   setEntryLabel,
   updatePlan,
 } from "./mutations";
@@ -28,6 +29,7 @@ import {
   idSchema,
   moveEntrySchema,
   removeEntrySchema,
+  renamePlanSchema,
   separateCopySchema,
   setLabelSchema,
   updatePlanSchema,
@@ -128,6 +130,17 @@ export async function updatePlanAction(
   const parsed = updatePlanSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const result = await withPhysio((tx, physioId) => updatePlan(tx, physioId, parsed.data));
+  if (result.ok) revalidatePlan(parsed.data.id);
+  return result;
+}
+
+/** Renames the plan from its title. A blank or long name is "invalid": the title checks first. */
+export async function renamePlanAction(
+  input: unknown,
+): Promise<Result<{ version: number }, "notFound" | "invalid">> {
+  const parsed = renamePlanSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const result = await withPhysio((tx, physioId) => renamePlan(tx, physioId, parsed.data));
   if (result.ok) revalidatePlan(parsed.data.id);
   return result;
 }

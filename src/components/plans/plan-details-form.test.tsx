@@ -11,7 +11,7 @@ import { PlanDetailsForm } from "./plan-details-form";
 const { updatePlanAction } = vi.hoisted(() => ({ updatePlanAction: vi.fn() }));
 vi.mock("@/server/plans/actions", () => ({ updatePlanAction }));
 
-const INITIAL = { name: "Week A", notes: "", caseId: null, status: "active" as const };
+const INITIAL = { notes: "", caseId: null, status: "active" as const };
 
 const setup = (props: Partial<React.ComponentProps<typeof PlanDetailsForm>> = {}) =>
   render(
@@ -26,14 +26,19 @@ beforeEach(() => {
 });
 
 describe("PlanDetailsForm", () => {
-  it("tells the physio the name is the link preview's title, except on a template", () => {
-    const hint = "Shown as the title in the link preview when you share it.";
-    const { unmount } = setup();
-    expect(screen.getByText(hint)).toBeInTheDocument();
-    expect(screen.getByLabelText("Name")).toHaveAccessibleDescription(hint);
-    unmount();
-    setup({ isTemplate: true });
-    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+  it("has no name field (the title renames the plan) and saves without a name", async () => {
+    const user = userEvent.setup();
+    setup();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Notes for the patient"), "Ice after");
+    await user.click(screen.getByRole("button", { name: "Save details" }));
+    await waitFor(() => expect(updatePlanAction).toHaveBeenCalled());
+    expect(updatePlanAction.mock.calls[0]![0]).toEqual({
+      id: "p1",
+      notes: "Ice after",
+      caseId: null,
+      status: "active",
+    });
   });
 
   it("offers every status for a customer's plan", async () => {
@@ -79,46 +84,39 @@ describe("PlanDetailsForm", () => {
           <PlanDetailsForm planId="p1" initial={initial} cases={[]} />
         </NextIntlClientProvider>,
       );
-    const name = screen.getByLabelText("Name");
+    const notes = screen.getByLabelText("Notes for the patient");
 
-    await user.type(name, " v2");
+    await user.type(notes, "v2");
     await user.click(screen.getByRole("button", { name: "Save details" }));
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
-    rerenderWith({ ...INITIAL, name: "Week A v2" });
+    rerenderWith({ ...INITIAL, notes: "v2" });
     expect(screen.getByRole("status")).toHaveTextContent("Saved");
 
     // A board action re-renders the page with the same details: edits in progress stay.
-    await user.type(name, "!");
-    rerenderWith({ ...INITIAL, name: "Week A v2" });
-    expect(name).toHaveValue("Week A v2!");
+    await user.type(notes, "!");
+    rerenderWith({ ...INITIAL, notes: "v2" });
+    expect(notes).toHaveValue("v2!");
 
-    rerenderWith({ ...INITIAL, name: "Restored" });
-    expect(name).toHaveValue("Restored");
+    rerenderWith({ ...INITIAL, notes: "Restored" });
+    expect(notes).toHaveValue("Restored");
     expect(screen.getByRole("button", { name: "Save details" })).toBeDisabled();
   });
 
-  it("keeps its own save when the server trims the name and notes", async () => {
+  it("keeps its own save when the server trims the notes", async () => {
     const user = userEvent.setup();
     const { rerender } = setup();
-    const name = screen.getByLabelText("Name");
     const notes = screen.getByLabelText("Notes for the patient");
 
-    await user.type(name, " ");
     await user.type(notes, "Ice after{Enter}");
     await user.click(screen.getByRole("button", { name: "Save details" }));
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
     // The page re-renders with what the server stored: trimmed.
     rerender(
       <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-        <PlanDetailsForm
-          planId="p1"
-          initial={{ ...INITIAL, name: "Week A", notes: "Ice after" }}
-          cases={[]}
-        />
+        <PlanDetailsForm planId="p1" initial={{ ...INITIAL, notes: "Ice after" }} cases={[]} />
       </NextIntlClientProvider>,
     );
     expect(screen.getByRole("status")).toHaveTextContent("Saved");
-    expect(name).toHaveValue("Week A ");
     expect(notes).toHaveValue("Ice after\n");
     expect(screen.getByRole("button", { name: "Save details" })).toBeDisabled();
   });

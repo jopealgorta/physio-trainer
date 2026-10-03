@@ -1,10 +1,14 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { pageAction } from "./helpers/page-actions";
 import { addExercises, createExercise, createRoutine } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 
 const history = (page: Page) => page.getByRole("dialog", { name: "Version history" });
+// Said next to History from `sm` up, and in the page notices on phones: one of them shows.
+const restoredNotice = (page: Page) =>
+  page.getByText("Version restored.").filter({ visible: true });
 const repsInput = (page: Page) =>
   page
     .getByTestId("item-row")
@@ -39,7 +43,7 @@ test("a physio changes reps, sees it in the history and restores the earlier ver
   await repsInput(page).fill("12");
   await saveRoutine(page);
 
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await pageAction(page, "History");
   const sheet = history(page);
   await expect(sheet.getByRole("button").filter({ hasText: "Reps changed on 1" })).toBeVisible();
   await expect(sheet.getByText("Current")).toBeVisible();
@@ -52,12 +56,12 @@ test("a physio changes reps, sees it in the history and restores the earlier ver
   await sheet.getByRole("button", { name: "Restore this version" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Restore", exact: true }).click();
 
-  await expect(page.getByText("Version restored.")).toBeVisible();
+  await expect(restoredNotice(page)).toBeVisible();
   await expect(sheet).toBeHidden();
   await editPrescription(page);
   await expect(repsInput(page)).toHaveValue("10");
 
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await pageAction(page, "History");
   await expect(sheet.getByText(/^Restored from /).first()).toBeVisible();
 });
 
@@ -84,7 +88,7 @@ test("a plan's history lists a routine added to a day and restores the empty pla
   await expect(add).toBeHidden();
   await expect(monday.locator("li a[href^='/routines/']")).toHaveCount(1);
 
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await pageAction(page, "History");
   const sheet = history(page);
   await expect(sheet.getByRole("button").filter({ hasText: "+1 routine" })).toBeVisible();
 
@@ -92,7 +96,7 @@ test("a plan's history lists a routine added to a day and restores the empty pla
   await sheet.getByRole("button", { name: "Restore this version" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Restore", exact: true }).click();
 
-  await expect(page.getByText("Version restored.")).toBeVisible();
+  await expect(restoredNotice(page)).toBeVisible();
   await expect(monday).toContainText("Rest day");
   await expect(monday.locator("li a[href^='/routines/']")).toHaveCount(0);
 });

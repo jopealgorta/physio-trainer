@@ -60,11 +60,40 @@ describe("LogSessionButton", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("opens straight away with focus inside (the workout's finish screen)", async () => {
+    setup({ defaultOpen: true });
+    const dialog = await screen.findByRole("dialog", { name: "How did it go?" });
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
+  });
+
+  it("lays its parts out in the row around it: Mark as done shares it, Edit stays compact", () => {
+    const { container, unmount } = setup();
+    // No box of its own, so it sits next to Start workout in the routine's row.
+    expect(container.firstElementChild).toHaveClass("contents");
+    expect(screen.getByRole("button", { name: "Mark as done" })).toHaveClass("h-12", "flex-1");
+    unmount();
+    setup({ logs: [log()] });
+    expect(screen.getByRole("button", { name: "Edit" })).toHaveClass("h-12", "flex-none");
+  });
+
+  it("shows only the Done state, or nothing, when the day can no longer be logged", () => {
+    const { unmount } = setup({ days: [], logs: [log()] });
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    unmount();
+    const empty = setup({ days: [] });
+    expect(empty.container).toBeEmptyDOMElement();
+  });
+
   it("saves pain and a comment for the shown day, closes and refreshes", async () => {
     const user = userEvent.setup();
     setup({ entryId: ENTRY });
     await user.click(screen.getByRole("button", { name: "Mark as done" }));
     const dialog = screen.getByRole("dialog", { name: "How did it go?" });
+    // A drawer, so it can be swiped down to dismiss; it carries the patient branding scope.
+    expect(dialog).toHaveAttribute("data-vaul-drawer");
+    expect(dialog).toHaveAttribute("data-brand", "patient");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
     await user.click(within(dialog).getByRole("radio", { name: "6" }));
     await user.type(within(dialog).getByLabelText("Comment (optional)"), "A bit pinchy");
     await user.click(within(dialog).getByRole("button", { name: "Save" }));

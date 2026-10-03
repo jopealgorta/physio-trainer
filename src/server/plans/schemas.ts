@@ -42,20 +42,25 @@ const weekday = z.number().int().min(WEEKDAYS[0]).max(WEEKDAYS[6]);
 export const createPlanSchema = z.object({ customerId: z.uuid(), name: requiredName, caseId });
 export type CreatePlanInput = { customerId: string; name: string; caseId: string | null };
 
+/** The plan's details. The name is optional: the page renames through `renamePlanSchema`. */
 export const updatePlanSchema = z.object({
   id: z.uuid(),
-  name: requiredName,
+  name: requiredName.optional(),
   notes,
   caseId,
   status: z.enum(ROUTINE_STATUSES),
 });
 export type UpdatePlanInput = {
   id: string;
-  name: string;
+  name?: string;
   notes: string | null;
   caseId: string | null;
   status: RoutineStatus;
 };
+
+/** Renaming from the page title, saved on its own. */
+export const renamePlanSchema = z.object({ id: z.uuid(), name: requiredName });
+export type RenamePlanInput = { id: string; name: string };
 
 /** Attach an existing routine of the plan's customer to a day. */
 export const addEntrySchema = z.object({
@@ -125,3 +130,4 @@ type Assert<T extends true> = T;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 export type _CreateMatches = Assert<Same<z.output<typeof createPlanSchema>, CreatePlanInput>>;
 export type _UpdateMatches = Assert<Same<z.output<typeof updatePlanSchema>, UpdatePlanInput>>;
+export type _RenameMatches = Assert<Same<z.output<typeof renamePlanSchema>, RenamePlanInput>>;

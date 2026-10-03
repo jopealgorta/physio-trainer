@@ -48,46 +48,46 @@ export default async function RoutinePage({
         label: t("back"),
       };
 
-  return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={back.href}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeftIcon aria-hidden className="size-4" />
-          {back.label}
-        </Link>
-        {/* A template has no customer to share with. */}
-        {routine.isTemplate ? null : (
-          <div className="flex flex-wrap gap-2">
-            <ExportMenu target={{ kind: "routines", id: routine.id }} />
-            <ShareButton target={{ target: "routine", routineId: routine.id }} />
-          </div>
-        )}
-      </div>
-      {routine.isTemplate ? (
-        // A template plan's own routine is edited through the plan: only standalone ones are
-        // assigned or duplicated from here.
-        !routine.isStandalone ? null : (
-          <TemplateActions
-            kind="routine"
-            template={{ id: routine.id, name: routine.name }}
-            customers={customers}
-          />
-        )
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {routine.sourceTemplate ? (
-            <FromTemplate kind="routine" template={routine.sourceTemplate} />
-          ) : (
-            <span />
-          )}
-          <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
-        </div>
-      )}
-      {/* Phases belong to a customer's routine, not to a template. */}
-      {routine.isStandalone && !routine.isTemplate ? (
+  // Laid out by the editor's header, around the title and Save (on phones the controls move
+  // into its "More actions" menu).
+  const top = {
+    back: (
+      <Link
+        href={back.href}
+        className="text-muted-foreground hover:text-foreground inline-flex max-w-full items-center gap-1 text-sm"
+      >
+        <ArrowLeftIcon aria-hidden className="size-4 shrink-0" />
+        <span className="truncate">{back.label}</span>
+      </Link>
+    ),
+    // A template has no customer to share with.
+    actions: routine.isTemplate ? null : (
+      <>
+        <ExportMenu target={{ kind: "routines", id: routine.id }} />
+        <ShareButton target={{ target: "routine", routineId: routine.id }} />
+      </>
+    ),
+    secondary: routine.isTemplate ? (
+      // A template plan's own routine is edited through the plan: only standalone ones are
+      // assigned or duplicated from here.
+      routine.isStandalone ? (
+        <TemplateActions
+          kind="routine"
+          template={{ id: routine.id, name: routine.name }}
+          customers={customers}
+        />
+      ) : null
+    ) : (
+      <>
+        {routine.sourceTemplate ? (
+          <FromTemplate kind="routine" template={routine.sourceTemplate} />
+        ) : null}
+        <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
+      </>
+    ),
+    // Phases belong to a customer's routine, not to a template.
+    phase:
+      routine.isStandalone && !routine.isTemplate ? (
         <PhaseBar
           kind="routine"
           id={routine.id}
@@ -97,7 +97,11 @@ export default async function RoutinePage({
           endsOn={routine.endsOn}
           today={todayIn(timeZone)}
         />
-      ) : null}
+      ) : null,
+  };
+
+  return (
+    <div className="grid gap-6">
       <RoutineEditor
         routine={{
           id: routine.id,
@@ -122,6 +126,7 @@ export default async function RoutinePage({
         categories={categories}
         recent={recent}
         exercises={exercises}
+        top={top}
       />
     </div>
   );

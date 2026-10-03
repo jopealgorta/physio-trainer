@@ -2,14 +2,15 @@
 
 import * as React from "react";
 import { cn } from "cn";
-import { Dialog as SheetPrimitive, Popover as PopoverPrimitive, Slot } from "radix-ui";
+import { Popover as PopoverPrimitive, Slot } from "radix-ui";
 
-import { SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { useIsMobile } from "@/lib/use-media-query";
 
 /**
- * A popover on screens from `sm` up and a bottom sheet on phones: a floating card anchored to a
- * small trigger is hard to read and reach there. Callers write one `Popover`; the switch is here.
+ * A popover on screens from `sm` up and a bottom sheet (a drawer, swiped down to dismiss) on
+ * phones: a floating card anchored to a small trigger is hard to read and reach there. Callers
+ * write one `Popover`; the switch is here.
  * Size the content for desktop under `sm:` (`sm:w-96`) so the sheet keeps its full width.
  */
 const PopoverContext = React.createContext({ sheet: false, titleId: "" });
@@ -26,14 +27,9 @@ function Popover({
   return (
     <PopoverContext.Provider value={{ sheet, titleId }}>
       {sheet ? (
-        <SheetPrimitive.Root
-          data-slot="popover"
-          open={open}
-          defaultOpen={defaultOpen}
-          onOpenChange={onOpenChange}
-        >
+        <Drawer open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
           {children}
-        </SheetPrimitive.Root>
+        </Drawer>
       ) : (
         <PopoverPrimitive.Root
           data-slot="popover"
@@ -51,7 +47,7 @@ function Popover({
 
 function PopoverTrigger({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
   const { sheet } = React.useContext(PopoverContext);
-  const Trigger = sheet ? SheetPrimitive.Trigger : PopoverPrimitive.Trigger;
+  const Trigger = sheet ? DrawerTrigger : PopoverPrimitive.Trigger;
   return <Trigger data-slot="popover-trigger" {...props} />;
 }
 
@@ -91,26 +87,26 @@ function PopoverContent({
     const sheetProps: Record<string, unknown> = { ...props };
     for (const key of POSITIONING_PROPS) delete sheetProps[key];
     return (
-      <SheetContent
-        side="bottom"
-        showCloseButton={false}
+      <DrawerContent
+        // Focus lands on the sheet: its first control may be a field that would pop the keyboard.
+        focusContent
         // The content describes itself; Radix would otherwise warn about a missing description.
         aria-describedby={undefined}
         data-slot="popover-content"
         data-presentation="sheet"
-        className={cn(
-          "max-h-[85dvh] gap-3 overflow-y-auto overscroll-contain rounded-t-xl p-4 pt-3",
-          className,
-          "pb-[max(1rem,env(safe-area-inset-bottom))]",
-        )}
         {...sheetProps}
       >
+        {/* The drawer itself cannot scroll (vaul owns its gestures); this inner box does. */}
         <div
-          aria-hidden
-          className="bg-muted-foreground/30 mx-auto h-1 w-10 shrink-0 rounded-full"
-        />
-        {children}
-      </SheetContent>
+          className={cn(
+            "flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain p-4 pt-3",
+            className,
+            "pb-[max(1rem,env(safe-area-inset-bottom))]",
+          )}
+        >
+          {children}
+        </div>
+      </DrawerContent>
     );
   }
 
@@ -141,7 +137,7 @@ function PopoverContent({
  */
 function PopoverTitle({ className, ...props }: React.ComponentProps<"h2">) {
   const { sheet, titleId } = React.useContext(PopoverContext);
-  if (sheet) return <SheetTitle className={className} {...props} />;
+  if (sheet) return <DrawerTitle className={className} {...props} />;
   return (
     <h2
       id={titleId}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { YouTubePreview } from "@/components/library/youtube-preview";
+import { PATIENT_ROW_BUTTON } from "@/components/patient/row-button";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import { formatPrescription, type PrescriptionTranslate } from "@/lib/prescription";
@@ -57,15 +58,20 @@ export async function RoutineView({
           <p className="text-muted-foreground text-sm">{frequency.join(" · ")}</p>
         ) : null}
       </header>
-      {startHref && routine.blocks.length > 0 ? (
-        <Button asChild size="lg" className="h-12 w-full text-base sm:w-fit">
-          <Link href={startHref as Route} prefetch={false}>
-            <PlayIcon aria-hidden />
-            {t("startWorkout")}
-          </Link>
-        </Button>
-      ) : null}
-      {logSlot}
+      {/* One row on a phone: Start and Mark as done share it equally, and whichever is alone
+          takes all of it. The log slot's own elements are items of this row (see
+          LogSessionButton); with neither, the empty row is hidden. */}
+      <div className="flex items-center gap-3 empty:hidden sm:flex-wrap">
+        {startHref && routine.blocks.length > 0 ? (
+          <Button asChild size="lg" className={PATIENT_ROW_BUTTON}>
+            <Link href={startHref as Route} prefetch={false}>
+              <PlayIcon aria-hidden />
+              {t("startWorkout")}
+            </Link>
+          </Button>
+        ) : null}
+        {logSlot}
+      </div>
       {routine.notes ? (
         <section aria-label={t("notes")} className="bg-muted rounded-lg p-3 text-sm">
           <p className="wrap-anywhere whitespace-pre-line">{routine.notes}</p>

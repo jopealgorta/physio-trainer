@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
+import { EditableTitle } from "@/components/editable-title";
+import { PageActions, PageActionsMenu, PageNotices } from "@/components/page-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TemplateBadge } from "@/components/templates/template-badge";
-import type { HeaderErrors, HeaderField } from "@/lib/routine-validation";
+import { validateName, type HeaderErrors, type HeaderField } from "@/lib/routine-validation";
 import {
   ROUTINE_NAME_MAX,
   ROUTINE_NOTES_MAX,
@@ -40,7 +42,25 @@ export type HeaderValues = {
 
 const RANGES = { sessionsPerWeek: SESSIONS_PER_WEEK, sessionsPerDay: SESSIONS_PER_DAY } as const;
 
-/** Name, status, case, frequency and notes, plus the Save button and its saved/unsaved state. */
+/** The routine page's controls around the header (rendered by the page, placed here). */
+export type HeaderSlots = {
+  /** The way back (a link). */
+  back?: ReactNode;
+  /** Export and Share, at the end of the back link's row. */
+  actions?: ReactNode;
+  /** The template row: "From template" and Save as template, or a template's own actions. */
+  secondary?: ReactNode;
+  /** The phase bar. */
+  phase?: ReactNode;
+};
+
+/**
+ * Name, status, case, frequency and notes, plus the Save button and its saved/unsaved state, and
+ * the page's controls around them. From `sm` up: back and Export/Share; the template row; the
+ * phase; the title with History, the save state and Save. On a phone the controls give way to a
+ * "⋯" menu (see `PageActions`) in one compact row: back, the save state and Save, the menu; then
+ * the title and the phase. One flex container with `order` does both, so Save exists once.
+ */
 export function RoutineHeader({
   values,
   errors,
@@ -55,6 +75,7 @@ export function RoutineHeader({
   onSave,
   focusToken,
   actions,
+  top = {},
 }: {
   values: HeaderValues;
   errors: HeaderErrors;
@@ -71,8 +92,9 @@ export function RoutineHeader({
   onSave: () => void;
   /** Bumped by the editor when a save is refused, to move focus to the first invalid field. */
   focusToken: number;
-  /** More controls (the History button), shown before the save state. */
+  /** More controls (the History button), shown before the save state from `sm` up. */
   actions?: ReactNode;
+  top?: HeaderSlots;
 }) {
   const t = useTranslations("Routines.editor");
   const tStatus = useTranslations("Routines.status");
@@ -108,146 +130,168 @@ export function RoutineHeader({
   const indicator = saving ? "" : dirty ? t("unsaved") : saved ? t("saved") : "";
 
   return (
-    <div ref={root} className="grid gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid min-w-0 grow basis-64 gap-1">
-          <Input
-            value={values.name}
-            onChange={(event) => onChange({ name: event.target.value })}
-            aria-label={t("name")}
-            aria-invalid={invalid("name")}
-            aria-describedby={describedBy("name", isTemplate ? undefined : `${id}-name-hint`)}
-            autoComplete="off"
-            className="h-auto min-w-0 px-2 py-1 text-2xl font-semibold tracking-tight md:text-2xl"
-          />
-          {isTemplate ? null : (
-            <p id={`${id}-name-hint`} className="text-muted-foreground px-2 text-sm">
-              {t("nameHint")}
-            </p>
-          )}
-          {errorText("name")}
-          {isTemplate ? (
-            <div>
-              <TemplateBadge />
+    <PageActions>
+      <div ref={root} className="grid gap-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-6">
+          {top.back ? <div className="order-1 min-w-0 flex-1">{top.back}</div> : null}
+          {top.actions ? (
+            <div className="hidden flex-wrap items-center gap-2 sm:order-2 sm:flex">
+              {top.actions}
             </div>
-          ) : customerId !== null && customerName !== null ? (
-            <p className="text-muted-foreground text-sm">
-              {t("customer")}:{" "}
-              <Link
-                href={`/customers/${customerId}`}
-                className="text-foreground rounded-sm hover:underline focus-visible:underline"
-              >
-                {customerName}
-              </Link>
-            </p>
           ) : null}
+          <PageActionsMenu className="order-3" />
+          <PageNotices className="order-4 basis-full" />
+          {top.secondary ? (
+            <div className="hidden basis-full flex-wrap items-center gap-3 sm:order-3 sm:flex">
+              {top.secondary}
+            </div>
+          ) : null}
+          {top.phase ? <div className="order-7 basis-full sm:order-4">{top.phase}</div> : null}
+          <div className="order-5 grid min-w-0 basis-full gap-1 sm:order-5 sm:grow sm:basis-64 sm:self-start">
+            <EditableTitle
+              value={values.name}
+              label={t("name")}
+              editLabel={t("rename")}
+              validate={(name) => {
+                const code = validateName(name);
+                return code ? t(`errors.${code}`, { max: ROUTINE_NAME_MAX }) : null;
+              }}
+              // Renaming is an edit like any other: saved with the Save button.
+              onConfirm={(name) => onChange({ name })}
+              error={
+                errors.name ? t(`errors.${errors.name}`, { max: ROUTINE_NAME_MAX, min: 1 }) : null
+              }
+              hint={isTemplate ? undefined : t("nameHint")}
+              // Typing is already an edit: Save saves it even while the input is still open.
+              onDraftChange={(name) => onChange({ name })}
+            />
+            {isTemplate ? (
+              <div>
+                <TemplateBadge />
+              </div>
+            ) : customerId !== null && customerName !== null ? (
+              <p className="text-muted-foreground text-sm">
+                {t("customer")}:{" "}
+                <Link
+                  href={`/customers/${customerId}`}
+                  className="text-foreground rounded-sm hover:underline focus-visible:underline"
+                >
+                  {customerName}
+                </Link>
+              </p>
+            ) : null}
+          </div>
+          <div className="order-2 flex items-center gap-3 max-sm:ml-auto sm:order-6 sm:flex-wrap sm:self-start">
+            {actions ? <div className="hidden sm:block">{actions}</div> : null}
+            <p
+              role="status"
+              data-testid="save-status"
+              className="text-muted-foreground text-xs sm:text-sm"
+            >
+              {indicator}
+            </p>
+            <Button type="button" onClick={onSave} disabled={!dirty || saving}>
+              {saving ? t("saving") : t("save")}
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {actions}
-          <p role="status" data-testid="save-status" className="text-muted-foreground text-sm">
-            {indicator}
-          </p>
-          <Button type="button" onClick={onSave} disabled={!dirty || saving}>
-            {saving ? t("saving") : t("save")}
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-status`}>{t("status")}</Label>
-          <Select
-            value={values.status}
-            onValueChange={(next) => {
-              // "" only comes from Radix's internal <select>, never from a choice (see select-value).
-              const status = statuses.find((candidate) => candidate === next);
-              if (status) onChange({ status });
-            }}
-          >
-            <SelectTrigger id={`${id}-status`} className="w-full">
-              <SelectValue>{tStatus(values.status)}</SelectValue>
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {statuses.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {tStatus(status)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {!isTemplate && cases.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="grid content-start gap-2">
-            <Label htmlFor={`${id}-case`}>{t("case")}</Label>
+            <Label htmlFor={`${id}-status`}>{t("status")}</Label>
             <Select
-              value={toSelectValue(values.caseId ?? "")}
+              value={values.status}
               onValueChange={(next) => {
-                if (next === "") return;
-                onChange({ caseId: fromSelectValue(next) || null });
+                // "" only comes from Radix's internal <select>, never from a choice (see select-value).
+                const status = statuses.find((candidate) => candidate === next);
+                if (status) onChange({ status });
               }}
             >
-              <SelectTrigger id={`${id}-case`} className="w-full">
-                <SelectValue>
-                  {values.caseId ? (caseTitles.get(values.caseId) ?? "") : t("noCase")}
-                </SelectValue>
+              <SelectTrigger id={`${id}-status`} className="w-full">
+                <SelectValue>{tStatus(values.status)}</SelectValue>
               </SelectTrigger>
               <SelectContent position="popper">
-                <SelectItem value={toSelectValue("")}>{t("noCase")}</SelectItem>
-                {cases.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.title}
+                {statuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {tStatus(status)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        ) : null}
 
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-sessionsPerWeek`}>{t("sessionsPerWeek")}</Label>
-          <Input
-            id={`${id}-sessionsPerWeek`}
-            inputMode="numeric"
-            value={values.sessionsPerWeek}
-            onChange={(event) => onChange({ sessionsPerWeek: event.target.value })}
-            autoComplete="off"
-            aria-invalid={invalid("sessionsPerWeek")}
-            aria-describedby={describedBy("sessionsPerWeek")}
-          />
-          {errorText("sessionsPerWeek")}
+          {!isTemplate && cases.length > 0 ? (
+            <div className="grid content-start gap-2">
+              <Label htmlFor={`${id}-case`}>{t("case")}</Label>
+              <Select
+                value={toSelectValue(values.caseId ?? "")}
+                onValueChange={(next) => {
+                  if (next === "") return;
+                  onChange({ caseId: fromSelectValue(next) || null });
+                }}
+              >
+                <SelectTrigger id={`${id}-case`} className="w-full">
+                  <SelectValue>
+                    {values.caseId ? (caseTitles.get(values.caseId) ?? "") : t("noCase")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value={toSelectValue("")}>{t("noCase")}</SelectItem>
+                  {cases.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          <div className="grid content-start gap-2">
+            <Label htmlFor={`${id}-sessionsPerWeek`}>{t("sessionsPerWeek")}</Label>
+            <Input
+              id={`${id}-sessionsPerWeek`}
+              inputMode="numeric"
+              value={values.sessionsPerWeek}
+              onChange={(event) => onChange({ sessionsPerWeek: event.target.value })}
+              autoComplete="off"
+              aria-invalid={invalid("sessionsPerWeek")}
+              aria-describedby={describedBy("sessionsPerWeek")}
+            />
+            {errorText("sessionsPerWeek")}
+          </div>
+
+          <div className="grid content-start gap-2">
+            <Label htmlFor={`${id}-sessionsPerDay`}>{t("sessionsPerDay")}</Label>
+            <Input
+              id={`${id}-sessionsPerDay`}
+              inputMode="numeric"
+              value={values.sessionsPerDay}
+              onChange={(event) => onChange({ sessionsPerDay: event.target.value })}
+              autoComplete="off"
+              aria-invalid={invalid("sessionsPerDay")}
+              aria-describedby={describedBy("sessionsPerDay")}
+            />
+            {errorText("sessionsPerDay")}
+          </div>
         </div>
 
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-sessionsPerDay`}>{t("sessionsPerDay")}</Label>
-          <Input
-            id={`${id}-sessionsPerDay`}
-            inputMode="numeric"
-            value={values.sessionsPerDay}
-            onChange={(event) => onChange({ sessionsPerDay: event.target.value })}
-            autoComplete="off"
-            aria-invalid={invalid("sessionsPerDay")}
-            aria-describedby={describedBy("sessionsPerDay")}
+        <div className="grid gap-2">
+          <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
+          <Textarea
+            id={`${id}-notes`}
+            rows={3}
+            value={values.notes}
+            onChange={(event) => onChange({ notes: event.target.value })}
+            aria-invalid={invalid("notes")}
+            aria-describedby={describedBy("notes", `${id}-notes-hint`)}
           />
-          {errorText("sessionsPerDay")}
+          <p id={`${id}-notes-hint`} className="text-muted-foreground text-sm">
+            {t("notesHint")}
+          </p>
+          {errorText("notes")}
         </div>
       </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
-        <Textarea
-          id={`${id}-notes`}
-          rows={3}
-          value={values.notes}
-          onChange={(event) => onChange({ notes: event.target.value })}
-          aria-invalid={invalid("notes")}
-          aria-describedby={describedBy("notes", `${id}-notes-hint`)}
-        />
-        <p id={`${id}-notes-hint`} className="text-muted-foreground text-sm">
-          {t("notesHint")}
-        </p>
-        {errorText("notes")}
-      </div>
-    </div>
+    </PageActions>
   );
 }

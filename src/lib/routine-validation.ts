@@ -34,11 +34,17 @@ function parseSessions(value: string, { min, max }: { min: number; max: number }
   return parsed >= min && parsed <= max ? parsed : FAILED;
 }
 
+/** The routine name's error, if any (the title checks it as soon as it is renamed). */
+export function validateName(value: string): "nameRequired" | "nameTooLong" | null {
+  const name = value.trim();
+  if (name === "") return "nameRequired";
+  return name.length > ROUTINE_NAME_MAX ? "nameTooLong" : null;
+}
+
 export function validateHeader(input: HeaderInput): HeaderValidation {
   const errors: HeaderErrors = {};
-  const name = input.name.trim();
-  if (name === "") errors.name = "nameRequired";
-  else if (name.length > ROUTINE_NAME_MAX) errors.name = "nameTooLong";
+  const nameError = validateName(input.name);
+  if (nameError) errors.name = nameError;
   if (input.notes.trim().length > ROUTINE_NOTES_MAX) errors.notes = "notesTooLong";
 
   const sessionsPerWeek = parseSessions(input.sessionsPerWeek, SESSIONS_PER_WEEK);

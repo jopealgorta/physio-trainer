@@ -1,6 +1,12 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import {
+  expectFromTemplate,
+  openFromTemplate,
+  pageAction,
+  renameRoutine,
+} from "./helpers/page-actions";
 import { addExercises, createExercise, hasNoHorizontalOverflow } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 
@@ -48,7 +54,7 @@ async function saveRoutine(page: Page) {
 
 /** "Save as template…" on a customer's routine/plan page; leaves the page on the new template. */
 async function saveAsTemplate(page: Page, name: string, kind: "routines" | "plans") {
-  await page.getByRole("button", { name: "Save as template…" }).click();
+  await pageAction(page, "Save as template…");
   const dialog = page.getByRole("dialog", { name: "Save as template" });
   await expect(
     dialog.getByText(
@@ -95,7 +101,7 @@ test("a routine saved as a template is assigned to another customer as an indepe
   await assignFromPicker(page, bea, "routines", "ACL protocol");
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
   await expect(page).not.toHaveURL(templatePath);
-  await expect(page.getByText("From template:")).toBeVisible();
+  await expectFromTemplate(page);
   await expect(page.getByRole("link", { name: "Bea" })).toBeVisible();
   await expect(page.getByTestId("item-row")).toHaveCount(2);
 
@@ -105,7 +111,7 @@ test("a routine saved as a template is assigned to another customer as an indepe
   await saveRoutine(page);
   await expect(page.getByTestId("item-row")).toHaveCount(3);
 
-  await page.getByRole("link", { name: "ACL protocol" }).click();
+  await openFromTemplate(page, "ACL protocol");
   await expect(page).toHaveURL(templatePath);
   await expect(page.getByTestId("item-row")).toHaveCount(2);
   await expect(page.getByLabel("Notes for the patient")).toHaveValue("");
@@ -139,7 +145,7 @@ test("a plan template keeps a routine shared across days shared in the copy", as
   const bea = await createCustomer(page, "Bea");
   await assignFromPicker(page, bea, "plans", "Mobility week");
   await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
-  await expect(page.getByText("From template:")).toBeVisible();
+  await expectFromTemplate(page);
   const copyPath = new URL(page.url()).pathname;
   await expectDay(page, "Monday", ["Mobility"]);
   await expectDay(page, "Thursday", ["Mobility"]);
@@ -148,7 +154,7 @@ test("a plan template keeps a routine shared across days shared in the copy", as
   // One routine behind both days: renaming it once shows on both.
   await day(page, "Monday").getByRole("link", { name: "Mobility" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}\?plan=/);
-  await page.getByRole("textbox", { name: "Routine name" }).fill("Mobility B");
+  await renameRoutine(page, "Mobility B");
   await saveRoutine(page);
   await page.goto(copyPath);
   await expectDay(page, "Monday", ["Mobility B"]);

@@ -7,6 +7,7 @@ import type { ShareLinkView, ShareState } from "@/server/sharing/schemas";
 
 import messages from "../../../messages/en.json";
 import { ShareButton } from "./share-button";
+import { chooseMenuAction, InPageActions } from "@/test/page-actions";
 
 const m = vi.hoisted(() => ({
   load: vi.fn(),
@@ -290,5 +291,23 @@ describe("ShareButton", () => {
     await user.click(await screen.findByRole("button", { name: "Copy link" }));
     expect(writeText).toHaveBeenCalledWith(URL_);
     expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
+  });
+});
+
+describe("ShareButton in a page's More actions menu", () => {
+  it("opens the same share panel from the menu item", async () => {
+    m.load.mockResolvedValue(ok(state({}, { target: "routine" })));
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <InPageActions>
+          <ShareButton target={{ target: "routine", routineId: "r1" }} />
+        </InPageActions>
+      </NextIntlClientProvider>,
+    );
+    await chooseMenuAction(user, "Share routine");
+    const dialog = await screen.findByRole("dialog", { name: "Share this routine" });
+    expect(m.load).toHaveBeenCalledWith({ target: "routine", routineId: "r1" });
+    expect(await within(dialog).findByLabelText("Link")).toHaveValue(URL_);
   });
 });

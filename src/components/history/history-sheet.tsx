@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 
+import { usePageAction, usePageNotice } from "@/components/page-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -192,21 +193,32 @@ export function HistorySheet({
   }
 
   const selectedMeta = metaOf(selected);
+  const restoredText = restored
+    ? [
+        t("restored"),
+        restored.dropped > 0
+          ? t(kind === "routine" ? "restoredDroppedExercises" : "restoredDroppedRoutines", {
+              count: restored.dropped,
+            })
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : null;
+  const { onCloseAutoFocus } = usePageAction("history", {
+    label: t("button"),
+    order: 30,
+    icon: <HistoryIcon aria-hidden />,
+    opensDialog: true,
+    onSelect: () => onOpenChange(true),
+  });
+  usePageNotice("history", restoredText ? { text: restoredText, tone: "info" } : null);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Kept in the accessibility tree for announcements, out of the layout while empty. */}
       <p role="status" className="text-muted-foreground text-sm empty:sr-only">
-        {restored ? (
-          <>
-            {t("restored")}{" "}
-            {restored.dropped > 0
-              ? t(kind === "routine" ? "restoredDroppedExercises" : "restoredDroppedRoutines", {
-                  count: restored.dropped,
-                })
-              : null}
-          </>
-        ) : null}
+        {restoredText}
       </p>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetTrigger asChild>
@@ -215,7 +227,10 @@ export function HistorySheet({
             {t("button")}
           </Button>
         </SheetTrigger>
-        <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
+        <SheetContent
+          className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg"
+          onCloseAutoFocus={onCloseAutoFocus}
+        >
           <SheetHeader>
             <SheetTitle>{t("title")}</SheetTitle>
             <SheetDescription>{t("description")}</SheetDescription>
