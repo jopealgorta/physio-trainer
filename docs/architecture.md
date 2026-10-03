@@ -91,9 +91,15 @@ These rules are the security model. Every spec must follow them.
    too, so every policy is a single-column check with no joins. Index `physio_id` everywhere.
 2. **Physio-facing code** reads and writes through `withPhysio(fn)` (built in spec 01): it requires
    a verified session and calls `runAsPhysio(claims, fn)`, a Drizzle transaction that sets
-   `request.jwt.claims` and runs `set local role authenticated`, so RLS applies to Drizzle
-   queries. Queries _also_ filter by `physio_id` explicitly. Two independent guards.
-   Integration tests call `runAsPhysio` directly with test claims.
+   `request.jwt.claims` and switches to the `authenticated` role for the transaction (one
+   statement: `set_config(..., true)` for both, i.e. `set local role authenticated`), so RLS
+   applies to Drizzle queries. Queries _also_ filter by `physio_id` explicitly. Two independent
+   guards. Integration tests call `runAsPhysio` directly with test claims. Every transaction
+   costs round trips: a page loads what it needs in **one** `withPhysio` (a `cache()`d loader
+   shared with `generateMetadata`), with independent reads in `Promise.all` (postgres.js
+   pipelines them on the transaction's connection). Reads only: never run a helper that opens a
+   savepoint (`tx.transaction(...)`, as some `*/mutations.ts` do) concurrently with other
+   queries on the same transaction, because pipelined statements would land inside or across it.
 3. **Patient-facing code** (no session) lives only in `src/server/patient/`. It uses the owner
    `db` connection (RLS bypassed) and must:
    - resolve the share link by `code` first (not revoked, not expired, PIN satisfied);
@@ -224,11 +230,36 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   hard-code colours; accent colour must stay on `primary` so branding (spec 09) can override it.
 - **Popovers are bottom sheets on phones**: use the `Popover` primitive from
   `src/components/ui/popover.tsx`; below Tailwind's `sm` breakpoint it renders as a bottom sheet
-  (modal, `max-h-[85dvh]`, scrolls inside) and from `sm` up as a floating popover. Size the
+  (a `Drawer`: modal, `max-h-[85dvh]`, swiped down to dismiss, scrolls inside) and from `sm` up
+  as a floating popover. Size the
   content for desktop under `sm:` (`sm:w-96`, `sm:max-h-(--radix-popover-content-available-height)`)
   so the sheet keeps the full width, and name it with `PopoverTitle` (`className="sr-only"` when
   no heading is shown). Dropdown _menus_ (`DropdownMenu`) stay dropdowns: they are short lists.
   Never build a floating card by hand.
+- **Bottom sheets are drawers**: anything that slides up from the bottom uses `Drawer`
+  (`src/components/ui/drawer.tsx`, vaul), never `SheetContent side="bottom"`, so it can be
+  swiped down to dismiss. vaul owns the drawer's touch gestures: put scrollable content in an
+  inner `min-h-0 overflow-y-auto` box (it scrolls until it is back at its top, then the drag
+  closes the drawer). Side panels (`Sheet` from the left or right) stay sheets.
+- **Page actions on phones**: a detail page with several secondary controls (the routine and
+  plan pages: Share, Export, History, templates) wraps them in `PageActions`
+  (`src/components/page-actions.tsx`). Each control calls `usePageAction` to appear in the "⋯"
+  `PageActionsMenu`, and `usePageNotice` for what it says inline (errors, "Version restored.").
+  The page hides the controls' own rows below `sm` (`hidden sm:flex`; their dialogs are
+  portalled, so they still open) and shows the menu and `PageNotices` there instead.
+- **Titles**: a detail page's name is an `h1` renamed in place with `EditableTitle` (pencil
+  button; Enter or blur confirms, Escape cancels), not an always-on input.
+- **Navigation feedback**: every `(app)` route segment has a `loading.tsx` built from
+  `src/components/skeletons.tsx` (it is prefetched, so a path change shows it at once; the
+  `(app)` layout and sidebar stay outside it). A navigation that only changes search params
+  (tabs, filters) does not show `loading.tsx`: wrap the controls and the content in
+  `PendingScope`, the content in `PendingContent`, put `LinkPendingHint` inside tab/filter
+  `<Link>`s and run `router.replace` through `usePendingNavigation().navigate`
+  (`src/components/navigation-pending.tsx`). Links in long lists (one per row) use `IntentLink`
+  (`src/components/intent-link.tsx`, first row `eager`): a plain `<Link>` prefetches every row
+  in view, each one a server render and a database transaction. Client cache `staleTimes`
+  stays at the default (0s for dynamic pages): `router.refresh()` only clears the current
+  route, and patients write data the physio's cache would never hear about.
 - **Handles and top-level routes**: adding a top-level route requires adding it to
   `RESERVED_HANDLES` in `src/lib/handles.ts` (a unit test enforces this).
 

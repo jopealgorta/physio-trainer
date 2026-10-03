@@ -18,12 +18,14 @@ import { idSchema } from "@/server/library/schemas";
 const loadExercise = cache(async (rawId: string) => {
   const parsed = idSchema.safeParse(rawId);
   if (!parsed.success) return null;
-  const loaded = await withPhysio(async (tx, physioId) => ({
-    exercise: await getExercise(tx, physioId, parsed.data),
-    categories: await listCategoryTree(tx, physioId),
-    tags: await listTags(tx, physioId),
-  }));
-  return loaded.exercise ? { ...loaded, exercise: loaded.exercise } : null;
+  const [exercise, categories, tags] = await withPhysio((tx, physioId) =>
+    Promise.all([
+      getExercise(tx, physioId, parsed.data),
+      listCategoryTree(tx, physioId),
+      listTags(tx, physioId),
+    ]),
+  );
+  return exercise ? { exercise, categories, tags } : null;
 });
 
 export async function generateMetadata({

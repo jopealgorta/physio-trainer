@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { routineTitle } from "./helpers/page-actions";
 import { addExercises, createExercise, hasNoHorizontalOverflow } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 
@@ -164,6 +165,6 @@ test("a routine inside a plan has no phase controls of its own", async ({ physio
   await page.getByRole("dialog").getByLabel("Name").fill("Gym upper");
   await page.getByRole("button", { name: "Create and edit" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}\?plan=/);
-  await expect(page.getByRole("textbox", { name: "Routine name" })).toHaveValue("Gym upper");
+  await expect(routineTitle(page, "Gym upper")).toBeVisible();
   await expect(phaseBar(page)).toHaveCount(0);
 });

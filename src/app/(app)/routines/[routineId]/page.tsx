@@ -13,25 +13,17 @@ import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-di
 import { TemplateActions } from "@/components/templates/template-actions";
 import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
-import { DEFAULT_LIBRARY_FILTERS } from "@/lib/library-params";
 import { fromLoaded } from "@/lib/routine-editor";
 import { firstParam } from "@/lib/search-params";
-import { requirePhysio, withPhysio } from "@/server/auth/session";
-import { listCategoryTree, listExercises } from "@/server/library/queries";
 import { idSchema } from "@/server/routines/schemas";
 import { loadRoutine } from "@/server/routines/load";
-import { listRecentExercises } from "@/server/routines/queries";
-import { listAssignableCustomers } from "@/server/templates/queries";
-
-/** Exercises shown in the picker before the physio searches. */
-const PICKER_INITIAL_LIMIT = 60;
 
 export async function generateMetadata({
   params,
 }: PageProps<"/routines/[routineId]">): Promise<Metadata> {
   const { routineId } = await params;
-  const routine = await loadRoutine(routineId);
-  return { title: routine?.name };
+  const loaded = await loadRoutine(routineId);
+  return { title: loaded?.routine.name };
 }
 
 export default async function RoutinePage({
@@ -39,25 +31,10 @@ export default async function RoutinePage({
   searchParams,
 }: PageProps<"/routines/[routineId]">) {
   const [{ routineId }, sp] = await Promise.all([params, searchParams]);
-  const routine = await loadRoutine(routineId);
-  if (!routine) notFound();
+  const loaded = await loadRoutine(routineId);
+  if (!loaded) notFound();
+  const { routine, timeZone, categories, recent, exercises, customers } = loaded;
   const t = await getTranslations("Routines.editor");
-  const { profile } = await requirePhysio();
-
-  const { categories, recent, exercises, customers } = await withPhysio(async (tx, physioId) => {
-    const [tree, recentlyUsed, initial, assignable] = await Promise.all([
-      listCategoryTree(tx, physioId),
-      listRecentExercises(tx, physioId),
-      listExercises(tx, physioId, DEFAULT_LIBRARY_FILTERS, PICKER_INITIAL_LIMIT),
-      routine.isTemplate ? listAssignableCustomers(tx, physioId) : [],
-    ]);
-    return {
-      categories: tree,
-      recent: recentlyUsed,
-      exercises: initial.exercises,
-      customers: assignable,
-    };
-  });
 
   // Coming from a plan board ("New routine" on a day): offer the way back to that plan.
   const fromPlan = idSchema.safeParse(firstParam(sp.plan));
@@ -71,46 +48,46 @@ export default async function RoutinePage({
         label: t("back"),
       };
 
-  return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={back.href}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeftIcon aria-hidden className="size-4" />
-          {back.label}
-        </Link>
-        {/* A template has no customer to share with. */}
-        {routine.isTemplate ? null : (
-          <div className="flex flex-wrap gap-2">
-            <ExportMenu target={{ kind: "routines", id: routine.id }} />
-            <ShareButton target={{ target: "routine", routineId: routine.id }} />
-          </div>
-        )}
-      </div>
-      {routine.isTemplate ? (
-        // A template plan's own routine is edited through the plan: only standalone ones are
-        // assigned or duplicated from here.
-        !routine.isStandalone ? null : (
-          <TemplateActions
-            kind="routine"
-            template={{ id: routine.id, name: routine.name }}
-            customers={customers}
-          />
-        )
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {routine.sourceTemplate ? (
-            <FromTemplate kind="routine" template={routine.sourceTemplate} />
-          ) : (
-            <span />
-          )}
-          <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
-        </div>
-      )}
-      {/* Phases belong to a customer's routine, not to a template. */}
-      {routine.isStandalone && !routine.isTemplate ? (
+  // Laid out by the editor's header, around the title and Save (on phones the controls move
+  // into its "More actions" menu).
+  const top = {
+    back: (
+      <Link
+        href={back.href}
+        className="text-muted-foreground hover:text-foreground inline-flex max-w-full items-center gap-1 text-sm"
+      >
+        <ArrowLeftIcon aria-hidden className="size-4 shrink-0" />
+        <span className="truncate">{back.label}</span>
+      </Link>
+    ),
+    // A template has no customer to share with.
+    actions: routine.isTemplate ? null : (
+      <>
+        <ExportMenu target={{ kind: "routines", id: routine.id }} />
+        <ShareButton target={{ target: "routine", routineId: routine.id }} />
+      </>
+    ),
+    secondary: routine.isTemplate ? (
+      // A template plan's own routine is edited through the plan: only standalone ones are
+      // assigned or duplicated from here.
+      routine.isStandalone ? (
+        <TemplateActions
+          kind="routine"
+          template={{ id: routine.id, name: routine.name }}
+          customers={customers}
+        />
+      ) : null
+    ) : (
+      <>
+        {routine.sourceTemplate ? (
+          <FromTemplate kind="routine" template={routine.sourceTemplate} />
+        ) : null}
+        <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
+      </>
+    ),
+    // Phases belong to a customer's routine, not to a template.
+    phase:
+      routine.isStandalone && !routine.isTemplate ? (
         <PhaseBar
           kind="routine"
           id={routine.id}
@@ -118,9 +95,13 @@ export default async function RoutinePage({
           phaseLabel={routine.phaseLabel}
           startsOn={routine.startsOn}
           endsOn={routine.endsOn}
-          today={todayIn(profile.timezone)}
+          today={todayIn(timeZone)}
         />
-      ) : null}
+      ) : null,
+  };
+
+  return (
+    <div className="grid gap-6">
       <RoutineEditor
         routine={{
           id: routine.id,
@@ -145,6 +126,7 @@ export default async function RoutinePage({
         categories={categories}
         recent={recent}
         exercises={exercises}
+        top={top}
       />
     </div>
   );

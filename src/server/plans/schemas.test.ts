@@ -7,6 +7,7 @@ import {
   createPlanSchema,
   moveEntrySchema,
   removeEntrySchema,
+  renamePlanSchema,
   setLabelSchema,
   updatePlanSchema,
 } from "./schemas";
@@ -62,6 +63,27 @@ describe("updatePlanSchema", () => {
     expect(messages(updatePlanSchema.safeParse({ ...base, notes: "x".repeat(2001) }))).toEqual([
       "notesTooLong",
     ]);
+  });
+});
+
+describe("updatePlanSchema without a name", () => {
+  it("leaves the name alone (renaming is its own action)", () => {
+    const parsed = updatePlanSchema.parse({ id: ID, notes: "", caseId: null, status: "draft" });
+    expect(parsed).not.toHaveProperty("name");
+  });
+});
+
+describe("renamePlanSchema", () => {
+  it("trims the name and rejects a blank or long one", () => {
+    expect(renamePlanSchema.parse({ id: ID, name: " Week 2 " })).toEqual({
+      id: ID,
+      name: "Week 2",
+    });
+    expect(messages(renamePlanSchema.safeParse({ id: ID, name: "  " }))).toEqual(["nameRequired"]);
+    expect(messages(renamePlanSchema.safeParse({ id: ID, name: "x".repeat(81) }))).toEqual([
+      "nameTooLong",
+    ]);
+    expect(renamePlanSchema.safeParse({ id: "nope", name: "A" }).success).toBe(false);
   });
 });
 

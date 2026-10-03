@@ -30,6 +30,7 @@ import {
   type Result,
   type SeparateCopyInput,
   type SetLabelInput,
+  type RenamePlanInput,
   type UpdatePlanError,
   type UpdatePlanInput,
 } from "./schemas";
@@ -193,13 +194,31 @@ export async function updatePlan(
   const [saved] = await tx
     .update(weeklyPlans)
     .set({
-      name: input.name,
+      // Left out when only the details are saved: the title renames on its own.
+      ...(input.name === undefined ? {} : { name: input.name }),
       notes: input.notes,
       caseId: input.caseId,
       status: input.status,
       version: sql`${weeklyPlans.version} + 1`,
       updatedAt: new Date(),
     })
+    .where(and(eq(weeklyPlans.physioId, physioId), eq(weeklyPlans.id, plan.id)))
+    .returning({ version: weeklyPlans.version });
+  await recordPlanVersion(tx, physioId, plan.id, { kind: "edited" });
+  return ok({ version: saved.version });
+}
+
+/** Renames a plan (its title on the page), recorded as an edit like any other (spec 15). */
+export async function renamePlan(
+  tx: Tx,
+  physioId: string,
+  input: RenamePlanInput,
+): Promise<Result<{ version: number }, "notFound">> {
+  const plan = await lockPlan(tx, physioId, input.id);
+  if (!plan) return fail("notFound");
+  const [saved] = await tx
+    .update(weeklyPlans)
+    .set({ name: input.name, version: sql`${weeklyPlans.version} + 1`, updatedAt: new Date() })
     .where(and(eq(weeklyPlans.physioId, physioId), eq(weeklyPlans.id, plan.id)))
     .returning({ version: weeklyPlans.version });
   await recordPlanVersion(tx, physioId, plan.id, { kind: "edited" });

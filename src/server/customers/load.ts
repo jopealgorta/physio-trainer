@@ -16,9 +16,11 @@ export const loadCustomer = cache(async (rawId: string) => {
   const parsed = idSchema.safeParse(rawId);
   if (!parsed.success) return null;
   return withPhysio(async (tx, physioId) => {
-    const customer = await getCustomer(tx, physioId, parsed.data);
+    const [customer, profile] = await Promise.all([
+      getCustomer(tx, physioId, parsed.data),
+      getProfile(tx, physioId),
+    ]);
     if (!customer) return null;
-    const profile = await getProfile(tx, physioId);
     return { customer, timezone: profile?.timezone ?? "UTC" };
   });
 });

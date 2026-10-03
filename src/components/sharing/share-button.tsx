@@ -4,6 +4,7 @@ import { Share2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
+import { usePageAction } from "@/components/page-actions";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -73,6 +74,13 @@ export function ShareButton({
   }
 
   const link = state?.link;
+  const { onCloseAutoFocus } = usePageAction("share", {
+    label: t(`trigger.${target.target}`),
+    order: 10,
+    icon: <Share2Icon aria-hidden />,
+    opensDialog: true,
+    onSelect: () => onOpenChange(true),
+  });
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -84,6 +92,7 @@ export function ShareButton({
       </PopoverTrigger>
       <PopoverContent
         align="end"
+        onCloseAutoFocus={onCloseAutoFocus}
         className="gap-4 p-4 text-sm sm:max-h-(--radix-popover-content-available-height) sm:w-96 sm:overflow-y-auto"
       >
         <div className="grid gap-1">

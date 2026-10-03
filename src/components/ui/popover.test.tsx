@@ -52,7 +52,11 @@ describe("Popover", () => {
     const dialog = await screen.findByRole("dialog", { name: "Details" });
     expect(dialog).toHaveAttribute("data-slot", "popover-content");
     expect(dialog).toHaveAttribute("data-presentation", "sheet");
+    // A drawer (vaul), so it can be swiped down to dismiss.
+    expect(dialog).toHaveAttribute("data-vaul-drawer");
     expect(dialog).toHaveTextContent("Body");
+    // Focus moves in (onto the sheet itself, so no field pops the keyboard).
+    expect(dialog).toHaveFocus();
     expect(onOpenChange).toHaveBeenCalledWith(true);
 
     await userEvent.keyboard("{Escape}");

@@ -35,12 +35,12 @@ export async function openPicker(page: Page, isMobile: boolean): Promise<Locator
   return sheet;
 }
 
-/** Closes the mobile sheet with its "Done" button; nothing to do on desktop. */
+/** Closes the mobile sheet with its "Done" ("2 added · Done") button; nothing to do on desktop. */
 export async function closePicker(page: Page, isMobile: boolean) {
   if (!isMobile) return;
   await page
     .getByRole("dialog", { name: "Add exercises" })
-    .getByRole("button", { name: "Done" })
+    .getByRole("button", { name: /Done$/ })
     .click();
   await expect(page.getByRole("dialog", { name: "Add exercises" })).toBeHidden();
 }

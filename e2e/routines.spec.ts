@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { routineTitle } from "./helpers/page-actions";
 import {
   addExercises,
   closePicker,
@@ -71,7 +72,6 @@ test("a physio builds a routine with per-set reps and a superset, and it persist
   await expect(superset.getByTestId("item-row")).toHaveCount(2);
   await superset.getByLabel("Rest after each round (s)").fill("45");
 
-  await page.getByRole("textbox", { name: "Routine name" }).focus();
   await page.getByLabel("Sessions per week").fill("3");
 
   // Reorder collapsed blocks with the keyboard: Squat goes below the superset.
@@ -91,7 +91,7 @@ test("a physio builds a routine with per-set reps and a superset, and it persist
   await expect(status(page)).toHaveText("Saved");
 
   const assertPersisted = async () => {
-    await expect(page.getByRole("textbox", { name: "Routine name" })).toHaveValue("Knee rehab A");
+    await expect(routineTitle(page, "Knee rehab A")).toBeVisible();
     await expect(page.getByLabel("Sessions per week")).toHaveValue("3");
     await expect
       .poll(() => handleNames(page))
@@ -221,4 +221,93 @@ test("the editor fits a phone and the picker opens as a sheet", async ({
   await item.getByLabel("Notes", { exact: true }).fill("x".repeat(200));
   await expect(item.getByLabel("Set 3: Reps", { exact: true })).toBeVisible();
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
+});
+
+test("on a phone the routine page opens with one compact row: back, Save, More actions", async ({
+  physioPage: page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "phone layout");
+  await createRoutine(page, "Compact header");
+
+  const back = page.getByRole("link", { name: "Back to routines" });
+  const save = page.getByRole("button", { name: "Save", exact: true });
+  const more = page.getByRole("button", { name: "More actions" });
+  const middle = async (locator: typeof back) => {
+    const box = (await locator.boundingBox())!;
+    return box.y + box.height / 2;
+  };
+  const row = await middle(more);
+  expect(Math.abs((await middle(back)) - row)).toBeLessThan(4);
+  expect(Math.abs((await middle(save)) - row)).toBeLessThan(4);
+  // The title comes right under it, as a heading rather than an input.
+  const title = routineTitle(page, "Compact header");
+  expect((await title.boundingBox())!.y).toBeGreaterThan(row);
+  await expect(page.getByRole("textbox", { name: "Routine name" })).toHaveCount(0);
+
+  // The labelled buttons give way to the menu.
+  for (const name of ["Export", "Share routine", "History", "Save as template…"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toBeHidden();
+  }
+  await more.click();
+  const menu = page.getByRole("menu");
+  await expect(menu.getByRole("menuitem")).toHaveText([
+    "Share routine",
+    "Export PDF",
+    "Export Excel",
+    "History",
+    "Save as template…",
+  ]);
+  await expect(
+    menu.getByRole("menuitemcheckbox", { name: "Include tracking boxes" }),
+  ).toBeVisible();
+  await menu.getByRole("menuitem", { name: "History" }).click();
+  await expect(page.getByRole("dialog", { name: "Version history" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  // History's own button is hidden here: focus comes back to the menu's.
+  await expect(more).toBeFocused();
+
+  await more.click();
+  await page.getByRole("menuitem", { name: "Share routine" }).click();
+  const share = page.getByRole("dialog", { name: "Share this routine" });
+  await expect(share).toBeVisible();
+  await expect(share).toHaveAttribute("data-presentation", "sheet");
+  await page.keyboard.press("Escape");
+  await expect(share).toBeHidden();
+  await expect(more).toBeFocused();
+  expect(await hasNoHorizontalOverflow(page)).toBe(true);
+});
+
+test("the phone picker marks, counts and confirms picks, and swipes away", async ({
+  physioPage: page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "phone layout");
+  await createExercise(page, "Squat");
+  await createExercise(page, "Lunge");
+  await createRoutine(page, "Feedback");
+
+  const sheet = await openPicker(page, isMobile);
+  const squat = sheet.getByRole("button", { name: "Squat", exact: true }).first();
+  await squat.click();
+  await expect(sheet.getByTestId("picker-flash")).toHaveText("Added Squat");
+  await expect(sheet.getByRole("button", { name: "1 added · Done" })).toBeVisible();
+  await squat.click();
+  await sheet.getByRole("button", { name: "Lunge", exact: true }).first().click();
+  await expect(sheet.getByTestId("picker-flash")).toHaveText("Added Lunge");
+  await expect(sheet.getByRole("button", { name: "3 added · Done" })).toBeVisible();
+  await expect(squat).toHaveAttribute("data-added", "true");
+  await expect(squat.getByText("×2")).toBeVisible();
+  // The confirmation goes after a moment; the count stays.
+  await expect(sheet.getByTestId("picker-flash")).toBeHidden({ timeout: 5000 });
+
+  // Dragged down from its top, the sheet closes, and the routine holds the three picks.
+  const box = (await sheet.boundingBox())!;
+  const x = box.x + box.width / 2;
+  await page.mouse.move(x, box.y + 12);
+  await page.mouse.down();
+  await page.mouse.move(x, box.y + box.height * 0.8, { steps: 12 });
+  await page.mouse.up();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByTestId("item-row")).toHaveCount(3);
 });

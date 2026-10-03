@@ -1,22 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PlusIcon } from "lucide-react";
+import { CheckIcon, PlusIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { HistorySheet } from "@/components/history/history-sheet";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import type { CategoryNode } from "@/lib/category-tree";
 import {
   addItem,
@@ -35,7 +35,7 @@ import type { ExerciseSummary } from "@/server/library/queries";
 
 import { BlockList } from "./block-list";
 import { ExercisePicker } from "./exercise-picker";
-import { RoutineHeader, type HeaderValues } from "./routine-header";
+import { RoutineHeader, type HeaderSlots, type HeaderValues } from "./routine-header";
 import { useUnsavedGuard } from "./use-unsaved-guard";
 
 export type { HeaderValues } from "./routine-header";
@@ -55,11 +55,16 @@ export type RoutineEditorProps = {
   categories: CategoryNode[];
   recent: ExerciseSummary[];
   exercises: ExerciseSummary[];
+  /** The page's back link and controls, laid out with the header (see RoutineHeader). */
+  top?: HeaderSlots;
 };
 
 type SaveError = SaveRoutineActionError | "generic";
 
 const newKey = () => crypto.randomUUID();
+
+/** How long "Added Squat" stays in the picker sheet's footer. */
+const FLASH_MS = 2500;
 
 const snapshotOf = (header: HeaderValues, blocks: EditorBlock[]) =>
   JSON.stringify([header, toSaveBlocks(blocks)]);
@@ -75,6 +80,7 @@ export function RoutineEditor({
   categories,
   recent,
   exercises,
+  top,
 }: RoutineEditorProps) {
   const t = useTranslations("Routines.editor");
   const tPicker = useTranslations("Routines.picker");
@@ -146,14 +152,48 @@ export function RoutineEditor({
     });
   }
 
-  const pick = (exercise: ExerciseRef) =>
+  // The phone sheet counts what was added since it opened (the list behind it shows the
+  // total) and confirms each pick for a moment, so a tap visibly did something.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [addedHere, setAddedHere] = useState(0);
+  const [flash, setFlash] = useState<{ name: string; token: number } | null>(null);
+  useEffect(() => {
+    if (!flash) return;
+    const timer = setTimeout(() => setFlash(null), FLASH_MS);
+    return () => clearTimeout(timer);
+  }, [flash]);
+
+  function openSheet(open: boolean) {
+    setSheetOpen(open);
+    // Reset on opening only: the footer keeps its count while the sheet slides away.
+    if (open) {
+      setAddedHere(0);
+      setFlash(null);
+    }
+  }
+
+  const added = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of flatItems(blocks)) {
+      counts.set(item.exerciseId, (counts.get(item.exerciseId) ?? 0) + 1);
+    }
+    return counts;
+  }, [blocks]);
+
+  const pick = (exercise: ExerciseRef) => {
     setBlocks((previous) => addItem(previous, newItem(exercise, newKey)));
+    if (sheetOpen) {
+      setAddedHere((count) => count + 1);
+      setFlash((previous) => ({ name: exercise.name, token: (previous?.token ?? 0) + 1 }));
+    }
+  };
   const picker = (
     <ExercisePicker
       categories={categories}
       recent={recent}
       initial={exercises}
       disabledReason={canAddItem(blocks) ? null : tPicker("full", { max: MAX_ITEMS })}
+      added={added}
       onPick={pick}
     />
   );
@@ -225,6 +265,7 @@ export function RoutineEditor({
         onSave={save}
         focusToken={focusToken}
         actions={<HistorySheet kind="routine" id={routine.id} dirty={dirty} onRestored={reload} />}
+        top={top}
       />
 
       {invalidItems.size > 0 ? (
@@ -255,31 +296,47 @@ export function RoutineEditor({
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="grid min-w-0 gap-4">
           <div className="lg:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
+            <Drawer open={sheetOpen} onOpenChange={openSheet}>
+              <DrawerTrigger asChild>
                 <Button type="button" variant="outline">
                   <PlusIcon aria-hidden />
                   {tPicker("open")}
                 </Button>
-              </SheetTrigger>
+              </DrawerTrigger>
               {/* The title says it all (no description), and Done is the localized way out. */}
-              <SheetContent
-                side="bottom"
-                showCloseButton={false}
-                className="max-h-[85dvh]"
-                aria-describedby={undefined}
-              >
-                <SheetHeader>
-                  <SheetTitle>{tPicker("title")}</SheetTitle>
-                </SheetHeader>
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">{picker}</div>
-                <SheetFooter>
-                  <SheetClose asChild>
-                    <Button type="button">{tPicker("close")}</Button>
-                  </SheetClose>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
+              <DrawerContent aria-describedby={undefined} focusContent>
+                <DrawerHeader>
+                  <DrawerTitle>{tPicker("title")}</DrawerTitle>
+                </DrawerHeader>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-2">
+                  {picker}
+                </div>
+                <DrawerFooter className="border-t pt-3">
+                  {/* Seen, not heard: the picker's live region already announces each pick.
+                      The line keeps its height once something was added, so later picks
+                      do not shift the button. */}
+                  {addedHere > 0 ? (
+                    <div aria-hidden className="h-5">
+                      {flash ? (
+                        <p
+                          key={flash.token}
+                          data-testid="picker-flash"
+                          className="text-primary motion-safe:animate-in motion-safe:fade-in-0 flex items-center justify-center gap-1 text-sm font-medium"
+                        >
+                          <CheckIcon className="size-4 shrink-0" />
+                          <span className="truncate">{tPicker("flash", { name: flash.name })}</span>
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <DrawerClose asChild>
+                    <Button type="button" size="lg" className="h-10">
+                      {tPicker("close", { count: addedHere })}
+                    </Button>
+                  </DrawerClose>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
           </div>
           <BlockList
             blocks={blocks}

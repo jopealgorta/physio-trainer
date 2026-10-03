@@ -1,10 +1,11 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EditorBlock, EditorItem } from "@/lib/routine-editor";
 import type { ExerciseSummary } from "@/server/library/queries";
+import { menuActions } from "@/test/page-actions";
 import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
@@ -55,6 +56,7 @@ const summary = (id: string, name: string): ExerciseSummary => ({
   archivedAt: null,
   cover: null,
 });
+const SQUAT = summary("00000000-0000-4000-8000-000000000001", "Squat");
 const LUNGE = summary("00000000-0000-4000-8000-000000000002", "Lunge");
 const BRIDGE = summary("00000000-0000-4000-8000-000000000003", "Bridge");
 
@@ -100,7 +102,15 @@ function setup(props: RoutineEditorProps = PROPS) {
 
 const saveStatus = () => screen.getByTestId("save-status");
 const save = () => screen.getByRole("button", { name: /^Save/ });
-const nameInput = () => screen.getByRole("textbox", { name: "Routine name" });
+const title = () => screen.getByRole("heading", { level: 1 });
+
+/** Renames the routine through its title: pencil, type, Enter. */
+async function rename(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole("button", { name: "Rename routine" }));
+  const input = screen.getByRole("textbox", { name: "Routine name" });
+  await user.clear(input);
+  await user.type(input, `${name}{Enter}`);
+}
 
 beforeEach(() => {
   saveRoutineAction.mockReset();
@@ -124,6 +134,10 @@ describe("RoutineEditor", () => {
     setup({ ...PROPS, exercises: [LUNGE] });
     await user.click(screen.getByRole("button", { name: "Add exercises" }));
     const sheet = await screen.findByRole("dialog", { name: "Add exercises" });
+    // A drawer, so it can be swiped down to dismiss.
+    expect(sheet).toHaveAttribute("data-vaul-drawer");
+    // Focus moves onto the sheet, not into the search field (which would pop the keyboard).
+    expect(sheet).toHaveFocus();
     expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
     // The sheet's built-in X button carries a hard-coded English "Close" label.
     expect(within(sheet).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
@@ -143,6 +157,62 @@ describe("RoutineEditor", () => {
     expect(screen.getByTestId("picker-announcer")).toHaveTextContent("Added Bridge.");
   });
 
+  it("marks the exercises already in the routine in the side panel", async () => {
+    const user = userEvent.setup();
+    setup({ ...PROPS, exercises: [SQUAT, LUNGE] });
+    const aside = within(screen.getByRole("complementary"));
+    expect(aside.getByRole("button", { name: "Squat" })).toHaveAccessibleDescription(
+      "In the routine",
+    );
+    expect(aside.getByRole("button", { name: "Lunge" })).not.toHaveAccessibleDescription();
+    await user.click(aside.getByRole("button", { name: "Lunge" }));
+    expect(aside.getByRole("button", { name: "Lunge" })).toHaveAccessibleDescription(
+      "In the routine",
+    );
+  });
+
+  it("counts what this sheet added, confirms each pick and marks the rows", async () => {
+    const user = userEvent.setup();
+    setup({ ...PROPS, exercises: [SQUAT, LUNGE] });
+    await user.click(screen.getByRole("button", { name: "Add exercises" }));
+    const sheet = within(await screen.findByRole("dialog", { name: "Add exercises" }));
+    expect(sheet.getByRole("button", { name: "Done" })).toBeInTheDocument();
+
+    await user.click(sheet.getByRole("button", { name: "Lunge" }));
+    expect(sheet.getByRole("button", { name: "1 added · Done" })).toBeInTheDocument();
+    expect(sheet.getByTestId("picker-flash")).toHaveTextContent("Added Lunge");
+    await user.click(sheet.getByRole("button", { name: "Squat" }));
+    expect(sheet.getByTestId("picker-flash")).toHaveTextContent("Added Squat");
+    expect(sheet.getByRole("button", { name: "Squat" })).toHaveAccessibleDescription(
+      "In the routine 2 times",
+    );
+
+    // Done closes; reopening starts a new count.
+    await user.click(sheet.getByRole("button", { name: "2 added · Done" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Add exercises" }));
+    const again = within(await screen.findByRole("dialog", { name: "Add exercises" }));
+    expect(again.getByRole("button", { name: "Done" })).toBeInTheDocument();
+    expect(again.queryByTestId("picker-flash")).not.toBeInTheDocument();
+  });
+
+  it("lets the confirmation go after a moment", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      setup({ ...PROPS, exercises: [LUNGE] });
+      await user.click(screen.getByRole("button", { name: "Add exercises" }));
+      const sheet = within(await screen.findByRole("dialog", { name: "Add exercises" }));
+      await user.click(sheet.getByRole("button", { name: "Lunge" }));
+      expect(sheet.getByTestId("picker-flash")).toHaveTextContent("Added Lunge");
+      await act(() => vi.advanceTimersByTimeAsync(3000));
+      expect(sheet.queryByTestId("picker-flash")).not.toBeInTheDocument();
+      expect(sheet.getByRole("button", { name: "1 added · Done" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("disables the picker once the routine has 50 exercises", () => {
     const many: EditorBlock[] = Array.from({ length: 50 }, (_, index) => ({
       kind: "single",
@@ -158,22 +228,75 @@ describe("RoutineEditor", () => {
     ).toBeDisabled();
   });
 
+  it("lays out the page's back link, controls and phase around the title, with History in More actions", async () => {
+    const user = userEvent.setup();
+    setup({
+      ...PROPS,
+      top: {
+        back: <a href="#back">Back to routines</a>,
+        actions: <button type="button">Export</button>,
+        secondary: <button type="button">Save as template…</button>,
+        phase: <p>Phase bar</p>,
+      },
+    });
+    expect(screen.getByRole("link", { name: "Back to routines" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save as template…" })).toBeInTheDocument();
+    expect(screen.getByText("Phase bar")).toBeInTheDocument();
+    // On phones the controls' rows give way to the menu (and Save moves up next to it).
+    expect(screen.getByRole("button", { name: "Export" }).parentElement).toHaveClass(
+      "hidden",
+      "sm:flex",
+    );
+    expect(await menuActions(user)).toEqual(["History"]);
+  });
+
   it("keeps Save disabled until something changes", async () => {
     const user = userEvent.setup();
     setup();
     expect(save()).toBeDisabled();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
+    expect(title()).toHaveTextContent("Knee rehab!");
     expect(save()).toBeEnabled();
     expect(saveStatus()).toHaveTextContent("Unsaved changes");
-    await user.type(nameInput(), "{Backspace}");
+    await rename(user, "Knee rehab");
+    expect(save()).toBeDisabled();
+  });
+
+  it("saves a name still being typed with one tap on Save", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Rename routine" }));
+    const input = screen.getByRole("textbox", { name: "Routine name" });
+    await user.clear(input);
+    await user.type(input, "Hip rehab");
+    // Save is on as soon as the name changes (on iOS a disabled button cannot be tapped).
+    expect(save()).toBeEnabled();
+    await user.click(save());
+    await waitFor(() =>
+      expect(saveRoutineAction).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Hip rehab" }),
+      ),
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Hip rehab" })).toBeInTheDocument();
+  });
+
+  it("refuses a blank title inline, leaving the routine unchanged", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Rename routine" }));
+    await user.clear(screen.getByRole("textbox", { name: "Routine name" }));
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a name.");
+    await user.keyboard("{Escape}");
+    expect(title()).toHaveTextContent("Knee rehab");
     expect(save()).toBeDisabled();
   });
 
   it("sends the parsed header and blocks, then shows Saved", async () => {
     const user = userEvent.setup();
     setup();
-    await user.clear(nameInput());
-    await user.type(nameInput(), "Knee rehab v2");
+    await rename(user, "Knee rehab v2");
     await user.type(screen.getByLabelText("Sessions per day"), "2");
     await user.type(screen.getByLabelText("Notes for the patient"), "Ice after");
     await chooseOption(user, screen.getByRole("combobox", { name: "Case" }), "ACL rehab");
@@ -219,7 +342,7 @@ describe("RoutineEditor", () => {
       sessionsPerDay: null,
     });
 
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     await waitFor(() => expect(saveRoutineAction).toHaveBeenCalledTimes(2));
     expect(saveRoutineAction.mock.calls[1][0]).toMatchObject({ version: 4 });
@@ -229,7 +352,7 @@ describe("RoutineEditor", () => {
     const user = userEvent.setup();
     saveRoutineAction.mockResolvedValue({ ok: false, error: "conflict" });
     setup();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("This routine changed in another tab. Reload?");
@@ -241,7 +364,7 @@ describe("RoutineEditor", () => {
     const user = userEvent.setup();
     saveRoutineAction.mockResolvedValue({ ok: false, error: "conflict" });
     const { rerenderWith } = setup();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     await screen.findByRole("alert");
     await user.click(screen.getByRole("button", { name: "Reload" }));
@@ -262,7 +385,7 @@ describe("RoutineEditor", () => {
         header: { ...PROPS.routine.header, name: "Theirs" },
       },
     });
-    await waitFor(() => expect(nameInput()).toHaveValue("Theirs"));
+    await waitFor(() => expect(title().textContent).toBe("Theirs"));
     expect(screen.getByText("Lunge")).toBeInTheDocument();
     expect(screen.queryByText("Squat")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -309,7 +432,7 @@ describe("RoutineEditor", () => {
     history.getSnapshotsAction.mockResolvedValue({ ok: true, data: { 2: snapshot, 3: snapshot } });
     history.restoreVersionAction.mockResolvedValue({ ok: true, data: { version: 4, dropped: 0 } });
     const { rerenderWith } = setup();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
 
     await user.click(screen.getByRole("button", { name: "History" }));
     await user.click(await screen.findByRole("button", { name: /Created/ }));
@@ -323,14 +446,14 @@ describe("RoutineEditor", () => {
       ...PROPS,
       routine: { ...PROPS.routine, version: 4, header: { ...PROPS.routine.header, name: "Old" } },
     });
-    await waitFor(() => expect(nameInput()).toHaveValue("Old"));
+    await waitFor(() => expect(title().textContent).toBe("Old"));
     expect(save()).toBeDisabled();
   });
 
   it("does not reset when a newer page version arrives without a conflict", async () => {
     const user = userEvent.setup();
     const { rerenderWith } = setup();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     rerenderWith({
       ...PROPS,
       routine: {
@@ -339,23 +462,23 @@ describe("RoutineEditor", () => {
         header: { ...PROPS.routine.header, name: "Theirs" },
       },
     });
-    expect(nameInput()).toHaveValue("Knee rehab!");
+    expect(title().textContent).toBe("Knee rehab!");
     expect(save()).toBeEnabled();
   });
 
   it("keeps in-progress edits when the page re-renders with the version just saved", async () => {
     const user = userEvent.setup();
     const { rerenderWith } = setup();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     await waitFor(() => expect(saveStatus()).toHaveTextContent("Saved"));
-    await user.type(nameInput(), "?");
+    await rename(user, "Knee rehab!?");
 
     rerenderWith({
       ...PROPS,
       routine: { ...PROPS.routine, version: 4 },
     });
-    expect(nameInput()).toHaveValue("Knee rehab!?");
+    expect(title().textContent).toBe("Knee rehab!?");
     expect(save()).toBeEnabled();
   });
 
@@ -375,7 +498,7 @@ describe("RoutineEditor", () => {
     const user = userEvent.setup();
     saveRoutineAction.mockResolvedValue({ ok: false, error: "needsItems" });
     setup();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Add at least one exercise before activating.",
@@ -393,7 +516,7 @@ describe("RoutineEditor", () => {
     const user = userEvent.setup();
     saveRoutineAction.mockRejectedValue(new Error("network"));
     setup();
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't save. Try again.");
     expect(save()).toBeEnabled();
@@ -402,17 +525,16 @@ describe("RoutineEditor", () => {
   it("validates before calling the action and shows field errors", async () => {
     const user = userEvent.setup();
     setup();
-    await user.clear(nameInput());
-    await user.type(screen.getByLabelText("Sessions per day"), "9");
+    const perDay = screen.getByLabelText("Sessions per day");
+    await user.type(perDay, "9");
     await user.click(save());
-    expect(await screen.findByText("Enter a name.")).toBeInTheDocument();
-    expect(screen.getByText("Enter a whole number from 1 to 5.")).toBeInTheDocument();
-    expect(nameInput()).toHaveAttribute("aria-invalid", "true");
+    expect(await screen.findByText("Enter a whole number from 1 to 5.")).toBeInTheDocument();
+    expect(perDay).toHaveAttribute("aria-invalid", "true");
     expect(saveRoutineAction).not.toHaveBeenCalled();
 
     // Fixing the field clears its error.
-    await user.type(nameInput(), "Back");
-    expect(screen.queryByText("Enter a name.")).not.toBeInTheDocument();
+    await user.clear(perDay);
+    expect(screen.queryByText("Enter a whole number from 1 to 5.")).not.toBeInTheDocument();
   });
 
   it("blocks the save when a collapsed item has an invalid rep range, and expands it", async () => {
@@ -432,7 +554,7 @@ describe("RoutineEditor", () => {
       "aria-expanded",
       "false",
     );
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
 
     expect(saveRoutineAction).not.toHaveBeenCalled();
@@ -470,7 +592,7 @@ describe("RoutineEditor", () => {
       },
     ];
     setup({ ...PROPS, initialBlocks: bad });
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     expect(saveRoutineAction).not.toHaveBeenCalled();
     expect(await screen.findByText(/invalid reps/)).toBeInTheDocument();
@@ -490,11 +612,11 @@ describe("RoutineEditor", () => {
         header: { ...PROPS.routine.header, name: "Theirs" },
       },
     });
-    await user.type(nameInput(), "!");
+    await rename(user, "Knee rehab!");
     await user.click(save());
     await screen.findByRole("alert");
     await user.click(screen.getByRole("button", { name: "Reload" }));
-    await waitFor(() => expect(nameInput()).toHaveValue("Theirs"));
+    await waitFor(() => expect(title().textContent).toBe("Theirs"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(save()).toBeDisabled();
   });
@@ -513,15 +635,17 @@ describe("RoutineEditor", () => {
   it("announces header errors and focuses the first invalid field", async () => {
     const user = userEvent.setup();
     setup();
-    await user.clear(nameInput());
+    const perWeek = screen.getByLabelText("Sessions per week");
+    await user.clear(perWeek);
+    await user.type(perWeek, "15");
     await user.type(screen.getByLabelText("Sessions per day"), "9");
     await user.click(save());
     const errors = await screen.findAllByRole("alert");
     expect(errors.map((element) => element.textContent)).toEqual([
-      "Enter a name.",
+      "Enter a whole number from 1 to 14.",
       "Enter a whole number from 1 to 5.",
     ]);
-    expect(nameInput()).toHaveFocus();
+    expect(perWeek).toHaveFocus();
   });
 
   it("hides the case select when the customer has no cases", () => {
@@ -566,7 +690,7 @@ describe("RoutineEditor in template mode", () => {
   it("saves an active template without exercises", async () => {
     const user = userEvent.setup();
     setup({ ...TEMPLATE, initialBlocks: [] });
-    await user.type(nameInput(), " v2");
+    await rename(user, "Knee rehab v2");
     await user.click(save());
     await waitFor(() => expect(saveRoutineAction).toHaveBeenCalledTimes(1));
     expect(saveRoutineAction).toHaveBeenCalledWith(

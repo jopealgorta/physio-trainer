@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { CategoryLeaf, CategoryNode } from "@/lib/category-tree";
@@ -35,7 +36,7 @@ function TreeLink({
       href={libraryHref(filters, { category })}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "hover:bg-muted flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+        "hover:bg-muted relative flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
         active && "bg-muted font-medium",
         className,
       )}
@@ -44,6 +45,7 @@ function TreeLink({
       {count === undefined ? null : (
         <span className="text-muted-foreground text-xs tabular-nums">{count}</span>
       )}
+      <LinkPendingHint className="inset-x-2 bottom-0" />
     </Link>
   );
 }

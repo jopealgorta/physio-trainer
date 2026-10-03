@@ -683,7 +683,8 @@
         "notesTooLong": "Use at most {max, number} characters.",
         "outOfRange": "Enter a whole number from {min, number} to {max, number}."
       },
-      "backToPlan": "Back to plan"
+      "backToPlan": "Back to plan",
+      "rename": "Rename routine"
     },
     "items": {
       "empty": "No exercises yet. Pick some from the list.",
@@ -736,7 +737,10 @@
       "full": "A routine can have up to {max, number} exercises.",
       "error": "Couldn't search. Try again.",
       "open": "Add exercises",
-      "close": "Done"
+      "close": "{count, plural, =0 {Done} other {# added · Done}}",
+      "inRoutine": "{count, plural, one {In the routine} other {In the routine # times}}",
+      "flash": "Added {name}",
+      "addedCount": "×{count, number}"
     }
   },
   "Plans": {
@@ -799,7 +803,6 @@
       },
       "details": {
         "title": "Plan details",
-        "name": "Name",
         "nameHint": "Shown as the title in the link preview when you share it.",
         "status": "Status",
         "case": "Case",
@@ -902,7 +905,9 @@
         "hasArchivedRoutines": "Remove archived routines from the plan before activating it.",
         "templateNoDraft": "Templates are either active or archived.",
         "notShared": "Nothing else uses this routine, so there is nothing to separate it from."
-      }
+      },
+      "name": "Plan name",
+      "rename": "Rename plan"
     }
   },
   "Templates": {
@@ -1020,7 +1025,8 @@
         "plan": "{count, plural, one {# routine} other {# routines}}"
       },
       "back": "Back to templates"
-    }
+    },
+    "fromMenu": "From template: {name}"
   },
   "VisitNotes": {
     "title": "Visit notes",
@@ -1510,9 +1516,17 @@
   "Export": {
     "menu": {
       "trigger": "Export",
-      "pdf": "Download PDF",
-      "xlsx": "Download Excel",
-      "tracking": "Include tracking boxes"
+      "pdf": "Export PDF",
+      "xlsx": "Export Excel",
+      "tracking": "Include tracking boxes",
+      "exporting": "Exporting…",
+      "error": "Couldn't export. Try again.",
+      "ready": {
+        "title": "Your file is ready",
+        "body": "{name} is ready to share.",
+        "share": "Share",
+        "cancel": "Cancel"
+      }
     },
     "patient": {
       "download": "Download PDF"
@@ -1632,5 +1646,11 @@
       "conflict": "This changed while you were looking. Open the history again and retry.",
       "generic": "Something went wrong. Try again."
     }
+  },
+  "PageActions": {
+    "more": "More actions"
+  },
+  "Loading": {
+    "label": "Loading…"
   }
 }

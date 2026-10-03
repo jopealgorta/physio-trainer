@@ -2,7 +2,9 @@ import { CalendarDaysIcon } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { IntentLink } from "@/components/intent-link";
 import { StatusBadge } from "@/components/routines/status-badge";
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PhaseChips } from "@/components/phases/phase-chips";
@@ -14,14 +16,15 @@ import type { PlanSummary } from "@/server/plans/queries";
 
 import { WeekStrip } from "./week-strip";
 
-function PlanLink({ plan }: { plan: PlanSummary }) {
+function PlanLink({ plan, eager }: { plan: PlanSummary; eager: boolean }) {
   return (
-    <Link
+    <IntentLink
       href={`/plans/${plan.id}`}
+      eager={eager}
       className="focus-visible:ring-ring/30 block min-w-0 truncate rounded-md font-medium outline-none hover:underline focus-visible:ring-2"
     >
       {plan.name}
-    </Link>
+    </IntentLink>
   );
 }
 
@@ -87,10 +90,10 @@ export function PlanList({
           </tr>
         </thead>
         <tbody className="divide-y">
-          {plans.map((plan) => (
+          {plans.map((plan, index) => (
             <tr key={plan.id}>
               <td className="min-w-0 py-2 pr-3">
-                <PlanLink plan={plan} />
+                <PlanLink plan={plan} eager={index === 0} />
                 <PlanChips plan={plan} today={today} />
               </td>
               {showCustomer ? (
@@ -109,10 +112,10 @@ export function PlanList({
         </tbody>
       </table>
       <ul className="grid gap-3 md:hidden">
-        {plans.map((plan) => (
+        {plans.map((plan, index) => (
           <li key={plan.id} className="grid min-w-0 gap-2 rounded-lg border p-3">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <PlanLink plan={plan} />
+              <PlanLink plan={plan} eager={index === 0} />
               <StatusBadge status={plan.status} />
             </div>
             <PlanChips plan={plan} today={today} />
@@ -155,7 +158,10 @@ export function NoPlanResults({ canClear }: { canClear: boolean }) {
         <p className="text-muted-foreground text-sm">{t("noResults")}</p>
         {canClear ? (
           <Button asChild variant="outline">
-            <Link href={plansHref(DEFAULT_PLAN_FILTERS)}>{t("clearFilters")}</Link>
+            <Link href={plansHref(DEFAULT_PLAN_FILTERS)} className="relative">
+              {t("clearFilters")}
+              <LinkPendingHint className="inset-x-3 bottom-1" />
+            </Link>
           </Button>
         ) : null}
       </CardContent>

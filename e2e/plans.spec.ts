@@ -169,8 +169,11 @@ test("removing the last use of a plan-only routine offers to delete it", async (
   await entryAction(page, "Tuesday", "Board only", "Remove from plan");
   const dialog = page.getByRole("alertdialog");
   await expect(dialog.getByLabel("Also delete the routine")).toBeChecked();
+  const removed = boardActionSettled(page);
   await dialog.getByRole("button", { name: "Remove" }).click();
   await expect(day(page, "Tuesday")).toContainText("Rest day");
+  // The board updates optimistically: wait for the server before leaving the page.
+  await removed;
 
   // The routine is gone from the customer's list.
   await page.goto(`${customer}?tab=routines`);
@@ -234,4 +237,19 @@ test("dragging a card to another day moves it (desktop)", async ({
   await moved;
   await page.reload();
   await expectDay(page, "Wednesday", ["Drag me"]);
+});
+
+test("a plan is renamed from its title and saves at once", async ({ physioPage: page }) => {
+  const customer = await createCustomer(page, "Eli");
+  await createPlanFor(page, customer, "Week A");
+  // The details card has no name field any more: the title is the name.
+  await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Rename plan" }).click();
+  const input = page.getByRole("textbox", { name: "Plan name" });
+  await input.fill("Week B");
+  await input.press("Enter");
+  await expect(page.getByRole("heading", { name: "Week B", level: 1 })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Week B", level: 1 })).toBeVisible();
 });

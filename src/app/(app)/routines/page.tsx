@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { PendingContent, PendingScope } from "@/components/navigation-pending";
 import { PageHeader } from "@/components/page-header";
 import { EmptyRoutines, NoRoutineResults, RoutineList } from "@/components/routines/routine-list";
 import { RoutinesToolbar } from "@/components/routines/routines-toolbar";
@@ -60,49 +61,51 @@ export default async function RoutinesPage({ searchParams }: PageProps<"/routine
         title={t("title")}
         actions={isTemplates && !nothingYet ? <NewTemplateDialog kind="routine" /> : undefined}
       />
-      <ListTabs kind="routine" active={filters.tab} />
-      {nothingYet ? (
-        isTemplates ? (
-          <EmptyTemplates kind="routine" />
+      <PendingScope>
+        <ListTabs kind="routine" active={filters.tab} />
+        {nothingYet ? (
+          <PendingContent>
+            {isTemplates ? <EmptyTemplates kind="routine" /> : <EmptyRoutines />}
+          </PendingContent>
         ) : (
-          <EmptyRoutines />
-        )
-      ) : (
-        <div className="grid content-start gap-6">
-          <RoutinesToolbar filters={filters} customers={customers} />
-          {routines.length > 0 ? (
-            <div className="grid gap-3">
-              {truncated ? (
-                <p className="text-muted-foreground text-sm">
-                  {isTemplates
-                    ? tTemplates("list.truncated", { count: routines.length })
-                    : t("list.truncated", { count: routines.length })}
-                </p>
-              ) : null}
-              {isTemplates ? (
-                <TemplateList
-                  kind="routine"
-                  timeZone={timeZone}
-                  customers={assignable}
-                  rows={routines.map((routine) => ({
-                    id: routine.id,
-                    name: routine.name,
-                    status: routine.status,
-                    updatedAt: routine.updatedAt,
-                    itemCount: routine.itemCount,
-                  }))}
-                />
+          <div className="grid content-start gap-6">
+            <RoutinesToolbar filters={filters} customers={customers} />
+            <PendingContent>
+              {routines.length > 0 ? (
+                <div className="grid gap-3">
+                  {truncated ? (
+                    <p className="text-muted-foreground text-sm">
+                      {isTemplates
+                        ? tTemplates("list.truncated", { count: routines.length })
+                        : t("list.truncated", { count: routines.length })}
+                    </p>
+                  ) : null}
+                  {isTemplates ? (
+                    <TemplateList
+                      kind="routine"
+                      timeZone={timeZone}
+                      customers={assignable}
+                      rows={routines.map((routine) => ({
+                        id: routine.id,
+                        name: routine.name,
+                        status: routine.status,
+                        updatedAt: routine.updatedAt,
+                        itemCount: routine.itemCount,
+                      }))}
+                    />
+                  ) : (
+                    <RoutineList routines={routines} showCustomer timeZone={timeZone} />
+                  )}
+                </div>
+              ) : isTemplates ? (
+                <NoTemplateResults kind="routine" canClear={filtered} />
               ) : (
-                <RoutineList routines={routines} showCustomer timeZone={timeZone} />
+                <NoRoutineResults canClear={filtered} />
               )}
-            </div>
-          ) : isTemplates ? (
-            <NoTemplateResults kind="routine" canClear={filtered} />
-          ) : (
-            <NoRoutineResults canClear={filtered} />
-          )}
-        </div>
-      )}
+            </PendingContent>
+          </div>
+        )}
+      </PendingScope>
     </div>
   );
 }

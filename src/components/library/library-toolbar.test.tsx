@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,13 +10,16 @@ import messages from "../../../messages/en.json";
 import { LibraryToolbar } from "./library-toolbar";
 
 const replace = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, push }) }));
 
 function ui(filters: Partial<LibraryFilters> = {}) {
   return (
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
       <LibraryToolbar filters={{ ...DEFAULT_LIBRARY_FILTERS, ...filters }} tags={["band", "core"]}>
-        <div>tree</div>
+        <div>
+          tree <a href="?category=none">Uncategorised</a>
+        </div>
       </LibraryToolbar>
     </NextIntlClientProvider>
   );
@@ -30,6 +33,7 @@ beforeEach(() => {
   // shouldAdvanceTime lets waitFor poll while the Select popover opens.
   vi.useFakeTimers({ shouldAdvanceTime: true });
   replace.mockClear();
+  push.mockClear();
 });
 afterEach(() => vi.useRealTimers());
 
@@ -107,6 +111,17 @@ describe("LibraryToolbar", () => {
     await user.click(screen.getByRole("button", { name: "Filters" }));
     expect(screen.getByText("tree")).toBeInTheDocument();
     expect(screen.getAllByRole("combobox", { name: "Body area", hidden: true })).toHaveLength(2);
+  });
+
+  it("navigates a category picked in the sheet itself, then closes the sheet", async () => {
+    // The link unmounts with the sheet, so the toolbar owns the navigation's pending state.
+    vi.useRealTimers();
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    await user.click(screen.getByRole("link", { name: "Uncategorised" }));
+    expect(push).toHaveBeenCalledWith("?category=none");
+    await waitFor(() => expect(screen.queryByText("Uncategorised")).not.toBeInTheDocument());
   });
 
   it("keeps newer keystrokes when an older search URL arrives while typing", () => {

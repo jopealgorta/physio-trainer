@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { PendingContent, PendingScope } from "@/components/navigation-pending";
 import { PageHeader } from "@/components/page-header";
 import { EmptyPlans, NoPlanResults, PlanList } from "@/components/plans/plan-list";
 import { PlansToolbar } from "@/components/plans/plans-toolbar";
@@ -60,49 +61,51 @@ export default async function PlansPage({ searchParams }: PageProps<"/plans">) {
         title={t("title")}
         actions={isTemplates && !nothingYet ? <NewTemplateDialog kind="plan" /> : undefined}
       />
-      <ListTabs kind="plan" active={filters.tab} />
-      {nothingYet ? (
-        isTemplates ? (
-          <EmptyTemplates kind="plan" />
+      <PendingScope>
+        <ListTabs kind="plan" active={filters.tab} />
+        {nothingYet ? (
+          <PendingContent>
+            {isTemplates ? <EmptyTemplates kind="plan" /> : <EmptyPlans />}
+          </PendingContent>
         ) : (
-          <EmptyPlans />
-        )
-      ) : (
-        <div className="grid content-start gap-6">
-          <PlansToolbar filters={filters} customers={customers} />
-          {plans.length > 0 ? (
-            <div className="grid gap-3">
-              {truncated ? (
-                <p className="text-muted-foreground text-sm">
-                  {isTemplates
-                    ? tTemplates("list.truncated", { count: plans.length })
-                    : t("list.truncated", { count: plans.length })}
-                </p>
-              ) : null}
-              {isTemplates ? (
-                <TemplateList
-                  kind="plan"
-                  timeZone={timeZone}
-                  customers={assignable}
-                  rows={plans.map((plan) => ({
-                    id: plan.id,
-                    name: plan.name,
-                    status: plan.status,
-                    updatedAt: plan.updatedAt,
-                    sessionsPerDay: plan.sessionsPerDay,
-                  }))}
-                />
+          <div className="grid content-start gap-6">
+            <PlansToolbar filters={filters} customers={customers} />
+            <PendingContent>
+              {plans.length > 0 ? (
+                <div className="grid gap-3">
+                  {truncated ? (
+                    <p className="text-muted-foreground text-sm">
+                      {isTemplates
+                        ? tTemplates("list.truncated", { count: plans.length })
+                        : t("list.truncated", { count: plans.length })}
+                    </p>
+                  ) : null}
+                  {isTemplates ? (
+                    <TemplateList
+                      kind="plan"
+                      timeZone={timeZone}
+                      customers={assignable}
+                      rows={plans.map((plan) => ({
+                        id: plan.id,
+                        name: plan.name,
+                        status: plan.status,
+                        updatedAt: plan.updatedAt,
+                        sessionsPerDay: plan.sessionsPerDay,
+                      }))}
+                    />
+                  ) : (
+                    <PlanList plans={plans} showCustomer timeZone={timeZone} />
+                  )}
+                </div>
+              ) : isTemplates ? (
+                <NoTemplateResults kind="plan" canClear={filtered} />
               ) : (
-                <PlanList plans={plans} showCustomer timeZone={timeZone} />
+                <NoPlanResults canClear={filtered} />
               )}
-            </div>
-          ) : isTemplates ? (
-            <NoTemplateResults kind="plan" canClear={filtered} />
-          ) : (
-            <NoPlanResults canClear={filtered} />
-          )}
-        </div>
-      )}
+            </PendingContent>
+          </div>
+        )}
+      </PendingScope>
     </div>
   );
 }

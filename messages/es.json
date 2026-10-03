@@ -683,7 +683,8 @@
         "notesTooLong": "Usá como máximo {max, number} caracteres.",
         "outOfRange": "Ingresá un número entero de {min, number} a {max, number}."
       },
-      "backToPlan": "Volver al plan"
+      "backToPlan": "Volver al plan",
+      "rename": "Cambiar el nombre de la rutina"
     },
     "items": {
       "empty": "Todavía no hay ejercicios. Elegí algunos de la lista.",
@@ -736,7 +737,10 @@
       "full": "Una rutina puede tener hasta {max, number} ejercicios.",
       "error": "No se pudo buscar. Probá de nuevo.",
       "open": "Agregar ejercicios",
-      "close": "Listo"
+      "close": "{count, plural, =0 {Listo} one {# agregado · Listo} other {# agregados · Listo}}",
+      "inRoutine": "{count, plural, one {En la rutina} other {En la rutina # veces}}",
+      "flash": "Se agregó {name}",
+      "addedCount": "×{count, number}"
     }
   },
   "Plans": {
@@ -799,7 +803,6 @@
       },
       "details": {
         "title": "Detalles del plan",
-        "name": "Nombre",
         "nameHint": "Se muestra como título en la vista previa del enlace cuando lo compartís.",
         "status": "Estado",
         "case": "Caso",
@@ -902,7 +905,9 @@
         "hasArchivedRoutines": "Quitá las rutinas archivadas del plan antes de activarlo.",
         "templateNoDraft": "Las plantillas están activas o archivadas.",
         "notShared": "Ninguna otra entrada usa esta rutina, así que no hay de qué separarla."
-      }
+      },
+      "name": "Nombre del plan",
+      "rename": "Cambiar el nombre del plan"
     }
   },
   "Templates": {
@@ -1020,7 +1025,8 @@
         "plan": "{count, plural, one {# rutina} other {# rutinas}}"
       },
       "back": "Volver a las plantillas"
-    }
+    },
+    "fromMenu": "Desde la plantilla: {name}"
   },
   "VisitNotes": {
     "title": "Notas de visita",
@@ -1510,9 +1516,17 @@
   "Export": {
     "menu": {
       "trigger": "Exportar",
-      "pdf": "Descargar PDF",
-      "xlsx": "Descargar Excel",
-      "tracking": "Incluir casillas de seguimiento"
+      "pdf": "Exportar PDF",
+      "xlsx": "Exportar Excel",
+      "tracking": "Incluir casillas de seguimiento",
+      "exporting": "Exportando…",
+      "error": "No se pudo exportar. Probá de nuevo.",
+      "ready": {
+        "title": "Tu archivo está listo",
+        "body": "{name} está listo para compartir.",
+        "share": "Compartir",
+        "cancel": "Cancelar"
+      }
     },
     "patient": {
       "download": "Descargá el PDF"
@@ -1632,5 +1646,11 @@
       "conflict": "Esto cambió mientras lo mirabas. Abrí el historial de nuevo y volvé a intentar.",
       "generic": "Algo salió mal. Volvé a intentar."
     }
+  },
+  "PageActions": {
+    "more": "Más acciones"
+  },
+  "Loading": {
+    "label": "Cargando…"
   }
 }

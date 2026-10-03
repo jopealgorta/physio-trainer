@@ -1,7 +1,7 @@
 import { ChevronRightIcon } from "lucide-react";
-import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { IntentLink } from "@/components/intent-link";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
 import type { AttentionReason } from "@/lib/attention";
 import type { Dashboard } from "@/lib/dashboard";
@@ -39,8 +39,8 @@ export function DashboardView({ data, timeZone }: { data: Dashboard; timeZone: s
           empty={t("attention.empty")}
           className="lg:col-span-2"
         >
-          {data.attention.map((entry) => (
-            <Row key={entry.customerId} id={entry.customerId} name={entry.name}>
+          {data.attention.map((entry, index) => (
+            <Row key={entry.customerId} id={entry.customerId} name={entry.name} eager={index === 0}>
               <ul className="text-destructive grid gap-0.5 text-sm">
                 {entry.reasons.map((reason) => (
                   <li key={reason.rule}>{reasonText(reason)}</li>
@@ -56,12 +56,13 @@ export function DashboardView({ data, timeZone }: { data: Dashboard; timeZone: s
           description={t("comments.description")}
           empty={t("comments.empty")}
         >
-          {data.newComments.map((entry) => (
+          {data.newComments.map((entry, index) => (
             <Row
               key={entry.customerId}
               id={entry.customerId}
               name={entry.name}
               meta={t("comments.count", { count: entry.count })}
+              eager={index === 0}
             >
               <p className="line-clamp-2 text-sm wrap-anywhere">{entry.latest.comment}</p>
               <p className="text-muted-foreground text-xs">
@@ -83,8 +84,8 @@ export function DashboardView({ data, timeZone }: { data: Dashboard; timeZone: s
           description={t("recent.description")}
           empty={t("recent.empty")}
         >
-          {data.recentlyActive.map((entry) => (
-            <Row key={entry.customerId} id={entry.customerId} name={entry.name}>
+          {data.recentlyActive.map((entry, index) => (
+            <Row key={entry.customerId} id={entry.customerId} name={entry.name} eager={index === 0}>
               <p className="text-muted-foreground text-sm">
                 {t("recent.sessions", { count: entry.sessionsLast7 })}
                 {" · "}
@@ -153,21 +154,27 @@ function Panel({
   );
 }
 
-/** One customer in a list: the whole row links to their Activity tab. */
+/**
+ * One customer in a list: the whole row links to their Activity tab. Only a panel's first row
+ * prefetches on sight (see IntentLink).
+ */
 function Row({
   id,
   name,
   meta,
+  eager,
   children,
 }: {
   id: string;
   name: string;
   meta?: string;
+  eager: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Link
+    <IntentLink
       href={activityHref(id)}
+      eager={eager}
       className="hover:bg-muted/50 focus-visible:ring-ring/50 flex items-center gap-3 p-4 outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
     >
       <span className="grid min-w-0 flex-1 gap-1">
@@ -178,6 +185,6 @@ function Row({
         {children}
       </span>
       <ChevronRightIcon aria-hidden className="text-muted-foreground size-4 shrink-0" />
-    </Link>
+    </IntentLink>
   );
 }

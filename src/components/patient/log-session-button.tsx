@@ -9,13 +9,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { LOG_COMMENT_MAX } from "@/lib/session-logs";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ import { logSessionAction, type LogActionResult } from "@/server/patient/actions
 import type { PatientLog } from "@/server/patient/log-session";
 
 import { PainScale } from "./pain-scale";
+import { PATIENT_ROW_BUTTON } from "./row-button";
 
 export type LoggableDay = { date: string; relative: "today" | "yesterday" };
 
@@ -77,7 +78,7 @@ export function LogSessionButton({
   const canLog = days.length > 0;
 
   const doneBadge = (
-    <span className="inline-flex items-center gap-1.5 text-base font-medium">
+    <span className="inline-flex flex-none items-center gap-1.5 text-base font-medium">
       <CircleCheckIcon aria-hidden className="text-primary size-5" />
       {t("done")}
     </span>
@@ -94,13 +95,16 @@ export function LogSessionButton({
   };
   const day = days.find((d) => d.date === selected) ?? days[0]!;
 
+  // `contents`: the badge and the button are items of the row this sits in (the routine's
+  // action row, next to Start workout), not a box of their own.
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="contents">
       {done ? doneBadge : null}
       <Button
         size="lg"
         variant={done ? "outline" : "default"}
-        className="h-12 px-5 text-base"
+        // Done, the badge says it all and Edit stays compact; to do, it shares the row equally.
+        className={done ? "h-12 flex-none px-5 text-base" : PATIENT_ROW_BUTTON}
         onClick={() => {
           setSelected(days.find((d) => d.date === shownDate)?.date ?? days.at(-1)!.date);
           setOpen(true);
@@ -108,20 +112,18 @@ export function LogSessionButton({
       >
         {done ? t("edit") : t("markDone")}
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent
           // The sheet is portalled out of the patient page, so it carries the page's branding
           // scope (the physio's accent) and the customer's language itself.
           data-brand="patient"
           lang={locale}
-          side="bottom"
-          showCloseButton={false}
-          className="mx-auto max-h-[90dvh] max-w-2xl overflow-y-auto rounded-t-2xl text-sm"
+          className="mx-auto max-h-[90dvh] max-w-2xl rounded-t-2xl text-sm"
         >
-          <SheetHeader className="relative pr-14">
-            <SheetTitle className="text-lg">{t("title")}</SheetTitle>
-            <SheetDescription className="text-sm wrap-anywhere">{routineName}</SheetDescription>
-            <SheetClose asChild>
+          <DrawerHeader className="relative pr-14">
+            <DrawerTitle className="text-lg">{t("title")}</DrawerTitle>
+            <DrawerDescription className="text-sm wrap-anywhere">{routineName}</DrawerDescription>
+            <DrawerClose asChild>
               <Button
                 variant="ghost"
                 size="icon"
@@ -130,22 +132,25 @@ export function LogSessionButton({
               >
                 <XIcon aria-hidden />
               </Button>
-            </SheetClose>
-          </SheetHeader>
-          <LogForm
-            // A fresh form (prefilled from that day's log) whenever the day changes.
-            key={day.date}
-            code={code}
-            routineId={routineId}
-            entryId={entryId}
-            day={day}
-            days={days}
-            initial={logFor(day.date)}
-            onDayChange={setSelected}
-            onSaved={onSaved}
-          />
-        </SheetContent>
-      </Sheet>
+            </DrawerClose>
+          </DrawerHeader>
+          {/* The drawer itself cannot scroll (vaul owns its gestures); this inner box does. */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <LogForm
+              // A fresh form (prefilled from that day's log) whenever the day changes.
+              key={day.date}
+              code={code}
+              routineId={routineId}
+              entryId={entryId}
+              day={day}
+              days={days}
+              initial={logFor(day.date)}
+              onDayChange={setSelected}
+              onSaved={onSaved}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
@@ -209,7 +214,10 @@ function LogForm({
   };
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-5 px-6 pb-6">
+    <form
+      onSubmit={onSubmit}
+      className="grid gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+    >
       {days.length > 1 ? (
         <fieldset className="grid gap-2">
           <legend className="text-sm font-medium">{t("day.label")}</legend>

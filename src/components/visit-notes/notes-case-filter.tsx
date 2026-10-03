@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 
+import { usePendingNavigation } from "@/components/navigation-pending";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -27,6 +28,8 @@ export function NotesCaseFilter({
 }) {
   const t = useTranslations("VisitNotes.filter");
   const router = useRouter();
+  // The customer page's pending scope dims the timeline until the filtered one arrives.
+  const { navigate } = usePendingNavigation();
   const id = useId();
   const current = cases.find((item) => item.id === caseId);
 
@@ -41,9 +44,11 @@ export function NotesCaseFilter({
           // "" only comes from Radix's internal <select>, never from a choice.
           if (next === "") return;
           const chosen = fromSelectValue(next);
-          router.replace(
-            notesHref(customerId, { caseId: chosen === "" ? null : chosen, limit: PAGE_SIZE }),
-            { scroll: false },
+          navigate(() =>
+            router.replace(
+              notesHref(customerId, { caseId: chosen === "" ? null : chosen, limit: PAGE_SIZE }),
+              { scroll: false },
+            ),
           );
         }}
       >
