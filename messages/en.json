@@ -132,7 +132,7 @@
         "link": "Shared link",
         "sampleName": "Ana",
         "greeting": "Hi {name}",
-        "startWorkout": "Start workout",
+        "markDone": "Mark as done",
         "call": "Call",
         "whatsapp": "WhatsApp",
         "email": "Email",

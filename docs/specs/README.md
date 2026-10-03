@@ -22,7 +22,7 @@ feature list agreed in the initial brainstorm.
 | 09  | [Physio branding](./09-physio-branding.md)                             | F       | 01                         | Done   |
 | 10  | [Sharing and patient page](./10-sharing-and-patient-page.md)           | Core    | 05, 06, 08, 09             | Done   |
 | 11  | [Link previews](./11-link-previews.md)                                 | E       | 09, 10                     | Done   |
-| 12  | [Workout mode](./12-workout-mode.md)                                   | C       | 10                         | Done   |
+| 12  | [Workout mode](./12-workout-mode.md)                                   | C       | 10                         | Hidden |
 | 13  | [Session logging and dashboard](./13-session-logging-and-dashboard.md) | D       | 10 (12 optional)           | Done   |
 | 14  | [PDF and Excel export](./14-export-pdf-and-excel.md)                   | Core    | 05, 06, 09, 10             | Done   |
 | 15  | [Version history](./15-version-history.md)                             | I       | 05, 06                     | Done   |

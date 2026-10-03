@@ -1,5 +1,5 @@
 import type { Route } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import type { ExerciseLogging } from "@/components/patient/exercise-list";
@@ -9,6 +9,7 @@ import { PinGate } from "@/components/patient/pin-gate";
 import { Unavailable } from "@/components/patient/unavailable";
 import { WorkoutPlayer } from "@/components/patient/workout/workout-player";
 import { buildWorkoutPath, isUuid } from "@/lib/patient-paths";
+import { workoutModeEnabled } from "@/lib/workout/enabled";
 import { firstParam } from "@/lib/search-params";
 import { buildSharePath, parseSlugParam } from "@/lib/share-links";
 import { getLinkAccess } from "@/server/patient/access";
@@ -29,13 +30,16 @@ const decode = (value: string) => {
 /**
  * Guided workout for one routine: `/{handle}/{slug}-{code}/workout/{routineId}` (spec 12). The link
  * is resolved and PIN-gated exactly like the patient page, and the routine id from the URL is only
- * used if that link can reach it (anything else is a 404, never a hint that it exists).
+ * used if that link can reach it (anything else is a 404, never a hint that it exists). While
+ * workout mode is hidden, the route sends the patient back to their page instead.
  */
 export default async function WorkoutPage({
   params,
   searchParams,
 }: PageProps<"/[handle]/[slug]/workout/[routineId]">) {
   const [{ handle, slug, routineId }, sp] = await Promise.all([params, searchParams]);
+  // Temporary, not permanent: workout mode may come back. The page resolves the link itself.
+  if (!workoutModeEnabled()) redirect(`/${handle}/${slug}` as Route);
   const parsed = parseSlugParam(slug);
   if (!parsed || !isUuid(routineId)) notFound();
   const resolved = await loadLink(parsed.code);

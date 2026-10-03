@@ -1,6 +1,6 @@
 # 12 · Workout mode
 
-- **Status:** Done
+- **Status:** Done, hidden behind `WORKOUT_MODE_ENABLED` (off by default)
 - **Feature:** C (patient workout mode)
 - **Depends on:** 10 (13 integrates at the end)
 
@@ -139,3 +139,9 @@ Namespace `Workout`.
   on the patient page (the PIN action always returns to the link's main page), not the workout.
 - **Spec 13 hand-off.** The finish screen is "Well done" + "Back to my plan"; spec 13 replaces it with
   its "mark as done" sheet.
+- **Hidden (after spec 19).** Workout mode stays in the code but is off unless the server env flag
+  `WORKOUT_MODE_ENABLED=true` (`src/env.ts`, default `false`). While off, routines show no "Start
+  workout" button (`workoutHref` in `src/lib/workout/enabled.ts` returns undefined), the workout
+  route redirects (307, not permanent) to `/{handle}/{slug}` so old links still land on the patient
+  page, and the branding preview's sample button reads "Mark as done". Playwright's server sets the
+  flag so the workout e2e suites keep running.

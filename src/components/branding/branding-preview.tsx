@@ -94,7 +94,7 @@ function PatientPageMock({ branding }: { branding: Branding }) {
       </div>
       <p className="text-lg font-semibold">{t("greeting", { name: t("sampleName") })}</p>
       <Button type="button" size="lg" tabIndex={-1} className="w-full">
-        {t("startWorkout")}
+        {t("markDone")}
       </Button>
       {links.length > 0 ? (
         <div className="flex flex-wrap gap-2">
