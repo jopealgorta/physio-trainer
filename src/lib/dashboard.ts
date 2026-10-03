@@ -13,15 +13,28 @@ export type CustomerFacts = {
   singles: SingleFact[];
   /** The last 14 days of logs; `updatedAt` orders "recently active". */
   logs: (LogFact & { updatedAt: Date })[];
+  /** Pain rated on single exercises over the same 14 days. */
+  exercisePain: { performedOn: string; pain: number | null }[];
   /** Whether the patient still has a link that works, i.e. can log at all. */
   hasLink: boolean;
 };
 
-/** A customer's unseen comments, already reduced to how many and which one is newest. */
+export type UnseenLatest = {
+  comment: string;
+  performedOn: string;
+  routineName: string;
+  /** Set when the comment is on an exercise log rather than a session. */
+  exerciseName?: string | null;
+};
+
+/**
+ * A customer's unseen comments of one kind (session or exercise), already reduced to how many and
+ * which one is newest. A customer may have one summary per kind; `buildDashboard` merges them.
+ */
 export type UnseenSummary = {
   customerId: string;
   count: number;
-  latest: { comment: string; performedOn: string; routineName: string };
+  latest: UnseenLatest;
 };
 
 export type Dashboard = {
@@ -31,7 +44,7 @@ export type Dashboard = {
     customerId: string;
     name: string;
     count: number;
-    latest: { comment: string; performedOn: string; routineName: string };
+    latest: UnseenLatest;
   }[];
   recentlyActive: {
     customerId: string;
@@ -72,6 +85,7 @@ export function buildDashboard(input: {
         customer.singles,
         customer.logs,
       ),
+      exercisePain: customer.exercisePain,
       hasLink: customer.hasLink,
     });
     if (reasons.length > 0)
@@ -103,8 +117,22 @@ export function buildDashboard(input: {
   );
 
   const names = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const newComments: Dashboard["newComments"] = unseen
-    .filter((entry) => names.has(entry.customerId))
+  const merged = new Map<string, UnseenSummary>();
+  for (const entry of unseen) {
+    if (!names.has(entry.customerId)) continue;
+    const have = merged.get(entry.customerId);
+    merged.set(
+      entry.customerId,
+      !have
+        ? entry
+        : {
+            customerId: entry.customerId,
+            count: have.count + entry.count,
+            latest: entry.latest.performedOn > have.latest.performedOn ? entry.latest : have.latest,
+          },
+    );
+  }
+  const newComments: Dashboard["newComments"] = [...merged.values()]
     .map((entry) => ({
       customerId: entry.customerId,
       name: names.get(entry.customerId)!,

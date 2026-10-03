@@ -25,7 +25,10 @@ export function attentionWindows(today: string) {
 const inWindow = (date: string, [from, to]: readonly [string, string]) =>
   date >= from && date <= to;
 
-function ratings(logs: readonly LogFact[], window: readonly [string, string]): number[] {
+function ratings(
+  logs: readonly { performedOn: string; pain: number | null }[],
+  window: readonly [string, string],
+): number[] {
   return logs
     .filter((entry) => entry.pain !== null && inWindow(entry.performedOn, window))
     .map((entry) => entry.pain!);
@@ -42,16 +45,19 @@ const average = (values: readonly number[]) =>
 export function needsAttention(input: {
   today: string;
   logs: readonly LogFact[];
+  /** Pain rated on single exercises (spec 19); counts for `highPain` like a session's. */
+  exercisePain: readonly { performedOn: string; pain: number | null }[];
   adherence: Adherence | null;
   hasLink: boolean;
 }): AttentionReason[] {
   const windows = attentionWindows(input.today);
   const recent = ratings(input.logs, windows.recent);
   const previous = ratings(input.logs, windows.previous);
+  const highest = [...recent, ...ratings(input.exercisePain, windows.recent)];
   const reasons: AttentionReason[] = [];
 
-  if (recent.length > 0 && Math.max(...recent) >= ATTENTION.highPain) {
-    reasons.push({ rule: "highPain", pain: Math.max(...recent) });
+  if (highest.length > 0 && Math.max(...highest) >= ATTENTION.highPain) {
+    reasons.push({ rule: "highPain", pain: Math.max(...highest) });
   }
   if (recent.length > 0 && previous.length > 0) {
     const delta = average(recent) - average(previous);

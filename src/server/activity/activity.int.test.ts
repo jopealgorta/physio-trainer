@@ -3,13 +3,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
-import { sessionLogs, weeklyPlanEntries } from "@/db/schema";
+import { exerciseLogs, sessionLogs, weeklyPlanEntries } from "@/db/schema";
 import { insertCustomer, insertExercise, insertPlan, insertRoutine } from "@/test/int/content";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { ensureShareLink, revokeShareLink } from "@/server/sharing/mutations";
 import { setCustomerArchived } from "@/server/customers/mutations";
 
-import { markCommentsSeen } from "./mutations";
+import { markCommentsSeen, markExerciseCommentsSeen } from "./mutations";
 import { getCustomerActivity, getDashboard } from "./queries";
 
 // Thursday 8 Oct 2026 (the test physio's time zone is UTC).
@@ -175,6 +175,86 @@ describe("activity", () => {
     });
   });
 
+  describe("exercise logs", () => {
+    let squat: string;
+    let kneeRoutine: string;
+    let oneId: string;
+    let twoId: string;
+    const addExerciseLog = (
+      customerId: string,
+      performedOn: string,
+      values: Partial<typeof exerciseLogs.$inferInsert> = {},
+      physioId = physio.id,
+    ) =>
+      db
+        .insert(exerciseLogs)
+        .values({
+          physioId,
+          customerId,
+          routineId: kneeRoutine,
+          exerciseId: squat,
+          performedOn,
+          ...values,
+        })
+        .returning({ id: exerciseLogs.id })
+        .then(([row]) => row!.id);
+
+    beforeAll(async () => {
+      squat = await insertExercise(physio.id, { name: "Goblet squat" });
+      kneeRoutine = await insertRoutine(physio.id, beto, {
+        name: "Beto knee",
+        status: "active",
+        items: [{ exerciseId: squat }],
+      });
+      oneId = await addExerciseLog(beto, "2026-10-06", { pain: 4, rpe: 6, weightKg: 12.5 });
+      twoId = await addExerciseLog(beto, "2026-10-07", { comment: "felt ok" });
+    });
+
+    it("returns them newest first with exercise and routine names", async () => {
+      const { exerciseLogs: logs, unseenExerciseIds } = await as(physio, (tx, id) =>
+        getCustomerActivity(tx, id, beto, TODAY),
+      );
+      expect(logs.map((log) => log.id)).toEqual([twoId, oneId]);
+      expect(logs[1]).toEqual({
+        id: oneId,
+        performedOn: "2026-10-06",
+        routineName: "Beto knee",
+        exerciseName: "Goblet squat",
+        pain: 4,
+        rpe: 6,
+        weightKg: 12.5,
+        comment: null,
+        seen: true,
+      });
+      expect(logs[0]).toMatchObject({ comment: "felt ok", seen: false });
+      expect(unseenExerciseIds).toEqual([twoId]);
+    });
+
+    it("marks only the given ids of that customer as seen", async () => {
+      const mine = await addExerciseLog(beto, "2026-10-05", { comment: "a" });
+      const keep = await addExerciseLog(beto, "2026-10-04", { comment: "b" });
+      expect(
+        await as(other, (tx, pid) => markExerciseCommentsSeen(tx, pid, beto, [mine], NOW)),
+      ).toBe(0);
+      expect(
+        await as(physio, (tx, pid) => markExerciseCommentsSeen(tx, pid, ana, [mine], NOW)),
+      ).toBe(0);
+      expect(await as(physio, (tx, pid) => markExerciseCommentsSeen(tx, pid, beto, [], NOW))).toBe(
+        0,
+      );
+      expect(
+        await as(physio, (tx, pid) => markExerciseCommentsSeen(tx, pid, beto, [mine], NOW)),
+      ).toBe(1);
+      expect(
+        await as(physio, (tx, pid) => markExerciseCommentsSeen(tx, pid, beto, [mine], NOW)),
+      ).toBe(0);
+      const [kept] = await db.select().from(exerciseLogs).where(eq(exerciseLogs.id, keep));
+      expect(kept!.seenByPhysioAt).toBeNull();
+      const [done] = await db.select().from(exerciseLogs).where(eq(exerciseLogs.id, mine));
+      expect(done!.seenByPhysioAt).toEqual(NOW);
+    });
+  });
+
   describe("markCommentsSeen", () => {
     it("marks only the given comments, once, without counting as an edit", async () => {
       const own = await insertRoutine(physio.id, beto, { status: "active" });
@@ -297,6 +377,41 @@ describe("activity", () => {
       expect(entry.count).toBe(250);
       expect(entry.latest.comment).toBe("c249");
       expect(result.recentlyActive.map((item) => item.customerId)).not.toContain(quiet);
+    });
+
+    it("flags exercise pain and lists unseen exercise comments", async () => {
+      const fay = await insertCustomer(dash.id, { firstName: "Fay" });
+      const squat = await insertExercise(dash.id, { name: "Lunge" });
+      const fayRoutine = await insertRoutine(dash.id, fay, {
+        name: "Hips",
+        status: "active",
+        items: [{ exerciseId: squat }],
+      });
+      await live(fay);
+      await db.insert(exerciseLogs).values({
+        physioId: dash.id,
+        customerId: fay,
+        routineId: fayRoutine,
+        exerciseId: squat,
+        performedOn: "2026-10-07",
+        pain: 8,
+        comment: "sharp",
+      });
+
+      const result = await as(dash, (tx, id) => getDashboard(tx, id, TODAY, NOW));
+      const flagged = result.attention.find((entry) => entry.customerId === fay);
+      expect(flagged!.reasons).toContainEqual({ rule: "highPain", pain: 8 });
+      expect(result.newComments.find((entry) => entry.customerId === fay)).toEqual({
+        customerId: fay,
+        name: "Fay",
+        count: 1,
+        latest: {
+          comment: "sharp",
+          performedOn: "2026-10-07",
+          routineName: "Hips",
+          exerciseName: "Lunge",
+        },
+      });
     });
 
     it("sees nothing of another physio's customers", async () => {

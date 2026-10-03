@@ -9,11 +9,25 @@ import { markCommentsSeenAction } from "@/server/activity/actions";
  * were seen (the tab itself only reads). The action revalidates, which re-renders the tab with them
  * seen; `CommentsFeed` keeps their "New" badges for the rest of the visit.
  */
-export function MarkCommentsSeen({ customerId, ids }: { customerId: string; ids: string[] }) {
+export function MarkCommentsSeen({
+  customerId,
+  ids,
+  exerciseIds = [],
+}: {
+  customerId: string;
+  ids: string[];
+  exerciseIds?: string[];
+}) {
   // The ids are the tab's own, stable per render; the key keeps the effect to once per set.
   const key = ids.join(",");
+  const exerciseKey = exerciseIds.join(",");
   useEffect(() => {
-    if (key !== "") void markCommentsSeenAction(customerId, key.split(","));
-  }, [customerId, key]);
+    if (key === "" && exerciseKey === "") return;
+    void markCommentsSeenAction(
+      customerId,
+      key === "" ? [] : key.split(","),
+      exerciseKey === "" ? [] : exerciseKey.split(","),
+    );
+  }, [customerId, key, exerciseKey]);
   return null;
 }

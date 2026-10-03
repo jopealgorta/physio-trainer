@@ -3,7 +3,7 @@ import "server-only";
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 
 import type { Tx } from "@/db/rls";
-import { sessionLogs } from "@/db/schema";
+import { exerciseLogs, sessionLogs } from "@/db/schema";
 
 /**
  * The physio has seen these comments of the customer (spec 13): clears their "new" badges.
@@ -32,5 +32,30 @@ export async function markCommentsSeen(
       ),
     )
     .returning({ id: sessionLogs.id });
+  return rows.length;
+}
+
+/** Same as `markCommentsSeen`, for the comments on single exercises (spec 19). */
+export async function markExerciseCommentsSeen(
+  tx: Tx,
+  physioId: string,
+  customerId: string,
+  ids: readonly string[],
+  now: Date = new Date(),
+): Promise<number> {
+  if (ids.length === 0) return 0;
+  const rows = await tx
+    .update(exerciseLogs)
+    .set({ seenByPhysioAt: now })
+    .where(
+      and(
+        eq(exerciseLogs.physioId, physioId),
+        eq(exerciseLogs.customerId, customerId),
+        inArray(exerciseLogs.id, [...ids]),
+        isNotNull(exerciseLogs.comment),
+        isNull(exerciseLogs.seenByPhysioAt),
+      ),
+    )
+    .returning({ id: exerciseLogs.id });
   return rows.length;
 }

@@ -5,6 +5,8 @@ import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, or, sql }
 import type { Tx } from "@/db/rls";
 import {
   customers,
+  exerciseLogs,
+  exercises,
   routines,
   sessionLogs,
   shareLinks,
@@ -32,6 +34,8 @@ import { attentionWindows } from "@/lib/attention";
 import { isUuid } from "@/server/customers/schemas";
 
 export const ACTIVITY_WEEKS = 12;
+/** How many exercise logs the Activity tab lists. */
+const EXERCISE_LOGS_LIMIT = 50;
 
 type ScheduleFacts = { plans: PlanFact[]; singles: SingleFact[] };
 
@@ -154,6 +158,19 @@ export type ActivityComment = {
   seen: boolean;
 };
 
+export type ActivityExerciseLog = {
+  id: string;
+  performedOn: string;
+  routineName: string;
+  exerciseName: string;
+  pain: number | null;
+  rpe: number | null;
+  weightKg: number | null;
+  comment: string | null;
+  /** True when there is no comment or the physio has already seen it. */
+  seen: boolean;
+};
+
 export type CustomerActivity = {
   /** Monday-first columns of dates, the last one holding today. */
   weeks: string[][];
@@ -167,6 +184,10 @@ export type CustomerActivity = {
   comments: ActivityComment[];
   /** Ids of the unseen comments in `comments`: what the tab marks as seen once shown. */
   unseenIds: string[];
+  /** The newest exercise logs (spec 19), newest first. */
+  exerciseLogs: ActivityExerciseLog[];
+  /** Ids of the unseen exercise comments in `exerciseLogs`. */
+  unseenExerciseIds: string[];
   summary: {
     completed: number;
     lastLoggedOn: string | null;
@@ -191,6 +212,8 @@ export async function getCustomerActivity(
     pain: { overall: [], routines: [] },
     comments: [],
     unseenIds: [],
+    exerciseLogs: [],
+    unseenExerciseIds: [],
     summary: {
       completed: 0,
       lastLoggedOn: null,
@@ -199,7 +222,7 @@ export async function getCustomerActivity(
   };
   if (!isUuid(customerId)) return empty;
 
-  const [rows, commentRows, facts] = await Promise.all([
+  const [rows, commentRows, exerciseRows, facts] = await Promise.all([
     tx
       .select({
         id: sessionLogs.id,
@@ -251,6 +274,33 @@ export async function getCustomerActivity(
       )
       .orderBy(desc(sessionLogs.performedOn), desc(sessionLogs.updatedAt))
       .limit(COMMENTS_LIMIT),
+    tx
+      .select({
+        id: exerciseLogs.id,
+        performedOn: exerciseLogs.performedOn,
+        routineName: routines.name,
+        exerciseName: exercises.name,
+        pain: exerciseLogs.pain,
+        rpe: exerciseLogs.rpe,
+        weightKg: exerciseLogs.weightKg,
+        comment: exerciseLogs.comment,
+        seenAt: exerciseLogs.seenByPhysioAt,
+      })
+      .from(exerciseLogs)
+      .innerJoin(
+        routines,
+        and(eq(routines.physioId, exerciseLogs.physioId), eq(routines.id, exerciseLogs.routineId)),
+      )
+      .innerJoin(
+        exercises,
+        and(
+          eq(exercises.physioId, exerciseLogs.physioId),
+          eq(exercises.id, exerciseLogs.exerciseId),
+        ),
+      )
+      .where(and(eq(exerciseLogs.physioId, physioId), eq(exerciseLogs.customerId, customerId)))
+      .orderBy(desc(exerciseLogs.performedOn), desc(exerciseLogs.updatedAt), asc(exerciseLogs.id))
+      .limit(EXERCISE_LOGS_LIMIT),
     loadScheduleFacts(tx, physioId, customerId),
   ]);
 
@@ -278,6 +328,13 @@ export async function getCustomerActivity(
       seen: row.seenAt !== null,
     })),
     unseenIds: commentRows.filter((row) => row.seenAt === null).map((row) => row.id),
+    exerciseLogs: exerciseRows.map(({ seenAt, ...row }) => ({
+      ...row,
+      seen: row.comment === null || seenAt !== null,
+    })),
+    unseenExerciseIds: exerciseRows
+      .filter((row) => row.comment !== null && row.seenAt === null)
+      .map((row) => row.id),
     summary: {
       completed: rows.filter((row) => row.completed).length,
       // An undone session is not a log the patient made: it neither counts nor dates the last one.
@@ -301,68 +358,122 @@ export async function getDashboard(
   now: Date = new Date(),
 ): Promise<Dashboard> {
   const since = attentionWindows(today).previous[0];
-  const [customerRows, logRows, unseenRows, linkRows, facts] = await Promise.all([
-    tx
-      .select({ id: customers.id, firstName: customers.firstName, lastName: customers.lastName })
-      .from(customers)
-      .where(and(eq(customers.physioId, physioId), isNull(customers.archivedAt)))
-      .orderBy(asc(customers.firstName), asc(customers.id)),
-    tx
-      .select({
-        customerId: sessionLogs.customerId,
-        routineId: sessionLogs.routineId,
-        entryId: sessionLogs.weeklyPlanEntryId,
-        performedOn: sessionLogs.performedOn,
-        completed: sessionLogs.completed,
-        pain: sessionLogs.pain,
-        updatedAt: sessionLogs.updatedAt,
-      })
-      .from(sessionLogs)
-      .where(and(eq(sessionLogs.physioId, physioId), gte(sessionLogs.performedOn, since))),
-    // Newest unseen comment per customer, with how many they have: aggregated in SQL so a long
-    // backlog cannot truncate the counts.
-    tx
-      .selectDistinctOn([sessionLogs.customerId], {
-        customerId: sessionLogs.customerId,
-        comment: sessionLogs.comment,
-        performedOn: sessionLogs.performedOn,
-        routineName: routines.name,
-        count: sql<number>`(count(*) over (partition by ${sessionLogs.customerId}))::int`,
-      })
-      .from(sessionLogs)
-      .innerJoin(
-        routines,
-        and(eq(routines.physioId, sessionLogs.physioId), eq(routines.id, sessionLogs.routineId)),
-      )
-      .where(
-        and(
-          eq(sessionLogs.physioId, physioId),
-          isNotNull(sessionLogs.comment),
-          isNull(sessionLogs.seenByPhysioAt),
+  const [customerRows, logRows, unseenRows, exercisePainRows, unseenExerciseRows, linkRows, facts] =
+    await Promise.all([
+      tx
+        .select({ id: customers.id, firstName: customers.firstName, lastName: customers.lastName })
+        .from(customers)
+        .where(and(eq(customers.physioId, physioId), isNull(customers.archivedAt)))
+        .orderBy(asc(customers.firstName), asc(customers.id)),
+      tx
+        .select({
+          customerId: sessionLogs.customerId,
+          routineId: sessionLogs.routineId,
+          entryId: sessionLogs.weeklyPlanEntryId,
+          performedOn: sessionLogs.performedOn,
+          completed: sessionLogs.completed,
+          pain: sessionLogs.pain,
+          updatedAt: sessionLogs.updatedAt,
+        })
+        .from(sessionLogs)
+        .where(and(eq(sessionLogs.physioId, physioId), gte(sessionLogs.performedOn, since))),
+      // Newest unseen comment per customer, with how many they have: aggregated in SQL so a long
+      // backlog cannot truncate the counts.
+      tx
+        .selectDistinctOn([sessionLogs.customerId], {
+          customerId: sessionLogs.customerId,
+          comment: sessionLogs.comment,
+          performedOn: sessionLogs.performedOn,
+          routineName: routines.name,
+          count: sql<number>`(count(*) over (partition by ${sessionLogs.customerId}))::int`,
+        })
+        .from(sessionLogs)
+        .innerJoin(
+          routines,
+          and(eq(routines.physioId, sessionLogs.physioId), eq(routines.id, sessionLogs.routineId)),
+        )
+        .where(
+          and(
+            eq(sessionLogs.physioId, physioId),
+            isNotNull(sessionLogs.comment),
+            isNull(sessionLogs.seenByPhysioAt),
+          ),
+        )
+        .orderBy(
+          asc(sessionLogs.customerId),
+          desc(sessionLogs.performedOn),
+          desc(sessionLogs.updatedAt),
         ),
-      )
-      .orderBy(
-        asc(sessionLogs.customerId),
-        desc(sessionLogs.performedOn),
-        desc(sessionLogs.updatedAt),
-      ),
-    tx
-      .selectDistinct({ customerId: shareLinks.customerId })
-      .from(shareLinks)
-      .where(
-        and(
-          eq(shareLinks.physioId, physioId),
-          isNull(shareLinks.revokedAt),
-          or(isNull(shareLinks.expiresAt), gt(shareLinks.expiresAt, now)),
+      tx
+        .select({
+          customerId: exerciseLogs.customerId,
+          performedOn: exerciseLogs.performedOn,
+          pain: exerciseLogs.pain,
+        })
+        .from(exerciseLogs)
+        .where(
+          and(
+            eq(exerciseLogs.physioId, physioId),
+            isNotNull(exerciseLogs.pain),
+            gte(exerciseLogs.performedOn, since),
+          ),
         ),
-      ),
-    loadScheduleFacts(tx, physioId),
-  ]);
+      tx
+        .selectDistinctOn([exerciseLogs.customerId], {
+          customerId: exerciseLogs.customerId,
+          comment: exerciseLogs.comment,
+          performedOn: exerciseLogs.performedOn,
+          routineName: routines.name,
+          exerciseName: exercises.name,
+          count: sql<number>`(count(*) over (partition by ${exerciseLogs.customerId}))::int`,
+        })
+        .from(exerciseLogs)
+        .innerJoin(
+          routines,
+          and(
+            eq(routines.physioId, exerciseLogs.physioId),
+            eq(routines.id, exerciseLogs.routineId),
+          ),
+        )
+        .innerJoin(
+          exercises,
+          and(
+            eq(exercises.physioId, exerciseLogs.physioId),
+            eq(exercises.id, exerciseLogs.exerciseId),
+          ),
+        )
+        .where(
+          and(
+            eq(exerciseLogs.physioId, physioId),
+            isNotNull(exerciseLogs.comment),
+            isNull(exerciseLogs.seenByPhysioAt),
+          ),
+        )
+        .orderBy(
+          asc(exerciseLogs.customerId),
+          desc(exerciseLogs.performedOn),
+          desc(exerciseLogs.updatedAt),
+        ),
+      tx
+        .selectDistinct({ customerId: shareLinks.customerId })
+        .from(shareLinks)
+        .where(
+          and(
+            eq(shareLinks.physioId, physioId),
+            isNull(shareLinks.revokedAt),
+            or(isNull(shareLinks.expiresAt), gt(shareLinks.expiresAt, now)),
+          ),
+        ),
+      loadScheduleFacts(tx, physioId),
+    ]);
 
   const linked = new Set(linkRows.map((row) => row.customerId));
   const logsOf = new Map<string, typeof logRows>();
   for (const row of logRows)
     logsOf.set(row.customerId, [...(logsOf.get(row.customerId) ?? []), row]);
+  const exercisePainOf = new Map<string, { performedOn: string; pain: number | null }[]>();
+  for (const row of exercisePainRows)
+    exercisePainOf.set(row.customerId, [...(exercisePainOf.get(row.customerId) ?? []), row]);
   return buildDashboard({
     today,
     customers: customerRows.map((customer) => ({
@@ -371,16 +482,29 @@ export async function getDashboard(
       plans: facts.get(customer.id)?.plans ?? [],
       singles: facts.get(customer.id)?.singles ?? [],
       logs: logsOf.get(customer.id) ?? [],
+      exercisePain: exercisePainOf.get(customer.id) ?? [],
       hasLink: linked.has(customer.id),
     })),
-    unseen: unseenRows.map((row): UnseenSummary => ({
-      customerId: row.customerId,
-      count: row.count,
-      latest: {
-        comment: row.comment!,
-        performedOn: row.performedOn,
-        routineName: row.routineName,
-      },
-    })),
+    unseen: [
+      ...unseenRows.map((row): UnseenSummary => ({
+        customerId: row.customerId,
+        count: row.count,
+        latest: {
+          comment: row.comment!,
+          performedOn: row.performedOn,
+          routineName: row.routineName,
+        },
+      })),
+      ...unseenExerciseRows.map((row): UnseenSummary => ({
+        customerId: row.customerId,
+        count: row.count,
+        latest: {
+          comment: row.comment!,
+          performedOn: row.performedOn,
+          routineName: row.routineName,
+          exerciseName: row.exerciseName,
+        },
+      })),
+    ],
   });
 }

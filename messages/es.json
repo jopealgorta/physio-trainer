@@ -1554,6 +1554,16 @@
       "newCount": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
       "painValue": "Dolor {value, number}/10",
       "rpeValue": "RPE {value, number}/10"
+    },
+    "exercises": {
+      "title": "Registro de ejercicios",
+      "description": "Lo que anotó el paciente en ejercicios sueltos.",
+      "empty": "Todavía no hay registros de ejercicios.",
+      "group": "{date} · {routine}",
+      "pain": "Dolor {value, number}/10",
+      "rpe": "RPE {value, number}",
+      "weight": "{value} kg",
+      "new": "Nuevo"
     }
   },
   "Dashboard": {
@@ -1577,7 +1587,8 @@
       "description": "Lo que escribieron tus pacientes y todavía no abriste.",
       "empty": "No hay comentarios nuevos.",
       "count": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
-      "context": "{routine} · {date}"
+      "context": "{routine} · {date}",
+      "contextExercise": "{routine} · {exercise} · {date}"
     },
     "recent": {
       "title": "Activos recientemente",

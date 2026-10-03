@@ -12,7 +12,12 @@ describe("MarkCommentsSeen", () => {
   it("marks the comments the tab showed as seen", () => {
     render(<MarkCommentsSeen customerId="c1" ids={["l1", "l2"]} />);
     expect(m.action).toHaveBeenCalledTimes(1);
-    expect(m.action).toHaveBeenCalledWith("c1", ["l1", "l2"]);
+    expect(m.action).toHaveBeenCalledWith("c1", ["l1", "l2"], []);
+  });
+
+  it("also sends the exercise comment ids", () => {
+    render(<MarkCommentsSeen customerId="c1" ids={[]} exerciseIds={["x1"]} />);
+    expect(m.action).toHaveBeenCalledWith("c1", [], ["x1"]);
   });
 
   it("does nothing when there is nothing new", () => {

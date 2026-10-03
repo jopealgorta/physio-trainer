@@ -8,6 +8,7 @@ import { getCustomerActivity } from "@/server/activity/queries";
 import { ActivityHeatmap } from "./activity-heatmap";
 import { ActivitySummary } from "./activity-summary";
 import { CommentsFeed } from "./comments-feed";
+import { ExerciseLogFeed } from "./exercise-log-feed";
 import { MarkCommentsSeen } from "./mark-comments-seen";
 import { PainChart } from "./pain-chart";
 
@@ -28,7 +29,10 @@ export async function CustomerActivity({
   const activity = await withPhysio((tx, physioId) =>
     getCustomerActivity(tx, physioId, customerId, todayIn(timeZone)),
   );
-  const nothingYet = activity.summary.lastLoggedOn === null && activity.comments.length === 0;
+  const nothingYet =
+    activity.summary.lastLoggedOn === null &&
+    activity.comments.length === 0 &&
+    activity.exerciseLogs.length === 0;
 
   return (
     <section className="grid gap-6" aria-labelledby="customer-activity-title">
@@ -54,7 +58,12 @@ export async function CustomerActivity({
           <ActivityHeatmap weeks={activity.weeks} cells={activity.cells} />
           <PainChart overall={activity.pain.overall} routines={activity.pain.routines} />
           <CommentsFeed comments={activity.comments} />
-          <MarkCommentsSeen customerId={customerId} ids={activity.unseenIds} />
+          <ExerciseLogFeed logs={activity.exerciseLogs} />
+          <MarkCommentsSeen
+            customerId={customerId}
+            ids={activity.unseenIds}
+            exerciseIds={activity.unseenExerciseIds}
+          />
         </>
       )}
     </section>
