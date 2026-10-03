@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -314,6 +314,29 @@ describe("WorkoutPlayer", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
     expect(await screen.findByRole("dialog", { name: "How did Bridge go?" })).toBeInTheDocument();
+  });
+
+  describe("swipes", () => {
+    /** A horizontal touch drag of 200 px to the left that starts and ends on `element`. */
+    const swipeLeft = (element: HTMLElement) => {
+      fireEvent.pointerDown(element, { pointerType: "touch", clientX: 250, clientY: 100 });
+      fireEvent.pointerUp(element, { pointerType: "touch", clientX: 50, clientY: 100 });
+    };
+
+    it("moves to the next set when the bar is swiped", () => {
+      setup(routineOf(item("a", "Squat")));
+      swipeLeft(bar());
+      expect(screen.getByText("Set 2 of 2")).toBeInTheDocument();
+    });
+
+    it("ignores drags inside the log sheet opened from the bar", async () => {
+      const user = setup(routineOf(item("a", "Squat")), "en", undefined, logging());
+      await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
+      const dialog = await screen.findByRole("dialog", { name: "How did Squat go?" });
+      // The sheet is portalled out of the bar, but React events still bubble to it.
+      swipeLeft(within(dialog).getByRole("group", { name: "Pain (optional)" }));
+      expect(screen.getByText("Set 1 of 2")).toBeInTheDocument();
+    });
   });
 
   it("has no log button when nothing can be logged (the physio previewing)", () => {

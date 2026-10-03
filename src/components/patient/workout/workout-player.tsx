@@ -289,15 +289,20 @@ function Player({
 
   // Horizontal swipes move between steps; vertical gestures stay with scrolling.
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  // React events bubble out of portals: a drag inside the log sheet opened from the bar reaches
+  // the bar's handlers too. Only gestures on the bar's own DOM count.
+  const onBar = (event: PointerEvent) => event.currentTarget.contains(event.target as Node);
   const onPointerDown = (event: PointerEvent) => {
     unlock();
     swipeStart.current =
-      event.pointerType === "mouse" ? null : { x: event.clientX, y: event.clientY };
+      event.pointerType === "mouse" || !onBar(event)
+        ? null
+        : { x: event.clientX, y: event.clientY };
   };
   const onPointerUp = (event: PointerEvent) => {
     const start = swipeStart.current;
     swipeStart.current = null;
-    if (!start) return;
+    if (!start || !onBar(event)) return;
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
     if (Math.abs(dx) < SWIPE_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return;
