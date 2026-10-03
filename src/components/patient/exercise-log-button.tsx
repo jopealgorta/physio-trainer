@@ -24,7 +24,6 @@ import {
   useSavedLogs,
   type LoggableDay,
 } from "./log-sheet";
-import { PainScale } from "./pain-scale";
 import { RpeScale } from "./rpe-scale";
 
 type LogError = Exclude<ExerciseLogActionResult, { ok: true }>["error"];
@@ -140,11 +139,10 @@ function ExerciseLogForm({
   const t = useTranslations("Patient");
   const format = useFormatter();
   const id = useId();
-  const [pain, setPain] = useState<number | null>(initial?.pain ?? null);
   const [rpe, setRpe] = useState<number | null>(initial?.rpe ?? null);
   const [weight, setWeight] = useState(
-    initial?.weightKg != null
-      ? format.number(initial.weightKg, { useGrouping: false, maximumFractionDigits: 1 })
+    initial?.setWeightsKg?.[0] != null
+      ? format.number(initial.setWeightsKg[0], { useGrouping: false, maximumFractionDigits: 1 })
       : "",
   );
   const [weightInvalid, setWeightInvalid] = useState(false);
@@ -152,12 +150,7 @@ function ExerciseLogForm({
   const { error, pending, submit } = useLogSubmit<PatientExerciseLog | null, LogError>();
 
   // Submitted from the controlled fields, not a form `action` (React resets a form after it).
-  const send = (values: {
-    pain: number | null;
-    rpe: number | null;
-    weightKg: number | null;
-    comment: string | null;
-  }) =>
+  const send = (values: { rpe: number | null; weightKg: number | null; comment: string | null }) =>
     submit(
       () =>
         logExerciseAction(logging.code, {
@@ -165,7 +158,9 @@ function ExerciseLogForm({
           entryId: logging.entryId,
           exerciseId,
           performedOn: day.date,
-          ...values,
+          rpe: values.rpe,
+          setWeightsKg: values.weightKg === null ? null : [values.weightKg],
+          comment: values.comment,
         }),
       (log) => onSaved(day.date, log),
     );
@@ -178,7 +173,7 @@ function ExerciseLogForm({
       return;
     }
     setWeightInvalid(false);
-    send({ pain, rpe, weightKg, comment: comment.trim() === "" ? null : comment });
+    send({ rpe, weightKg, comment: comment.trim() === "" ? null : comment });
   };
 
   return (
@@ -188,8 +183,6 @@ function ExerciseLogForm({
       className="grid gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
       <DayToggle days={logging.days} value={day.date} onChange={onDayChange} />
-
-      <PainScale name="pain" value={pain} onChange={setPain} />
 
       <RpeScale name="rpe" value={rpe} onChange={setRpe} />
 
@@ -259,7 +252,7 @@ function ExerciseLogForm({
         {initial ? (
           <Button
             type="button"
-            onClick={() => send({ pain: null, rpe: null, weightKg: null, comment: null })}
+            onClick={() => send({ rpe: null, weightKg: null, comment: null })}
             variant="ghost"
             size="lg"
             className="h-12 text-base"

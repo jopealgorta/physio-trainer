@@ -110,9 +110,12 @@ function ExerciseRow({
   const log = logging ? exerciseLogFor(logging.logs, item.exerciseId, logging.shownDate) : null;
   const chips = log
     ? [
-        log.pain !== null ? t("exerciseLog.chips.pain", { value: log.pain }) : null,
         log.rpe !== null ? t("exerciseLog.chips.rpe", { value: log.rpe }) : null,
-        log.weightKg !== null ? t("exerciseLog.chips.weight", { value: log.weightKg }) : null,
+        log.setWeightsKg !== null
+          ? log.setWeightsKg
+              .map((kg) => (kg === null ? "-" : t("exerciseLog.chips.weight", { value: kg })))
+              .join(" / ")
+          : null,
       ].filter((chip) => chip !== null)
     : [];
   const done = doneSets ? (doneSets[item.id] ?? 0) : null;

@@ -17,9 +17,8 @@ export type PatientExerciseLog = {
   entryId: string | null;
   exerciseId: string;
   performedOn: string;
-  pain: number | null;
   rpe: number | null;
-  weightKg: number | null;
+  setWeightsKg: (number | null)[] | null;
   comment: string | null;
 };
 
@@ -31,14 +30,13 @@ const patientColumns = {
   entryId: exerciseLogs.weeklyPlanEntryId,
   exerciseId: exerciseLogs.exerciseId,
   performedOn: exerciseLogs.performedOn,
-  pain: exerciseLogs.pain,
   rpe: exerciseLogs.rpe,
-  weightKg: exerciseLogs.weightKg,
+  setWeightsKg: exerciseLogs.setWeightsKg,
   comment: exerciseLogs.comment,
 };
 
 /**
- * Saves, edits or clears (every field null) the log of one exercise of a routine on one day.
+ * Saves, edits or clears (effort, set weights and comment all null) the log of one exercise of a routine on one day.
  * The link is already resolved and unlocked; customer, physio and link ids come from it. The
  * routine, plan entry and exercise come from the request: the routine and entry must be
  * reachable from the link and active that day, the exercise must belong to that routine, and the
@@ -72,12 +70,7 @@ export async function logExercise(
     .limit(1);
   if (!item) return { ok: false, error: "unreachable" };
 
-  if (
-    input.pain === null &&
-    input.rpe === null &&
-    input.weightKg === null &&
-    input.comment === null
-  ) {
+  if (input.rpe === null && input.setWeightsKg === null && input.comment === null) {
     await db
       .delete(exerciseLogs)
       .where(
@@ -105,9 +98,11 @@ export async function logExercise(
       weeklyPlanEntryId: input.entryId,
       exerciseId: input.exerciseId,
       performedOn: input.performedOn,
-      pain: input.pain,
       rpe: input.rpe,
-      weightKg: input.weightKg,
+      setWeightsKg: input.setWeightsKg,
+      // the patient no longer logs these: editing a legacy log replaces it with what they see
+      pain: null,
+      weightKg: null,
       comment: input.comment,
     })
     .onConflictDoUpdate({
@@ -119,9 +114,10 @@ export async function logExercise(
       ],
       set: {
         shareLinkId: link.id,
-        pain: input.pain,
         rpe: input.rpe,
-        weightKg: input.weightKg,
+        setWeightsKg: input.setWeightsKg,
+        pain: null,
+        weightKg: null,
         comment: input.comment,
         seenByPhysioAt: resetSeenOnNewComment(exerciseLogs),
       },

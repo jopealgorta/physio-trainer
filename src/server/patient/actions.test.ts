@@ -93,17 +93,18 @@ describe("logExerciseAction", () => {
     entryId: null,
     exerciseId: ID,
     performedOn: "2026-10-07",
-    pain: null,
     rpe: 5,
-    weightKg: 12.46,
+    setWeightsKg: [12.46, null],
     comment: null,
   };
 
   it("rejects malformed input", async () => {
-    expect(await logExerciseAction("7k2m9qpx", { ...exerciseInput, weightKg: 1000 })).toEqual({
-      ok: false,
-      error: "invalid",
-    });
+    expect(await logExerciseAction("7k2m9qpx", { ...exerciseInput, setWeightsKg: [1000] })).toEqual(
+      {
+        ok: false,
+        error: "invalid",
+      },
+    );
   });
 
   it("never writes for the signed-in physio previewing the link", async () => {
@@ -124,6 +125,6 @@ describe("logExerciseAction", () => {
     m.getLinkAccess.mockResolvedValue({ owner: false, unlocked: true });
     m.logExercise.mockResolvedValue({ ok: true, data: null });
     expect(await logExerciseAction("7k2m9qpx", exerciseInput)).toEqual({ ok: true, data: null });
-    expect(m.logExercise.mock.calls[0]![2]).toMatchObject({ weightKg: 12.5 });
+    expect(m.logExercise.mock.calls[0]![2]).toMatchObject({ setWeightsKg: [12.5] });
   });
 });

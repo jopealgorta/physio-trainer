@@ -24,9 +24,8 @@ const saved = (patch: Partial<PatientExerciseLog> = {}): PatientExerciseLog => (
   entryId: ENTRY,
   exerciseId: EXERCISE,
   performedOn: TODAY,
-  pain: 2,
   rpe: null,
-  weightKg: 20,
+  setWeightsKg: [20],
   comment: null,
   ...patch,
 });
@@ -67,14 +66,13 @@ beforeEach(() => {
 });
 
 describe("ExerciseLogButton", () => {
-  it("saves pain, RPE and a decimal-comma weight, closes and refreshes", async () => {
+  it("saves RPE and a decimal-comma weight, closes and refreshes", async () => {
     const user = userEvent.setup();
     setup();
     await user.click(screen.getByRole("button", { name: "Log Squat" }));
     const dialog = screen.getByRole("dialog", { name: "How did Squat go?" });
     expect(dialog).toHaveAttribute("data-vaul-drawer");
     expect(dialog).toHaveAttribute("data-brand", "patient");
-    await user.click(rating("Pain (optional)", "4"));
     await user.click(rating("Effort (RPE)", "6"));
     await user.type(within(dialog).getByLabelText("Weight (optional)"), "12,5");
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
@@ -85,9 +83,8 @@ describe("ExerciseLogButton", () => {
       entryId: ENTRY,
       exerciseId: EXERCISE,
       performedOn: TODAY,
-      pain: 4,
       rpe: 6,
-      weightKg: 12.5,
+      setWeightsKg: [12.5],
       comment: null,
     });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -127,9 +124,8 @@ describe("ExerciseLogButton", () => {
       entryId: ENTRY,
       exerciseId: EXERCISE,
       performedOn: TODAY,
-      pain: null,
       rpe: null,
-      weightKg: null,
+      setWeightsKg: null,
       comment: null,
     });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -145,7 +141,7 @@ describe("ExerciseLogButton", () => {
           { date: YESTERDAY, relative: "yesterday" },
           { date: TODAY, relative: "today" },
         ],
-        logs: [saved({ entryId: null, performedOn: YESTERDAY, weightKg: 7.5 })],
+        logs: [saved({ entryId: null, performedOn: YESTERDAY, setWeightsKg: [7.5] })],
       }),
     });
     await user.click(screen.getByRole("button", { name: "Log Squat" }));
@@ -157,7 +153,7 @@ describe("ExerciseLogButton", () => {
     await waitFor(() =>
       expect(m.log).toHaveBeenCalledWith(
         "7k2m9qpx",
-        expect.objectContaining({ entryId: null, performedOn: YESTERDAY, weightKg: 7.5 }),
+        expect.objectContaining({ entryId: null, performedOn: YESTERDAY, setWeightsKg: [7.5] }),
       ),
     );
   });
@@ -168,7 +164,7 @@ describe("ExerciseLogButton", () => {
     setup();
     await user.click(screen.getByRole("button", { name: "Log Squat" }));
     const dialog = screen.getByRole("dialog");
-    await user.click(rating("Pain (optional)", "4"));
+    await user.click(rating("Effort (RPE)", "4"));
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
     expect(
       await within(dialog).findByText("This exercise was not part of your plan on that day."),

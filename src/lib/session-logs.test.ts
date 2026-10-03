@@ -8,6 +8,7 @@ import {
   isLoggableDate,
   loggableDates,
   normalizeComment,
+  normalizeSetWeights,
   parseWeight,
 } from "./session-logs";
 
@@ -108,5 +109,16 @@ describe("parseWeight", () => {
     expect(parseWeight("1000")).toBeUndefined();
     expect(parseWeight("-1")).toBeUndefined();
     expect(parseWeight("1,2,3")).toBeUndefined();
+  });
+});
+
+describe("normalizeSetWeights", () => {
+  it("trims trailing empty sets and rounds", () => {
+    expect(normalizeSetWeights([20.04, null, 25, null, null])).toEqual([20, null, 25]);
+  });
+  it("is null when nothing is logged", () => {
+    expect(normalizeSetWeights([null, null])).toBeNull();
+    expect(normalizeSetWeights([])).toBeNull();
+    expect(normalizeSetWeights(null)).toBeNull();
   });
 });

@@ -124,23 +124,20 @@ describe("ExerciseList", () => {
       entryId: null,
       exerciseId: SQUAT,
       performedOn: TODAY,
-      pain: 3,
       rpe: 6,
-      weightKg: 12.5,
+      setWeightsKg: [12.5, null, 15],
       comment: null,
     };
-    const other = { ...log, performedOn: "2026-10-06", pain: 9 };
+    const other = { ...log, performedOn: "2026-10-06", rpe: 9 };
     const { unmount } = setup({ logging: logging([other, log]) });
-    expect(screen.getByText("Pain 3")).toBeInTheDocument();
     expect(screen.getByText("RPE 6")).toBeInTheDocument();
-    expect(screen.getByText("12.5 kg")).toBeInTheDocument();
-    expect(screen.queryByText("Pain 9")).not.toBeInTheDocument();
+    expect(screen.getByText("12.5 kg / - / 15 kg")).toBeInTheDocument();
+    expect(screen.queryByText("RPE 9")).not.toBeInTheDocument();
     // Owner preview (no loggable days): chips only, no Log button.
     expect(screen.queryByRole("button", { name: "Log Squat" })).not.toBeInTheDocument();
     unmount();
     setup({ logging: logging([log]) }, "es");
-    expect(screen.getByText("Dolor 3")).toBeInTheDocument();
-    expect(screen.getByText("12,5 kg")).toBeInTheDocument();
+    expect(screen.getByText("12,5 kg / - / 15 kg")).toBeInTheDocument();
   });
 
   it("offers a Log button per exercise when the day can be logged", () => {

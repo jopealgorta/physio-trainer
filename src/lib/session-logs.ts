@@ -78,3 +78,13 @@ export function loggedWeekdays(
   const doneOn = new Set(logs.filter((entry) => entry.completed).map((entry) => entry.performedOn));
   return WEEKDAYS.filter((weekday) => doneOn.has(dateForWeekday(today, weekday)));
 }
+
+/** Set weights as stored: rounded to 0.1, no trailing unlogged sets, null when none is logged. */
+export function normalizeSetWeights(
+  values: readonly (number | null)[] | null,
+): (number | null)[] | null {
+  if (!values) return null;
+  const rounded = values.map((v) => (v === null ? null : Math.round(v * 10) / 10));
+  while (rounded.length > 0 && rounded.at(-1) === null) rounded.pop();
+  return rounded.length === 0 ? null : rounded;
+}

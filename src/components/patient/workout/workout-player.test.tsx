@@ -348,7 +348,7 @@ describe("WorkoutPlayer", () => {
       await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
       const dialog = await screen.findByRole("dialog", { name: "How did Squat go?" });
       // The sheet is portalled out of the bar, but React events still bubble to it.
-      swipeLeft(within(dialog).getByRole("group", { name: "Pain (optional)" }));
+      swipeLeft(within(dialog).getByRole("group", { name: "Effort (RPE)" }));
       expect(screen.getByText("Set 1 of 2")).toBeInTheDocument();
     });
   });

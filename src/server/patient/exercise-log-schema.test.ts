@@ -8,9 +8,8 @@ const valid = {
   entryId: null,
   exerciseId: ID,
   performedOn: "2026-10-07",
-  pain: 4,
   rpe: 6,
-  weightKg: 12.5,
+  setWeightsKg: [12.5, null, 15],
   comment: "ok",
 };
 
@@ -19,15 +18,27 @@ describe("logExerciseSchema", () => {
     expect(logExerciseSchema.parse(valid)).toEqual(valid);
   });
 
-  it("rejects a weight over the maximum and rounds to 0.1", () => {
-    expect(logExerciseSchema.safeParse({ ...valid, weightKg: 1000 }).success).toBe(false);
-    expect(logExerciseSchema.safeParse({ ...valid, weightKg: -1 }).success).toBe(false);
-    expect(logExerciseSchema.parse({ ...valid, weightKg: 12.46 }).weightKg).toBe(12.5);
+  it("accepts set weights and normalises them", () => {
+    const parsed = logExerciseSchema.parse({ ...valid, setWeightsKg: [20, null, 22.55, null] });
+    expect(parsed.setWeightsKg).toEqual([20, null, 22.6]);
+  });
+
+  it("rejects weights out of range and too many sets", () => {
+    expect(logExerciseSchema.safeParse({ ...valid, setWeightsKg: [1000] }).success).toBe(false);
+    expect(logExerciseSchema.safeParse({ ...valid, setWeightsKg: [-1] }).success).toBe(false);
+    expect(logExerciseSchema.safeParse({ ...valid, setWeightsKg: Array(21).fill(1) }).success).toBe(
+      false,
+    );
+  });
+
+  it("no longer takes pain or a single weight", () => {
+    const parsed = logExerciseSchema.parse({ ...valid, pain: 3, weightKg: 5 });
+    expect(parsed).not.toHaveProperty("pain");
+    expect(parsed).not.toHaveProperty("weightKg");
   });
 
   it("rejects out-of-range ratings", () => {
     expect(logExerciseSchema.safeParse({ ...valid, rpe: -1 }).success).toBe(false);
-    expect(logExerciseSchema.safeParse({ ...valid, pain: 11 }).success).toBe(false);
   });
 
   it("trims comments and turns blank into null", () => {

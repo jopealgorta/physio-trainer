@@ -15,6 +15,7 @@ const log = (patch: Partial<ActivityExerciseLog> = {}): ActivityExerciseLog => (
   pain: 3,
   rpe: 6,
   weightKg: 20,
+  setWeightsKg: null,
   comment: "Pinchy",
   seen: false,
   ...patch,

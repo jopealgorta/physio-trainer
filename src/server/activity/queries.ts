@@ -167,6 +167,7 @@ export type ActivityExerciseLog = {
   pain: number | null;
   rpe: number | null;
   weightKg: number | null;
+  setWeightsKg: (number | null)[] | null;
   comment: string | null;
   /** True when there is no comment or the physio has already seen it. */
   seen: boolean;
@@ -285,6 +286,7 @@ export async function getCustomerActivity(
         pain: exerciseLogs.pain,
         rpe: exerciseLogs.rpe,
         weightKg: exerciseLogs.weightKg,
+        setWeightsKg: exerciseLogs.setWeightsKg,
         comment: exerciseLogs.comment,
         seenAt: exerciseLogs.seenByPhysioAt,
       })
