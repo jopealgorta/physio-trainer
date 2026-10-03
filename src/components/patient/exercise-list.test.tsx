@@ -199,6 +199,43 @@ describe("ExerciseList", () => {
       expect(toggle).toHaveClass("text-primary");
     });
 
+    it("reopens with what was typed while its save is still on the way", async () => {
+      let resolve!: (result: { ok: true; data: PatientExerciseLog }) => void;
+      m.log.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      await user.click(toggle);
+      await user.type(screen.getByLabelText("Set 3 weight in kg"), "25");
+      await user.click(toggle);
+      expect(m.log).toHaveBeenCalledTimes(1);
+      await user.click(toggle);
+      expect(screen.getByLabelText("Set 3 weight in kg")).toHaveValue("25");
+
+      const stored = m.log.mock.calls[0]![1] as PatientExerciseLog;
+      await act(async () => resolve({ ok: true, data: stored }));
+      expect(screen.getByLabelText("Set 3 weight in kg")).toHaveValue("25");
+      await user.type(screen.getByLabelText("Set 1 weight in kg"), "20");
+      await user.tab();
+      expect(m.log).toHaveBeenLastCalledWith(
+        "7k2m9qpx",
+        expect.objectContaining({ setWeightsKg: [20, null, 25] }),
+      );
+    });
+
+    it("reopens with an invalid weight still shown and unsaved", async () => {
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      await user.click(toggle);
+      await user.type(screen.getByLabelText("Set 2 weight in kg"), "abc");
+      await user.click(toggle);
+      await user.click(toggle);
+      expect(screen.getByLabelText("Set 2 weight in kg")).toHaveValue("abc");
+      expect(screen.getByLabelText("Set 2 weight in kg")).toHaveAttribute("aria-invalid", "true");
+      expect(m.log).not.toHaveBeenCalled();
+    });
+
     describe("page data", () => {
       beforeEach(() => {
         // Real time moves the fake clock too: Testing Library's async wrapper waits on a real tick.

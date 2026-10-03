@@ -155,3 +155,6 @@ Answered 2026-10-03 before design:
   own open state and the last save wins.
 - **The workout bar keeps its "Log exercise" button**; it toggles the inline panel and scrolls it
   into view (no dialog).
+- **Drafts outlive the panel.** The list keeps each exercise and day's fields as last typed
+  (invalid weights included) for as long as it is mounted, and a reopened panel shows them over
+  the saved log, so a save still on the way or held back by an invalid weight is not lost.

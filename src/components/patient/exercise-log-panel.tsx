@@ -43,6 +43,9 @@ export function numericLoad(load: string | null): number | null {
   return match ? (parseWeight(match[1]!) ?? null) : null;
 }
 
+/** The fields as last typed, invalid weights included: what a reopened panel shows. */
+export type LogDraft = { lines: number; weights: string[]; rpe: number | null; comment: string };
+
 type Props = {
   /** DOM id, for the row toggle's aria-controls. */
   id: string;
@@ -52,13 +55,25 @@ type Props = {
   logFor: (date: string) => PatientExerciseLog | null;
   /** Called with what a save stored (null: the log was cleared). */
   remember: (date: string, log: PatientExerciseLog | null) => void;
+  /** The day's draft, when the fields were edited since the list mounted. */
+  draftFor: (date: string) => LogDraft | undefined;
+  /** Called on every edit with the fields as they now are. */
+  keepDraft: (date: string, draft: LogDraft) => void;
 };
 
 /**
  * The inline log of one exercise (spec 20), inside its row's card: the day, a weight per set,
  * the RPE and a comment, saved as the patient types. Nothing when no day can be logged.
  */
-export function ExerciseLogPanel({ id, item, logging, logFor, remember }: Props) {
+export function ExerciseLogPanel({
+  id,
+  item,
+  logging,
+  logFor,
+  remember,
+  draftFor,
+  keepDraft,
+}: Props) {
   const t = useTranslations("Patient");
   const { day, select } = useLogDay(logging.days, logging.shownDate);
   if (!day) return null;
@@ -69,36 +84,43 @@ export function ExerciseLogPanel({ id, item, logging, logFor, remember }: Props)
       className="grid gap-4 border-t px-1 pt-3 pb-1"
     >
       <DayToggle days={logging.days} value={day.date} onChange={select} name={`${id}-day`} />
-      {/* Fresh fields per day; unmounting the old ones sends their pending save. */}
+      {/* Fresh fields per day; unmounting the old ones sends their pending save. A draft wins
+          over the saved log: that save may still be on the way, or blocked by an invalid weight. */}
       <LogFields
         key={day.date}
         id={id}
         item={item}
         logging={logging}
         date={day.date}
-        initial={logFor(day.date)}
+        draft={draftFor(day.date)}
+        log={logFor(day.date)}
         remember={remember}
+        keepDraft={keepDraft}
       />
     </section>
   );
 }
 
-type Fields = { weights: string[]; rpe: number | null; comment: string };
+type Fields = Omit<LogDraft, "lines">;
 
 function LogFields({
   id,
   item,
   logging,
   date,
-  initial,
+  draft,
+  log,
   remember,
+  keepDraft,
 }: {
   id: string;
   item: PatientItem;
   logging: ExerciseLogging;
   date: string;
-  initial: PatientExerciseLog | null;
+  draft: LogDraft | undefined;
+  log: PatientExerciseLog | null;
   remember: Props["remember"];
+  keepDraft: Props["keepDraft"];
 }) {
   const t = useTranslations("Patient");
   const tWorkout = useTranslations("Workout");
@@ -107,20 +129,30 @@ function LogFields({
     format.number(kg, { useGrouping: false, maximumFractionDigits: 1 });
 
   const strength = item.kind !== "aerobic";
-  const [lines, setLines] = useState(() => {
-    const logged = initial?.setWeightsKg?.length ?? 0;
+  const [start] = useState<LogDraft>(
+    () =>
+      draft ?? {
+        lines: log?.setWeightsKg?.length ?? 0,
+        weights: (log?.setWeightsKg ?? []).map((kg) => (kg === null ? "" : formatKg(kg))),
+        rpe: log?.rpe ?? null,
+        comment: log?.comment ?? "",
+      },
+  );
+  const [lines, setLines] = useState(() =>
     // Aerobic exercises log no sets; one carried over from an old single weight still shows.
-    return strength ? Math.max(item.sets.length, logged, 1) : logged;
-  });
+    strength ? Math.max(item.sets.length, start.lines, 1) : start.lines,
+  );
   const [fields, setFields] = useState<Fields>(() => ({
-    weights: (initial?.setWeightsKg ?? []).map((kg) => (kg === null ? "" : formatKg(kg))),
-    rpe: initial?.rpe ?? null,
-    comment: initial?.comment ?? "",
+    weights: start.weights,
+    rpe: start.rpe,
+    comment: start.comment,
   }));
-  const [invalid, setInvalid] = useState<ReadonlySet<number>>(() => new Set());
+  const parsed = fields.weights.map(parseWeight);
+  const invalid = new Set(parsed.flatMap((kg, index) => (kg === undefined ? [index] : [])));
+  const errorId = `${id}-weights-error`;
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const { status, error, schedule, flush, retry } = useAutosave<
+  const { status, error, schedule, flush, cancel, retry } = useAutosave<
     LogExerciseInput,
     PatientExerciseLog | null,
     LogError
@@ -129,14 +161,19 @@ function LogFields({
     onSaved: (log) => remember(date, log),
   });
 
-  /** Applies a change and queues the save; false (nothing queued) while a weight is invalid. */
+  /**
+   * Applies a change, keeps it as the day's draft and queues the save; false while a weight is
+   * invalid: then nothing is queued and what was queued before is dropped.
+   */
   const update = (patch: Partial<Fields>): boolean => {
     const next = { ...fields, ...patch };
     setFields(next);
-    const parsed = next.weights.map(parseWeight);
-    const bad = new Set(parsed.flatMap((kg, index) => (kg === undefined ? [index] : [])));
-    setInvalid(bad);
-    if (bad.size > 0) return false;
+    keepDraft(date, { ...next, lines });
+    const weights = next.weights.map(parseWeight);
+    if (weights.some((kg) => kg === undefined)) {
+      cancel();
+      return false;
+    }
     const comment = next.comment.trim();
     schedule({
       routineId: logging.routineId,
@@ -144,10 +181,16 @@ function LogFields({
       exerciseId: item.exerciseId,
       performedOn: date,
       rpe: next.rpe,
-      setWeightsKg: normalizeSetWeights(parsed.map((kg) => kg ?? null)),
+      setWeightsKg: normalizeSetWeights(weights.map((kg) => kg ?? null)),
       comment: comment === "" ? null : comment,
     });
     return true;
+  };
+
+  const addLine = () => {
+    const next = Math.min(lines + 1, SET_WEIGHTS_MAX);
+    setLines(next);
+    keepDraft(date, { ...fields, lines: next });
   };
 
   const setWeight = (index: number, value: string) =>
@@ -159,7 +202,7 @@ function LogFields({
 
   /** The previous set's weight, else this set's prescribed load when it is a plain number. */
   const placeholder = (index: number) => {
-    const previous = index > 0 ? parseWeight(fields.weights[index - 1] ?? "") : null;
+    const previous = index > 0 ? parsed[index - 1] : null;
     const kg = previous ?? numericLoad(item.sets[index]?.load ?? null);
     return kg === null ? "" : formatKg(kg);
   };
@@ -178,44 +221,51 @@ function LogFields({
         <fieldset className="grid gap-2">
           <legend className="mb-2 text-sm font-medium">{t("exerciseLog.sets.legend")}</legend>
           <ol className="grid gap-2">
-            {Array.from({ length: lines }, (_, index) => (
-              <li key={index} className="flex items-center gap-3">
-                <span className="w-14 flex-none text-sm font-medium">
-                  {t("exerciseLog.sets.set", { number: index + 1 })}
-                </span>
-                <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
-                  {setTargets(item.sets[index], tWorkout).join(" · ")}
-                </span>
-                <div className="relative w-28 flex-none">
-                  <Input
-                    ref={(element) => {
-                      inputs.current[index] = element;
-                    }}
-                    type="text"
-                    inputMode="decimal"
-                    enterKeyHint={index < lines - 1 ? "next" : "done"}
-                    autoComplete="off"
-                    aria-label={t("exerciseLog.sets.input", { number: index + 1 })}
-                    aria-invalid={invalid.has(index) || undefined}
-                    placeholder={placeholder(index)}
-                    value={fields.weights[index] ?? ""}
-                    onChange={(event) => setWeight(index, event.target.value)}
-                    onBlur={flush}
-                    onKeyDown={onEnter(index)}
-                    className="h-11 pr-9 text-base md:text-base"
-                  />
-                  <span
-                    aria-hidden
-                    className="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm"
-                  >
-                    kg
-                  </span>
-                </div>
-              </li>
-            ))}
+            {Array.from({ length: lines }, (_, index) => {
+              const targets = setTargets(item.sets[index], tWorkout).join(" · ");
+              return (
+                <li key={index} className="flex items-center gap-3">
+                  {/* The target under the set number, free to wrap: the input keeps its width. */}
+                  <div className="grid min-w-0 flex-1">
+                    <span className="text-sm font-medium">
+                      {t("exerciseLog.sets.set", { number: index + 1 })}
+                    </span>
+                    {targets ? (
+                      <span className="text-muted-foreground text-xs wrap-anywhere">{targets}</span>
+                    ) : null}
+                  </div>
+                  <div className="relative w-28 flex-none">
+                    <Input
+                      ref={(element) => {
+                        inputs.current[index] = element;
+                      }}
+                      type="text"
+                      inputMode="decimal"
+                      enterKeyHint={index < lines - 1 ? "next" : "done"}
+                      autoComplete="off"
+                      aria-label={t("exerciseLog.sets.input", { number: index + 1 })}
+                      aria-invalid={invalid.has(index) || undefined}
+                      aria-describedby={invalid.has(index) ? errorId : undefined}
+                      placeholder={placeholder(index)}
+                      value={fields.weights[index] ?? ""}
+                      onChange={(event) => setWeight(index, event.target.value)}
+                      onBlur={flush}
+                      onKeyDown={onEnter(index)}
+                      className="h-11 pr-9 text-base md:text-base"
+                    />
+                    <span
+                      aria-hidden
+                      className="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm"
+                    >
+                      {t("exerciseLog.sets.unit")}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
           {invalid.size > 0 ? (
-            <p className="text-destructive text-xs">
+            <p id={errorId} className="text-destructive text-xs">
               {t("exerciseLog.sets.invalid", { max: WEIGHT_MAX })}
             </p>
           ) : null}
@@ -226,7 +276,7 @@ function LogFields({
               size="sm"
               className="justify-self-start"
               disabled={lines >= SET_WEIGHTS_MAX}
-              onClick={() => setLines((count) => Math.min(count + 1, SET_WEIGHTS_MAX))}
+              onClick={addLine}
             >
               <PlusIcon aria-hidden />
               {t("exerciseLog.sets.add")}
@@ -261,6 +311,10 @@ function LogFields({
       </div>
 
       <div className="flex min-h-6 flex-wrap items-center gap-x-2 text-xs">
+        {/* Shown, not announced: a screen reader would hear it at every pause in typing. */}
+        {status === "saving" ? (
+          <p className="text-muted-foreground">{t("exerciseLog.status.saving")}</p>
+        ) : null}
         <p
           aria-live="polite"
           className={cn(
@@ -268,8 +322,8 @@ function LogFields({
             status === "error" ? "text-destructive" : "text-muted-foreground",
           )}
         >
-          {status === "saving" ? t("exerciseLog.status.saving") : null}
-          {status === "saved" ? (
+          {/* Not while a weight is invalid: that change is not saved. */}
+          {status === "saved" && invalid.size === 0 ? (
             <>
               <CheckIcon aria-hidden className="text-primary size-3.5" />
               {t("exerciseLog.status.saved")}

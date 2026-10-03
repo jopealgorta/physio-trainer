@@ -1415,6 +1415,7 @@
         "legend": "Peso por serie",
         "set": "Serie {number, number}",
         "input": "Peso de la serie {number, number} en kg",
+        "unit": "kg",
         "add": "Agregar serie",
         "invalid": "Ingresá un peso entre 0 y {max, number} kg."
       },

@@ -9,7 +9,7 @@ import { SET_WEIGHTS_MAX } from "@/lib/session-logs";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientItem } from "@/server/patient/view";
 import type { ExerciseLogging } from "./exercise-list";
-import { ExerciseLogPanel, exerciseLogFor, numericLoad } from "./exercise-log-panel";
+import { ExerciseLogPanel, exerciseLogFor, numericLoad, type LogDraft } from "./exercise-log-panel";
 import type { LoggableDay } from "./log-sheet";
 import { AUTOSAVE_DELAY_MS } from "./use-autosave";
 
@@ -79,6 +79,8 @@ function setup({
   locale?: "en" | "es";
 } = {}) {
   const remember = vi.fn();
+  // What ExerciseList keeps per exercise and day: the fields as last typed.
+  const drafts = new Map<string, LogDraft>();
   const logging: ExerciseLogging = {
     code: "7k2m9qpx",
     routineId: ROUTINE,
@@ -96,6 +98,8 @@ function setup({
           logging={logging}
           logFor={(date) => exerciseLogFor(logs, item.exerciseId, date)}
           remember={remember}
+          draftFor={(date) => drafts.get(date)}
+          keepDraft={(date, draft) => drafts.set(date, draft)}
         />
       ) : null}
     </NextIntlClientProvider>
@@ -103,6 +107,14 @@ function setup({
   const view = render(ui(true));
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
   return { ...view, user, remember, hide: () => view.rerender(ui(false)) };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
 }
 
 const setInput = (number: number) => screen.getByLabelText(`Set ${number} weight in kg`);
@@ -236,6 +248,47 @@ describe("ExerciseLogPanel", () => {
     expect(m.log).toHaveBeenCalledWith("7k2m9qpx", sent({ setWeightsKg: [null, 20] }));
   });
 
+  it("points an invalid weight at the message explaining it", async () => {
+    const { user } = setup();
+    await user.type(setInput(2), "abc");
+    const message = screen.getByText("Enter a weight between 0 and 999.9 kg.");
+    expect(message.id).not.toBe("");
+    expect(setInput(2)).toHaveAttribute("aria-describedby", message.id);
+    expect(setInput(1)).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("drops a valid weight still waiting to be sent when it turns invalid", async () => {
+    const { user } = setup();
+    await user.type(setInput(1), "2x");
+    await wait(AUTOSAVE_DELAY_MS);
+    expect(m.log).not.toHaveBeenCalled();
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+  });
+
+  it("does not say Saved while a weight is invalid", async () => {
+    const { user } = setup();
+    await user.type(setInput(1), "20");
+    await wait(AUTOSAVE_DELAY_MS);
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+    await user.type(setInput(1), "x");
+    await wait(AUTOSAVE_DELAY_MS);
+    expect(m.log).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+  });
+
+  it("announces Saved and errors, not every Saving", async () => {
+    const save = deferred<{ ok: true; data: PatientExerciseLog }>();
+    m.log.mockReturnValueOnce(save.promise);
+    const { user, container } = setup();
+    const live = container.querySelector("[aria-live]")!;
+    await user.type(setInput(1), "20");
+    await user.tab();
+    expect(screen.getByText("Saving…")).toBeInTheDocument();
+    expect(live.textContent).toBe("");
+    await act(async () => save.resolve({ ok: true, data: saved({ setWeightsKg: [20] }) }));
+    expect(live).toHaveTextContent("Saved");
+  });
+
   it("sends all nulls when every field of a saved log is cleared", async () => {
     const { user } = setup({
       logs: [saved({ rpe: 7, setWeightsKg: [20, null, 25], comment: "Fine" })],
@@ -308,6 +361,32 @@ describe("ExerciseLogPanel", () => {
     expect(m.log).toHaveBeenCalledTimes(1);
     expect(m.log).toHaveBeenCalledWith("7k2m9qpx", sent({ setWeightsKg: [20] }));
     expect(setInput(1)).toHaveValue("7.5");
+  });
+
+  it("shows what was typed on coming back to a day whose save is still on the way", async () => {
+    const save = deferred<{ ok: true; data: PatientExerciseLog }>();
+    m.log.mockReturnValueOnce(save.promise);
+    const { user } = setup({ days: [yesterday, today] });
+    await user.type(setInput(1), "20");
+    await user.click(screen.getByRole("radio", { name: "Yesterday" }));
+    expect(m.log).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("radio", { name: "Today" }));
+    expect(setInput(1)).toHaveValue("20");
+    await act(async () => save.resolve({ ok: true, data: saved({ setWeightsKg: [20] }) }));
+    expect(setInput(1)).toHaveValue("20");
+  });
+
+  it("keeps an invalid weight, unsaved, across a day switch", async () => {
+    const { user } = setup({ days: [yesterday, today] });
+    await user.type(setInput(2), "abc");
+    await user.click(screen.getByRole("radio", { name: "Yesterday" }));
+    expect(setInput(2)).toHaveValue("");
+    await user.click(screen.getByRole("radio", { name: "Today" }));
+    expect(setInput(2)).toHaveValue("abc");
+    expect(setInput(2)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Enter a weight between 0 and 999.9 kg.")).toBeInTheDocument();
+    await wait(AUTOSAVE_DELAY_MS);
+    expect(m.log).not.toHaveBeenCalled();
   });
 
   it("renders nothing when no day can be logged", () => {

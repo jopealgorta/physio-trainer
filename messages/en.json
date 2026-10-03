@@ -1415,6 +1415,7 @@
         "legend": "Weight per set",
         "set": "Set {number, number}",
         "input": "Set {number, number} weight in kg",
+        "unit": "kg",
         "add": "Add set",
         "invalid": "Enter a weight between 0 and {max, number} kg."
       },

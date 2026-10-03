@@ -14,7 +14,7 @@ import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientBlock, PatientItem } from "@/server/patient/view";
 
 import { ExerciseDetail } from "./exercise-detail";
-import { ExerciseLogPanel, exerciseLogFor } from "./exercise-log-panel";
+import { ExerciseLogPanel, exerciseLogFor, type LogDraft } from "./exercise-log-panel";
 import { useSavedLogs, type LoggableDay } from "./log-sheet";
 
 /** What the rows need to show and write exercise logs for one routine (and plan entry). */
@@ -41,6 +41,8 @@ type RowLogs = {
   logging: ExerciseLogging;
   logFor: (date: string) => PatientExerciseLog | null;
   remember: (date: string, log: PatientExerciseLog | null) => void;
+  draftFor: (date: string) => LogDraft | undefined;
+  keepDraft: (date: string, draft: LogDraft) => void;
   expanded: boolean;
   onToggle: () => void;
 };
@@ -83,6 +85,11 @@ export function ExerciseList({
     const [exerciseId = "", date = ""] = key.split("|");
     return logging ? exerciseLogFor(logging.logs, exerciseId, date) : null;
   });
+  // Drafts by "exerciseId|date": the fields as last typed, which a reopened panel shows over the
+  // saved log (that save may still be on the way, or held back by an invalid weight). Kept while
+  // the list lives: a draft is always the latest the patient entered, which is also what the
+  // serial autosave stores last. Read only when a panel mounts, so a ref (no re-render) is enough.
+  const drafts = useRef(new Map<string, LogDraft>());
   const router = useRouter();
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const mounted = useRef(true);
@@ -106,6 +113,8 @@ export function ExerciseList({
       logging,
       logFor: (date) => saved.logFor(`${item.exerciseId}|${date}`),
       remember: (date, log) => remember(`${item.exerciseId}|${date}`, log),
+      draftFor: (date) => drafts.current.get(`${item.exerciseId}|${date}`),
+      keepDraft: (date, draft) => drafts.current.set(`${item.exerciseId}|${date}`, draft),
       expanded: open.has(item.id),
       onToggle: () => {
         const next = new Set(open);
@@ -291,6 +300,8 @@ function ExerciseRow({
           logging={logs.logging}
           logFor={logs.logFor}
           remember={logs.remember}
+          draftFor={logs.draftFor}
+          keepDraft={logs.keepDraft}
         />
       ) : null}
       <ExerciseDetail item={item} prescription={prescription} open={open} onOpenChange={setOpen} />
