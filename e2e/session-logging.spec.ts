@@ -6,13 +6,12 @@ import {
   insertWorkoutRoutine,
 } from "./helpers/patient";
 
-/** Picks a rating on the pain scale (the first of the sheet's scales) (native radios, visually hidden: click their label). */
-const rate = (page: import("@playwright/test").Page, value: number) =>
+/** Picks a rating on a scale of the log sheet, found by its group name (native radios, visually hidden: click their label). */
+const rate = (page: import("@playwright/test").Page, group: string, value: number) =>
   page
-    .getByRole("dialog")
+    .getByRole("group", { name: group })
     .locator("label")
     .filter({ hasText: new RegExp(`^${value}$`) })
-    .first()
     .click();
 
 test.describe("session logging", () => {
@@ -25,7 +24,7 @@ test.describe("session logging", () => {
     await page.goto(link.path);
     await page.getByRole("button", { name: "Mark as done" }).click();
     const dialog = page.getByRole("dialog", { name: "How did it go?" });
-    await rate(page, 6);
+    await rate(page, "Pain (optional)", 6);
     await dialog.getByLabel("Comment (optional)").fill("A bit pinchy on the stairs");
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog).toBeHidden();
@@ -53,7 +52,7 @@ test.describe("session logging", () => {
     await expect(page.getByRole("dialog").getByLabel("Comment (optional)")).toHaveValue(
       "A bit pinchy on the stairs",
     );
-    await rate(page, 8);
+    await rate(page, "Pain (optional)", 8);
     await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("dialog")).toBeHidden();
 
@@ -115,7 +114,7 @@ test.describe("session logging", () => {
     await expect(dialog).toBeVisible();
     await expect(page.getByText("Well done!")).toBeVisible();
 
-    await rate(page, 2);
+    await rate(page, "Pain (optional)", 2);
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("heading", { name: "Well done!" })).toBeVisible();

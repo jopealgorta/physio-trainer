@@ -48,6 +48,10 @@ function setup(
   );
 }
 
+/** A rating radio of the pain scale (the RPE scale has the same 0-10 radios). */
+const pain = (name: string) =>
+  within(screen.getByRole("group", { name: "Pain (optional)" })).getByRole("radio", { name });
+
 beforeEach(() => {
   m.log.mockReset();
   m.refresh.mockReset();
@@ -95,7 +99,7 @@ describe("LogSessionButton", () => {
     expect(dialog).toHaveAttribute("data-vaul-drawer");
     expect(dialog).toHaveAttribute("data-brand", "patient");
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
-    await user.click(within(dialog).getAllByRole("radio", { name: "6" })[0]!);
+    await user.click(pain("6"));
     await user.type(within(dialog).getByLabelText("Comment (optional)"), "A bit pinchy");
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
 
@@ -139,7 +143,7 @@ describe("LogSessionButton", () => {
     const user = userEvent.setup();
     setup();
     await user.click(screen.getByRole("button", { name: "Mark as done" }));
-    await user.click(screen.getAllByRole("radio", { name: "3" })[0]!);
+    await user.click(pain("3"));
     await user.click(screen.getByRole("button", { name: "Clear" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(m.log).toHaveBeenCalled());
@@ -152,7 +156,7 @@ describe("LogSessionButton", () => {
     expect(screen.getByText("Done")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Mark as done" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Edit" }));
-    expect(screen.getAllByRole("radio", { name: "4" })[0]!).toBeChecked();
+    expect(pain("4")).toBeChecked();
     expect(screen.getByLabelText("Comment (optional)")).toHaveValue("ok");
   });
 
@@ -187,7 +191,7 @@ describe("LogSessionButton", () => {
     expect(within(dialog).getByRole("radio", { name: "Today" })).toBeChecked();
     await user.click(within(dialog).getByRole("radio", { name: "Yesterday" }));
     // Yesterday's saved log fills the form.
-    expect(within(dialog).getAllByRole("radio", { name: "2" })[0]!).toBeChecked();
+    expect(pain("2")).toBeChecked();
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(m.log).toHaveBeenCalled());
     expect(m.log.mock.calls[0]![1].performedOn).toBe(YESTERDAY);
@@ -223,12 +227,12 @@ describe("LogSessionButton", () => {
     const user = userEvent.setup();
     setup();
     await user.click(screen.getByRole("button", { name: "Mark as done" }));
-    await user.click(screen.getAllByRole("radio", { name: "5" })[0]!);
+    await user.click(pain("5"));
     await user.type(screen.getByLabelText("Comment (optional)"), "A long note about the stairs");
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.getByLabelText("Comment (optional)")).toHaveValue("A long note about the stairs");
-    expect(screen.getAllByRole("radio", { name: "5" })[0]!).toBeChecked();
+    expect(pain("5")).toBeChecked();
   });
 
   it("can open straight away (the workout's finish screen)", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useId } from "react";
 
 import { PAIN_SCALE } from "@/lib/session-logs";
 import { cn } from "@/lib/utils";
@@ -38,10 +39,13 @@ export function PainScale({
   onChange: (value: number | null) => void;
 }) {
   const t = useTranslations("Patient.logging.pain");
+  const legendId = useId();
   return (
-    <fieldset className="grid gap-2">
+    <fieldset aria-labelledby={legendId} className="grid gap-2">
       <div className="flex items-center justify-between gap-2">
-        <legend className="text-sm font-medium">{t("legend")}</legend>
+        <legend id={legendId} className="text-sm font-medium">
+          {t("legend")}
+        </legend>
         {value !== null ? (
           <button
             type="button"
