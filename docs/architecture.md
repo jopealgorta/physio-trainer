@@ -170,7 +170,7 @@ erDiagram
 | `weekly_plan_days`                         | 19                             | One note per weekday of a plan (row exists only while the note is non-empty).                                          |
 | `share_links`                              | 10                             | Link code, target, PIN hash, expiry, revocation.                                                                       |
 | `session_logs`                             | 13 (+19 RPE)                   | Patient-submitted completion/pain/RPE/comment per routine per date.                                                    |
-| `exercise_logs`                            | 19                             | Patient-submitted pain/RPE/weight/comment per exercise per routine per date.                                           |
+| `exercise_logs`                            | 19, 20                         | Patient-submitted RPE/set weights/comment per exercise per routine per date (legacy pain/weight kept).                 |
 | `routine_versions`, `weekly_plan_versions` | 15                             | JSON snapshots on each save.                                                                                           |
 | `visit_notes`                              | 16                             | Private per-visit clinical notes (SOAP).                                                                               |
 

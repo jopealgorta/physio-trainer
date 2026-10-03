@@ -1,16 +1,17 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "../../../messages/en.json";
 import es from "../../../messages/es.json";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientBlock, PatientItem } from "@/server/patient/view";
-import { ExerciseList, type ExerciseLogging } from "./exercise-list";
+import { ExerciseList, REFRESH_AFTER_SAVE_MS, type ExerciseLogging } from "./exercise-list";
 
-vi.mock("@/server/patient/actions", () => ({ logExerciseAction: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const m = vi.hoisted(() => ({ log: vi.fn(), refresh: vi.fn() }));
+vi.mock("@/server/patient/actions", () => ({ logExerciseAction: m.log }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: m.refresh }) }));
 
 const ROUTINE = "3e473832-bc4d-475b-9a6a-0356874dc603";
 const SQUAT = "0b8f5f0e-8f53-4c39-9f0e-4f3f1f8c1a01";
@@ -124,28 +125,169 @@ describe("ExerciseList", () => {
       entryId: null,
       exerciseId: SQUAT,
       performedOn: TODAY,
-      pain: 3,
-      rpe: 6,
-      weightKg: 12.5,
+      rpe: 7,
+      setWeightsKg: [20, null, 25],
       comment: null,
     };
-    const other = { ...log, performedOn: "2026-10-06", pain: 9 };
+    const other = { ...log, performedOn: "2026-10-06", rpe: 9 };
     const { unmount } = setup({ logging: logging([other, log]) });
-    expect(screen.getByText("Pain 3")).toBeInTheDocument();
-    expect(screen.getByText("RPE 6")).toBeInTheDocument();
-    expect(screen.getByText("12.5 kg")).toBeInTheDocument();
-    expect(screen.queryByText("Pain 9")).not.toBeInTheDocument();
-    // Owner preview (no loggable days): chips only, no Log button.
+    const chips = within(screen.getByRole("list", { name: "Logged" }));
+    expect(chips.getAllByRole("listitem").map((chip) => chip.textContent)).toEqual([
+      "20 · – · 25 kg",
+      "RPE 7",
+    ]);
+    expect(screen.queryByText("RPE 9")).not.toBeInTheDocument();
+    // Owner preview (no loggable days): chips only, no Log toggle.
     expect(screen.queryByRole("button", { name: "Log Squat" })).not.toBeInTheDocument();
     unmount();
-    setup({ logging: logging([log]) }, "es");
-    expect(screen.getByText("Dolor 3")).toBeInTheDocument();
+    setup({ logging: logging([{ ...log, setWeightsKg: [12.5] }]) }, "es");
     expect(screen.getByText("12,5 kg")).toBeInTheDocument();
   });
 
-  it("offers a Log button per exercise when the day can be logged", () => {
-    setup({ logging: { ...logging(), days: [{ date: TODAY, relative: "today" }] } });
-    expect(screen.getByRole("button", { name: "Log Squat" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Log Plank" })).toBeInTheDocument();
+  describe("inline log", () => {
+    const loggable = (logs: PatientExerciseLog[] = []): ExerciseLogging => ({
+      ...logging(logs),
+      days: [{ date: TODAY, relative: "today" }],
+    });
+
+    beforeEach(() => {
+      m.refresh.mockReset();
+      m.log.mockReset();
+      m.log.mockImplementation(async (_code: string, input: PatientExerciseLog) => ({
+        ok: true,
+        data: { ...input },
+      }));
+    });
+
+    it("expands and collapses an exercise's log under its row", async () => {
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("region", { name: "How did Squat go?" })).not.toBeInTheDocument();
+
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      const panel = screen.getByRole("region", { name: "How did Squat go?" });
+      expect(toggle).toHaveAttribute("aria-controls", panel.id);
+      // Inside the row's card.
+      expect(toggle.closest("li")).toContainElement(panel);
+      // Other rows stay closed; several can be open at once.
+      expect(screen.getByRole("button", { name: "Log Plank" })).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      await user.click(screen.getByRole("button", { name: "Log Plank" }));
+      expect(screen.getAllByRole("region")).toHaveLength(2);
+
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("region", { name: "How did Squat go?" })).not.toBeInTheDocument();
+    });
+
+    it("updates the chips and the toggle as soon as the panel saves", async () => {
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      expect(toggle).not.toHaveClass("text-primary");
+      await user.click(toggle);
+      await user.type(screen.getByLabelText("Set 1 weight in kg"), "20");
+      await user.tab();
+      await act(async () => {});
+      expect(m.log).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("20 kg")).toBeInTheDocument();
+      expect(toggle).toHaveClass("text-primary");
+    });
+
+    it("reopens with what was typed while its save is still on the way", async () => {
+      let resolve!: (result: { ok: true; data: PatientExerciseLog }) => void;
+      m.log.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      await user.click(toggle);
+      await user.type(screen.getByLabelText("Set 3 weight in kg"), "25");
+      await user.click(toggle);
+      expect(m.log).toHaveBeenCalledTimes(1);
+      await user.click(toggle);
+      expect(screen.getByLabelText("Set 3 weight in kg")).toHaveValue("25");
+
+      const stored = m.log.mock.calls[0]![1] as PatientExerciseLog;
+      await act(async () => resolve({ ok: true, data: stored }));
+      expect(screen.getByLabelText("Set 3 weight in kg")).toHaveValue("25");
+      await user.type(screen.getByLabelText("Set 1 weight in kg"), "20");
+      await user.tab();
+      expect(m.log).toHaveBeenLastCalledWith(
+        "7k2m9qpx",
+        expect.objectContaining({ setWeightsKg: [20, null, 25] }),
+      );
+    });
+
+    it("reopens with an invalid weight still shown and unsaved", async () => {
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      await user.click(toggle);
+      await user.type(screen.getByLabelText("Set 2 weight in kg"), "abc");
+      await user.click(toggle);
+      await user.click(toggle);
+      expect(screen.getByLabelText("Set 2 weight in kg")).toHaveValue("abc");
+      expect(screen.getByLabelText("Set 2 weight in kg")).toHaveAttribute("aria-invalid", "true");
+      expect(m.log).not.toHaveBeenCalled();
+    });
+
+    describe("page data", () => {
+      beforeEach(() => {
+        // Real time moves the fake clock too: Testing Library's async wrapper waits on a real tick.
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+      });
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+      const wait = (ms: number) =>
+        act(async () => {
+          await vi.advanceTimersByTimeAsync(ms);
+        });
+
+      it("refreshes the page once, a while after the last save", async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        setup({ logging: loggable() });
+        await user.click(screen.getByRole("button", { name: "Log Squat" }));
+        await user.type(screen.getByLabelText("Set 1 weight in kg"), "20");
+        await user.tab();
+        await user.type(screen.getByLabelText("Set 2 weight in kg"), "25");
+        await user.tab();
+        await wait(0);
+        expect(m.log).toHaveBeenCalledTimes(2);
+        expect(m.refresh).not.toHaveBeenCalled();
+        // The panel keeps what was typed across the refresh.
+        await wait(REFRESH_AFTER_SAVE_MS);
+        expect(m.refresh).toHaveBeenCalledTimes(1);
+        expect(screen.getByLabelText("Set 2 weight in kg")).toHaveValue("25");
+        await wait(REFRESH_AFTER_SAVE_MS * 2);
+        expect(m.refresh).toHaveBeenCalledTimes(1);
+      });
+
+      it("does not refresh when nothing was saved", async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        setup({ logging: loggable() });
+        await user.click(screen.getByRole("button", { name: "Log Squat" }));
+        await user.type(screen.getByLabelText("Set 1 weight in kg"), "abc");
+        await user.click(screen.getByRole("button", { name: "Log Squat" }));
+        await wait(REFRESH_AFTER_SAVE_MS * 2);
+        expect(m.log).not.toHaveBeenCalled();
+        expect(m.refresh).not.toHaveBeenCalled();
+      });
+    });
+
+    it("opens the rows it is told to when controlled", async () => {
+      const user = userEvent.setup();
+      const onOpenLogsChange = vi.fn();
+      setup({ logging: loggable(), openLogs: new Set(["bridge"]), onOpenLogsChange });
+      expect(screen.getByRole("region", { name: "How did Bridge go?" })).toBeInTheDocument();
+      expect(screen.getAllByRole("region")).toHaveLength(1);
+      await user.click(screen.getByRole("button", { name: "Log Squat" }));
+      expect(onOpenLogsChange).toHaveBeenCalledWith(new Set(["bridge", "squat"]));
+    });
   });
 });

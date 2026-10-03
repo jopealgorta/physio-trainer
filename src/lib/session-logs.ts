@@ -21,6 +21,9 @@ export const RPE_SCALE = Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, i) =>
 /** Heaviest weight (kg) a patient can log for one exercise; one decimal. */
 export const WEIGHT_MAX = 999.9;
 
+/** Most set lines one exercise log holds (prescribed sets plus extras the patient adds). */
+export const SET_WEIGHTS_MAX = 20;
+
 /**
  * Parses what a patient typed as a weight in kg: comma or dot (also leading or trailing), rounded
  * to 0.1. Null when blank, undefined when it is not a number in 0..WEIGHT_MAX.
@@ -74,4 +77,14 @@ export function loggedWeekdays(
 ): number[] {
   const doneOn = new Set(logs.filter((entry) => entry.completed).map((entry) => entry.performedOn));
   return WEEKDAYS.filter((weekday) => doneOn.has(dateForWeekday(today, weekday)));
+}
+
+/** Set weights as stored: rounded to 0.1, no trailing unlogged sets, null when none is logged. */
+export function normalizeSetWeights(
+  values: readonly (number | null)[] | null,
+): (number | null)[] | null {
+  if (!values) return null;
+  const rounded = values.map((v) => (v === null ? null : Math.round(v * 10) / 10));
+  while (rounded.length > 0 && rounded.at(-1) === null) rounded.pop();
+  return rounded.length === 0 ? null : rounded;
 }

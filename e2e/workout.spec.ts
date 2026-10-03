@@ -176,6 +176,19 @@ test.describe("workout mode", () => {
     expect(await hasNoHorizontalOverflow(page)).toBe(true);
   });
 
+  test("the bar's Log exercise opens the inline log, not a dialog", async ({ page, physio }) => {
+    const customerId = await insertCustomer(physio.id);
+    await insertWorkoutRoutine(physio.id, customerId);
+    const link = await insertCustomerLink(physio, customerId);
+    await page.goto(link.path);
+    await page.getByRole("link", { name: "Start workout" }).click();
+    await expect(page.getByRole("button", { name: "Set done" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Log exercise", exact: true }).click();
+    await expect(page.getByRole("region", { name: /^How did .+ go\?$/ })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
   test("a swipe moves to the next set", async ({ page, physio, browserName }) => {
     test.skip(browserName !== "chromium");
     const customerId = await insertCustomer(physio.id);

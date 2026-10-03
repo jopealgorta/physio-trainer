@@ -47,9 +47,8 @@ describe("logExercise", () => {
     entryId: null,
     exerciseId,
     performedOn: TODAY,
-    pain: null,
     rpe: null,
-    weightKg: null,
+    setWeightsKg: null,
     comment: null,
     ...patch,
   });
@@ -97,7 +96,7 @@ describe("logExercise", () => {
   afterAll(() => deleteTestPhysios(...created));
 
   it("stores a log, then edits the same row", async () => {
-    const first = await log(customerCode, { pain: 4, rpe: 6, weightKg: 12.5, comment: "ok" });
+    const first = await log(customerCode, { rpe: 6, setWeightsKg: [20, null, 25], comment: "ok" });
     expect(first).toEqual({
       ok: true,
       data: {
@@ -105,35 +104,54 @@ describe("logExercise", () => {
         entryId: null,
         exerciseId,
         performedOn: TODAY,
-        pain: 4,
         rpe: 6,
-        weightKg: 12.5,
+        setWeightsKg: [20, null, 25],
         comment: "ok",
       },
     });
-    const second = await log(customerCode, { pain: 4, rpe: 6, weightKg: 15, comment: "ok" });
-    expect(second.ok && second.data?.weightKg).toBe(15);
+    const second = await log(customerCode, { rpe: 6, setWeightsKg: [22], comment: "ok" });
+    expect(second.ok && second.data?.setWeightsKg).toEqual([22]);
     const stored = await rows(standalone);
     expect(stored).toHaveLength(1);
-    expect(stored[0]).toMatchObject({ physioId: physio.id, customerId, weightKg: 15 });
+    expect(stored[0]).toMatchObject({ physioId: physio.id, customerId, setWeightsKg: [22] });
+  });
+
+  it("replaces a legacy pain/weight log: they end up null", async () => {
+    await db.delete(exerciseLogs).where(eq(exerciseLogs.routineId, standalone));
+    await db.insert(exerciseLogs).values({
+      physioId: physio.id,
+      customerId,
+      routineId: standalone,
+      weeklyPlanEntryId: null,
+      exerciseId,
+      performedOn: TODAY,
+      pain: 5,
+      weightKg: 10,
+    });
+    await log(customerCode, { setWeightsKg: [12] });
+    const stored = await rows(standalone);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ pain: null, weightKg: null, setWeightsKg: [12] });
   });
 
   it("deletes the row when every field is cleared, and tolerates no row", async () => {
+    await log(customerCode, { rpe: 3 });
+    expect(await rows(standalone)).toHaveLength(1);
     expect(await log(customerCode, {})).toEqual({ ok: true, data: null });
     expect(await rows(standalone)).toHaveLength(0);
     expect(await log(customerCode, {})).toEqual({ ok: true, data: null });
   });
 
   it("rejects an exercise outside the routine, another customer's routine and old days", async () => {
-    expect(await log(customerCode, { exerciseId: strangerExercise, pain: 1 })).toEqual({
+    expect(await log(customerCode, { exerciseId: strangerExercise, rpe: 1 })).toEqual({
       ok: false,
       error: "unreachable",
     });
-    expect(await log(customerCode, { routineId: foreign, pain: 1 })).toEqual({
+    expect(await log(customerCode, { routineId: foreign, rpe: 1 })).toEqual({
       ok: false,
       error: "unreachable",
     });
-    expect(await log(customerCode, { performedOn: "2026-10-05", pain: 1 })).toEqual({
+    expect(await log(customerCode, { performedOn: "2026-10-05", rpe: 1 })).toEqual({
       ok: false,
       error: "date",
     });
@@ -143,7 +161,7 @@ describe("logExercise", () => {
 
   it("rejects an exercise id that belongs to another physio", async () => {
     const alien = await insertExercise(other.id, { name: "Alien" });
-    expect(await log(customerCode, { exerciseId: alien, pain: 1 })).toEqual({
+    expect(await log(customerCode, { exerciseId: alien, rpe: 1 })).toEqual({
       ok: false,
       error: "unreachable",
     });
@@ -153,33 +171,33 @@ describe("logExercise", () => {
   });
 
   it("rejects a plan entry that does not hold the routine", async () => {
-    expect(await log(customerCode, { routineId: standalone, entryId, pain: 1 })).toEqual({
+    expect(await log(customerCode, { routineId: standalone, entryId, rpe: 1 })).toEqual({
       ok: false,
       error: "unreachable",
     });
   });
 
   it("keeps the plan entry and standalone logs of the same exercise apart", async () => {
-    await log(customerCode, { routineId: inPlan, entryId, pain: 1 });
-    await log(customerCode, { routineId: inPlan, entryId: null, pain: 2 });
+    await log(customerCode, { routineId: inPlan, entryId, rpe: 1 });
+    await log(customerCode, { routineId: inPlan, entryId: null, rpe: 2 });
     expect(await rows(inPlan)).toHaveLength(2);
   });
 
   it("resets 'seen' only when the comment changes", async () => {
-    await log(customerCode, { pain: 2, comment: "first" });
+    await log(customerCode, { rpe: 2, comment: "first" });
     await db
       .update(exerciseLogs)
       .set({ seenByPhysioAt: new Date() })
       .where(eq(exerciseLogs.routineId, standalone));
-    await log(customerCode, { pain: 5, comment: "first" });
+    await log(customerCode, { rpe: 5, comment: "first" });
     expect((await rows(standalone))[0]!.seenByPhysioAt).not.toBeNull();
-    await log(customerCode, { pain: 5, comment: "second" });
+    await log(customerCode, { rpe: 5, comment: "second" });
     expect((await rows(standalone))[0]!.seenByPhysioAt).toBeNull();
   });
 
   it("scopes getPatientExerciseLogs to a routine link", async () => {
     const routineLink = await linkFor(physio, { target: "routine", routineId: standalone });
-    await log(customerCode, { routineId: inPlan, entryId, pain: 3 });
+    await log(customerCode, { routineId: inPlan, entryId, rpe: 3 });
     const { shell, link } = await resolved(routineLink.code);
     const read = await getPatientExerciseLogs(shell, link, TODAY, TODAY);
     expect(read.length).toBeGreaterThan(0);
@@ -194,7 +212,7 @@ describe("logExercise", () => {
   });
 
   it("is private to the physio under RLS", async () => {
-    await log(customerCode, { pain: 2 });
+    await log(customerCode, { rpe: 2 });
     expect((await as(physio, (tx) => tx.select().from(exerciseLogs))).length).toBeGreaterThan(0);
     expect(await as(other, (tx) => tx.select().from(exerciseLogs))).toEqual([]);
   });

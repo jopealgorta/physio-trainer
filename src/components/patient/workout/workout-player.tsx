@@ -6,6 +6,7 @@ import {
   PartyPopperIcon,
   Volume2Icon,
   VolumeXIcon,
+  NotebookPenIcon,
   XIcon,
 } from "lucide-react";
 import type { Route } from "next";
@@ -33,8 +34,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { distanceDisplay } from "@/lib/distance";
-import { durationDisplay } from "@/lib/prescription";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { useCues } from "@/lib/workout/cues";
@@ -64,7 +63,7 @@ import { useWakeLock } from "@/lib/workout/use-wake-lock";
 import type { PatientItem, PatientRoutine } from "@/server/patient/view";
 
 import { ExerciseList, type ExerciseLogging } from "../exercise-list";
-import { ExerciseLogButton } from "../exercise-log-button";
+import { setTargets } from "../set-targets";
 import { Confetti, SetDoneBurst } from "./set-done-burst";
 
 const TICK_MS = 250;
@@ -76,8 +75,6 @@ const BIG_BURST_MS = 1600;
 
 type Notice = { text: string; /** Shown on screen too, not only announced. */ visible: boolean };
 type Celebration = { id: number; big: boolean };
-
-type Translate = ReturnType<typeof useTranslations<"Workout">>;
 
 /**
  * Full-screen guided workout (spec 12, laid out by spec 19): the routine's exercise list with the
@@ -107,7 +104,7 @@ type PlayerProps = {
   label: string;
   /** Shown on the "Well done" screen: where the patient logs the session (spec 13). */
   finishSlot?: ReactNode;
-  /** Today's exercise logs for this routine (and entry), for the list and the bar's Log button. */
+  /** Today's exercise logs for this routine (and entry), for the list and the bar's "Log exercise" button. */
   exerciseLogging?: ExerciseLogging;
 };
 
@@ -283,6 +280,26 @@ function Player({
     });
   }, [step.exerciseIndex, reducedMotion]);
 
+  // Which exercises have their inline log expanded; the bar's "Log exercise" toggles the current one.
+  const [openLogs, setOpenLogs] = useState<ReadonlySet<string>>(() => new Set());
+  const canLog = exerciseLogging !== undefined && exerciseLogging.days.length > 0;
+  const logOpen = openLogs.has(item.id);
+  const toggleLog = () => {
+    const next = new Set(openLogs);
+    if (logOpen) next.delete(item.id);
+    else next.add(item.id);
+    setOpenLogs(next);
+    if (!logOpen) {
+      // Wait for the panel to render, then bring the row (and its panel) to the top of the list.
+      requestAnimationFrame(() =>
+        currentRow.current?.scrollIntoView({
+          block: "start",
+          behavior: reducedMotion ? "auto" : "smooth",
+        }),
+      );
+    }
+  };
+
   const exit = () => {
     clearWorkoutState(window.sessionStorage, storageKey);
     router.push(exitHref as Route);
@@ -290,8 +307,8 @@ function Player({
 
   // Horizontal swipes move between steps; vertical gestures stay with scrolling.
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  // React events bubble out of portals: a drag inside the log sheet opened from the bar reaches
-  // the bar's handlers too. Only gestures on the bar's own DOM count.
+  // React events bubble out of portals (e.g. a dialog opened from the bar): only gestures on the
+  // bar's own DOM count. The inline log lives in the list, outside the bar.
   const onBar = (event: PointerEvent) => event.currentTarget.contains(event.target as Node);
   const onPointerDown = (event: PointerEvent) => {
     unlock();
@@ -346,7 +363,6 @@ function Player({
 
   const progress = (state.stepIndex / steps.length) * 100;
   const target = setTargets(set, t);
-  const canLog = exerciseLogging !== undefined && exerciseLogging.days.length > 0;
   const timed = step.durationSeconds !== null;
   const counting = state.phase === "rest" || state.phase === "timed";
   const onSkip = () => act((current, at) => skipTimer(steps, current, at), state.phase === "timed");
@@ -401,6 +417,8 @@ function Player({
             doneSets={doneSets}
             currentRef={currentRef}
             logging={exerciseLogging}
+            openLogs={openLogs}
+            onOpenLogsChange={setOpenLogs}
           />
         </div>
       </div>
@@ -522,14 +540,16 @@ function Player({
           </div>
 
           {canLog ? (
-            <ExerciseLogButton
-              // A fresh sheet for each exercise.
-              key={item.id}
-              variant="bar"
-              logging={exerciseLogging}
-              exerciseId={item.exerciseId}
-              exerciseName={item.name}
-            />
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-12 w-full text-base"
+              aria-expanded={logOpen}
+              onClick={toggleLog}
+            >
+              <NotebookPenIcon aria-hidden />
+              {t("logExercise")}
+            </Button>
           ) : null}
         </div>
       </section>
@@ -582,37 +602,4 @@ function Chip({ children, primary = false }: { children: React.ReactNode; primar
       {children}
     </li>
   );
-}
-
-function setTargets(set: PatientItem["sets"][number] | undefined, t: Translate): string[] {
-  if (!set) return [];
-  const labels: string[] = [];
-  if (set.reps !== null) {
-    labels.push(
-      set.repsMax !== null
-        ? t("target.range", { min: set.reps, max: set.repsMax })
-        : t("target.reps", { count: set.reps }),
-    );
-  }
-  if (set.durationSeconds !== null) {
-    const duration = durationDisplay(set.durationSeconds);
-    labels.push(
-      duration.unit === "minutesSeconds"
-        ? t("target.minutesSeconds", { minutes: duration.minutes, seconds: duration.seconds })
-        : duration.unit === "minutes"
-          ? t("target.minutes", { value: duration.value })
-          : t("target.duration", { value: duration.value }),
-    );
-  }
-  if (set.distanceMeters !== null) {
-    const distance = distanceDisplay(set.distanceMeters);
-    labels.push(
-      t(distance.unit === "km" ? "target.distanceKm" : "target.distanceM", {
-        value: distance.value,
-      }),
-    );
-  }
-  if (set.load) labels.push(t("target.load", { value: set.load }));
-  if (set.intensity) labels.push(t("target.intensity", { value: set.intensity }));
-  return labels;
 }

@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 export type LoggableDay = { date: string; relative: "today" | "yesterday" };
 
 /**
- * The bottom sheet both patient logs open in (the routine's "Mark as done" and an exercise's
- * "Log"): a title, an optional description, a close button and a scrolling body.
+ * The bottom sheet the routine's "Mark as done" log opens in (an exercise's log is inline since
+ * spec 20): a title, an optional description, a close button and a scrolling body.
  */
 export function LogSheet({
   open,
@@ -77,10 +77,13 @@ export function DayToggle({
   days,
   value,
   onChange,
+  name = "day",
 }: {
   days: LoggableDay[];
   value: string;
   onChange: (date: string) => void;
+  /** The radios' group: unique per page when several toggles can show at once outside a form. */
+  name?: string;
 }) {
   const t = useTranslations("Patient.logging.day");
   if (days.length < 2) return null;
@@ -100,7 +103,7 @@ export function DayToggle({
           >
             <input
               type="radio"
-              name="day"
+              name={name}
               value={option.date}
               checked={option.date === value}
               onChange={() => onChange(option.date)}

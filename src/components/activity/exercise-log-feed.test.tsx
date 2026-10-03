@@ -15,6 +15,7 @@ const log = (patch: Partial<ActivityExerciseLog> = {}): ActivityExerciseLog => (
   pain: 3,
   rpe: 6,
   weightKg: 20,
+  setWeightsKg: null,
   comment: "Pinchy",
   seen: false,
   ...patch,
@@ -71,5 +72,28 @@ describe("ExerciseLogFeed", () => {
   it("says when there are none", () => {
     render(feed([]));
     expect(screen.getByText("No exercise logs yet.")).toBeInTheDocument();
+  });
+
+  it("shows set weights when present, formatting each weight with null as en dash", () => {
+    render(
+      feed([
+        log({ setWeightsKg: [20, null, 25], weightKg: null }),
+        log({
+          id: "2",
+          setWeightsKg: null,
+          weightKg: 12.5,
+          pain: null,
+          rpe: null,
+          comment: null,
+          seen: true,
+        }),
+      ]),
+    );
+    const items = screen.getAllByRole("listitem");
+    expect(within(items[0]!).getByText(/20 · – · 25 kg/)).toBeInTheDocument();
+    expect(
+      within(items[0]!).getByText("Pain 3/10 · RPE 6/10 · 20 · – · 25 kg"),
+    ).toBeInTheDocument();
+    expect(within(items[1]!).getByText("12.5 kg")).toBeInTheDocument();
   });
 });

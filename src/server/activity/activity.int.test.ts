@@ -206,7 +206,12 @@ describe("activity", () => {
         status: "active",
         items: [{ exerciseId: squat }],
       });
-      oneId = await addExerciseLog(beto, "2026-10-06", { pain: 4, rpe: 6, weightKg: 12.5 });
+      oneId = await addExerciseLog(beto, "2026-10-06", {
+        pain: 4,
+        rpe: 6,
+        weightKg: 12.5,
+        setWeightsKg: [20, null, 25],
+      });
       twoId = await addExerciseLog(beto, "2026-10-07", { comment: "felt ok" });
     });
 
@@ -224,6 +229,7 @@ describe("activity", () => {
         pain: 4,
         rpe: 6,
         weightKg: 12.5,
+        setWeightsKg: [20, null, 25],
         comment: null,
         seen: true,
       });

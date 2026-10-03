@@ -1,19 +1,21 @@
 "use client";
 
-import { DumbbellIcon, PlayIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { DumbbellIcon, NotebookPenIcon, PlayIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useFormatter, useTranslations } from "next-intl";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { YouTubeThumbnail } from "@/components/library/youtube-thumbnail";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatPrescription, type PrescriptionTranslate } from "@/lib/prescription";
 import { cn } from "@/lib/utils";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientBlock, PatientItem } from "@/server/patient/view";
 
 import { ExerciseDetail } from "./exercise-detail";
-import { ExerciseLogButton, exerciseLogFor } from "./exercise-log-button";
-import type { LoggableDay } from "./log-sheet";
+import { ExerciseLogPanel, exerciseLogFor, type LogDraft } from "./exercise-log-panel";
+import { useSavedLogs, type LoggableDay } from "./log-sheet";
 
 /** What the rows need to show and write exercise logs for one routine (and plan entry). */
 export type ExerciseLogging = {
@@ -22,10 +24,27 @@ export type ExerciseLogging = {
   entryId: string | null;
   /** The days that can still be logged (none: chips only, e.g. the physio previewing). */
   days: LoggableDay[];
-  /** The day the chips and the filled Log button stand for. */
+  /** The day the chips and the filled Log toggle stand for. */
   shownDate: string;
   /** This routine and entry's exercise logs, any day. */
   logs: PatientExerciseLog[];
+};
+
+/**
+ * One page refresh this long after the last saved log: keeps the router cache (back/forward)
+ * current without refetching the page on every autosave.
+ */
+export const REFRESH_AFTER_SAVE_MS = 1500;
+
+/** One row's view of the routine's exercise logs (shared by rows of the same exercise). */
+type RowLogs = {
+  logging: ExerciseLogging;
+  logFor: (date: string) => PatientExerciseLog | null;
+  remember: (date: string, log: PatientExerciseLog | null) => void;
+  draftFor: (date: string) => LogDraft | undefined;
+  keepDraft: (date: string, draft: LogDraft) => void;
+  expanded: boolean;
+  onToggle: () => void;
 };
 
 type WorkoutProps = {
@@ -40,17 +59,70 @@ type WorkoutProps = {
 /**
  * A routine's exercises as compact rows (spec 19): thumbnail, name, one-line prescription,
  * notes clamped to a line and what is logged. The thumbnail or the name opens the detail with
- * the video. Supersets keep their dashed bracket. Shared by the patient page and the workout.
+ * the video; the Log toggle expands the exercise's inline log (spec 20) inside its card, several
+ * at a time. Supersets keep their dashed bracket. Shared by the patient page and the workout.
  */
 export function ExerciseList({
   blocks,
   logging,
+  openLogs,
+  onOpenLogsChange,
   ...workout
 }: {
   blocks: PatientBlock[];
   logging?: ExerciseLogging;
+  /** Item ids whose log is expanded, when the parent controls it (the workout bar). */
+  openLogs?: ReadonlySet<string>;
+  onOpenLogsChange?: (ids: ReadonlySet<string>) => void;
 } & WorkoutProps) {
   const t = useTranslations("Patient");
+  const [ownOpen, setOwnOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const open = openLogs ?? ownOpen;
+  const setOpen = onOpenLogsChange ?? setOwnOpen;
+  // Saved logs by "exerciseId|date": rows of the same exercise share one log, and the chips
+  // follow a save at once instead of waiting for a refreshed page.
+  const saved = useSavedLogs<PatientExerciseLog>((key) => {
+    const [exerciseId = "", date = ""] = key.split("|");
+    return logging ? exerciseLogFor(logging.logs, exerciseId, date) : null;
+  });
+  // Drafts by "exerciseId|date": the fields as last typed, which a reopened panel shows over the
+  // saved log (that save may still be on the way, or held back by an invalid weight). Kept while
+  // the list lives: a draft is always the latest the patient entered, which is also what the
+  // serial autosave stores last. Read only when a panel mounts, so a ref (no re-render) is enough.
+  const drafts = useRef(new Map<string, LogDraft>());
+  const router = useRouter();
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(refreshTimer.current);
+    };
+  }, []);
+  const remember = (key: string, log: PatientExerciseLog | null) => {
+    saved.remember(key, log);
+    // A panel's last save can land after the list is gone (fire-and-forget on unmount).
+    if (!mounted.current) return;
+    clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => router.refresh(), REFRESH_AFTER_SAVE_MS);
+  };
+
+  const logsFor = (item: PatientItem): RowLogs | undefined =>
+    logging && {
+      logging,
+      logFor: (date) => saved.logFor(`${item.exerciseId}|${date}`),
+      remember: (date, log) => remember(`${item.exerciseId}|${date}`, log),
+      draftFor: (date) => drafts.current.get(`${item.exerciseId}|${date}`),
+      keepDraft: (date, draft) => drafts.current.set(`${item.exerciseId}|${date}`, draft),
+      expanded: open.has(item.id),
+      onToggle: () => {
+        const next = new Set(open);
+        if (!next.delete(item.id)) next.add(item.id);
+        setOpen(next);
+      },
+    };
+
   return (
     <ol className="grid gap-2">
       {blocks.map((block, index) =>
@@ -59,7 +131,7 @@ export function ExerciseList({
             key={block.item.id}
             item={block.item}
             position={index + 1}
-            logging={logging}
+            logs={logsFor(block.item)}
             {...workout}
           />
         ) : (
@@ -77,7 +149,7 @@ export function ExerciseList({
               </header>
               <ul className="grid gap-2">
                 {block.items.map((item) => (
-                  <ExerciseRow key={item.id} item={item} logging={logging} {...workout} />
+                  <ExerciseRow key={item.id} item={item} logs={logsFor(item)} {...workout} />
                 ))}
               </ul>
             </section>
@@ -91,30 +163,44 @@ export function ExerciseList({
 function ExerciseRow({
   item,
   position,
-  logging,
+  logs,
   currentItemId,
   doneSets,
   currentRef,
 }: {
   item: PatientItem;
   position?: number;
-  logging?: ExerciseLogging;
+  logs?: RowLogs;
 } & WorkoutProps) {
   const t = useTranslations("Patient");
   const tPrescription = useTranslations("Prescription");
+  const format = useFormatter();
+  const panelId = useId();
   const [open, setOpen] = useState(false);
   const summary: PrescriptionTranslate = (key, values) => tPrescription(key, values);
   const prescription = formatPrescription(item, summary);
   const current = currentItemId === item.id;
   const video = item.media[0];
-  const log = logging ? exerciseLogFor(logging.logs, item.exerciseId, logging.shownDate) : null;
+  const log = logs ? logs.logFor(logs.logging.shownDate) : null;
   const chips = log
     ? [
-        log.pain !== null ? t("exerciseLog.chips.pain", { value: log.pain }) : null,
+        log.setWeightsKg !== null
+          ? t("exerciseLog.chips.weights", {
+              value: log.setWeightsKg
+                .map((kg) =>
+                  kg === null
+                    ? "–"
+                    : format.number(kg, { useGrouping: false, maximumFractionDigits: 1 }),
+                )
+                .join(" · "),
+            })
+          : null,
         log.rpe !== null ? t("exerciseLog.chips.rpe", { value: log.rpe }) : null,
-        log.weightKg !== null ? t("exerciseLog.chips.weight", { value: log.weightKg }) : null,
       ].filter((chip) => chip !== null)
     : [];
+  const canLog = logs !== undefined && logs.logging.days.length > 0;
+  const expanded = canLog && logs.expanded;
+  const logLabel = t("exercise.log", { name: item.name });
   const done = doneSets ? (doneSets[item.id] ?? 0) : null;
   const openDetail = () => setOpen(true);
 
@@ -123,78 +209,99 @@ function ExerciseRow({
       ref={current ? currentRef : undefined}
       aria-current={current ? "step" : undefined}
       className={cn(
-        "bg-card flex gap-3 rounded-xl border p-2",
+        "bg-card grid gap-2 rounded-xl border p-2",
         current && "ring-primary bg-primary/5 ring-2",
       )}
     >
-      <button
-        type="button"
-        onClick={openDetail}
-        aria-label={
-          video
-            ? t("exercise.open", { name: item.name })
-            : t("exercise.detailTitle", { name: item.name })
-        }
-        className="group focus-visible:ring-ring/50 relative aspect-video w-24 shrink-0 self-start overflow-hidden rounded-lg outline-none focus-visible:ring-[3px]"
-      >
-        {video ? (
-          <>
-            <YouTubeThumbnail videoId={video.videoId} />
-            <span className="bg-background/80 text-foreground group-hover:bg-primary group-hover:text-primary-foreground absolute inset-0 m-auto flex size-7 items-center justify-center rounded-full shadow-sm transition-colors">
-              <PlayIcon aria-hidden className="size-3.5" />
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={openDetail}
+          aria-label={
+            video
+              ? t("exercise.open", { name: item.name })
+              : t("exercise.detailTitle", { name: item.name })
+          }
+          className="group focus-visible:ring-ring/50 relative aspect-video w-24 shrink-0 self-start overflow-hidden rounded-lg outline-none focus-visible:ring-[3px]"
+        >
+          {video ? (
+            <>
+              <YouTubeThumbnail videoId={video.videoId} />
+              <span className="bg-background/80 text-foreground group-hover:bg-primary group-hover:text-primary-foreground absolute inset-0 m-auto flex size-7 items-center justify-center rounded-full shadow-sm transition-colors">
+                <PlayIcon aria-hidden className="size-3.5" />
+              </span>
+            </>
+          ) : (
+            <span className="bg-muted text-muted-foreground flex size-full items-center justify-center">
+              <DumbbellIcon aria-hidden className="size-5" />
             </span>
-          </>
-        ) : (
-          <span className="bg-muted text-muted-foreground flex size-full items-center justify-center">
-            <DumbbellIcon aria-hidden className="size-5" />
-          </span>
-        )}
-      </button>
-      <div className="grid min-w-0 flex-1 content-start gap-0.5">
-        <h4 className="text-sm font-semibold wrap-anywhere">
-          <button
+          )}
+        </button>
+        <div className="grid min-w-0 flex-1 content-start gap-0.5">
+          <h4 className="text-sm font-semibold wrap-anywhere">
+            <button
+              type="button"
+              onClick={openDetail}
+              className="focus-visible:ring-ring/50 rounded-sm text-left outline-none hover:underline focus-visible:ring-[3px]"
+            >
+              {position ? <span className="text-muted-foreground mr-1">{position}.</span> : null}
+              {item.name}
+            </button>
+          </h4>
+          {prescription ? (
+            <p className="text-muted-foreground text-xs wrap-anywhere">{prescription}</p>
+          ) : null}
+          {item.notes ? <p className="line-clamp-1 text-xs wrap-anywhere">{item.notes}</p> : null}
+          {done !== null ? (
+            <p className="flex gap-1 pt-1" aria-hidden>
+              {Array.from({ length: Math.max(item.sets.length, 1) }, (_, index) => (
+                <span
+                  key={index}
+                  data-testid="set-dot"
+                  data-done={index < done}
+                  className={cn(
+                    "size-2 rounded-full",
+                    index < done ? "bg-primary" : "bg-muted-foreground/30",
+                  )}
+                />
+              ))}
+            </p>
+          ) : null}
+          {chips.length > 0 ? (
+            <ul aria-label={t("exercise.logged")} className="flex flex-wrap gap-1 pt-1">
+              {chips.map((chip) => (
+                <li key={chip}>
+                  <Badge variant="secondary">{chip}</Badge>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        {canLog ? (
+          <Button
             type="button"
-            onClick={openDetail}
-            className="focus-visible:ring-ring/50 rounded-sm text-left outline-none hover:underline focus-visible:ring-[3px]"
+            variant={expanded ? "secondary" : "ghost"}
+            size="icon"
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            aria-label={logLabel}
+            title={logLabel}
+            className={cn("size-12 flex-none self-center", log !== null && "text-primary")}
+            onClick={logs.onToggle}
           >
-            {position ? <span className="text-muted-foreground mr-1">{position}.</span> : null}
-            {item.name}
-          </button>
-        </h4>
-        {prescription ? (
-          <p className="text-muted-foreground text-xs wrap-anywhere">{prescription}</p>
-        ) : null}
-        {item.notes ? <p className="line-clamp-1 text-xs wrap-anywhere">{item.notes}</p> : null}
-        {done !== null ? (
-          <p className="flex gap-1 pt-1" aria-hidden>
-            {Array.from({ length: Math.max(item.sets.length, 1) }, (_, index) => (
-              <span
-                key={index}
-                data-testid="set-dot"
-                data-done={index < done}
-                className={cn(
-                  "size-2 rounded-full",
-                  index < done ? "bg-primary" : "bg-muted-foreground/30",
-                )}
-              />
-            ))}
-          </p>
-        ) : null}
-        {chips.length > 0 ? (
-          <ul aria-label={t("exercise.logged")} className="flex flex-wrap gap-1 pt-1">
-            {chips.map((chip) => (
-              <li key={chip}>
-                <Badge variant="secondary">{chip}</Badge>
-              </li>
-            ))}
-          </ul>
+            <NotebookPenIcon aria-hidden className={cn("size-5", log !== null && "stroke-[2.5]")} />
+          </Button>
         ) : null}
       </div>
-      {logging ? (
-        <ExerciseLogButton
-          logging={logging}
-          exerciseId={item.exerciseId}
-          exerciseName={item.name}
+      {expanded ? (
+        <ExerciseLogPanel
+          id={panelId}
+          item={item}
+          logging={logs.logging}
+          logFor={logs.logFor}
+          remember={logs.remember}
+          draftFor={logs.draftFor}
+          keepDraft={logs.keepDraft}
         />
       ) : null}
       <ExerciseDetail item={item} prescription={prescription} open={open} onOpenChange={setOpen} />

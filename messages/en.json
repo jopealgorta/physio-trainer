@@ -1411,22 +1411,27 @@
     },
     "exerciseLog": {
       "title": "How did {name} go?",
-      "weight": {
-        "label": "Weight (optional)",
-        "hint": "In kg, for example 12.5",
+      "sets": {
+        "legend": "Weight per set",
+        "set": "Set {number, number}",
+        "input": "Set {number, number} weight in kg",
+        "unit": "kg",
+        "add": "Add set",
         "invalid": "Enter a weight between 0 and {max, number} kg."
       },
       "comment": {
         "label": "Comment (optional)",
         "placeholder": "How did it feel? Anything your physio should know?"
       },
-      "save": "Save",
-      "clear": "Clear log",
-      "close": "Close",
+      "status": {
+        "saving": "Saving…",
+        "saved": "Saved",
+        "error": "Couldn't save."
+      },
+      "retry": "Retry",
       "chips": {
-        "pain": "Pain {value, number}",
         "rpe": "RPE {value, number}",
-        "weight": "{value, number} kg"
+        "weights": "{value} kg"
       },
       "errors": {
         "generic": "Something went wrong. Try again.",

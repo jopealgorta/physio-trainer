@@ -180,10 +180,6 @@ function LogForm({
     >
       <DayToggle days={days} value={day.date} onChange={onDayChange} />
 
-      <PainScale name="pain" value={pain} onChange={setPain} />
-
-      <RpeScale name="rpe" value={rpe} onChange={setRpe} />
-
       <div className="grid gap-2">
         <Label htmlFor={`${id}-comment`} className="text-sm">
           {t("comment.label")}
@@ -194,11 +190,15 @@ function LogForm({
           value={comment}
           onChange={(event) => setComment(event.target.value)}
           maxLength={LOG_COMMENT_MAX}
-          rows={3}
+          rows={2}
           placeholder={t("comment.placeholder")}
-          className="min-h-24 text-base"
+          className="min-h-20 text-base"
         />
       </div>
+
+      <PainScale name="pain" value={pain} onChange={setPain} />
+
+      <RpeScale name="rpe" value={rpe} onChange={setRpe} />
 
       {error ? (
         <Alert variant="destructive">

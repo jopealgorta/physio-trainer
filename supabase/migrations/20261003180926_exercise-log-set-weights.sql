@@ -1,0 +1,5 @@
+ALTER TABLE "exercise_logs" DROP CONSTRAINT "exercise_logs_not_empty";--> statement-breakpoint
+ALTER TABLE "exercise_logs" ADD COLUMN "set_weights_kg" numeric(5, 1)[];--> statement-breakpoint
+ALTER TABLE "exercise_logs" ADD CONSTRAINT "exercise_logs_set_weights_range" CHECK (0 <= all("exercise_logs"."set_weights_kg") and 999.9 >= all("exercise_logs"."set_weights_kg"));--> statement-breakpoint
+ALTER TABLE "exercise_logs" ADD CONSTRAINT "exercise_logs_set_weights_length" CHECK (cardinality("exercise_logs"."set_weights_kg") between 1 and 20);--> statement-breakpoint
+ALTER TABLE "exercise_logs" ADD CONSTRAINT "exercise_logs_not_empty" CHECK (num_nonnulls("exercise_logs"."pain", "exercise_logs"."rpe", "exercise_logs"."weight_kg", "exercise_logs"."set_weights_kg", "exercise_logs"."comment") > 0);
