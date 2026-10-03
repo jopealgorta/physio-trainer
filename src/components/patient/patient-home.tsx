@@ -14,7 +14,8 @@ import type { PatientView } from "@/server/patient/view";
 
 import { DayStrip } from "./day-strip";
 import type { ExerciseLogging } from "./exercise-list";
-import { LogSessionButton, type LoggableDay } from "./log-session-button";
+import { LogSessionButton } from "./log-session-button";
+import type { LoggableDay } from "./log-sheet";
 import { RoutineView } from "./routine-view";
 
 /** The patient page body: greeting, plans for the chosen day with the week strip, and routines. */

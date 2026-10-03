@@ -1,19 +1,12 @@
 "use client";
 
-import { NotebookPenIcon, XIcon } from "lucide-react";
-import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { NotebookPenIcon } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,11 +16,18 @@ import { logExerciseAction, type ExerciseLogActionResult } from "@/server/patien
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 
 import type { ExerciseLogging } from "./exercise-list";
-import type { LoggableDay } from "./log-session-button";
+import {
+  DayToggle,
+  LogSheet,
+  useLogDay,
+  useLogSubmit,
+  useSavedLogs,
+  type LoggableDay,
+} from "./log-sheet";
 import { PainScale } from "./pain-scale";
 import { RpeScale } from "./rpe-scale";
 
-type ErrorKey = Exclude<ExerciseLogActionResult, { ok: true }>["error"] | "generic";
+type LogError = Exclude<ExerciseLogActionResult, { ok: true }>["error"];
 
 /** The log of this exercise on a day, from what the page loaded. */
 export function exerciseLogFor(
@@ -58,26 +58,21 @@ export function ExerciseLogButton({
   variant?: "row" | "bar";
 }) {
   const t = useTranslations("Patient");
-  const locale = useLocale();
   const router = useRouter();
   const { days, shownDate } = logging;
   const [open, setOpen] = useState(defaultOpen && days.length > 0);
-  // Saved here first (null: cleared) so the button follows before the refreshed page arrives.
-  const [saved, setSaved] = useState<Record<string, PatientExerciseLog | null>>({});
-  const [selected, setSelected] = useState(
-    () => days.find((day) => day.date === shownDate)?.date ?? days.at(-1)?.date ?? shownDate,
+  const { logFor, remember } = useSavedLogs((date) =>
+    exerciseLogFor(logging.logs, exerciseId, date),
   );
+  const { day, select, reset } = useLogDay(days, shownDate);
 
-  if (days.length === 0) return null;
+  if (!day) return null;
 
-  const logFor = (date: string) =>
-    date in saved ? saved[date]! : exerciseLogFor(logging.logs, exerciseId, date);
   const logged = logFor(shownDate) !== null;
-  const day = days.find((d) => d.date === selected) ?? days[0]!;
   const label = t("exercise.log", { name: exerciseName });
 
   const onSaved = (date: string, log: PatientExerciseLog | null) => {
-    setSaved((current) => ({ ...current, [date]: log }));
+    remember(date, log);
     setOpen(false);
     router.refresh();
   };
@@ -95,51 +90,29 @@ export function ExerciseLogButton({
           logged && "text-primary",
         )}
         onClick={() => {
-          setSelected(days.find((d) => d.date === shownDate)?.date ?? days.at(-1)!.date);
+          reset();
           setOpen(true);
         }}
       >
         <NotebookPenIcon aria-hidden className={cn("size-5", logged && "stroke-[2.5]")} />
       </Button>
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent
-          // Portalled out of the patient page: carries its branding scope and language itself.
-          data-brand="patient"
-          lang={locale}
-          // The title says it all (exercise name included); no description.
-          aria-describedby={undefined}
-          className="mx-auto max-h-[90dvh] max-w-2xl rounded-t-2xl text-sm"
-        >
-          <DrawerHeader className="relative pr-14">
-            <DrawerTitle className="text-lg wrap-anywhere">
-              {t("exerciseLog.title", { name: exerciseName })}
-            </DrawerTitle>
-            <DrawerClose asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-3 right-3 size-10"
-                aria-label={t("exerciseLog.close")}
-              >
-                <XIcon aria-hidden />
-              </Button>
-            </DrawerClose>
-          </DrawerHeader>
-          {/* The drawer itself cannot scroll (vaul owns its gestures); this inner box does. */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <ExerciseLogForm
-              // A fresh form (prefilled from that day's log) whenever the day changes.
-              key={day.date}
-              logging={logging}
-              exerciseId={exerciseId}
-              day={day}
-              initial={logFor(day.date)}
-              onDayChange={setSelected}
-              onSaved={onSaved}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <LogSheet
+        open={open}
+        onOpenChange={setOpen}
+        title={t("exerciseLog.title", { name: exerciseName })}
+        closeLabel={t("exerciseLog.close")}
+      >
+        <ExerciseLogForm
+          // A fresh form (prefilled from that day's log) whenever the day changes.
+          key={day.date}
+          logging={logging}
+          exerciseId={exerciseId}
+          day={day}
+          initial={logFor(day.date)}
+          onDayChange={select}
+          onSaved={onSaved}
+        />
+      </LogSheet>
     </>
   );
 }
@@ -171,8 +144,7 @@ function ExerciseLogForm({
   );
   const [weightInvalid, setWeightInvalid] = useState(false);
   const [comment, setComment] = useState(initial?.comment ?? "");
-  const [error, setError] = useState<ErrorKey | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { error, pending, submit } = useLogSubmit<PatientExerciseLog | null, LogError>();
 
   // Submitted from the controlled fields, not a form `action` (React resets a form after it).
   const send = (values: {
@@ -181,27 +153,17 @@ function ExerciseLogForm({
     weightKg: number | null;
     comment: string | null;
   }) =>
-    startTransition(async () => {
-      let result: ExerciseLogActionResult;
-      try {
-        result = await logExerciseAction(logging.code, {
+    submit(
+      () =>
+        logExerciseAction(logging.code, {
           routineId: logging.routineId,
           entryId: logging.entryId,
           exerciseId,
           performedOn: day.date,
           ...values,
-        });
-      } catch {
-        setError("generic");
-        return;
-      }
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setError(null);
-      onSaved(day.date, result.data);
-    });
+        }),
+      (log) => onSaved(day.date, log),
+    );
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -220,34 +182,7 @@ function ExerciseLogForm({
       noValidate
       className="grid gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
-      {logging.days.length > 1 ? (
-        <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium">{t("logging.day.label")}</legend>
-          <div className="grid grid-cols-2 gap-2">
-            {logging.days.map((option) => (
-              <label
-                key={option.date}
-                className={cn(
-                  "has-focus-visible:ring-ring/50 flex h-12 cursor-pointer items-center justify-center rounded-lg border text-base font-medium has-focus-visible:ring-[3px]",
-                  option.date === day.date
-                    ? "bg-primary text-primary-foreground border-transparent"
-                    : "bg-background hover:bg-muted",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="day"
-                  value={option.date}
-                  checked={option.date === day.date}
-                  onChange={() => onDayChange(option.date)}
-                  className="sr-only"
-                />
-                {t(`logging.day.${option.relative}`)}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ) : null}
+      <DayToggle days={logging.days} value={day.date} onChange={onDayChange} />
 
       <PainScale name="pain" value={pain} onChange={setPain} />
 

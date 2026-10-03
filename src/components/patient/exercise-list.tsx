@@ -13,7 +13,7 @@ import type { PatientBlock, PatientItem } from "@/server/patient/view";
 
 import { ExerciseDetail } from "./exercise-detail";
 import { ExerciseLogButton, exerciseLogFor } from "./exercise-log-button";
-import type { LoggableDay } from "./log-session-button";
+import type { LoggableDay } from "./log-sheet";
 
 /** What the rows need to show and write exercise logs for one routine (and plan entry). */
 export type ExerciseLogging = {
