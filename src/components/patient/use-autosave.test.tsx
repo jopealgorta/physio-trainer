@@ -139,4 +139,40 @@ describe("useAutosave", () => {
     await act(async () => {});
     expect(onSaved).toHaveBeenCalledWith("data", "x");
   });
+
+  it("cancel drops the queued values, also on unmount", async () => {
+    const save = vi.fn(async () => ok());
+    const { result, unmount } = setup(save);
+    act(() => result.current.schedule("a"));
+    act(() => result.current.cancel());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS);
+    });
+    unmount();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("keeps saving after onSaved throws", async () => {
+    const save = vi.fn(async (v: string) => ok(v));
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const onSaved = vi.fn().mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
+    const { result } = setup(save, onSaved);
+    act(() => {
+      result.current.schedule("a");
+      result.current.flush();
+    });
+    await act(async () => {});
+    act(() => {
+      result.current.schedule("b");
+      result.current.flush();
+    });
+    await act(async () => {});
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(onSaved).toHaveBeenLastCalledWith("b", "b");
+    expect(result.current.status).toBe("saved");
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
+  });
 });
