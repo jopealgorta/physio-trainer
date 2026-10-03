@@ -21,6 +21,9 @@ export const RPE_SCALE = Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, i) =>
 /** Heaviest weight (kg) a patient can log for one exercise; one decimal. */
 export const WEIGHT_MAX = 999.9;
 
+/** Most set lines one exercise log holds (prescribed sets plus extras the patient adds). */
+export const SET_WEIGHTS_MAX = 20;
+
 /**
  * Parses what a patient typed as a weight in kg: comma or dot (also leading or trailing), rounded
  * to 0.1. Null when blank, undefined when it is not a number in 0..WEIGHT_MAX.

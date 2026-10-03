@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  customType,
   date,
   foreignKey,
   index,
@@ -23,6 +24,7 @@ import {
   PAIN_MIN,
   RPE_MAX,
   RPE_MIN,
+  SET_WEIGHTS_MAX,
   WEIGHT_MAX,
 } from "../../lib/session-logs";
 import { timestamps } from "./_columns";
@@ -30,6 +32,25 @@ import { customers } from "./customers";
 import { exercises } from "./library";
 import { physios } from "./physios";
 import { routines } from "./routines";
+
+/**
+ * numeric(5,1)[] read as `(number | null)[]`. Drizzle's own `numeric(...).array()` maps every
+ * element with `Number()`, which turns a null gap into NaN; this keeps nulls as null.
+ */
+const numericArray = customType<{ data: (number | null)[]; driverData: string | string[] }>({
+  dataType: () => "numeric(5, 1)[]",
+  toDriver: (value) => `{${value.map((v) => (v === null ? "NULL" : String(v))).join(",")}}`,
+  fromDriver: (value) => {
+    const items =
+      typeof value === "string"
+        ? value
+            .slice(1, -1)
+            .split(",")
+            .filter((v) => v !== "")
+        : value;
+    return items.map((v) => (v === "NULL" || v === null ? null : Number(v)));
+  },
+});
 
 /** Tenancy rule 1: a physio reads and writes only their own rows. */
 const ownRows = (name: string, physioId: AnyPgColumn) =>
@@ -62,6 +83,8 @@ export const exerciseLogs = pgTable(
     pain: smallint(),
     rpe: smallint(),
     weightKg: numeric({ precision: 5, scale: 1, mode: "number" }),
+    /** Weight per set (index = set position); null elements are sets not logged (spec 20). */
+    setWeightsKg: numericArray(),
     comment: text(),
     seenByPhysioAt: timestamp({ withTimezone: true }),
     ...timestamps,
@@ -100,12 +123,20 @@ export const exerciseLogs = pgTable(
       sql`${t.weightKg} between 0 and ${sql.raw(String(WEIGHT_MAX))}`,
     ),
     check(
+      "exercise_logs_set_weights_range",
+      sql`0 <= all(${t.setWeightsKg}) and ${sql.raw(String(WEIGHT_MAX))} >= all(${t.setWeightsKg})`,
+    ),
+    check(
+      "exercise_logs_set_weights_length",
+      sql`cardinality(${t.setWeightsKg}) between 1 and ${sql.raw(String(SET_WEIGHTS_MAX))}`,
+    ),
+    check(
       "exercise_logs_comment_length",
       sql`char_length(${t.comment}) between 1 and ${sql.raw(String(LOG_COMMENT_MAX))}`,
     ),
     check(
       "exercise_logs_not_empty",
-      sql`num_nonnulls(${t.pain}, ${t.rpe}, ${t.weightKg}, ${t.comment}) > 0`,
+      sql`num_nonnulls(${t.pain}, ${t.rpe}, ${t.weightKg}, ${t.setWeightsKg}, ${t.comment}) > 0`,
     ),
     ownRows("exercise_logs_own", t.physioId),
   ],
