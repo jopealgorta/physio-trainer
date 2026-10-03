@@ -256,6 +256,24 @@ const plan = (
   days,
 });
 
+describe("old-shape snapshots", () => {
+  it("diffs a set without aerobic keys against an identical set with nulls as unchanged", () => {
+    const old = { ...set(10), distanceMeters: undefined, intensity: undefined } as never;
+    const before = routine([item("e1", { prescription: { sets: [old] } })]);
+    const after = routine([item("e1", { prescription: { sets: [set(10)] } })]);
+    const diff = diffRoutines(before, after);
+    expect(diff.items.map((i) => i.status)).toEqual(["unchanged"]);
+    expect(diff.items[0].sets).toEqual([]);
+  });
+
+  it("diffs a plan snapshot without days against one with days: []", () => {
+    const old = { ...plan([entry("n1")]), days: undefined } as unknown as PlanSnapshot;
+    const diff = diffPlans(old, plan([entry("n1")]));
+    expect(diff.days).toEqual([]);
+    expect(diff.header).toEqual([]);
+  });
+});
+
 describe("diffPlans", () => {
   it("reports an added, changed and removed day note per weekday", () => {
     const before = plan([], {}, [

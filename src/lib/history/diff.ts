@@ -78,9 +78,11 @@ function headerChanges<F extends string>(
   before: Record<F, unknown>,
   after: Record<F, unknown>,
 ): FieldChange<F>[] {
+  // Stored snapshots are not re-parsed: a field added later is `undefined` in an old one.
+  const norm = (value: unknown) => value ?? null;
   return fields
-    .filter((field) => before[field] !== after[field])
-    .map((field) => ({ field, from: before[field], to: after[field] }));
+    .filter((field) => norm(before[field]) !== norm(after[field]))
+    .map((field) => ({ field, from: norm(before[field]), to: norm(after[field]) }));
 }
 
 /** Indices (into `sequence`) of one longest strictly increasing subsequence. */

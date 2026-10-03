@@ -76,7 +76,8 @@ export const planSnapshotSchema = z.object({
       routine: z.object({ id: z.string(), name: z.string(), version: z.number().int() }),
     }),
   ),
-  // Added after the first snapshots were stored: older ones parse with no day notes.
+  // Added after the first snapshots were stored. Stored jsonb is not re-parsed, so readers must
+  // treat a missing `days` as [] (the default only applies when a snapshot is parsed).
   days: z
     .array(z.object({ weekday: z.number().int().min(1).max(7), notes: z.string() }))
     .default([]),
