@@ -73,11 +73,13 @@ test.describe("patient page v2", () => {
     const link = await insertCustomerLink(physio, customerId, { weeklyPlanId: planId });
 
     await signIn(page, physio, `/plans/${planId}`);
-    await page.getByRole("button", { name: "Edit note for Wednesday" }).click();
-    await page
-      .getByRole("dialog", { name: "Note for Wednesday" })
-      .getByRole("textbox")
-      .fill("Easy day");
+    // The button is server-rendered: a click before hydration opens nothing, so retry until it does.
+    const noteDialog = page.getByRole("dialog", { name: "Note for Wednesday" });
+    await expect(async () => {
+      await page.getByRole("button", { name: "Edit note for Wednesday" }).click();
+      await expect(noteDialog).toBeVisible({ timeout: 1000 });
+    }).toPass();
+    await noteDialog.getByRole("textbox").fill("Easy day");
     const saved = page.waitForResponse(
       (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"] && r.ok(),
     );
