@@ -2,6 +2,7 @@ import { UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { customersHref, DEFAULT_CUSTOMER_FILTERS } from "@/lib/customer-params";
@@ -36,7 +37,10 @@ export function NoCustomerResults({ canClear }: { canClear: boolean }) {
         <p className="text-muted-foreground text-sm">{t(canClear ? "body" : "allArchived")}</p>
         {canClear ? (
           <Button asChild variant="outline">
-            <Link href={customersHref(DEFAULT_CUSTOMER_FILTERS)}>{t("clear")}</Link>
+            <Link href={customersHref(DEFAULT_CUSTOMER_FILTERS)} className="relative">
+              {t("clear")}
+              <LinkPendingHint className="inset-x-3 bottom-1" />
+            </Link>
           </Button>
         ) : null}
       </CardContent>

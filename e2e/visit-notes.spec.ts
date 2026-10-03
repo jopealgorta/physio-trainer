@@ -5,8 +5,10 @@ import { expect, test } from "./helpers/auth";
 import { hasNoHorizontalOverflow } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 
+// Not ended in afterAll: with fullyParallel a worker can run this file's afterAll and then get
+// another of its tests (the module stays loaded), which would hit a closed client. Same as the
+// shared helpers' clients, it closes with the worker.
 const sql = postgres(process.env.DATABASE_URL!, { prepare: false, max: 2 });
-test.afterAll(() => sql.end());
 
 /** Creates a customer through the form and returns the path of their page. */
 async function createCustomer(page: Page, firstName: string, lastName: string) {

@@ -1,0 +1,13 @@
+import { HeaderSkeleton, ListSkeleton, LoadingPage, ToolbarSkeleton } from "@/components/skeletons";
+
+export default function Loading() {
+  return (
+    <LoadingPage className="gap-8">
+      <HeaderSkeleton description actions={1} />
+      <div className="grid gap-6">
+        <ToolbarSkeleton filters={1} />
+        <ListSkeleton rows={6} />
+      </div>
+    </LoadingPage>
+  );
+}

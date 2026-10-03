@@ -16,10 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewExercisePage() {
   const t = await getTranslations("Library.form");
-  const { categories, tags } = await withPhysio(async (tx, physioId) => ({
-    categories: await listCategoryTree(tx, physioId),
-    tags: await listTags(tx, physioId),
-  }));
+  const [categories, tags] = await withPhysio((tx, physioId) =>
+    Promise.all([listCategoryTree(tx, physioId), listTags(tx, physioId)]),
+  );
   return (
     <div className="grid gap-8">
       <div className="grid gap-2">

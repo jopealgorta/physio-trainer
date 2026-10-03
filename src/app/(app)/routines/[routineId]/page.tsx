@@ -13,25 +13,17 @@ import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-di
 import { TemplateActions } from "@/components/templates/template-actions";
 import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
-import { DEFAULT_LIBRARY_FILTERS } from "@/lib/library-params";
 import { fromLoaded } from "@/lib/routine-editor";
 import { firstParam } from "@/lib/search-params";
-import { requirePhysio, withPhysio } from "@/server/auth/session";
-import { listCategoryTree, listExercises } from "@/server/library/queries";
 import { idSchema } from "@/server/routines/schemas";
 import { loadRoutine } from "@/server/routines/load";
-import { listRecentExercises } from "@/server/routines/queries";
-import { listAssignableCustomers } from "@/server/templates/queries";
-
-/** Exercises shown in the picker before the physio searches. */
-const PICKER_INITIAL_LIMIT = 60;
 
 export async function generateMetadata({
   params,
 }: PageProps<"/routines/[routineId]">): Promise<Metadata> {
   const { routineId } = await params;
-  const routine = await loadRoutine(routineId);
-  return { title: routine?.name };
+  const loaded = await loadRoutine(routineId);
+  return { title: loaded?.routine.name };
 }
 
 export default async function RoutinePage({
@@ -39,25 +31,10 @@ export default async function RoutinePage({
   searchParams,
 }: PageProps<"/routines/[routineId]">) {
   const [{ routineId }, sp] = await Promise.all([params, searchParams]);
-  const routine = await loadRoutine(routineId);
-  if (!routine) notFound();
+  const loaded = await loadRoutine(routineId);
+  if (!loaded) notFound();
+  const { routine, timeZone, categories, recent, exercises, customers } = loaded;
   const t = await getTranslations("Routines.editor");
-  const { profile } = await requirePhysio();
-
-  const { categories, recent, exercises, customers } = await withPhysio(async (tx, physioId) => {
-    const [tree, recentlyUsed, initial, assignable] = await Promise.all([
-      listCategoryTree(tx, physioId),
-      listRecentExercises(tx, physioId),
-      listExercises(tx, physioId, DEFAULT_LIBRARY_FILTERS, PICKER_INITIAL_LIMIT),
-      routine.isTemplate ? listAssignableCustomers(tx, physioId) : [],
-    ]);
-    return {
-      categories: tree,
-      recent: recentlyUsed,
-      exercises: initial.exercises,
-      customers: assignable,
-    };
-  });
 
   // Coming from a plan board ("New routine" on a day): offer the way back to that plan.
   const fromPlan = idSchema.safeParse(firstParam(sp.plan));
@@ -118,7 +95,7 @@ export default async function RoutinePage({
           phaseLabel={routine.phaseLabel}
           startsOn={routine.startsOn}
           endsOn={routine.endsOn}
-          today={todayIn(profile.timezone)}
+          today={todayIn(timeZone)}
         />
       ) : null}
       <RoutineEditor

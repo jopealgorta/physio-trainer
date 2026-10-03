@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { nextLimit, notesHref, type NotesFilters } from "@/lib/visit-notes";
 import { withPhysio } from "@/server/auth/session";
@@ -93,8 +94,10 @@ export async function CustomerNotes({
           <Link
             href={notesHref(customerId, active, { limit: nextLimit(active.limit)! })}
             scroll={false}
+            className="relative"
           >
             {t("loadMore")}
+            <LinkPendingHint className="inset-x-3 bottom-1" />
           </Link>
         </Button>
       ) : null}

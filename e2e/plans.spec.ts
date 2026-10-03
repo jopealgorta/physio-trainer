@@ -169,8 +169,11 @@ test("removing the last use of a plan-only routine offers to delete it", async (
   await entryAction(page, "Tuesday", "Board only", "Remove from plan");
   const dialog = page.getByRole("alertdialog");
   await expect(dialog.getByLabel("Also delete the routine")).toBeChecked();
+  const removed = boardActionSettled(page);
   await dialog.getByRole("button", { name: "Remove" }).click();
   await expect(day(page, "Tuesday")).toContainText("Rest day");
+  // The board updates optimistically: wait for the server before leaving the page.
+  await removed;
 
   // The routine is gone from the customer's list.
   await page.goto(`${customer}?tab=routines`);

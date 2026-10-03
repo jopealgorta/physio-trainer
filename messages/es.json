@@ -1620,5 +1620,8 @@
       "conflict": "Esto cambió mientras lo mirabas. Abrí el historial de nuevo y volvé a intentar.",
       "generic": "Algo salió mal. Volvé a intentar."
     }
+  },
+  "Loading": {
+    "label": "Cargando…"
   }
 }

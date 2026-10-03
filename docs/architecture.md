@@ -91,9 +91,15 @@ These rules are the security model. Every spec must follow them.
    too, so every policy is a single-column check with no joins. Index `physio_id` everywhere.
 2. **Physio-facing code** reads and writes through `withPhysio(fn)` (built in spec 01): it requires
    a verified session and calls `runAsPhysio(claims, fn)`, a Drizzle transaction that sets
-   `request.jwt.claims` and runs `set local role authenticated`, so RLS applies to Drizzle
-   queries. Queries _also_ filter by `physio_id` explicitly. Two independent guards.
-   Integration tests call `runAsPhysio` directly with test claims.
+   `request.jwt.claims` and switches to the `authenticated` role for the transaction (one
+   statement: `set_config(..., true)` for both, i.e. `set local role authenticated`), so RLS
+   applies to Drizzle queries. Queries _also_ filter by `physio_id` explicitly. Two independent
+   guards. Integration tests call `runAsPhysio` directly with test claims. Every transaction
+   costs round trips: a page loads what it needs in **one** `withPhysio` (a `cache()`d loader
+   shared with `generateMetadata`), with independent reads in `Promise.all` (postgres.js
+   pipelines them on the transaction's connection). Reads only: never run a helper that opens a
+   savepoint (`tx.transaction(...)`, as some `*/mutations.ts` do) concurrently with other
+   queries on the same transaction, because pipelined statements would land inside or across it.
 3. **Patient-facing code** (no session) lives only in `src/server/patient/`. It uses the owner
    `db` connection (RLS bypassed) and must:
    - resolve the share link by `code` first (not revoked, not expired, PIN satisfied);
@@ -229,6 +235,17 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   so the sheet keeps the full width, and name it with `PopoverTitle` (`className="sr-only"` when
   no heading is shown). Dropdown _menus_ (`DropdownMenu`) stay dropdowns: they are short lists.
   Never build a floating card by hand.
+- **Navigation feedback**: every `(app)` route segment has a `loading.tsx` built from
+  `src/components/skeletons.tsx` (it is prefetched, so a path change shows it at once; the
+  `(app)` layout and sidebar stay outside it). A navigation that only changes search params
+  (tabs, filters) does not show `loading.tsx`: wrap the controls and the content in
+  `PendingScope`, the content in `PendingContent`, put `LinkPendingHint` inside tab/filter
+  `<Link>`s and run `router.replace` through `usePendingNavigation().navigate`
+  (`src/components/navigation-pending.tsx`). Links in long lists (one per row) use `IntentLink`
+  (`src/components/intent-link.tsx`, first row `eager`): a plain `<Link>` prefetches every row
+  in view, each one a server render and a database transaction. Client cache `staleTimes`
+  stays at the default (0s for dynamic pages): `router.refresh()` only clears the current
+  route, and patients write data the physio's cache would never hear about.
 - **Handles and top-level routes**: adding a top-level route requires adding it to
   `RESERVED_HANDLES` in `src/lib/handles.ts` (a unit test enforces this).
 
