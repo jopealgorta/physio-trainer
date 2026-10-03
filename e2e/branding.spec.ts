@@ -48,7 +48,7 @@ const saved = (page: import("@playwright/test").Page) =>
 test("picking an accent colour updates the preview and persists", async ({ physioPage: page }) => {
   await page.goto("/settings?section=branding");
   const preview = page.getByRole("figure", { name: "Patient page" });
-  const button = preview.getByRole("button", { name: "Start workout" });
+  const button = preview.getByRole("button", { name: "Mark as done" });
   const before = await button.evaluate((el) => getComputedStyle(el).backgroundColor);
 
   await page.getByRole("radio", { name: "Teal" }).click();

@@ -11,6 +11,9 @@ export const env = createEnv({
     // Bypasses RLS. Only for server code that resolves patient share links
     // (see docs/architecture.md → "Data access").
     SUPABASE_SECRET_KEY: z.string().min(1),
+    // Workout mode (docs/specs/12-workout-mode.md) is built but hidden: no "Start workout"
+    // button, and its route redirects to the patient page. Set to true to bring it back.
+    WORKOUT_MODE_ENABLED: z.stringbool().default(false),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
@@ -27,6 +30,7 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+    WORKOUT_MODE_ENABLED: process.env.WORKOUT_MODE_ENABLED,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,

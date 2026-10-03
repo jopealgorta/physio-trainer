@@ -34,6 +34,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
     // Links in emails and OAuth redirects must point at the e2e server, not :3000.
-    env: { NEXT_PUBLIC_APP_URL: baseURL },
+    // Workout mode is hidden by default; its e2e suites still run against it.
+    env: { NEXT_PUBLIC_APP_URL: baseURL, WORKOUT_MODE_ENABLED: "true" },
   },
 });
