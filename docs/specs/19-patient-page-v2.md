@@ -283,3 +283,4 @@ Answered 2026-10-03 before design:
   has a video; without one the button uses "About {name}" (`detailTitle`), see above.
 - **Workout resume unchanged.** The machine and sessionStorage key are the same as spec 12, so a
   saved state from the old player still resumes (the list highlights the resumed exercise).
+- **Per-exercise sheet replaced by spec 20** (inline autosaving exercise log).

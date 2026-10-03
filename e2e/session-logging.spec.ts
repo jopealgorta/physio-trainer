@@ -98,25 +98,24 @@ test.describe("session logging", () => {
 
     await page.goto(link.path);
     await page.getByRole("button", { name: "Log Squat" }).click();
-    const dialog = page.getByRole("dialog", { name: "How did Squat go?" });
+    const region = page.getByRole("region", { name: "How did Squat go?" });
     // A single routine: today or yesterday, like the routine's own log.
-    await expect(dialog.getByText("Yesterday")).toBeVisible();
-    await rate(page, "Pain (optional)", 3);
-    await rate(page, "Effort (RPE)", 6);
-    await dialog.getByLabel("Weight (optional)").fill("12,5");
-    await dialog.getByRole("button", { name: "Save" }).click();
-    await expect(dialog).toBeHidden();
+    await expect(region.getByText("Yesterday")).toBeVisible();
+    const set1 = region.getByLabel("Set 1 weight in kg");
+    await set1.fill("12,5");
+    await set1.blur();
+    await expect(region.getByText("Saved", { exact: true })).toBeVisible();
     const logged = page.getByRole("list", { name: "Logged" });
-    await expect(logged).toContainText("Pain 3");
-    await expect(logged).toContainText("RPE 6");
     await expect(logged).toContainText("12.5 kg");
 
     await page.reload();
     await expect(page.getByRole("list", { name: "Logged" })).toContainText("12.5 kg");
     await page.getByRole("button", { name: "Log Squat" }).click();
-    await expect(dialog.getByLabel("Weight (optional)")).toHaveValue("12.5");
-    await dialog.getByRole("button", { name: "Clear log" }).click();
-    await expect(dialog).toBeHidden();
+    const reopened = page.getByRole("region", { name: "How did Squat go?" });
+    await expect(reopened.getByLabel("Set 1 weight in kg")).toHaveValue("12.5");
+    await reopened.getByLabel("Set 1 weight in kg").fill("");
+    await reopened.getByLabel("Set 1 weight in kg").blur();
+    await expect(reopened.getByText("Saved", { exact: true })).toBeVisible();
     await expect(page.getByRole("list", { name: "Logged" })).toHaveCount(0);
   });
 

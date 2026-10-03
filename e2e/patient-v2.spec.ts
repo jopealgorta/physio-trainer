@@ -9,7 +9,7 @@ import {
   insertPlan,
   insertRoutine,
 } from "./helpers/patient";
-import { addExercises } from "./helpers/routines";
+import { addExercises, hasNoHorizontalOverflow } from "./helpers/routines";
 
 /** Picks a rating on a scale of the log sheet, found by its group name (native radios: click the label). */
 const rate = (page: Page, group: string, value: number) =>
@@ -27,20 +27,36 @@ test.describe("patient page v2", () => {
 
     await page.goto(link.path);
     await expect(page.getByRole("heading", { level: 4, name: /Squat/ })).toBeVisible();
-    await page.getByRole("button", { name: "Log Squat" }).click();
-    const dialog = page.getByRole("dialog", { name: "How did Squat go?" });
-    await rate(page, "Pain (optional)", 4);
+    const toggle = page.getByRole("button", { name: "Log Squat" });
+    await toggle.click();
+    const region = page.getByRole("region", { name: "How did Squat go?" });
+    await expect(region).toBeVisible();
+    await region.getByLabel("Set 1 weight in kg").fill("20");
+    await region.getByLabel("Set 2 weight in kg").fill("22,5");
+    await region.getByLabel("Set 3 weight in kg").fill("25");
     await rate(page, "Effort (RPE)", 6);
-    await dialog.getByLabel("Weight (optional)").fill("12.5");
-    await dialog.getByLabel("Comment (optional)").fill("Felt fine");
-    await dialog.getByRole("button", { name: "Save" }).click();
-    await expect(dialog).toBeHidden();
+    await region.getByLabel("Comment (optional)").fill("Felt fine");
+    await region.getByLabel("Comment (optional)").blur();
+    await expect(region.getByText("Saved", { exact: true })).toBeVisible();
     const logged = page.getByRole("list", { name: "Logged" });
-    await expect(logged).toContainText("Pain 4");
-    await expect(logged).toContainText("12.5 kg");
+    await expect(logged).toContainText("20 · 22.5 · 25 kg");
+    await expect(logged).toContainText("RPE 6");
+
+    // At phone width an open panel must not overflow the page.
+    await page.setViewportSize({ width: 360, height: 740 });
+    expect(await hasNoHorizontalOverflow(page)).toBe(true);
+
+    await page.reload();
+    await page.getByRole("button", { name: "Log Squat" }).click();
+    const reopened = page.getByRole("region", { name: "How did Squat go?" });
+    await expect(reopened.getByLabel("Set 1 weight in kg")).toHaveValue("20");
+    await expect(reopened.getByLabel("Set 2 weight in kg")).toHaveValue("22.5");
+    await expect(reopened.getByLabel("Set 3 weight in kg")).toHaveValue("25");
+    await expect(reopened.getByLabel("Comment (optional)")).toHaveValue("Felt fine");
 
     await signIn(page, physio, `/customers/${customerId}?tab=activity`);
     const section = page.getByRole("region", { name: "Exercise log" });
+    await expect(section).toContainText("20 · 22.5 · 25 kg");
     await expect(section).toContainText("Felt fine");
     await expect(section.getByText("New", { exact: true })).toBeVisible();
   });

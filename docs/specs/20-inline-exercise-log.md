@@ -1,6 +1,6 @@
 # 20 · Inline exercise log (weight per set)
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** D (logging), extends 19
 - **Depends on:** 13, 19
 
@@ -113,13 +113,13 @@ keys of the exercise sheet are removed. en + es (voseo) in the same change.
 
 ## Acceptance criteria
 
-- [ ] The exercise row expands an inline section; no sheet opens for exercise logging.
-- [ ] The patient logs a weight per set, RPE and a comment; they autosave and survive a reload.
-- [ ] Clearing every field deletes the log.
-- [ ] Aerobic exercises show RPE and comment only.
-- [ ] The physio sees set weights in the Activity tab; old single-weight logs still show.
-- [ ] "Mark as done" shows comment before compact pain and RPE scales.
-- [ ] The workout bar's "Log exercise" opens the current exercise's inline section.
+- [x] The exercise row expands an inline section; no sheet opens for exercise logging.
+- [x] The patient logs a weight per set, RPE and a comment; they autosave and survive a reload.
+- [x] Clearing every field deletes the log.
+- [x] Aerobic exercises show RPE and comment only.
+- [x] The physio sees set weights in the Activity tab; old single-weight logs still show.
+- [x] "Mark as done" shows comment before compact pain and RPE scales.
+- [x] The workout bar's "Log exercise" opens the current exercise's inline section.
 
 ## Test plan
 
@@ -141,4 +141,17 @@ Answered 2026-10-03 before design:
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **`numericArray` customType.** `exercise_logs.set_weights_kg` uses a local drizzle customType,
+  because drizzle's `numeric().array()` maps null elements (skipped sets) to `NaN`.
+- **Editing a legacy log clears its pain and single weight.** The patient no longer sees them
+  (and the weight was migrated into the set weights), so saving writes `pain = null`,
+  `weight_kg = null`.
+- **No refresh per save.** The list does one debounced `router.refresh()` 1500 ms after the last
+  save, so back/forward navigation does not restore stale logs that autosave would then overwrite.
+- **`DayToggle` takes a `name`**, so several open panels do not share one radio group.
+- **An aerobic exercise with a legacy weight still shows its set line**, so the weight can be
+  cleared.
+- **Two rows of the same exercise share one log** (logs are keyed by exercise); each row has its
+  own open state and the last save wins.
+- **The workout bar keeps its "Log exercise" button**; it toggles the inline panel and scrolls it
+  into view (no dialog).
