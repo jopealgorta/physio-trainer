@@ -125,6 +125,7 @@ export type PrescriptionSummaryKey =
   | "summary.range"
   | "summary.seconds"
   | "summary.minutes"
+  | "summary.minutesSeconds"
   | "summary.distanceKm"
   | "summary.distanceM"
   | "summary.sets"
@@ -136,6 +137,24 @@ export type PrescriptionTranslate = (
   key: PrescriptionSummaryKey,
   values?: Record<string, string | number>,
 ) => string;
+
+/**
+ * How a duration reads: under a minute in seconds, whole minutes as "N min", anything else as
+ * "m:ss min" (seconds zero-padded). Shared by the prescription summary and the workout bar; the
+ * caller maps `unit` to its own message key.
+ */
+export function durationDisplay(
+  totalSeconds: number,
+):
+  | { unit: "seconds"; value: number }
+  | { unit: "minutes"; value: number }
+  | { unit: "minutesSeconds"; minutes: number; seconds: string } {
+  if (totalSeconds < 60) return { unit: "seconds", value: totalSeconds };
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (seconds === 0) return { unit: "minutes", value: minutes };
+  return { unit: "minutesSeconds", minutes, seconds: String(seconds).padStart(2, "0") };
+}
 
 const SUMMARY_SEPARATOR = " · ";
 
@@ -149,11 +168,13 @@ function setBase(set: SetPrescription, t: PrescriptionTranslate): string | null 
     );
   }
   if (set.durationSeconds !== null) {
-    const seconds = set.durationSeconds;
+    const duration = durationDisplay(set.durationSeconds);
     parts.push(
-      seconds >= 60 && seconds % 60 === 0
-        ? t("summary.minutes", { value: seconds / 60 })
-        : t("summary.seconds", { value: seconds }),
+      duration.unit === "minutesSeconds"
+        ? t("summary.minutesSeconds", { minutes: duration.minutes, seconds: duration.seconds })
+        : duration.unit === "minutes"
+          ? t("summary.minutes", { value: duration.value })
+          : t("summary.seconds", { value: duration.value }),
     );
   }
   if (set.distanceMeters !== null) {

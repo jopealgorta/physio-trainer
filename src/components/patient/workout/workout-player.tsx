@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { distanceDisplay } from "@/lib/distance";
+import { durationDisplay } from "@/lib/prescription";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { useCues } from "@/lib/workout/cues";
@@ -593,8 +594,16 @@ function setTargets(set: PatientItem["sets"][number] | undefined, t: Translate):
         : t("target.reps", { count: set.reps }),
     );
   }
-  if (set.durationSeconds !== null)
-    labels.push(t("target.duration", { value: set.durationSeconds }));
+  if (set.durationSeconds !== null) {
+    const duration = durationDisplay(set.durationSeconds);
+    labels.push(
+      duration.unit === "minutesSeconds"
+        ? t("target.minutesSeconds", { minutes: duration.minutes, seconds: duration.seconds })
+        : duration.unit === "minutes"
+          ? t("target.minutes", { value: duration.value })
+          : t("target.duration", { value: duration.value }),
+    );
+  }
   if (set.distanceMeters !== null) {
     const distance = distanceDisplay(set.distanceMeters);
     labels.push(

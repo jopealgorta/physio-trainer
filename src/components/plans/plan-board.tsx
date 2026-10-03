@@ -265,7 +265,7 @@ export function PlanBoard({
         <h2 id={`${dndId}-week`} className="text-lg font-semibold">
           {t("week")}
         </h2>
-        <p className="text-muted-foreground text-sm" aria-live="polite">
+        <p className="text-muted-foreground text-sm">
           {[
             t("summary.routines", { count: summary.totalSessions }),
             t("summary.exercises", { count: summary.totalExercises }),
@@ -568,7 +568,10 @@ function DayNotePopover({
               {t("remove")}
             </Button>
           ) : null}
-          <Button type="button" onClick={() => save(draft.trim())}>
+          <Button
+            type="button"
+            onClick={() => (draft.trim() === note ? setOpen(false) : save(draft.trim()))}
+          >
             {t("save")}
           </Button>
         </div>

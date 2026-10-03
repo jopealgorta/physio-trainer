@@ -21,6 +21,16 @@ const TINT = [
   "bg-primary/60",
 ] as const;
 
+/** The CR10 descriptor of a rating: 0 rest, 1-2 very easy, 3-4 easy, 5-6 hard, 7-8 very hard, 9, 10. */
+function descriptorKey(value: number) {
+  if (value === 0) return "rest";
+  if (value <= 2) return "veryEasy";
+  if (value <= 4) return "easy";
+  if (value <= 6) return "hard";
+  if (value <= 8) return "veryHard";
+  return value === 9 ? "extreme" : "max";
+}
+
 /**
  * The patient's effort rating (Borg CR10, 0-10), optional like the pain. Same native-radio
  * widget as `PainScale`.
@@ -36,8 +46,14 @@ export function RpeScale({
 }) {
   const t = useTranslations("Patient.logging.rpe");
   const legendId = useId();
+  const hintId = useId();
+  const descriptorId = useId();
   return (
-    <fieldset aria-labelledby={legendId} className="grid gap-2">
+    <fieldset
+      aria-labelledby={legendId}
+      aria-describedby={value !== null ? `${hintId} ${descriptorId}` : hintId}
+      className="grid gap-2"
+    >
       <div className="flex items-center justify-between gap-2">
         <legend id={legendId} className="text-sm font-medium">
           {t("legend")}
@@ -52,7 +68,9 @@ export function RpeScale({
           </button>
         ) : null}
       </div>
-      <p className="text-muted-foreground text-sm">{t("hint")}</p>
+      <p id={hintId} className="text-muted-foreground text-sm">
+        {t("hint")}
+      </p>
       <div className="grid grid-cols-6 gap-2">
         {RPE_SCALE.map((rating) => (
           <label
@@ -75,11 +93,11 @@ export function RpeScale({
           </label>
         ))}
       </div>
-      <div className="text-muted-foreground flex justify-between text-xs">
-        <span>{t("anchors.rest")}</span>
-        <span>{t("anchors.hard")}</span>
-        <span>{t("anchors.max")}</span>
-      </div>
+      {value !== null ? (
+        <p id={descriptorId} className="text-sm font-medium">
+          {t("selected", { value, label: t(`descriptors.${descriptorKey(value)}`) })}
+        </p>
+      ) : null}
     </fieldset>
   );
 }

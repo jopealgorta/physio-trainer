@@ -90,7 +90,7 @@ export function ExerciseLogButton({
         aria-label={bar ? undefined : label}
         title={bar ? undefined : label}
         className={cn(
-          bar ? "h-12 w-full text-base" : "size-10 flex-none self-center",
+          bar ? "h-12 w-full text-base" : "size-12 flex-none self-center",
           logged && "text-primary",
         )}
         onClick={() => {

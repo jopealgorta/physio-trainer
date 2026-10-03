@@ -303,6 +303,20 @@ describe("WorkoutPlayer", () => {
     expect(within(bar()).getByText("Intensity: Moderate")).toBeInTheDocument();
   });
 
+  it("shows an aerobic duration in minutes, not seconds", () => {
+    const run = (durationSeconds: number) => ({
+      reps: null,
+      repsMax: null,
+      durationSeconds,
+      load: null,
+      distanceMeters: null,
+      intensity: null,
+    });
+    setup(routineOf(item("a", "Run", { kind: "aerobic", sets: [run(1800)] })));
+    expect(within(bar()).getByText("30 min")).toBeInTheDocument();
+    expect(within(bar()).queryByText(/1,800/)).not.toBeInTheDocument();
+  });
+
   it("logs the current exercise from the bar", async () => {
     const user = setup(
       routineOf(item("a", "Squat"), item("b", "Bridge")),

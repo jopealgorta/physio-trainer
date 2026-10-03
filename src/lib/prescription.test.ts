@@ -78,6 +78,8 @@ const t: PrescriptionTranslate = (key, values = {}) => {
       return "–";
     case "summary.minutes":
       return `${values.value} min`;
+    case "summary.minutesSeconds":
+      return `${values.minutes}:${values.seconds} min`;
     case "summary.distanceKm":
       return `${values.value} km`;
     case "summary.distanceM":
@@ -141,6 +143,11 @@ describe("formatPrescription", () => {
   it("shows duration alone or after reps", () => {
     expect(item([set({ durationSeconds: 30 }), set({ durationSeconds: 30 })])).toBe("2 × 30 s");
     expect(item([set({ reps: 10, durationSeconds: 3 })])).toBe("10 / 3 s");
+    expect(item([set({ durationSeconds: 90 })])).toBe("1:30 min");
+    expect(item([set({ durationSeconds: 1350 })])).toBe("22:30 min");
+    expect(item([set({ durationSeconds: 45 })])).toBe("45 s");
+    expect(item([set({ durationSeconds: 120 })])).toBe("2 min");
+    expect(item([set({ durationSeconds: 3605 })])).toBe("60:05 min");
   });
   it("appends a shared load once and repeats differing loads per set", () => {
     expect(

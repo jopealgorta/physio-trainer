@@ -503,6 +503,17 @@ describe("day notes", () => {
     await release();
   });
 
+  it("closes without calling the action when Save changes nothing", async () => {
+    const user = userEvent.setup();
+    setup([], { dayNotes: { 2: "Mobility only" } });
+    await user.click(screen.getByRole("button", { name: "Edit note for Tuesday" }));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    expect(a.setDayNotesAction).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Edit note for Monday" }));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    expect(a.setDayNotesAction).not.toHaveBeenCalled();
+  });
+
   it("shows the saved notes and removes one", async () => {
     const user = userEvent.setup();
     setup([], { dayNotes: { 2: "Mobility only" } });

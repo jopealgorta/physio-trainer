@@ -165,8 +165,9 @@ No new routes.
 5. Day notes: ≤ 500 chars, plain text, rendered with `whitespace-pre-line`.
 6. Day notes are part of the plan: copied by "Save as template", "Use template" and "Copy into
    next phase", included in version snapshots (diff + restore) and exports.
-7. Aerobic prescription summary: duration, distance, intensity, joined with " · ", sets ×
-   when sets are identical ("4 × 500 m · 2:00/500m"). Strength summary is unchanged except that
+7. Aerobic prescription summary: within one set, duration and distance are joined with " / "
+   ("30 min / 5 km · Zone 2"); the parts of the summary (sets, intensity, hold, rest, side) are
+   joined with " · ", sets × when sets are identical ("4 × 500 m · 2:00/500m"). Strength summary is unchanged except that
    distance/intensity also render when present.
 8. Workout: a set with `duration_seconds` is timed (countdown); otherwise "Set done".
 9. Distances: stored in metres; entered in km with up to 3 decimals; shown as "800 m" under
@@ -236,13 +237,21 @@ Answered 2026-10-03 before design:
   items). The unique key is `(routine_id, weekly_plan_entry_id, exercise_id, performed_on)`; an
   exercise used twice in one routine shares one log. The patient may only log an exercise that
   belongs to the routine reachable from the link, otherwise `unreachable` and no row.
-- **Shared log helpers.** `src/lib/log-shared.ts` (parsing/validation shared by session and
-  exercise logs, including "12,5" decimal commas) and `log-sheet.tsx` (`DayToggle`, `LogSheet` and
+- **Shared log helpers.** `src/server/patient/log-shared.ts` (shared by session and exercise
+  logs) with the parsing helpers in `src/lib/session-logs.ts` (including "12,5" decimal commas) and `log-sheet.tsx` (`DayToggle`, `LogSheet` and
   the submit hooks) back the routine sheet, the exercise sheet and the workout bar. Both seen-logic
   paths (session and exercise comments) share `markSeen`, the unseen fragments and `useShownAsNew`.
 - **Minutes display.** Aerobic durations are typed and shown in minutes ("30" or "1:30"); storage
   stays in seconds. The duration input drops `inputMode="numeric"` so "1:30" is typeable on iOS.
   The duration limit rose from 3 600 s to 14 400 s (4 h) for long aerobic sessions.
+- **Duration format.** One rule, `durationDisplay` in `src/lib/prescription.ts`, for the
+  prescription summary and the workout bar target: under 60 s "45 s", whole minutes "30 min",
+  otherwise "m:ss min" ("22:30 min", "1:30 min"), seconds zero-padded.
+- **RPE and pain descriptors.** The 11 tiles sit in a 6-column grid, so positional anchors
+  landed under the wrong numbers. They are gone: the RPE scale shows the CR10 descriptor of the
+  selected value under the grid ("6 · Hard"; 0 rest, 1-2 very easy, 3-4 easy / moderate, 5-6
+  hard, 7-8 very hard, 9 extremely hard, 10 maximal) and the hint ("0 = rest, 10 = maximal")
+  otherwise, both wired with `aria-describedby`. The pain scale keeps only its hint line.
 - **Old snapshots normalised in diffs.** Stored jsonb snapshots predate `days`, `distanceMeters`
   and `intensity` and are not re-parsed, so diff, diff view and restore treat a missing value as
   null/`[]` (restore backfills `EMPTY_SET`); otherwise old versions would show phantom changes.

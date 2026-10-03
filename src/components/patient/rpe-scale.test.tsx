@@ -16,7 +16,7 @@ function setup(value: number | null = null, onChange = vi.fn()) {
 }
 
 describe("RpeScale", () => {
-  it("renders radios 0 to 10 in the Effort (RPE) group with three anchors", () => {
+  it("renders radios 0 to 10 in the Effort (RPE) group ", () => {
     setup();
     const group = screen.getByRole("group", { name: "Effort (RPE)" });
     expect(
@@ -24,8 +24,28 @@ describe("RpeScale", () => {
         .getAllByRole("radio")
         .map((r) => r.getAttribute("value")),
     ).toEqual(Array.from({ length: 11 }, (_, i) => String(i)));
-    for (const anchor of ["Rest", "Hard", "Max"])
-      expect(within(group).getByText(anchor)).toBeInTheDocument();
+  });
+
+  it("describes the selected rating with its CR10 descriptor, linked to the group", () => {
+    setup(6);
+    const group = screen.getByRole("group", { name: "Effort (RPE)" });
+    expect(screen.getByText("6 · Hard")).toBeInTheDocument();
+    expect(group).toHaveAccessibleDescription(/6 · Hard/);
+  });
+
+  it("names 0 as rest and shows only the hint when nothing is selected", () => {
+    const { unmount } = render(
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <RpeScale name="rpe" value={0} onChange={vi.fn()} />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByText("0 · Rest")).toBeInTheDocument();
+    unmount();
+    setup();
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Effort (RPE)" })).toHaveAccessibleDescription(
+      "How hard was it? 0 = rest, 10 = maximal.",
+    );
   });
 
   it("reports the chosen rating and clears to null", async () => {

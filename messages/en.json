@@ -268,6 +268,7 @@
       "range": "{min, number}–{max, number}",
       "seconds": "{value, number} s",
       "minutes": "{value, number} min",
+      "minutesSeconds": "{minutes, number}:{seconds} min",
       "distanceKm": "{value, number} km",
       "distanceM": "{value, number} m",
       "sets": "{count, plural, one {# set} other {# sets}}",
@@ -933,8 +934,7 @@
       "title": "Note for {day}",
       "placeholder": "Something for the patient that day, e.g. \"Easy day, stop if it hurts\"",
       "save": "Save",
-      "remove": "Remove",
-      "saved": "Saved"
+      "remove": "Remove"
     }
   },
   "Templates": {
@@ -1376,18 +1376,21 @@
       "pain": {
         "legend": "Pain (optional)",
         "hint": "0 is no pain, 10 is the worst pain you can imagine.",
-        "none": "No pain",
-        "worst": "Worst pain",
         "clear": "Clear"
       },
       "rpe": {
         "legend": "Effort (RPE)",
         "hint": "How hard was it? 0 = rest, 10 = maximal.",
         "clear": "Clear",
-        "anchors": {
+        "selected": "{value, number} · {label}",
+        "descriptors": {
           "rest": "Rest",
+          "veryEasy": "Very easy",
+          "easy": "Easy / moderate",
           "hard": "Hard",
-          "max": "Max"
+          "veryHard": "Very hard",
+          "extreme": "Extremely hard",
+          "max": "Maximal"
         }
       },
       "comment": {
@@ -1450,6 +1453,8 @@
       "reps": "{count, plural, one {# rep} other {# reps}}",
       "range": "{min, number}–{max, number} reps",
       "duration": "{value, number} s",
+      "minutes": "{value, number} min",
+      "minutesSeconds": "{minutes, number}:{seconds} min",
       "load": "Load: {value}",
       "distanceKm": "{value, number} km",
       "distanceM": "{value, number} m",
@@ -1557,11 +1562,11 @@
     },
     "exercises": {
       "title": "Exercise log",
-      "description": "What the patient noted on single exercises.",
+      "description": "What the patient noted on each exercise.",
       "empty": "No exercise logs yet.",
       "group": "{date} · {routine}",
       "pain": "Pain {value, number}/10",
-      "rpe": "RPE {value, number}",
+      "rpe": "RPE {value, number}/10",
       "weight": "{value} kg",
       "new": "New"
     }

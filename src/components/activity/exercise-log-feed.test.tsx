@@ -50,7 +50,7 @@ describe("ExerciseLogFeed", () => {
     ]);
     const items = screen.getAllByRole("listitem");
     expect(within(items[0]!).getByText("Goblet squat")).toBeInTheDocument();
-    expect(within(items[0]!).getByText("Pain 3/10 · RPE 6 · 20 kg")).toBeInTheDocument();
+    expect(within(items[0]!).getByText("Pain 3/10 · RPE 6/10 · 20 kg")).toBeInTheDocument();
     expect(within(items[0]!).getByText("Pinchy")).toBeInTheDocument();
     expect(within(items[0]!).getByText("New")).toBeInTheDocument();
     expect(within(items[1]!).getByText("12.5 kg")).toBeInTheDocument();
