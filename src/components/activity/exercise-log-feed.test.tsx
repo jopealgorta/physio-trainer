@@ -10,6 +10,7 @@ const log = (patch: Partial<ActivityExerciseLog> = {}): ActivityExerciseLog => (
   id: "1",
   performedOn: "2026-10-03",
   routineName: "Knee rehab",
+  routineId: "r1",
   exerciseName: "Goblet squat",
   pain: 3,
   rpe: 6,
@@ -54,6 +55,11 @@ describe("ExerciseLogFeed", () => {
     expect(within(items[0]!).getByText("New")).toBeInTheDocument();
     expect(within(items[1]!).getByText("12.5 kg")).toBeInTheDocument();
     expect(within(items[1]!).queryByText("New")).not.toBeInTheDocument();
+  });
+
+  it("keeps two routines with the same name on the same day apart", () => {
+    render(feed([log(), log({ id: "2", routineId: "r2", exerciseName: "Lunge" })]));
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(2);
   });
 
   it("keeps a comment new after the server marked it seen", () => {

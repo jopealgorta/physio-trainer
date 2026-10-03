@@ -1,11 +1,12 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
 import type { ActivityExerciseLog } from "@/server/activity/queries";
+
+import { useShownAsNew } from "./use-shown-as-new";
 
 /**
  * What the patient noted on single exercises (spec 19), newest first, grouped by day and routine.
@@ -15,15 +16,12 @@ import type { ActivityExerciseLog } from "@/server/activity/queries";
 export function ExerciseLogFeed({ logs }: { logs: ActivityExerciseLog[] }) {
   const t = useTranslations("Activity.exercises");
   const format = useFormatter();
-  const [shownAsNew, setShownAsNew] = useState<ReadonlySet<string>>(() => unseenIds(logs));
-  const arrived = [...unseenIds(logs)].filter((id) => !shownAsNew.has(id));
-  // Adjusting state while rendering (React's pattern for state derived from props).
-  if (arrived.length > 0) setShownAsNew(new Set([...shownAsNew, ...arrived]));
+  const isNew = useShownAsNew(logs);
 
   // `logs` arrive newest first, so a group's rows are contiguous.
   const groups: { key: string; performedOn: string; routineName: string; rows: typeof logs }[] = [];
   for (const log of logs) {
-    const key = `${log.performedOn}|${log.routineName}`;
+    const key = `${log.performedOn}|${log.routineId}`;
     const last = groups.at(-1);
     if (last?.key === key) last.rows.push(log);
     else
@@ -71,7 +69,7 @@ export function ExerciseLogFeed({ logs }: { logs: ActivityExerciseLog[] }) {
                         <p className="min-w-0 text-sm wrap-anywhere whitespace-pre-line">
                           {log.comment}
                         </p>
-                        {!log.seen || shownAsNew.has(log.id) ? <Badge>{t("new")}</Badge> : null}
+                        {isNew(log) ? <Badge>{t("new")}</Badge> : null}
                       </div>
                     ) : null}
                   </li>
@@ -83,8 +81,4 @@ export function ExerciseLogFeed({ logs }: { logs: ActivityExerciseLog[] }) {
       )}
     </section>
   );
-}
-
-function unseenIds(logs: ActivityExerciseLog[]): Set<string> {
-  return new Set(logs.filter((log) => !log.seen).map((log) => log.id));
 }

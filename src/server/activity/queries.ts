@@ -161,6 +161,7 @@ export type ActivityComment = {
 export type ActivityExerciseLog = {
   id: string;
   performedOn: string;
+  routineId: string;
   routineName: string;
   exerciseName: string;
   pain: number | null;
@@ -278,6 +279,7 @@ export async function getCustomerActivity(
       .select({
         id: exerciseLogs.id,
         performedOn: exerciseLogs.performedOn,
+        routineId: exerciseLogs.routineId,
         routineName: routines.name,
         exerciseName: exercises.name,
         pain: exerciseLogs.pain,
@@ -350,6 +352,20 @@ export async function getCustomerActivity(
   };
 }
 
+type CommentTable = typeof sessionLogs | typeof exerciseLogs;
+
+/** The physio's logs with a comment they have not seen: one rule for both log tables. */
+const unseenComments = (table: CommentTable, physioId: string) =>
+  and(eq(table.physioId, physioId), isNotNull(table.comment), isNull(table.seenByPhysioAt));
+
+/** Order for `selectDistinctOn(customerId)`: the customer's newest unseen comment first. */
+const newestUnseenFirst = (table: CommentTable) =>
+  [asc(table.customerId), desc(table.performedOn), desc(table.updatedAt)] as const;
+
+/** How many unseen comments the customer has, aggregated in SQL so a backlog cannot truncate it. */
+const unseenCount = (table: CommentTable) =>
+  sql<number>`(count(*) over (partition by ${table.customerId}))::int`;
+
 /** The dashboard (spec 13): who needs attention, new comments, recent activity and totals. */
 export async function getDashboard(
   tx: Tx,
@@ -385,25 +401,15 @@ export async function getDashboard(
           comment: sessionLogs.comment,
           performedOn: sessionLogs.performedOn,
           routineName: routines.name,
-          count: sql<number>`(count(*) over (partition by ${sessionLogs.customerId}))::int`,
+          count: unseenCount(sessionLogs),
         })
         .from(sessionLogs)
         .innerJoin(
           routines,
           and(eq(routines.physioId, sessionLogs.physioId), eq(routines.id, sessionLogs.routineId)),
         )
-        .where(
-          and(
-            eq(sessionLogs.physioId, physioId),
-            isNotNull(sessionLogs.comment),
-            isNull(sessionLogs.seenByPhysioAt),
-          ),
-        )
-        .orderBy(
-          asc(sessionLogs.customerId),
-          desc(sessionLogs.performedOn),
-          desc(sessionLogs.updatedAt),
-        ),
+        .where(unseenComments(sessionLogs, physioId))
+        .orderBy(...newestUnseenFirst(sessionLogs)),
       tx
         .select({
           customerId: exerciseLogs.customerId,
@@ -425,7 +431,7 @@ export async function getDashboard(
           performedOn: exerciseLogs.performedOn,
           routineName: routines.name,
           exerciseName: exercises.name,
-          count: sql<number>`(count(*) over (partition by ${exerciseLogs.customerId}))::int`,
+          count: unseenCount(exerciseLogs),
         })
         .from(exerciseLogs)
         .innerJoin(
@@ -442,18 +448,8 @@ export async function getDashboard(
             eq(exercises.id, exerciseLogs.exerciseId),
           ),
         )
-        .where(
-          and(
-            eq(exerciseLogs.physioId, physioId),
-            isNotNull(exerciseLogs.comment),
-            isNull(exerciseLogs.seenByPhysioAt),
-          ),
-        )
-        .orderBy(
-          asc(exerciseLogs.customerId),
-          desc(exerciseLogs.performedOn),
-          desc(exerciseLogs.updatedAt),
-        ),
+        .where(unseenComments(exerciseLogs, physioId))
+        .orderBy(...newestUnseenFirst(exerciseLogs)),
       tx
         .selectDistinct({ customerId: shareLinks.customerId })
         .from(shareLinks)

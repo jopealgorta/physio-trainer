@@ -218,6 +218,7 @@ describe("activity", () => {
       expect(logs[1]).toEqual({
         id: oneId,
         performedOn: "2026-10-06",
+        routineId: kneeRoutine,
         routineName: "Beto knee",
         exerciseName: "Goblet squat",
         pain: 4,
