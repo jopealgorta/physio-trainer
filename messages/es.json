@@ -1411,22 +1411,26 @@
     },
     "exerciseLog": {
       "title": "¿Cómo te fue con {name}?",
-      "weight": {
-        "label": "Peso (opcional)",
-        "hint": "En kg, por ejemplo 12,5",
+      "sets": {
+        "legend": "Peso por serie",
+        "set": "Serie {number, number}",
+        "input": "Peso de la serie {number, number} en kg",
+        "add": "Agregar serie",
         "invalid": "Ingresá un peso entre 0 y {max, number} kg."
       },
       "comment": {
         "label": "Comentario (opcional)",
         "placeholder": "¿Cómo lo sentiste? ¿Algo que tu fisioterapeuta deba saber?"
       },
-      "save": "Guardar",
-      "clear": "Borrar registro",
-      "close": "Cerrar",
+      "status": {
+        "saving": "Guardando…",
+        "saved": "Guardado",
+        "error": "No se pudo guardar."
+      },
+      "retry": "Reintentar",
       "chips": {
-        "pain": "Dolor {value, number}",
         "rpe": "RPE {value, number}",
-        "weight": "{value, number} kg"
+        "weights": "{value} kg"
       },
       "errors": {
         "generic": "Algo salió mal. Probá de nuevo.",

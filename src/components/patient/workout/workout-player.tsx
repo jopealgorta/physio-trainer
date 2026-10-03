@@ -62,7 +62,6 @@ import { useWakeLock } from "@/lib/workout/use-wake-lock";
 import type { PatientItem, PatientRoutine } from "@/server/patient/view";
 
 import { ExerciseList, type ExerciseLogging } from "../exercise-list";
-import { ExerciseLogButton } from "../exercise-log-button";
 import { setTargets } from "../set-targets";
 import { Confetti, SetDoneBurst } from "./set-done-burst";
 
@@ -343,7 +342,6 @@ function Player({
 
   const progress = (state.stepIndex / steps.length) * 100;
   const target = setTargets(set, t);
-  const canLog = exerciseLogging !== undefined && exerciseLogging.days.length > 0;
   const timed = step.durationSeconds !== null;
   const counting = state.phase === "rest" || state.phase === "timed";
   const onSkip = () => act((current, at) => skipTimer(steps, current, at), state.phase === "timed");
@@ -518,16 +516,7 @@ function Player({
             </Button>
           </div>
 
-          {canLog ? (
-            <ExerciseLogButton
-              // A fresh sheet for each exercise.
-              key={item.id}
-              variant="bar"
-              logging={exerciseLogging}
-              exerciseId={item.exerciseId}
-              exerciseName={item.name}
-            />
-          ) : null}
+          {/* Task 6 (spec 20): "Log exercise" here expands the current exercise's inline log. */}
         </div>
       </section>
 

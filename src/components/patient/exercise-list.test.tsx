@@ -1,7 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "../../../messages/en.json";
 import es from "../../../messages/es.json";
@@ -9,8 +9,8 @@ import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientBlock, PatientItem } from "@/server/patient/view";
 import { ExerciseList, type ExerciseLogging } from "./exercise-list";
 
-vi.mock("@/server/patient/actions", () => ({ logExerciseAction: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const m = vi.hoisted(() => ({ log: vi.fn() }));
+vi.mock("@/server/patient/actions", () => ({ logExerciseAction: m.log }));
 
 const ROUTINE = "3e473832-bc4d-475b-9a6a-0356874dc603";
 const SQUAT = "0b8f5f0e-8f53-4c39-9f0e-4f3f1f8c1a01";
@@ -124,25 +124,87 @@ describe("ExerciseList", () => {
       entryId: null,
       exerciseId: SQUAT,
       performedOn: TODAY,
-      rpe: 6,
-      setWeightsKg: [12.5, null, 15],
+      rpe: 7,
+      setWeightsKg: [20, null, 25],
       comment: null,
     };
     const other = { ...log, performedOn: "2026-10-06", rpe: 9 };
     const { unmount } = setup({ logging: logging([other, log]) });
-    expect(screen.getByText("RPE 6")).toBeInTheDocument();
-    expect(screen.getByText("12.5 kg / - / 15 kg")).toBeInTheDocument();
+    const chips = within(screen.getByRole("list", { name: "Logged" }));
+    expect(chips.getAllByRole("listitem").map((chip) => chip.textContent)).toEqual([
+      "20 · – · 25 kg",
+      "RPE 7",
+    ]);
     expect(screen.queryByText("RPE 9")).not.toBeInTheDocument();
-    // Owner preview (no loggable days): chips only, no Log button.
+    // Owner preview (no loggable days): chips only, no Log toggle.
     expect(screen.queryByRole("button", { name: "Log Squat" })).not.toBeInTheDocument();
     unmount();
-    setup({ logging: logging([log]) }, "es");
-    expect(screen.getByText("12,5 kg / - / 15 kg")).toBeInTheDocument();
+    setup({ logging: logging([{ ...log, setWeightsKg: [12.5] }]) }, "es");
+    expect(screen.getByText("12,5 kg")).toBeInTheDocument();
   });
 
-  it("offers a Log button per exercise when the day can be logged", () => {
-    setup({ logging: { ...logging(), days: [{ date: TODAY, relative: "today" }] } });
-    expect(screen.getByRole("button", { name: "Log Squat" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Log Plank" })).toBeInTheDocument();
+  describe("inline log", () => {
+    const loggable = (logs: PatientExerciseLog[] = []): ExerciseLogging => ({
+      ...logging(logs),
+      days: [{ date: TODAY, relative: "today" }],
+    });
+
+    beforeEach(() => {
+      m.log.mockReset();
+      m.log.mockImplementation(async (_code: string, input: PatientExerciseLog) => ({
+        ok: true,
+        data: { ...input },
+      }));
+    });
+
+    it("expands and collapses an exercise's log under its row", async () => {
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("region", { name: "How did Squat go?" })).not.toBeInTheDocument();
+
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      const panel = screen.getByRole("region", { name: "How did Squat go?" });
+      expect(toggle).toHaveAttribute("aria-controls", panel.id);
+      // Inside the row's card.
+      expect(toggle.closest("li")).toContainElement(panel);
+      // Other rows stay closed; several can be open at once.
+      expect(screen.getByRole("button", { name: "Log Plank" })).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      await user.click(screen.getByRole("button", { name: "Log Plank" }));
+      expect(screen.getAllByRole("region")).toHaveLength(2);
+
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("region", { name: "How did Squat go?" })).not.toBeInTheDocument();
+    });
+
+    it("updates the chips and the toggle as soon as the panel saves", async () => {
+      const user = userEvent.setup();
+      setup({ logging: loggable() });
+      const toggle = screen.getByRole("button", { name: "Log Squat" });
+      expect(toggle).not.toHaveClass("text-primary");
+      await user.click(toggle);
+      await user.type(screen.getByLabelText("Set 1 weight in kg"), "20");
+      await user.tab();
+      await act(async () => {});
+      expect(m.log).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("20 kg")).toBeInTheDocument();
+      expect(toggle).toHaveClass("text-primary");
+    });
+
+    it("opens the rows it is told to when controlled", async () => {
+      const user = userEvent.setup();
+      const onOpenLogsChange = vi.fn();
+      setup({ logging: loggable(), openLogs: new Set(["bridge"]), onOpenLogsChange });
+      expect(screen.getByRole("region", { name: "How did Bridge go?" })).toBeInTheDocument();
+      expect(screen.getAllByRole("region")).toHaveLength(1);
+      await user.click(screen.getByRole("button", { name: "Log Squat" }));
+      expect(onOpenLogsChange).toHaveBeenCalledWith(new Set(["bridge", "squat"]));
+    });
   });
 });

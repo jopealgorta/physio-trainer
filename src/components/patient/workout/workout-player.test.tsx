@@ -317,7 +317,8 @@ describe("WorkoutPlayer", () => {
     expect(within(bar()).queryByText(/1,800/)).not.toBeInTheDocument();
   });
 
-  it("logs the current exercise from the bar", async () => {
+  // Task 6 (spec 20) brings the bar's "Log exercise" back as the inline log's opener.
+  it.skip("logs the current exercise from the bar", async () => {
     const user = setup(
       routineOf(item("a", "Squat"), item("b", "Bridge")),
       "en",
@@ -343,7 +344,8 @@ describe("WorkoutPlayer", () => {
       expect(screen.getByText("Set 2 of 2")).toBeInTheDocument();
     });
 
-    it("ignores drags inside the log sheet opened from the bar", async () => {
+    // Task 6 (spec 20): the exercise log sheet is gone; revisit with the bar's "Log exercise".
+    it.skip("ignores drags inside the log sheet opened from the bar", async () => {
       const user = setup(routineOf(item("a", "Squat")), "en", undefined, logging());
       await user.click(within(bar()).getByRole("button", { name: "Log exercise" }));
       const dialog = await screen.findByRole("dialog", { name: "How did Squat go?" });
