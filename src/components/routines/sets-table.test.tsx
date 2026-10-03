@@ -83,21 +83,32 @@ describe("SetsTable aerobic", () => {
     const duration = screen.getByRole("textbox", { name: "Set 1: Duration (min)" });
     expect(duration).toHaveValue("10");
     await user.type(duration, "x");
-    expect(screen.getByText("Enter minutes like 30 or 1:30.")).toBeInTheDocument();
+    expect(screen.getByText("Enter minutes from 1 to 240, like 30 or 1:30.")).toBeInTheDocument();
     expect(sets()[0].durationSeconds).toBe(600);
     await user.clear(duration);
     await user.type(duration, "0");
-    expect(screen.getByText("Enter minutes like 30 or 1:30.")).toBeInTheDocument();
+    expect(screen.getByText("Enter minutes from 1 to 240, like 30 or 1:30.")).toBeInTheDocument();
   });
 
   it("flags a bad distance and stores the intensity text", async () => {
     const user = userEvent.setup();
     setup(aerobic(), "a");
     await user.type(screen.getByRole("textbox", { name: "Set 1: Distance (km)" }), "abc");
-    expect(screen.getByText("Enter a distance like 5 or 2.5.")).toBeInTheDocument();
+    expect(screen.getByText("Enter a distance up to 200 km, like 5 or 2.5.")).toBeInTheDocument();
     expect(sets()[0].distanceMeters).toBeNull();
     await user.type(screen.getByRole("textbox", { name: "Set 1: Intensity" }), "Zone 2");
     expect(sets()[0].intensity).toBe("Zone 2");
+  });
+
+  it("rejects out-of-range duration and distance without storing them", async () => {
+    const user = userEvent.setup();
+    setup(aerobic(), "a");
+    await user.type(screen.getByRole("textbox", { name: "Set 1: Duration (min)" }), "500");
+    expect(screen.getByText("Enter minutes from 1 to 240, like 30 or 1:30.")).toBeInTheDocument();
+    expect(sets()[0].durationSeconds).toBe(3000); // last valid text, "50"
+    await user.type(screen.getByRole("textbox", { name: "Set 1: Distance (km)" }), "300");
+    expect(screen.getByText("Enter a distance up to 200 km, like 5 or 2.5.")).toBeInTheDocument();
+    expect(sets()[0].distanceMeters).toBe(30000); // last valid text, "30"
   });
 
   it("keeps the strength columns for a strength item", () => {

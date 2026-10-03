@@ -260,8 +260,8 @@
       "outOfRange": "Enter a number from {min, number} to {max, number}.",
       "repsMaxWithoutReps": "Enter reps first.",
       "repsMaxNotAboveReps": "Must be more than reps.",
-      "notADuration": "Enter minutes like 30 or 1:30.",
-      "notADistance": "Enter a distance like 5 or 2.5."
+      "notADuration": "Enter minutes from 1 to 240, like 30 or 1:30.",
+      "notADistance": "Enter a distance up to 200 km, like 5 or 2.5."
     },
     "summary": {
       "count": "{value, number}",

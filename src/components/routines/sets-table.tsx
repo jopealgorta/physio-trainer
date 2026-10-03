@@ -36,10 +36,17 @@ function rangeError(set: EditorSet): PrescriptionErrorCode | null {
   return (issue?.message as PrescriptionErrorCode | undefined) ?? null;
 }
 
-/** A duration of zero is rejected by the schema (min 1), so it counts as invalid text here. */
+/** Values outside the schema limits (zero, over 4 h) count as invalid text, with the field error. */
 const parseMinutes = (text: string) => {
   const seconds = parseDurationInput(text);
-  return seconds !== undefined && seconds !== null && seconds <= 0 ? undefined : seconds;
+  const { min, max } = PRESCRIPTION_LIMITS.durationSeconds;
+  return typeof seconds === "number" && (seconds < min || seconds > max) ? undefined : seconds;
+};
+
+const parseDistance = (text: string) => {
+  const meters = parseKm(text);
+  const { min, max } = PRESCRIPTION_LIMITS.distanceMeters;
+  return typeof meters === "number" && (meters < min || meters > max) ? undefined : meters;
 };
 
 /**
@@ -122,7 +129,6 @@ export function SetsTable({
                       <td>
                         <UnitField
                           aria-label={name(t("durationMinutes"))}
-                          inputMode="numeric"
                           placeholder={t("durationHint")}
                           value={set.durationSeconds}
                           parse={parseMinutes}
@@ -137,7 +143,7 @@ export function SetsTable({
                           inputMode="decimal"
                           placeholder={t("distanceHint")}
                           value={set.distanceMeters}
-                          parse={parseKm}
+                          parse={parseDistance}
                           format={metersToKmInput}
                           errorCode="notADistance"
                           onValueChange={(distanceMeters) => patch(set.key, { distanceMeters })}

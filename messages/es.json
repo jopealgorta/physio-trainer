@@ -260,8 +260,8 @@
       "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
       "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
       "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
-      "notADuration": "Ingresá los minutos, por ejemplo 30 o 1:30.",
-      "notADistance": "Ingresá una distancia, por ejemplo 5 o 2,5."
+      "notADuration": "Ingresá de 1 a 240 minutos, por ejemplo 30 o 1:30.",
+      "notADistance": "Ingresá una distancia de hasta 200 km, por ejemplo 5 o 2,5."
     },
     "summary": {
       "count": "{value, number}",
