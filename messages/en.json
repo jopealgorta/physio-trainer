@@ -1374,6 +1374,16 @@
         "worst": "Worst pain",
         "clear": "Clear"
       },
+      "rpe": {
+        "legend": "Effort (RPE)",
+        "hint": "How hard was it? 0 = rest, 10 = maximal.",
+        "clear": "Clear",
+        "anchors": {
+          "rest": "Rest",
+          "hard": "Hard",
+          "max": "Max"
+        }
+      },
       "comment": {
         "label": "Comment (optional)",
         "placeholder": "How did it feel? Anything your physio should know?"
@@ -1507,7 +1517,8 @@
       "empty": "No comments yet.",
       "new": "New",
       "newCount": "{count, plural, one {# new comment} other {# new comments}}",
-      "painValue": "Pain {value, number}/10"
+      "painValue": "Pain {value, number}/10",
+      "rpeValue": "RPE {value, number}/10"
     }
   },
   "Dashboard": {

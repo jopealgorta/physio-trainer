@@ -20,6 +20,7 @@ export type PatientLog = {
   performedOn: string;
   completed: boolean;
   pain: number | null;
+  rpe: number | null;
   comment: string | null;
 };
 
@@ -61,6 +62,7 @@ export async function logSession(
       performedOn: input.performedOn,
       completed: input.completed,
       pain: input.pain,
+      rpe: input.rpe,
       comment: input.comment,
     })
     .onConflictDoUpdate({
@@ -69,6 +71,7 @@ export async function logSession(
         shareLinkId: link.id,
         completed: input.completed,
         pain: input.pain,
+        rpe: input.rpe,
         comment: input.comment,
         // A changed comment is news for the physio again; the same words are not.
         seenByPhysioAt: sql`case when ${sessionLogs.comment} is not distinct from excluded.comment
@@ -81,6 +84,7 @@ export async function logSession(
       performedOn: sessionLogs.performedOn,
       completed: sessionLogs.completed,
       pain: sessionLogs.pain,
+      rpe: sessionLogs.rpe,
       comment: sessionLogs.comment,
     });
   return { ok: true, data: row! };
@@ -103,6 +107,7 @@ export async function getPatientLogs(
       performedOn: sessionLogs.performedOn,
       completed: sessionLogs.completed,
       pain: sessionLogs.pain,
+      rpe: sessionLogs.rpe,
       comment: sessionLogs.comment,
     })
     .from(sessionLogs)

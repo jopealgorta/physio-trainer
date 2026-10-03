@@ -23,6 +23,7 @@ import { logSessionAction, type LogActionResult } from "@/server/patient/actions
 import type { PatientLog } from "@/server/patient/log-session";
 
 import { PainScale } from "./pain-scale";
+import { RpeScale } from "./rpe-scale";
 import { PATIENT_ROW_BUTTON } from "./row-button";
 
 export type LoggableDay = { date: string; relative: "today" | "yesterday" };
@@ -177,6 +178,7 @@ function LogForm({
   const t = useTranslations("Patient.logging");
   const id = useId();
   const [pain, setPain] = useState<number | null>(initial?.pain ?? null);
+  const [rpe, setRpe] = useState<number | null>(initial?.rpe ?? null);
   // Controlled, like the pain: React resets a form's uncontrolled fields after its action, which
   // would wipe what the patient typed when saving fails.
   const [comment, setComment] = useState(initial?.comment ?? "");
@@ -195,6 +197,7 @@ function LogForm({
           performedOn: day.date,
           completed,
           pain,
+          rpe,
           comment: comment.trim() === "" ? null : comment,
         });
       } catch {
@@ -248,6 +251,8 @@ function LogForm({
       ) : null}
 
       <PainScale name="pain" value={pain} onChange={setPain} />
+
+      <RpeScale name="rpe" value={rpe} onChange={setRpe} />
 
       <div className="grid gap-2">
         <Label htmlFor={`${id}-comment`} className="text-sm">

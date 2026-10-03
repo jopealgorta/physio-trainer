@@ -1374,6 +1374,16 @@
         "worst": "Peor dolor",
         "clear": "Borrar"
       },
+      "rpe": {
+        "legend": "Esfuerzo (RPE)",
+        "hint": "¿Qué tan duro fue? 0 = reposo, 10 = máximo.",
+        "clear": "Borrar",
+        "anchors": {
+          "rest": "Reposo",
+          "hard": "Duro",
+          "max": "Máximo"
+        }
+      },
       "comment": {
         "label": "Comentario (opcional)",
         "placeholder": "¿Cómo lo sentiste? ¿Algo que tu fisioterapeuta deba saber?"
@@ -1507,7 +1517,8 @@
       "empty": "Todavía no hay comentarios.",
       "new": "Nuevo",
       "newCount": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
-      "painValue": "Dolor {value, number}/10"
+      "painValue": "Dolor {value, number}/10",
+      "rpeValue": "RPE {value, number}/10"
     }
   },
   "Dashboard": {

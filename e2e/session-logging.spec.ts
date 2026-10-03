@@ -6,12 +6,13 @@ import {
   insertWorkoutRoutine,
 } from "./helpers/patient";
 
-/** Picks a rating on the pain scale (native radios, visually hidden: click their label). */
+/** Picks a rating on the pain scale (the first of the sheet's scales) (native radios, visually hidden: click their label). */
 const rate = (page: import("@playwright/test").Page, value: number) =>
   page
     .getByRole("dialog")
     .locator("label")
     .filter({ hasText: new RegExp(`^${value}$`) })
+    .first()
     .click();
 
 test.describe("session logging", () => {

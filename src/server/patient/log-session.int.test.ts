@@ -50,6 +50,7 @@ describe("logSession", () => {
     performedOn: TODAY,
     completed: true,
     pain: null,
+    rpe: null,
     comment: null,
     ...patch,
   });
@@ -115,6 +116,7 @@ describe("logSession", () => {
           performedOn: TODAY,
           completed: true,
           pain: 6,
+          rpe: null,
           comment: "pinchy",
         },
       });
@@ -289,6 +291,21 @@ describe("logSession", () => {
         all.filter((r) => r.performedOn === TODAY),
       );
       expect(reset!.seenByPhysioAt).toBeNull();
+    });
+
+    it("stores rpe and bumps updated_at when only rpe changes", async () => {
+      const first = await log(customerCode, { rpe: 6, comment: "rpe" });
+      expect(first.ok && first.data.rpe).toBe(6);
+      const today = () => rows(standalone).then((all) => all.find((r) => r.performedOn === TODAY)!);
+      const before = await today();
+      expect(before.rpe).toBe(6);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await log(customerCode, { rpe: 6, comment: "rpe" });
+      expect((await today()).updatedAt).toEqual(before.updatedAt);
+      await log(customerCode, { rpe: 8, comment: "rpe" });
+      const after = await today();
+      expect(after.rpe).toBe(8);
+      expect(after.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime());
     });
 
     it("is private to the physio under RLS", async () => {

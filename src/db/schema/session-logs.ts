@@ -17,7 +17,7 @@ import {
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 
 // Relative imports: drizzle-kit loads the schema without the "@/" alias.
-import { LOG_COMMENT_MAX, PAIN_MAX, PAIN_MIN } from "../../lib/session-logs";
+import { LOG_COMMENT_MAX, PAIN_MAX, PAIN_MIN, RPE_MAX, RPE_MIN } from "../../lib/session-logs";
 import { timestamps } from "./_columns";
 import { customers } from "./customers";
 import { physios } from "./physios";
@@ -54,6 +54,7 @@ export const sessionLogs = pgTable(
     performedOn: date({ mode: "string" }).notNull(),
     completed: boolean().notNull().default(true),
     pain: smallint(),
+    rpe: smallint(),
     comment: text(),
     seenByPhysioAt: timestamp({ withTimezone: true }),
     ...timestamps,
@@ -79,6 +80,10 @@ export const sessionLogs = pgTable(
     check(
       "session_logs_pain_range",
       sql`${t.pain} between ${sql.raw(String(PAIN_MIN))} and ${sql.raw(String(PAIN_MAX))}`,
+    ),
+    check(
+      "session_logs_rpe_range",
+      sql`${t.rpe} between ${sql.raw(String(RPE_MIN))} and ${sql.raw(String(RPE_MAX))}`,
     ),
     check(
       "session_logs_comment_length",

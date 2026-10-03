@@ -12,6 +12,11 @@ export const PAIN_MIN = 0;
 export const PAIN_MAX = 10;
 /** 0..10, the values of the patient's pain control. */
 export const PAIN_SCALE = Array.from({ length: PAIN_MAX - PAIN_MIN + 1 }, (_, i) => i + PAIN_MIN);
+/** Borg CR10 rating of perceived exertion, optional on a session log. */
+export const RPE_MIN = 0;
+export const RPE_MAX = 10;
+/** 0..10, the values of the patient's effort control. */
+export const RPE_SCALE = Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, i) => i + RPE_MIN);
 
 /** The days a patient may still log, oldest first: yesterday and today (the physio's days). */
 export function loggableDates(today: string): [string, string] {

@@ -12,6 +12,7 @@ const comment = (patch: Partial<ActivityComment> = {}): ActivityComment => ({
   performedOn: "2026-10-07",
   comment: "A bit pinchy",
   pain: 6,
+  rpe: null,
   seen: false,
   ...patch,
 });
@@ -25,6 +26,11 @@ const feed = (comments: ActivityComment[]) => (
 const setup = (comments: ActivityComment[]) => render(feed(comments));
 
 describe("CommentsFeed", () => {
+  it("shows the effort rating when there is one", () => {
+    setup([comment({ rpe: 7 })]);
+    expect(screen.getByText("RPE 7/10")).toBeInTheDocument();
+  });
+
   it("lists each comment with its routine, day and pain, flagging new ones", () => {
     setup([comment(), comment({ id: "2", comment: "Fine", pain: null, seen: true })]);
     const items = within(screen.getByRole("list")).getAllByRole("listitem");
@@ -33,6 +39,7 @@ describe("CommentsFeed", () => {
     expect(within(items[0]!).getByText("Knee rehab")).toBeInTheDocument();
     expect(within(items[0]!).getByText("Oct 7, 2026")).toBeInTheDocument();
     expect(within(items[0]!).getByText("Pain 6/10")).toBeInTheDocument();
+    expect(within(items[0]!).queryByText(/RPE/)).not.toBeInTheDocument();
     expect(within(items[0]!).getByText("New")).toBeInTheDocument();
     expect(within(items[1]!).queryByText("New")).not.toBeInTheDocument();
     expect(within(items[1]!).queryByText(/Pain/)).not.toBeInTheDocument();

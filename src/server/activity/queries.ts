@@ -149,6 +149,7 @@ export type ActivityComment = {
   performedOn: string;
   comment: string;
   pain: number | null;
+  rpe: number | null;
   /** Has the physio opened the Activity tab since this comment arrived? */
   seen: boolean;
 };
@@ -233,6 +234,7 @@ export async function getCustomerActivity(
         performedOn: sessionLogs.performedOn,
         comment: sessionLogs.comment,
         pain: sessionLogs.pain,
+        rpe: sessionLogs.rpe,
         seenAt: sessionLogs.seenByPhysioAt,
       })
       .from(sessionLogs)
@@ -272,6 +274,7 @@ export async function getCustomerActivity(
       performedOn: row.performedOn,
       comment: row.comment!,
       pain: row.pain,
+      rpe: row.rpe,
       seen: row.seenAt !== null,
     })),
     unseenIds: commentRows.filter((row) => row.seenAt === null).map((row) => row.id),

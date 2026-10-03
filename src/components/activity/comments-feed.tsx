@@ -39,6 +39,7 @@ export function CommentsFeed({ comments }: { comments: ActivityComment[] }) {
                   {format.dateTime(calendarDateToDate(item.performedOn), CALENDAR_DATE_FORMAT)}
                 </span>
                 {item.pain !== null ? <span>{t("painValue", { value: item.pain })}</span> : null}
+                {item.rpe !== null ? <span>{t("rpeValue", { value: item.rpe })}</span> : null}
                 {!item.seen || shownAsNew.has(item.id) ? <Badge>{t("new")}</Badge> : null}
               </div>
               <p className="text-sm wrap-anywhere whitespace-pre-line">{item.comment}</p>
