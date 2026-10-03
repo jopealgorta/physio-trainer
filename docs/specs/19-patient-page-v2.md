@@ -264,5 +264,13 @@ Answered 2026-10-03 before design:
 - **Dashboard merge.** `buildDashboard` merges one session summary and one exercise summary per
   customer (counts summed, newest `latest` wins). Exercise pain >= 7 feeds "Needs attention" and
   exercise comments feed "New comments".
+- **`exerciseKind` on `LoadedItem`.** `getRoutine` is typed by `LoadedItem`, so the aerobic kind is
+  added there (spec 19 task 2) and carried through `EditorItem`/`ExerciseRef` by the editor, which
+  avoids a typecheck break between the two steps.
+- **Workout layout.** The exercise list and the bottom bar are capped at `max-w-2xl` on desktop.
+  Four `Workout` message keys nothing uses any more (`noVideo`, `superset`, `notes`,
+  `instructions`) were removed from `en` and `es`.
+- **Row label.** `Patient.exercise.open` reads "Watch {name}" (es "Ver {name}") when the exercise
+  has a video; without one the button uses "About {name}" (`detailTitle`), see above.
 - **Workout resume unchanged.** The machine and sessionStorage key are the same as spec 12, so a
   saved state from the old player still resumes (the list highlights the resumed exercise).

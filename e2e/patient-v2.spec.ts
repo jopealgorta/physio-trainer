@@ -78,7 +78,9 @@ test.describe("patient page v2", () => {
       .getByRole("dialog", { name: "Note for Wednesday" })
       .getByRole("textbox")
       .fill("Easy day");
-    const saved = page.waitForResponse((r) => r.request().method() === "POST");
+    const saved = page.waitForResponse(
+      (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"] && r.ok(),
+    );
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await saved;
 
@@ -125,6 +127,7 @@ test.describe("patient page v2", () => {
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByTestId("save-status")).toHaveText("Saved");
 
+    // Routines created through the UI start as drafts, which the patient page does not show.
     await activateRoutines(customerId);
     const link = await insertCustomerLink(physio, customerId);
     await page.context().clearCookies();
