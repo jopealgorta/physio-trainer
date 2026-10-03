@@ -197,6 +197,20 @@
       "when": 1791028518895,
       "tag": "20261003115518_aerobic-exercises",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791030127412,
+      "tag": "20261003122207_plan-day-notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791030128142,
+      "tag": "20261003122208_plan-day-notes-extras",
+      "breakpoints": true
     }
   ]
 }

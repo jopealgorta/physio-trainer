@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
-import type { EntryDiff, PlanDiff } from "@/lib/history/diff";
+import type { DayNoteDiff, EntryDiff, PlanDiff } from "@/lib/history/diff";
 import { WEEKDAYS, weekdayName } from "@/lib/plans";
 
 import { HeaderChanges, useChangeText } from "./field-change";
@@ -14,7 +14,8 @@ export function PlanDiffView({ diff }: { diff: PlanDiff }) {
   const t = useTranslations("History");
   const locale = useLocale();
   const entries = diff.entries.filter((entry) => entry.status !== "unchanged" || entry.moved);
-  if (diff.header.length === 0 && entries.length === 0) {
+  const days = diff.days ?? [];
+  if (diff.header.length === 0 && entries.length === 0 && days.length === 0) {
     return <p className="text-muted-foreground text-sm">{t("noChanges")}</p>;
   }
   // An entry shows on the day it is on now (a removed one, on the day it was on).
@@ -24,21 +25,36 @@ export function PlanDiffView({ diff }: { diff: PlanDiff }) {
       <HeaderChanges changes={diff.header} />
       {WEEKDAYS.map((weekday) => {
         const day = entries.filter((entry) => weekdayOf(entry) === weekday);
-        return day.length > 0 ? (
-          <Day key={weekday} name={weekdayName(locale, weekday)} entries={day} />
+        const note = days.find((change) => change.weekday === weekday);
+        return day.length > 0 || note ? (
+          <Day key={weekday} name={weekdayName(locale, weekday)} entries={day} note={note} />
         ) : null;
       })}
     </div>
   );
 }
 
-function Day({ name, entries }: { name: string; entries: EntryDiff[] }) {
+function Day({
+  name,
+  entries,
+  note,
+}: {
+  name: string;
+  entries: EntryDiff[];
+  note: DayNoteDiff | undefined;
+}) {
   const id = useId();
+  const changeText = useChangeText();
   return (
     <div role="group" aria-labelledby={id} className="grid gap-2">
       <h3 id={id} className="text-sm font-semibold">
         {name}
       </h3>
+      {note ? (
+        <p className="text-sm break-words">
+          {changeText({ field: "dayNotes", from: note.before, to: note.after })}
+        </p>
+      ) : null}
       <ul className="grid gap-2">
         {entries.map((entry) => (
           <EntryChange key={(entry.after ?? entry.before)?.id} entry={entry} />

@@ -180,6 +180,7 @@ const plan = (entries: Entry[]): PlanSnapshot => ({
     endsOn: null,
   },
   entries,
+  days: [],
 });
 
 describe("planRestoreEntries", () => {

@@ -103,6 +103,7 @@ const plan = (entries: PlanSnapshot["entries"]): PlanSnapshot => ({
     endsOn: null,
   },
   entries,
+  days: [],
 });
 
 const entry = (id: string, weekday: number, name: string) => ({

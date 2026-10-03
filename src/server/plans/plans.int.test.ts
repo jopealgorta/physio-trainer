@@ -11,6 +11,7 @@ import {
   routineItemSets,
   routineItems,
   routines,
+  weeklyPlanDays,
   weeklyPlanEntries,
   weeklyPlanVersions,
   weeklyPlans,
@@ -31,6 +32,7 @@ import {
   moveEntry,
   removeEntry,
   renamePlan,
+  setDayNotes,
   setEntryLabel,
   updatePlan,
 } from "./mutations";
@@ -380,6 +382,41 @@ describe("weekly plans server layer", () => {
       await expect(
         as(a, (tx, id) => setEntryLabel(tx, id, { planId, entryId: RANDOM_ID, label: "x" })),
       ).resolves.toEqual({ ok: false, error: "entryNotFound" });
+    });
+  });
+
+  describe("setDayNotes", () => {
+    it("sets, replaces and clears a day's note, bumping the version", async () => {
+      const c = await customer(a);
+      const planId = await plan(a, c);
+      const set = (weekday: number, notes: string | null) =>
+        as(a, (tx, id) => setDayNotes(tx, id, { planId, weekday, notes }));
+      const notesOf = async () => (await as(a, (tx, id) => getPlan(tx, id, planId)))?.dayNotes;
+      const v = await versionOf(planId);
+
+      await expect(set(3, "Easy day")).resolves.toEqual({ ok: true, data: {} });
+      expect(await notesOf()).toEqual({ 3: "Easy day" });
+      expect(await versionOf(planId)).toBe(v + 1);
+
+      await set(3, "Rest");
+      expect(await notesOf()).toEqual({ 3: "Rest" });
+      await set(5, "Pool");
+      expect(await notesOf()).toEqual({ 3: "Rest", 5: "Pool" });
+
+      await set(3, null);
+      expect(await notesOf()).toEqual({ 5: "Pool" });
+      expect(await versionOf(planId)).toBe(v + 4);
+    });
+
+    it("refuses another physio's plan", async () => {
+      const c = await customer(a);
+      const planId = await plan(a, c);
+      await expect(
+        as(b, (tx, id) => setDayNotes(tx, id, { planId, weekday: 1, notes: "x" })),
+      ).resolves.toEqual({ ok: false, error: "notFound" });
+      expect(
+        await db.select().from(weeklyPlanDays).where(eq(weeklyPlanDays.weeklyPlanId, planId)),
+      ).toEqual([]);
     });
   });
 

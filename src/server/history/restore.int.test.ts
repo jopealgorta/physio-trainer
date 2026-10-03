@@ -9,6 +9,7 @@ import {
   exercises,
   routines,
   routineVersions,
+  weeklyPlanDays,
   weeklyPlanEntries,
   weeklyPlans,
   weeklyPlanVersions,
@@ -19,6 +20,7 @@ import {
   addEntry,
   createPlan,
   removeEntry,
+  setDayNotes,
   setEntryLabel,
   updatePlan,
 } from "@/server/plans/mutations";
@@ -387,6 +389,34 @@ describe("version history: list, compare and restore", () => {
       expect(restored).toEqual({ ok: false, error: "needsEntries" });
       expect((await planRows(planId)).map((row) => row.version)).toEqual([1, 2, 3]);
       expect(await planEntries(planId)).toEqual([{ weekday: 2, position: 0, routineId }]);
+    });
+
+    it("restores an older version's day notes, and clears them for a snapshot without days", async () => {
+      const planId = await newPlan(a, customerId);
+      const notes = async () =>
+        (await db.select().from(weeklyPlanDays).where(eq(weeklyPlanDays.weeklyPlanId, planId)))
+          .map((row) => [row.weekday, row.notes])
+          .sort();
+      data(await as(a, (tx, id) => setDayNotes(tx, id, { planId, weekday: 2, notes: "Easy" }))); // v2
+      data(await as(a, (tx, id) => setDayNotes(tx, id, { planId, weekday: 2, notes: "Hard" }))); // v3
+      data(await as(a, (tx, id) => setDayNotes(tx, id, { planId, weekday: 4, notes: "Pool" }))); // v4
+      expect(await notes()).toEqual([
+        [2, "Hard"],
+        [4, "Pool"],
+      ]);
+
+      data(await as(a, (tx, id) => restorePlanVersion(tx, id, { id: planId, version: 2 })));
+      expect(await notes()).toEqual([[2, "Easy"]]);
+
+      // A snapshot saved before this feature has no days: restoring it clears them.
+      const [old] = await planRows(planId);
+      const legacy = { ...old.snapshot, days: undefined };
+      await db
+        .update(weeklyPlanVersions)
+        .set({ snapshot: legacy as never })
+        .where(eq(weeklyPlanVersions.id, old.id));
+      data(await as(a, (tx, id) => restorePlanVersion(tx, id, { id: planId, version: 1 })));
+      expect(await notes()).toEqual([]);
     });
 
     it("keeps another physio out", async () => {

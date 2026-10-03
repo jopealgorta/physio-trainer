@@ -86,6 +86,7 @@ describe("summarizePlan", () => {
     });
     const diff: PlanDiff = {
       header: [],
+      days: [],
       entries: [
         entry({ status: "changed", changes: [{ field: "label", from: null, to: "AM" }] }),
         entry({ status: "changed", changes: [{ field: "routine", from: "r1", to: "r2" }] }),
@@ -100,6 +101,22 @@ describe("summarizePlan", () => {
       fields: { label: 1, routine: 1 },
       header: [],
     });
+  });
+});
+
+describe("summarizePlan day notes", () => {
+  it("counts changed day notes under dayNotes", () => {
+    const diff: PlanDiff = {
+      header: [],
+      entries: [],
+      days: [
+        { weekday: 1, before: null, after: "a" },
+        { weekday: 2, before: "b", after: null },
+      ],
+    };
+    const summary = summarizePlan(diff);
+    expect(summary.fields).toEqual({ dayNotes: 2 });
+    expect(isEmptySummary(summary)).toBe(false);
   });
 });
 

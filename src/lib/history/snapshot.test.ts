@@ -66,6 +66,10 @@ describe("snapshot schemas", () => {
       intensity: null,
     });
   });
+  it("parses a plan snapshot saved before day notes with no days", () => {
+    expect(planSnapshotSchema.parse(plan).days).toEqual([]);
+  });
+
   it("exposes the schema number and kinds", () => {
     expect(SNAPSHOT_SCHEMA).toBe(1);
     expect(VERSION_KINDS).toEqual(["created", "edited", "restored"]);

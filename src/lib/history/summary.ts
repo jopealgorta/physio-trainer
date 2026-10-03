@@ -47,8 +47,11 @@ function summarize(header: { field: string }[], rows: Row[]): ChangeSummary {
 
 export const summarizeRoutine = (diff: RoutineDiff): ChangeSummary =>
   summarize(diff.header, diff.items);
-export const summarizePlan = (diff: PlanDiff): ChangeSummary =>
-  summarize(diff.header, diff.entries);
+export function summarizePlan(diff: PlanDiff): ChangeSummary {
+  const summary = summarize(diff.header, diff.entries);
+  if (diff.days.length > 0) summary.fields.dayNotes = diff.days.length;
+  return summary;
+}
 
 export const isEmptySummary = (s: ChangeSummary): boolean =>
   s.added === 0 &&

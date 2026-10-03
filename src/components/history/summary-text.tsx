@@ -20,6 +20,7 @@ export const HISTORY_FIELDS = [
   "notes",
   "group",
   "label",
+  "dayNotes",
   "routine",
   "name",
   "status",

@@ -36,7 +36,13 @@ export type EntryDiff = {
 };
 
 export type PlanHeaderField = keyof PlanSnapshot["plan"];
-export type PlanDiff = { header: FieldChange<PlanHeaderField>[]; entries: EntryDiff[] };
+export type DayNoteDiff = { weekday: number; before: string | null; after: string | null };
+export type PlanDiff = {
+  header: FieldChange<PlanHeaderField>[];
+  entries: EntryDiff[];
+  /** Day notes that were added, changed or removed, by weekday. */
+  days: DayNoteDiff[];
+};
 
 const SET_FIELDS: SetField[] = [
   "reps",
@@ -298,8 +304,21 @@ export function diffPlans(before: PlanSnapshot, after: PlanSnapshot): PlanDiff {
         ],
   );
 
+  // Stored snapshots are not re-parsed, so one from before day notes has no `days` at runtime.
+  const beforeDays = new Map((before.days ?? []).map((day) => [day.weekday, day.notes]));
+  const afterDays = new Map((after.days ?? []).map((day) => [day.weekday, day.notes]));
+  const days: DayNoteDiff[] = [...new Set([...beforeDays.keys(), ...afterDays.keys()])]
+    .sort((x, y) => x - y)
+    .map((weekday) => ({
+      weekday,
+      before: beforeDays.get(weekday) ?? null,
+      after: afterDays.get(weekday) ?? null,
+    }))
+    .filter((day) => day.before !== day.after);
+
   return {
     header: headerChanges(PLAN_HEADER_FIELDS, before.plan, after.plan),
     entries: interleave(entries, removed),
+    days,
   };
 }

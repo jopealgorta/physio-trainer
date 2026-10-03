@@ -76,6 +76,10 @@ export const planSnapshotSchema = z.object({
       routine: z.object({ id: z.string(), name: z.string(), version: z.number().int() }),
     }),
   ),
+  // Added after the first snapshots were stored: older ones parse with no day notes.
+  days: z
+    .array(z.object({ weekday: z.number().int().min(1).max(7), notes: z.string() }))
+    .default([]),
 });
 
 export type RoutineSnapshot = z.infer<typeof routineSnapshotSchema>;

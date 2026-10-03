@@ -236,7 +236,11 @@ const entry = (id: string, overrides: Partial<Entry> = {}): Entry => ({
   routine: { id: "r1", name: "R1", version: 1 },
   ...overrides,
 });
-const plan = (entries: Entry[], header: Partial<PlanSnapshot["plan"]> = {}): PlanSnapshot => ({
+const plan = (
+  entries: Entry[],
+  header: Partial<PlanSnapshot["plan"]> = {},
+  days: PlanSnapshot["days"] = [],
+): PlanSnapshot => ({
   schema: 1,
   plan: {
     name: "P",
@@ -249,9 +253,27 @@ const plan = (entries: Entry[], header: Partial<PlanSnapshot["plan"]> = {}): Pla
     ...header,
   },
   entries,
+  days,
 });
 
 describe("diffPlans", () => {
+  it("reports an added, changed and removed day note per weekday", () => {
+    const before = plan([], {}, [
+      { weekday: 3, notes: "Easy" },
+      { weekday: 5, notes: "Pool" },
+    ]);
+    const after = plan([], {}, [
+      { weekday: 1, notes: "New" },
+      { weekday: 3, notes: "Hard" },
+    ]);
+    expect(diffPlans(before, after).days).toEqual([
+      { weekday: 1, before: null, after: "New" },
+      { weekday: 3, before: "Easy", after: "Hard" },
+      { weekday: 5, before: "Pool", after: null },
+    ]);
+    expect(diffPlans(before, structuredClone(before)).days).toEqual([]);
+  });
+
   it("reports identical plans as unchanged", () => {
     const p = plan([entry("n1")]);
     const diff = diffPlans(p, structuredClone(p));

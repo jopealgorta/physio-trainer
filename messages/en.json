@@ -1633,6 +1633,7 @@
       "notes": "Notes",
       "group": "Superset",
       "label": "Label",
+      "dayNotes": "Day notes",
       "routine": "Routine",
       "name": "Name",
       "status": "Status",
