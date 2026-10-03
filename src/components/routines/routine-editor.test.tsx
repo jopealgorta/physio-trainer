@@ -34,6 +34,7 @@ const BLOCKS: EditorBlock[] = [
     item: {
       key: "k1",
       exerciseId: "00000000-0000-4000-8000-000000000001",
+      exerciseKind: "strength",
       exerciseName: "Squat",
       exerciseArchived: false,
       cover: null,

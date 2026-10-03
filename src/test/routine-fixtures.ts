@@ -15,6 +15,7 @@ export const item = (key: string, patch: Partial<EditorItem> = {}): EditorItem =
   key,
   exerciseId: `ex-${key}`,
   exerciseName: `Exercise ${key}`,
+  exerciseKind: "strength",
   exerciseArchived: false,
   cover: null,
   holdSeconds: null,

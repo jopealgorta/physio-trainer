@@ -23,7 +23,12 @@ export const PRESCRIPTION_NOTES_MAX_LENGTH = 500;
 
 /** The codes a set field can show (Prescription.errors.*); text and side limits never surface. */
 export type PrescriptionErrorCode =
-  "notAWholeNumber" | "outOfRange" | "repsMaxWithoutReps" | "repsMaxNotAboveReps";
+  | "notAWholeNumber"
+  | "outOfRange"
+  | "repsMaxWithoutReps"
+  | "repsMaxNotAboveReps"
+  | "notADuration"
+  | "notADistance";
 
 const blankToUndefined = (value: unknown) =>
   value === null || (typeof value === "string" && value.trim() === "") ? undefined : value;

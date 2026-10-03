@@ -259,7 +259,9 @@
       "notAWholeNumber": "Enter a whole number.",
       "outOfRange": "Enter a number from {min, number} to {max, number}.",
       "repsMaxWithoutReps": "Enter reps first.",
-      "repsMaxNotAboveReps": "Must be more than reps."
+      "repsMaxNotAboveReps": "Must be more than reps.",
+      "notADuration": "Enter minutes like 30 or 1:30.",
+      "notADistance": "Enter a distance like 5 or 2.5."
     },
     "summary": {
       "count": "{value, number}",
@@ -315,6 +317,11 @@
         "create": "Create category",
         "creating": "Creating…",
         "cancel": "Cancel"
+      },
+      "kind": {
+        "label": "Type",
+        "strength": "Strength",
+        "aerobic": "Aerobic"
       }
     },
     "detail": {
@@ -419,6 +426,9 @@
         "tooDeep": "Sub-categories can't have sub-categories.",
         "unknown": "Something went wrong. Try again."
       }
+    },
+    "kindBadge": {
+      "aerobic": "Aerobic"
     }
   },
   "Customers": {
@@ -715,7 +725,13 @@
         "add": "Add set",
         "remove": "Remove set {n, number}",
         "syncHint": "Sets stay in sync across the superset.",
-        "limit": "Up to {max, number} sets."
+        "limit": "Up to {max, number} sets.",
+        "distance": "Distance (km)",
+        "distanceHint": "5 or 2.5",
+        "intensity": "Intensity",
+        "intensityPlaceholder": "Zone 2, RPE 5, 5:30/km",
+        "durationMinutes": "Duration (min)",
+        "durationHint": "30 or 1:30"
       },
       "fields": {
         "hold": "Hold (s)",

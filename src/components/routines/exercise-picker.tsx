@@ -35,6 +35,7 @@ const MAX_AREA_BADGES = 2;
 export const toExerciseRef = (summary: ExerciseSummary): ExerciseRef => ({
   id: summary.id,
   name: summary.name,
+  kind: summary.kind,
   archived: summary.archivedAt !== null,
   cover: summary.cover,
 });
@@ -54,6 +55,7 @@ function ExerciseButton({
   onPick: (exercise: ExerciseSummary) => void;
 }) {
   const t = useTranslations("Routines.picker");
+  const tLibrary = useTranslations("Library");
   const descriptionId = useId();
   const shown = exercise.bodyAreas.slice(0, MAX_AREA_BADGES);
   const more = exercise.bodyAreas.length - shown.length;
@@ -80,6 +82,9 @@ function ExerciseButton({
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="line-clamp-2 text-sm font-medium">{exercise.name}</span>
         <span className="flex flex-wrap items-center gap-1">
+          {exercise.kind === "aerobic" ? (
+            <Badge variant="secondary">{tLibrary("kindBadge.aerobic")}</Badge>
+          ) : null}
           {shown.map((area) => (
             <BodyAreaBadge key={area} area={area} />
           ))}

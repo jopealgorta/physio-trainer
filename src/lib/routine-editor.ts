@@ -19,6 +19,7 @@ export type EditorSet = SetPrescription & { key: string };
 export type ExerciseRef = {
   id: string;
   name: string;
+  kind: ExerciseKind;
   archived: boolean;
   cover: { videoId: string; isShort: boolean } | null;
 };
@@ -26,6 +27,7 @@ export type EditorItem = ItemPrescription & {
   key: string;
   exerciseId: string;
   exerciseName: string;
+  exerciseKind: ExerciseKind;
   exerciseArchived: boolean;
   cover: { videoId: string; isShort: boolean } | null;
   sets: EditorSet[];
@@ -103,6 +105,7 @@ export function newItem(exercise: ExerciseRef, newKey: NewKey): EditorItem {
     key: newKey(),
     exerciseId: exercise.id,
     exerciseName: exercise.name,
+    exerciseKind: exercise.kind,
     exerciseArchived: exercise.archived,
     cover: exercise.cover,
     sets: [{ ...EMPTY_SET, key: newKey() }],
@@ -376,6 +379,7 @@ export function fromLoaded(
     key: newKey(),
     exerciseId: item.exerciseId,
     exerciseName: item.exerciseName,
+    exerciseKind: item.exerciseKind,
     exerciseArchived: item.exerciseArchived,
     cover: item.cover,
     holdSeconds: item.holdSeconds,

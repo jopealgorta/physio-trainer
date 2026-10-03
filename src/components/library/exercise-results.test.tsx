@@ -64,6 +64,19 @@ describe("ExerciseResults", () => {
   });
 });
 
+describe("ExerciseResults kind badge", () => {
+  it("badges aerobic exercises only", async () => {
+    await renderAsync(
+      ExerciseResults({
+        exercises: [exercises[0], { ...exercises[1], kind: "aerobic" }],
+        view: "grid",
+        archived: false,
+      }),
+    );
+    expect(screen.getAllByText("Aerobic")).toHaveLength(1);
+  });
+});
+
 describe("ExerciseResults truncation", () => {
   it("shows the refine hint only when truncated", async () => {
     await renderAsync(

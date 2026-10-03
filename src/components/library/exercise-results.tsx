@@ -23,6 +23,9 @@ function Meta({ exercise, archived }: { exercise: ExerciseSummary; archived: boo
   const more = exercise.bodyAreas.length - shown.length;
   return (
     <>
+      {exercise.kind === "aerobic" ? (
+        <Badge variant="secondary">{t("kindBadge.aerobic")}</Badge>
+      ) : null}
       {shown.map((area) => (
         <BodyAreaBadge key={area} area={area} />
       ))}

@@ -259,7 +259,9 @@
       "notAWholeNumber": "Ingresá un número entero.",
       "outOfRange": "Ingresá un número de {min, number} a {max, number}.",
       "repsMaxWithoutReps": "Primero ingresá las repeticiones.",
-      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones."
+      "repsMaxNotAboveReps": "Tiene que ser mayor que las repeticiones.",
+      "notADuration": "Ingresá los minutos, por ejemplo 30 o 1:30.",
+      "notADistance": "Ingresá una distancia, por ejemplo 5 o 2,5."
     },
     "summary": {
       "count": "{value, number}",
@@ -315,6 +317,11 @@
         "create": "Crear categoría",
         "creating": "Creando…",
         "cancel": "Cancelar"
+      },
+      "kind": {
+        "label": "Tipo",
+        "strength": "Fuerza",
+        "aerobic": "Aeróbico"
       }
     },
     "detail": {
@@ -419,6 +426,9 @@
         "tooDeep": "Las subcategorías no pueden tener subcategorías.",
         "unknown": "Algo salió mal. Probá de nuevo."
       }
+    },
+    "kindBadge": {
+      "aerobic": "Aeróbico"
     }
   },
   "Customers": {
@@ -715,7 +725,13 @@
         "add": "Agregar serie",
         "remove": "Quitar serie {n, number}",
         "syncHint": "Las series se mantienen sincronizadas en toda la superserie.",
-        "limit": "Hasta {max, number} series."
+        "limit": "Hasta {max, number} series.",
+        "distance": "Distancia (km)",
+        "distanceHint": "5 o 2,5",
+        "intensity": "Intensidad",
+        "intensityPlaceholder": "Zona 2, RPE 5, 5:30/km",
+        "durationMinutes": "Duración (min)",
+        "durationHint": "30 o 1:30"
       },
       "fields": {
         "hold": "Sostener (s)",

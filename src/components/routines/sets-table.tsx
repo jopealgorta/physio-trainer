@@ -5,7 +5,9 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { durationToInput, metersToKmInput, parseDurationInput, parseKm } from "@/lib/distance";
 import {
+  INTENSITY_MAX_LENGTH,
   LOAD_MAX_LENGTH,
   PRESCRIPTION_LIMITS,
   setSchema,
@@ -26,6 +28,7 @@ import {
 import { MAX_SETS } from "@/lib/routines";
 
 import { NumberField } from "./number-field";
+import { UnitField } from "./unit-field";
 
 /** A rep range needs reps and a max above them; surfaced under the max field. */
 function rangeError(set: EditorSet): PrescriptionErrorCode | null {
@@ -33,8 +36,15 @@ function rangeError(set: EditorSet): PrescriptionErrorCode | null {
   return (issue?.message as PrescriptionErrorCode | undefined) ?? null;
 }
 
+/** A duration of zero is rejected by the schema (min 1), so it counts as invalid text here. */
+const parseMinutes = (text: string) => {
+  const seconds = parseDurationInput(text);
+  return seconds !== undefined && seconds !== null && seconds <= 0 ? undefined : seconds;
+};
+
 /**
- * One row per set (reps, max reps, duration, load). In a superset every member keeps the same set
+ * One row per set (reps, max reps, duration, load; duration, distance and intensity for an
+ * aerobic exercise). In a superset every member keeps the same set
  * count, so adding or removing a set applies to all of them.
  */
 export function SetsTable({
@@ -52,6 +62,7 @@ export function SetsTable({
 }) {
   const t = useTranslations("Routines.items.sets");
   const loadPlaceholder = useTranslations("Prescription")("loadPlaceholder");
+  const aerobic = item.exerciseKind === "aerobic";
 
   const canAdd = canAddSet(blocks, item.key);
   const canRemove = canRemoveSet(blocks, item.key);
@@ -68,18 +79,34 @@ export function SetsTable({
               <th scope="col" className="w-6 font-normal">
                 <span className="sr-only">{t("title")}</span>
               </th>
-              <th scope="col" className="min-w-16 font-normal">
-                {t("reps")}
-              </th>
-              <th scope="col" className="min-w-16 font-normal">
-                {t("repsMax")}
-              </th>
-              <th scope="col" className="min-w-20 font-normal">
-                {t("duration")}
-              </th>
-              <th scope="col" className="min-w-28 font-normal">
-                {t("load")}
-              </th>
+              {aerobic ? (
+                <>
+                  <th scope="col" className="min-w-24 font-normal">
+                    {t("durationMinutes")}
+                  </th>
+                  <th scope="col" className="min-w-24 font-normal">
+                    {t("distance")}
+                  </th>
+                  <th scope="col" className="min-w-32 font-normal">
+                    {t("intensity")}
+                  </th>
+                </>
+              ) : (
+                <>
+                  <th scope="col" className="min-w-16 font-normal">
+                    {t("reps")}
+                  </th>
+                  <th scope="col" className="min-w-16 font-normal">
+                    {t("repsMax")}
+                  </th>
+                  <th scope="col" className="min-w-20 font-normal">
+                    {t("duration")}
+                  </th>
+                  <th scope="col" className="min-w-28 font-normal">
+                    {t("load")}
+                  </th>
+                </>
+              )}
               <th scope="col" className="w-8 font-normal" />
             </tr>
           </thead>
@@ -90,47 +117,91 @@ export function SetsTable({
               return (
                 <tr key={set.key} className="align-top">
                   <td className="text-muted-foreground pt-1.5 text-xs tabular-nums">{n}</td>
-                  <td>
-                    <NumberField
-                      aria-label={name(t("reps"))}
-                      value={set.reps}
-                      schema={setShape.reps}
-                      limits={PRESCRIPTION_LIMITS.reps}
-                      onValueChange={(reps) => patch(set.key, { reps })}
-                    />
-                  </td>
-                  <td>
-                    <NumberField
-                      aria-label={name(t("repsMax"))}
-                      value={set.repsMax}
-                      schema={setShape.repsMax}
-                      limits={PRESCRIPTION_LIMITS.repsMax}
-                      extraError={rangeError(set)}
-                      onValueChange={(repsMax) => patch(set.key, { repsMax })}
-                    />
-                  </td>
-                  <td>
-                    <NumberField
-                      aria-label={name(t("duration"))}
-                      value={set.durationSeconds}
-                      schema={setShape.durationSeconds}
-                      limits={PRESCRIPTION_LIMITS.durationSeconds}
-                      onValueChange={(durationSeconds) => patch(set.key, { durationSeconds })}
-                    />
-                  </td>
-                  <td>
-                    <Input
-                      aria-label={name(t("load"))}
-                      value={set.load ?? ""}
-                      maxLength={LOAD_MAX_LENGTH}
-                      placeholder={loadPlaceholder}
-                      onChange={(event) =>
-                        patch(set.key, {
-                          load: event.target.value.trim() ? event.target.value : null,
-                        })
-                      }
-                    />
-                  </td>
+                  {aerobic ? (
+                    <>
+                      <td>
+                        <UnitField
+                          aria-label={name(t("durationMinutes"))}
+                          inputMode="numeric"
+                          placeholder={t("durationHint")}
+                          value={set.durationSeconds}
+                          parse={parseMinutes}
+                          format={durationToInput}
+                          errorCode="notADuration"
+                          onValueChange={(durationSeconds) => patch(set.key, { durationSeconds })}
+                        />
+                      </td>
+                      <td>
+                        <UnitField
+                          aria-label={name(t("distance"))}
+                          inputMode="decimal"
+                          placeholder={t("distanceHint")}
+                          value={set.distanceMeters}
+                          parse={parseKm}
+                          format={metersToKmInput}
+                          errorCode="notADistance"
+                          onValueChange={(distanceMeters) => patch(set.key, { distanceMeters })}
+                        />
+                      </td>
+                      <td>
+                        <Input
+                          aria-label={name(t("intensity"))}
+                          value={set.intensity ?? ""}
+                          maxLength={INTENSITY_MAX_LENGTH}
+                          placeholder={t("intensityPlaceholder")}
+                          onChange={(event) =>
+                            patch(set.key, {
+                              intensity: event.target.value.trim() ? event.target.value : null,
+                            })
+                          }
+                        />
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td>
+                        <NumberField
+                          aria-label={name(t("reps"))}
+                          value={set.reps}
+                          schema={setShape.reps}
+                          limits={PRESCRIPTION_LIMITS.reps}
+                          onValueChange={(reps) => patch(set.key, { reps })}
+                        />
+                      </td>
+                      <td>
+                        <NumberField
+                          aria-label={name(t("repsMax"))}
+                          value={set.repsMax}
+                          schema={setShape.repsMax}
+                          limits={PRESCRIPTION_LIMITS.repsMax}
+                          extraError={rangeError(set)}
+                          onValueChange={(repsMax) => patch(set.key, { repsMax })}
+                        />
+                      </td>
+                      <td>
+                        <NumberField
+                          aria-label={name(t("duration"))}
+                          value={set.durationSeconds}
+                          schema={setShape.durationSeconds}
+                          limits={PRESCRIPTION_LIMITS.durationSeconds}
+                          onValueChange={(durationSeconds) => patch(set.key, { durationSeconds })}
+                        />
+                      </td>
+                      <td>
+                        <Input
+                          aria-label={name(t("load"))}
+                          value={set.load ?? ""}
+                          maxLength={LOAD_MAX_LENGTH}
+                          placeholder={loadPlaceholder}
+                          onChange={(event) =>
+                            patch(set.key, {
+                              load: event.target.value.trim() ? event.target.value : null,
+                            })
+                          }
+                        />
+                      </td>
+                    </>
+                  )}
                   <td>
                     <Button
                       type="button"

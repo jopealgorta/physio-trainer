@@ -29,6 +29,7 @@ const categories: CategoryNode[] = [
 ];
 const defaults: ExerciseFormValues = {
   name: "",
+  kind: "strength",
   categoryId: null,
   instructions: null,
   bodyAreas: [],
@@ -111,6 +112,19 @@ describe("ExerciseForm", () => {
     expect(formData.getAll("tags")).toEqual(["band"]);
     expect(formData.getAll("media")).toEqual(["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]);
     expect(formData.has("sets")).toBe(false);
+  });
+
+  it("posts kind=strength by default and kind=aerobic when Aerobic is picked", async () => {
+    const user = userEvent.setup();
+    const action = idleAction();
+    setup(action);
+    await user.type(screen.getByLabelText("Name"), "Run");
+    expect(screen.getByRole("radio", { name: "Strength" })).toBeChecked();
+    await user.click(screen.getByRole("radio", { name: "Aerobic" }));
+    await user.click(screen.getByRole("button", { name: "Create exercise" }));
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    const formData = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
+    expect(formData.get("kind")).toBe("aerobic");
   });
 
   it("keeps typed values while a new category is created, then submits it", async () => {

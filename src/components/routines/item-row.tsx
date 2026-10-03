@@ -60,6 +60,7 @@ export function ItemRow({
   newKey: NewKey;
 }) {
   const t = useTranslations("Routines.items");
+  const tLibrary = useTranslations("Library");
   const summarize = useSummaryTranslator();
   const grouped = groupKey !== undefined;
   const summary = formatPrescription(item, summarize);
@@ -86,6 +87,9 @@ export function ItemRow({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <span className="truncate text-sm font-medium">{item.exerciseName}</span>
+            {item.exerciseKind === "aerobic" ? (
+              <Badge variant="secondary">{tLibrary("kindBadge.aerobic")}</Badge>
+            ) : null}
             {item.exerciseArchived ? <Badge variant="secondary">{t("archivedBadge")}</Badge> : null}
             {invalid ? <Badge variant="destructive">{t("invalidBadge")}</Badge> : null}
           </div>

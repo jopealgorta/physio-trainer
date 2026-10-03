@@ -17,6 +17,17 @@ function form(entries: [string, string][]) {
   return data;
 }
 
+describe("exerciseSchema kind", () => {
+  const base = { name: "Run", categoryId: null, bodyAreas: [], tags: [], media: [] };
+  it("defaults to strength and accepts aerobic", () => {
+    expect(exerciseSchema.parse(base).kind).toBe("strength");
+    expect(exerciseSchema.parse({ ...base, kind: "aerobic" }).kind).toBe("aerobic");
+  });
+  it("rejects an unknown kind", () => {
+    expect(exerciseSchema.safeParse({ ...base, kind: "yoga" }).success).toBe(false);
+  });
+});
+
 describe("exerciseSchema", () => {
   it("parses a full form submission", () => {
     const values = exerciseFormValues(
