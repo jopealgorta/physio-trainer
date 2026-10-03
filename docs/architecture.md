@@ -22,7 +22,7 @@ that physio.
 | Privacy              | Health data. Tenant isolation enforced by Postgres RLS plus explicit filters. No health data in URLs; link previews carry only branding and the routine/plan title the physio typed.                                                                                                   |
 | Patient access       | No account. Share link per customer (always shows what is currently active) plus optional links for a single routine/plan. Revocable, optional expiry, optional 4-digit PIN.                                                                                                           |
 | Link format          | `/{physio-handle}/{slug}-{code}`, e.g. `/maria-lopez/ana-7k2m9qpx`. `code` is 8 random Crockford base32 chars and is the only lookup key; `handle` and `slug` are cosmetic and redirect to canonical when stale.                                                                       |
-| Patient input        | Patients log sessions (done, pain 0–10, comment) from v1 (feature D).                                                                                                                                                                                                                  |
+| Patient input        | Patients log sessions (done, pain 0–10, RPE 0–10, comment) from v1 (feature D) and, per exercise, pain, RPE, weight (kg) and a comment (spec 19).                                                                                                                                      |
 | Routine types        | **Single routine** (shared on its own) and **weekly plan** (Mon–Sun, each day has 0..n routines, e.g. gym + rehab).                                                                                                                                                                    |
 | Weekly plans         | One repeating 7-day template. Routines are attached by reference (edit once, updates every day); "make a separate copy" to diverge. Optional per-entry label ("Morning").                                                                                                              |
 | Progression          | "Copy into next phase" with start/end dates (feature B) rather than multi-week plans.                                                                                                                                                                                                  |
@@ -144,12 +144,16 @@ erDiagram
   routine_items ||--o{ routine_item_sets : "one row per set"
   exercises ||--o{ routine_items : "used in"
   weekly_plans ||--o{ weekly_plan_entries : "day slots"
+  weekly_plans ||--o{ weekly_plan_days : "day notes"
   routines ||--o{ weekly_plan_entries : "attached to"
   routines ||--o{ routine_versions : snapshots
   weekly_plans ||--o{ weekly_plan_versions : snapshots
   customers ||--o{ share_links : "shared via"
   share_links ||--o{ session_logs : "logged through"
   routines ||--o{ session_logs : "logged for"
+  share_links ||--o{ exercise_logs : "logged through"
+  exercises ||--o{ exercise_logs : "logged for"
+  routines ||--o{ exercise_logs : "logged in"
   customers ||--o{ visit_notes : has
 ```
 
@@ -157,14 +161,16 @@ erDiagram
 | ------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | `physios`                                  | 01 (+09 branding columns)      | Profile, 1:1 with `auth.users` (`id` = auth user id). `handle` unique. `avatar_url`: Google photo, set on sign-in.     |
 | `exercise_categories`                      | 03                             | Two-level tree (`parent_id` null = top level).                                                                         |
-| `exercises`, `exercise_media`              | 03                             | Library entries (no prescription of their own) and ordered media.                                                      |
+| `exercises`, `exercise_media`              | 03 (+19 kind)                  | Library entries (strength or aerobic `kind`, no prescription of their own) and ordered media.                          |
 | `customers`                                | 04                             | Patient contact/basic info, `locale`.                                                                                  |
 | `cases`                                    | 04                             | Injury episodes per customer (body area/side from spec 02).                                                            |
 | `routines`, `routine_groups`               | 05 (+07 templates, +08 phases) | Routine header; a group is one superset (shared rest). Template ⇔ `customer_id` null; copies keep `source_template_id` |
 | `routine_items`, `routine_item_sets`       | 05                             | Ordered exercises (per-item prescription) and one row per set.                                                         |
 | `weekly_plans`, `weekly_plan_entries`      | 06 (+07, +08)                  | Mon–Sun; entries reference routines by id. Same template/`source_template_id` rules.                                   |
+| `weekly_plan_days`                         | 19                             | One note per weekday of a plan (row exists only while the note is non-empty).                                          |
 | `share_links`                              | 10                             | Link code, target, PIN hash, expiry, revocation.                                                                       |
-| `session_logs`                             | 13                             | Patient-submitted completion/pain/comment per routine per date.                                                        |
+| `session_logs`                             | 13 (+19 RPE)                   | Patient-submitted completion/pain/RPE/comment per routine per date.                                                    |
+| `exercise_logs`                            | 19                             | Patient-submitted pain/RPE/weight/comment per exercise per routine per date.                                           |
 | `routine_versions`, `weekly_plan_versions` | 15                             | JSON snapshots on each save.                                                                                           |
 | `visit_notes`                              | 16                             | Private per-visit clinical notes (SOAP).                                                                               |
 
@@ -197,8 +203,10 @@ The prescription lives only on routines; exercises carry no defaults (the old de
 
 - **Per set**, one `routine_item_sets` row each (`position` 0-based, at most 20 per item):
   `reps smallint`, `reps_max smallint` (range when set: "8–12"; needs `reps` and must exceed
-  it), `duration_seconds integer` (timed sets), `load text` ("5 kg", "red band"). Sets may differ
-  (12 / 10 / 8).
+  it), `duration_seconds integer` (timed sets, up to 14 400 s), `load text` ("5 kg", "red band"),
+  and, for aerobic work (spec 19), `distance_meters integer` and `intensity text` ("Zone 2",
+  "5:30/km"). Sets may differ (12 / 10 / 8). `exercises.kind` (`strength | aerobic`) only decides
+  which columns the editor shows; the schema allows every column on every set.
 - **Per item**, on `routine_items`: `hold_seconds smallint`, `rest_seconds smallint`, `side` enum
   (`left | right | both | alternating`), `notes text`.
 - **Supersets**: `routine_groups` (rest after each round, `rest_seconds`). Items point to it with

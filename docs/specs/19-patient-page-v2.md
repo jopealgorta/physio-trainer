@@ -1,6 +1,6 @@
 # 19 · Patient page v2 (compact list, exercise logs, RPE, day notes, aerobic)
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** Core (patient experience), extends C (workout mode) and D (logging)
 - **Depends on:** 05, 06, 10, 12, 13, 14, 15
 
@@ -188,17 +188,17 @@ New keys under `Patient` (list, exercise log sheet, RPE scale), `Workout` (botto
 
 ## Acceptance criteria
 
-- [ ] Patient page lists exercises compactly with thumbnails; tapping opens and plays the video.
-- [ ] Workout mode shows the list with the current exercise highlighted and a bottom bar with
+- [x] Patient page lists exercises compactly with thumbnails; tapping opens and plays the video.
+- [x] Workout mode shows the list with the current exercise highlighted and a bottom bar with
       timer and controls; previous behaviour (sets, hold, timed, rest, cues, resume) intact.
-- [ ] Routine log sheet saves an optional RPE.
-- [ ] Patient can log pain, RPE, weight and comment per exercise (today/yesterday), edit and
+- [x] Routine log sheet saves an optional RPE.
+- [x] Patient can log pain, RPE, weight and comment per exercise (today/yesterday), edit and
       clear it; unreachable/cross-customer writes rejected.
-- [ ] Physio sees exercise logs and RPE in the Activity tab; exercise pain ≥ 7 shows under
+- [x] Physio sees exercise logs and RPE in the Activity tab; exercise pain ≥ 7 shows under
       "Needs attention"; exercise comments are "New".
-- [ ] Physio can add a note per weekday; patient sees it; it survives template/phase copies,
+- [x] Physio can add a note per weekday; patient sees it; it survives template/phase copies,
       version restore, and appears in PDF/Excel.
-- [ ] Physio can mark an exercise aerobic and prescribe duration/distance/intensity; patient
+- [x] Physio can mark an exercise aerobic and prescribe duration/distance/intensity; patient
       page, workout and exports render it.
 
 ## Test plan
@@ -232,4 +232,37 @@ Answered 2026-10-03 before design:
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Exercise logs are keyed by exercise**, not routine item (saving a routine recreates its
+  items). The unique key is `(routine_id, weekly_plan_entry_id, exercise_id, performed_on)`; an
+  exercise used twice in one routine shares one log. The patient may only log an exercise that
+  belongs to the routine reachable from the link, otherwise `unreachable` and no row.
+- **Shared log helpers.** `src/lib/log-shared.ts` (parsing/validation shared by session and
+  exercise logs, including "12,5" decimal commas) and `log-sheet.tsx` (`DayToggle`, `LogSheet` and
+  the submit hooks) back the routine sheet, the exercise sheet and the workout bar. Both seen-logic
+  paths (session and exercise comments) share `markSeen`, the unseen fragments and `useShownAsNew`.
+- **Minutes display.** Aerobic durations are typed and shown in minutes ("30" or "1:30"); storage
+  stays in seconds. The duration input drops `inputMode="numeric"` so "1:30" is typeable on iOS.
+  The duration limit rose from 3 600 s to 14 400 s (4 h) for long aerobic sessions.
+- **Old snapshots normalised in diffs.** Stored jsonb snapshots predate `days`, `distanceMeters`
+  and `intensity` and are not re-parsed, so diff, diff view and restore treat a missing value as
+  null/`[]` (restore backfills `EMPTY_SET`); otherwise old versions would show phantom changes.
+- **No-video label.** The thumbnail button reads "Watch {name}" with a video and "About {name}"
+  without one, since there is nothing to watch.
+- **One Skip at a time in workout mode.** During a rest or a timed set Skip is the primary button
+  and the timer row only has +15 s; during a hold Set done stays primary and the timer row has
+  +15 s and an outline Skip.
+- **Routine name is the workout `<h1>`;** the current exercise name in the bar is plain text, and
+  list rows keep their `<h4>`.
+- **Export.** Day notes use the key `Export.xlsx.notes` (the overview is a string, not a table)
+  and the PDF shows them in the accent colour, not italic (no italic font is bundled).
+- **Kind switch keeps data.** Switching an exercise from strength to aerobic keeps hidden
+  reps/load stored (non-destructive, reversible), and `formatPrescription` still prints them.
+- **Swipe guard.** Workout swipes ignore pointer events from sheets portalled out of the bar
+  (the log sheet), so dragging inside a sheet no longer changes the set.
+- **Activity grouping by `routineId`.** Exercise logs are grouped by day + routine id, so two
+  same-named routines on one day stay separate.
+- **Dashboard merge.** `buildDashboard` merges one session summary and one exercise summary per
+  customer (counts summed, newest `latest` wins). Exercise pain >= 7 feeds "Needs attention" and
+  exercise comments feed "New comments".
+- **Workout resume unchanged.** The machine and sessionStorage key are the same as spec 12, so a
+  saved state from the old player still resumes (the list highlights the resumed exercise).
