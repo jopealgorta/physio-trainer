@@ -97,7 +97,9 @@ These rules are the security model. Every spec must follow them.
    guards. Integration tests call `runAsPhysio` directly with test claims. Every transaction
    costs round trips: a page loads what it needs in **one** `withPhysio` (a `cache()`d loader
    shared with `generateMetadata`), with independent reads in `Promise.all` (postgres.js
-   pipelines them on the transaction's connection).
+   pipelines them on the transaction's connection). Reads only: never run a helper that opens a
+   savepoint (`tx.transaction(...)`, as some `*/mutations.ts` do) concurrently with other
+   queries on the same transaction, because pipelined statements would land inside or across it.
 3. **Patient-facing code** (no session) lives only in `src/server/patient/`. It uses the owner
    `db` connection (RLS bypassed) and must:
    - resolve the share link by `code` first (not revoked, not expired, PIN satisfied);

@@ -32,12 +32,8 @@ describe("runAsPhysio (RLS on physios)", () => {
       return row;
     });
     expect(inside).toEqual({ role: "authenticated", sub: a.id, uid: a.id });
-
-    // SET LOCAL semantics: outside the transaction the pool runs as the owner, with no claims.
-    const [after] = await db.execute<{ role: string; claims: string | null }>(
-      sql`select current_user as role, nullif(current_setting('request.jwt.claims', true), '') as claims`,
-    );
-    expect(after).toEqual({ role: "postgres", claims: null });
+    // That both settings end with the transaction is checked on one connection in
+    // rls-reset.int.test.ts.
   });
 
   it("shows a physio only their own row", async () => {
