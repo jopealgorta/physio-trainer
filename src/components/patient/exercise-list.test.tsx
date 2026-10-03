@@ -1,16 +1,17 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "../../../messages/en.json";
 import es from "../../../messages/es.json";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientBlock, PatientItem } from "@/server/patient/view";
-import { ExerciseList, type ExerciseLogging } from "./exercise-list";
+import { ExerciseList, REFRESH_AFTER_SAVE_MS, type ExerciseLogging } from "./exercise-list";
 
-const m = vi.hoisted(() => ({ log: vi.fn() }));
+const m = vi.hoisted(() => ({ log: vi.fn(), refresh: vi.fn() }));
 vi.mock("@/server/patient/actions", () => ({ logExerciseAction: m.log }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: m.refresh }) }));
 
 const ROUTINE = "3e473832-bc4d-475b-9a6a-0356874dc603";
 const SQUAT = "0b8f5f0e-8f53-4c39-9f0e-4f3f1f8c1a01";
@@ -150,6 +151,7 @@ describe("ExerciseList", () => {
     });
 
     beforeEach(() => {
+      m.refresh.mockReset();
       m.log.mockReset();
       m.log.mockImplementation(async (_code: string, input: PatientExerciseLog) => ({
         ok: true,
@@ -195,6 +197,50 @@ describe("ExerciseList", () => {
       expect(m.log).toHaveBeenCalledTimes(1);
       expect(screen.getByText("20 kg")).toBeInTheDocument();
       expect(toggle).toHaveClass("text-primary");
+    });
+
+    describe("page data", () => {
+      beforeEach(() => {
+        // Real time moves the fake clock too: Testing Library's async wrapper waits on a real tick.
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+      });
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+      const wait = (ms: number) =>
+        act(async () => {
+          await vi.advanceTimersByTimeAsync(ms);
+        });
+
+      it("refreshes the page once, a while after the last save", async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        setup({ logging: loggable() });
+        await user.click(screen.getByRole("button", { name: "Log Squat" }));
+        await user.type(screen.getByLabelText("Set 1 weight in kg"), "20");
+        await user.tab();
+        await user.type(screen.getByLabelText("Set 2 weight in kg"), "25");
+        await user.tab();
+        await wait(0);
+        expect(m.log).toHaveBeenCalledTimes(2);
+        expect(m.refresh).not.toHaveBeenCalled();
+        // The panel keeps what was typed across the refresh.
+        await wait(REFRESH_AFTER_SAVE_MS);
+        expect(m.refresh).toHaveBeenCalledTimes(1);
+        expect(screen.getByLabelText("Set 2 weight in kg")).toHaveValue("25");
+        await wait(REFRESH_AFTER_SAVE_MS * 2);
+        expect(m.refresh).toHaveBeenCalledTimes(1);
+      });
+
+      it("does not refresh when nothing was saved", async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        setup({ logging: loggable() });
+        await user.click(screen.getByRole("button", { name: "Log Squat" }));
+        await user.type(screen.getByLabelText("Set 1 weight in kg"), "abc");
+        await user.click(screen.getByRole("button", { name: "Log Squat" }));
+        await wait(REFRESH_AFTER_SAVE_MS * 2);
+        expect(m.log).not.toHaveBeenCalled();
+        expect(m.refresh).not.toHaveBeenCalled();
+      });
     });
 
     it("opens the rows it is told to when controlled", async () => {

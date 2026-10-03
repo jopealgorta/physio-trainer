@@ -1,8 +1,9 @@
 "use client";
 
 import { DumbbellIcon, NotebookPenIcon, PlayIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { YouTubeThumbnail } from "@/components/library/youtube-thumbnail";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,12 @@ export type ExerciseLogging = {
   /** This routine and entry's exercise logs, any day. */
   logs: PatientExerciseLog[];
 };
+
+/**
+ * One page refresh this long after the last saved log: keeps the router cache (back/forward)
+ * current without refetching the page on every autosave.
+ */
+export const REFRESH_AFTER_SAVE_MS = 1500;
 
 /** One row's view of the routine's exercise logs (shared by rows of the same exercise). */
 type RowLogs = {
@@ -76,12 +83,29 @@ export function ExerciseList({
     const [exerciseId = "", date = ""] = key.split("|");
     return logging ? exerciseLogFor(logging.logs, exerciseId, date) : null;
   });
+  const router = useRouter();
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(refreshTimer.current);
+    };
+  }, []);
+  const remember = (key: string, log: PatientExerciseLog | null) => {
+    saved.remember(key, log);
+    // A panel's last save can land after the list is gone (fire-and-forget on unmount).
+    if (!mounted.current) return;
+    clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => router.refresh(), REFRESH_AFTER_SAVE_MS);
+  };
 
   const logsFor = (item: PatientItem): RowLogs | undefined =>
     logging && {
       logging,
       logFor: (date) => saved.logFor(`${item.exerciseId}|${date}`),
-      remember: (date, log) => saved.remember(`${item.exerciseId}|${date}`, log),
+      remember: (date, log) => remember(`${item.exerciseId}|${date}`, log),
       expanded: open.has(item.id),
       onToggle: () => {
         const next = new Set(open);
