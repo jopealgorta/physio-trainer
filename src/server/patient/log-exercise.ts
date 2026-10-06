@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, notExists, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 import { db } from "@/db";
-import { exerciseLogs, routineItems } from "@/db/schema";
+import { exerciseLogs, routineItems, sessionLogs } from "@/db/schema";
 
 import type { LogExerciseInput } from "./exercise-log-schema";
 import type { ActiveLink, LinkShell } from "./resolve-link";
@@ -41,6 +42,10 @@ const patientColumns = {
  * routine, plan entry and exercise come from the request: the routine and entry must be
  * reachable from the link and active that day, the exercise must belong to that routine, and the
  * day must be today or yesterday in the physio's time zone.
+ *
+ * Every exercise log belongs to the routine's session for that day (spec 21): the first log
+ * creates it as done, later ones join it without changing it, and an undone session stays undone.
+ * Clearing the last log deletes the session when it is empty (no pain, effort or comment).
  */
 export async function logExercise(
   shell: Pick<LinkShell, "physioId" | "timeZone">,
@@ -70,60 +75,118 @@ export async function logExercise(
     .limit(1);
   if (!item) return { ok: false, error: "unreachable" };
 
+  const scope = (column: AnyPgColumn) =>
+    input.entryId === null ? sql`${column} is null` : eq(column, input.entryId);
+
   if (input.rpe === null && input.setWeightsKg === null && input.comment === null) {
-    await db
-      .delete(exerciseLogs)
-      .where(
+    await db.transaction(async (tx) => {
+      const [removed] = await tx
+        .delete(exerciseLogs)
+        .where(
+          and(
+            eq(exerciseLogs.physioId, shell.physioId),
+            eq(exerciseLogs.customerId, link.customerId),
+            eq(exerciseLogs.routineId, input.routineId),
+            eq(exerciseLogs.exerciseId, input.exerciseId),
+            eq(exerciseLogs.performedOn, input.performedOn),
+            scope(exerciseLogs.weeklyPlanEntryId),
+          ),
+        )
+        .returning({ sessionLogId: exerciseLogs.sessionLogId });
+      if (!removed) return;
+      // the session was only created by its exercise logs: drop it once nothing else holds it
+      await tx.delete(sessionLogs).where(
         and(
-          eq(exerciseLogs.physioId, shell.physioId),
-          eq(exerciseLogs.customerId, link.customerId),
-          eq(exerciseLogs.routineId, input.routineId),
-          eq(exerciseLogs.exerciseId, input.exerciseId),
-          eq(exerciseLogs.performedOn, input.performedOn),
-          input.entryId === null
-            ? sql`${exerciseLogs.weeklyPlanEntryId} is null`
-            : eq(exerciseLogs.weeklyPlanEntryId, input.entryId),
+          eq(sessionLogs.physioId, shell.physioId),
+          eq(sessionLogs.id, removed.sessionLogId),
+          isNull(sessionLogs.pain),
+          isNull(sessionLogs.rpe),
+          isNull(sessionLogs.comment),
+          notExists(
+            tx
+              .select({ one: sql`1` })
+              .from(exerciseLogs)
+              .where(eq(exerciseLogs.sessionLogId, sessionLogs.id)),
+          ),
         ),
       );
+    });
     return { ok: true, data: null };
   }
 
-  const [row] = await db
-    .insert(exerciseLogs)
-    .values({
-      physioId: shell.physioId,
-      customerId: link.customerId,
-      shareLinkId: link.id,
-      routineId: input.routineId,
-      weeklyPlanEntryId: input.entryId,
-      exerciseId: input.exerciseId,
-      performedOn: input.performedOn,
-      rpe: input.rpe,
-      setWeightsKg: input.setWeightsKg,
-      // the patient no longer logs these: editing a legacy log replaces it with what they see
-      pain: null,
-      weightKg: null,
-      comment: input.comment,
-    })
-    .onConflictDoUpdate({
-      target: [
-        exerciseLogs.routineId,
-        exerciseLogs.weeklyPlanEntryId,
-        exerciseLogs.exerciseId,
-        exerciseLogs.performedOn,
-      ],
-      set: {
+  const row = await db.transaction(async (tx) => {
+    // find or create the routine's session for that day; an existing one is left untouched.
+    // Two concurrent first logs both insert: the loser waits for the winner, does nothing, and
+    // the select below (new snapshot) sees the committed row.
+    await tx
+      .insert(sessionLogs)
+      .values({
+        physioId: shell.physioId,
+        customerId: link.customerId,
         shareLinkId: link.id,
+        routineId: input.routineId,
+        weeklyPlanEntryId: input.entryId,
+        performedOn: input.performedOn,
+        completed: true,
+      })
+      .onConflictDoNothing({
+        target: [sessionLogs.routineId, sessionLogs.weeklyPlanEntryId, sessionLogs.performedOn],
+      });
+    const [session] = await tx
+      .select({ id: sessionLogs.id })
+      .from(sessionLogs)
+      .where(
+        and(
+          eq(sessionLogs.physioId, shell.physioId),
+          eq(sessionLogs.customerId, link.customerId),
+          eq(sessionLogs.routineId, input.routineId),
+          eq(sessionLogs.performedOn, input.performedOn),
+          scope(sessionLogs.weeklyPlanEntryId),
+        ),
+      )
+      .limit(1);
+    const sessionLogId = session!.id;
+
+    const [saved] = await tx
+      .insert(exerciseLogs)
+      .values({
+        physioId: shell.physioId,
+        customerId: link.customerId,
+        shareLinkId: link.id,
+        routineId: input.routineId,
+        sessionLogId,
+        weeklyPlanEntryId: input.entryId,
+        exerciseId: input.exerciseId,
+        performedOn: input.performedOn,
         rpe: input.rpe,
         setWeightsKg: input.setWeightsKg,
+        // the patient no longer logs these: editing a legacy log replaces it with what they see
         pain: null,
         weightKg: null,
         comment: input.comment,
-        seenByPhysioAt: resetSeenOnNewComment(exerciseLogs),
-      },
-    })
-    .returning(patientColumns);
-  return { ok: true, data: row! };
+      })
+      .onConflictDoUpdate({
+        target: [
+          exerciseLogs.routineId,
+          exerciseLogs.weeklyPlanEntryId,
+          exerciseLogs.exerciseId,
+          exerciseLogs.performedOn,
+        ],
+        set: {
+          shareLinkId: link.id,
+          sessionLogId,
+          rpe: input.rpe,
+          setWeightsKg: input.setWeightsKg,
+          pain: null,
+          weightKg: null,
+          comment: input.comment,
+          seenByPhysioAt: resetSeenOnNewComment(exerciseLogs),
+        },
+      })
+      .returning(patientColumns);
+    return saved!;
+  });
+  return { ok: true, data: row };
 }
 
 /**
