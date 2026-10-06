@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { MAX_ITEMS } from "@/lib/routines";
+import { SESSIONS_LIMIT } from "@/lib/session-logs";
+
 import { markCommentsSeenAction } from "./actions";
 
 const m = vi.hoisted(() => ({
@@ -51,7 +54,18 @@ describe("markCommentsSeenAction", () => {
   it("ignores malformed ids", async () => {
     await expect(markCommentsSeenAction("nope", [LOG])).resolves.toEqual({ ok: false });
     await expect(markCommentsSeenAction(UUID, ["nope"])).resolves.toEqual({ ok: false });
-    await expect(markCommentsSeenAction(UUID, Array(51).fill(LOG))).resolves.toEqual({ ok: false });
+    await expect(markCommentsSeenAction(UUID, Array(31).fill(LOG))).resolves.toEqual({ ok: false });
     expect(m.markCommentsSeen).not.toHaveBeenCalled();
+  });
+
+  it("accepts every exercise comment the feed can show and rejects more", async () => {
+    const most = SESSIONS_LIMIT * MAX_ITEMS;
+    m.markCommentsSeen.mockResolvedValue(0);
+    const ids = Array(most).fill(LOG);
+    await expect(markCommentsSeenAction(UUID, [LOG], ids)).resolves.toEqual({ ok: true });
+    expect(m.markExerciseCommentsSeen).toHaveBeenCalledWith({}, "physio-1", UUID, ids);
+    await expect(markCommentsSeenAction(UUID, [LOG], [...ids, LOG])).resolves.toEqual({
+      ok: false,
+    });
   });
 });

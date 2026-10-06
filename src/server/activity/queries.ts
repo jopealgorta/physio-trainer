@@ -41,14 +41,13 @@ import {
 } from "@/lib/adherence";
 import { customerName } from "@/lib/customers";
 import { addDays } from "@/lib/phases";
+import { SESSIONS_LIMIT } from "@/lib/session-logs";
 import { buildDashboard, type Dashboard, type UnseenSummary } from "@/lib/dashboard";
 import { attentionWindows } from "@/lib/attention";
 
 import { isUuid } from "@/server/customers/schemas";
 
 export const ACTIVITY_WEEKS = 12;
-/** How many sessions the Activity tab lists. */
-export const SESSIONS_LIMIT = 30;
 
 type ScheduleFacts = { plans: PlanFact[]; singles: SingleFact[] };
 
