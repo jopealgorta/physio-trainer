@@ -41,9 +41,13 @@ test.describe("patient page v2", () => {
     await region.getByLabel("Comment (optional)").fill("Felt fine");
     await region.getByLabel("Comment (optional)").blur();
     await expect(region.getByText("Saved", { exact: true })).toBeVisible();
-    const logged = page.getByRole("list", { name: "Logged" });
+    // The exercise log created the routine's session: it reads as Done, with the summary.
+    const logged = page.getByRole("region", { name: "Logged" });
+    await expect(logged).toContainText("Squat");
     await expect(logged).toContainText("20 · 22.5 · 25 kg");
     await expect(logged).toContainText("RPE 6");
+    await expect(page.getByText("Done", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mark as done" })).toHaveCount(0);
 
     // At phone width an open panel must not overflow the page.
     await page.setViewportSize({ width: 360, height: 740 });
@@ -58,7 +62,9 @@ test.describe("patient page v2", () => {
     await expect(reopened.getByLabel("Comment (optional)")).toHaveValue("Felt fine");
 
     await signIn(page, physio, `/customers/${customerId}?tab=activity`);
-    const section = page.getByRole("region", { name: "Exercise log" });
+    const section = page.getByRole("region", { name: "Sessions", exact: true });
+    await expect(section).toContainText("Knee rehab");
+    await expect(section).toContainText("Done");
     await expect(section).toContainText("20 · 22.5 · 25 kg");
     await expect(section).toContainText("Felt fine");
     await expect(section.getByText("New", { exact: true })).toBeVisible();
@@ -78,9 +84,44 @@ test.describe("patient page v2", () => {
     await expect(dialog).toBeHidden();
 
     await signIn(page, physio, `/customers/${customerId}?tab=activity`);
-    const feed = page.getByRole("region", { name: "Comments" });
+    const feed = page.getByRole("region", { name: "Sessions", exact: true });
     await expect(feed).toContainText("Tough but fine");
     await expect(feed).toContainText("RPE 7");
+  });
+
+  test("exercise logs mark the routine done and show as one session", async ({ page, physio }) => {
+    const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
+    await insertRoutine(physio.id, customerId, "Knee rehab", {
+      exercise: "Squat",
+      secondExercise: "Lunge",
+    });
+    const link = await insertCustomerLink(physio, customerId);
+
+    await page.goto(link.path);
+    for (const [name, weight] of [
+      ["Squat", "20"],
+      ["Lunge", "10"],
+    ]) {
+      await page.getByRole("button", { name: `Log ${name}` }).click();
+      const region = page.getByRole("region", { name: `How did ${name} go?` });
+      const set1 = region.getByLabel("Set 1 weight in kg");
+      await set1.fill(weight);
+      await set1.blur();
+      await expect(region.getByText("Saved", { exact: true })).toBeVisible();
+    }
+    await expect(page.getByText("Done", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mark as done" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Edit" }).click();
+    await page.getByRole("button", { name: "Mark as not done" }).click();
+    await expect(page.getByRole("button", { name: "Mark as done" })).toBeVisible();
+
+    await signIn(page, physio, `/customers/${customerId}?tab=activity`);
+    const sessions = page.getByRole("region", { name: "Sessions", exact: true });
+    await expect(sessions.getByText("Knee rehab")).toHaveCount(1);
+    await expect(sessions).toContainText("Not done");
+    await expect(sessions).toContainText("Squat");
+    await expect(sessions).toContainText("Lunge");
   });
 
   test("a day note edited on the plan board reaches the patient", async ({ page, physio }) => {

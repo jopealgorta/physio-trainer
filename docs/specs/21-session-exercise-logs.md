@@ -1,6 +1,6 @@
 # 21 · Exercise logs belong to the routine session
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** D (logging), extends 13, 19, 20
 - **Depends on:** 13, 19, 20
 
@@ -113,15 +113,15 @@ chip keys. en + es (voseo) in the same change.
 
 ## Acceptance criteria
 
-- [ ] Every exercise log has a session of the same routine, entry and day; deleting the session
+- [x] Every exercise log has a session of the same routine, entry and day; deleting the session
       deletes them.
-- [ ] Logging the first exercise of a routine marks it done for that day.
-- [ ] After Undo, the exercise logs stay and further exercise logs do not mark it done again.
-- [ ] Clearing the only exercise log of an otherwise empty session removes the session.
-- [ ] Existing exercise logs get a done session by migration.
-- [ ] The Activity tab shows one feed of sessions with their exercises; "New" badges and
+- [x] Logging the first exercise of a routine marks it done for that day.
+- [x] After Undo, the exercise logs stay and further exercise logs do not mark it done again.
+- [x] Clearing the only exercise log of an otherwise empty session removes the session.
+- [x] Existing exercise logs get a done session by migration.
+- [x] The Activity tab shows one feed of sessions with their exercises; "New" badges and
       "Mark as seen" still work for both kinds of comment.
-- [ ] The patient page shows the routine and exercise summary under the Done row; no row chips.
+- [x] The patient page shows the routine and exercise summary under the Done row; no row chips.
 
 ## Test plan
 
@@ -146,4 +146,18 @@ Answered 2026-10-06 before design:
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Four migrations.** Unique `(physio_id, id)` on `session_logs`, then the column, FK and index,
+  then the custom backfill, then `NOT NULL`: split so drizzle emits the FK after the unique it
+  depends on, with no generated SQL hand-edited.
+- **Advisory lock per session key.** Save and clear take
+  `pg_advisory_xact_lock(hashtextextended(routine:entry:day, 0))`, so concurrent saves cannot
+  create two sessions or race a clear against a save.
+- **Mark-seen bounds.** The action caps ids at `SESSIONS_LIMIT` sessions and
+  `SESSIONS_LIMIT * MAX_ITEMS` exercises; `SESSIONS_LIMIT` moved to `src/lib/session-logs.ts` and
+  `COMMENTS_LIMIT` was removed.
+- **`session-summary-data.ts` split.** `sessionSummary` lives in a non-client module because the
+  server cannot call functions exported from a client module; the component is `session-summary.tsx`.
+- **Backfill test runs the migration file** inside a rolled-back transaction, so it exercises the
+  real SQL without leaving data behind.
+- **The patient summary is server-rendered**, so it appears after the exercise list's debounced
+  refresh (about 1.5 s after the last save).

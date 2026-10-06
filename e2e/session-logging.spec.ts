@@ -76,7 +76,7 @@ test.describe("session logging", () => {
         name: /Pain over time \(All routines\): 1 rating, latest 8 out of 10/,
       }),
     ).toBeVisible();
-    const feed = page.getByRole("region", { name: "Comments" });
+    const feed = page.getByRole("region", { name: "Sessions", exact: true });
     await expect(feed).toContainText("A bit pinchy on the stairs");
     await expect(feed.getByText("New", { exact: true })).toBeVisible();
 
@@ -105,18 +105,20 @@ test.describe("session logging", () => {
     await set1.fill("12,5");
     await set1.blur();
     await expect(region.getByText("Saved", { exact: true })).toBeVisible();
-    const logged = page.getByRole("list", { name: "Logged" });
+    const logged = page.getByRole("region", { name: "Logged" });
     await expect(logged).toContainText("12.5 kg");
 
     await page.reload();
-    await expect(page.getByRole("list", { name: "Logged" })).toContainText("12.5 kg");
+    await expect(page.getByRole("region", { name: "Logged" })).toContainText("12.5 kg");
     await page.getByRole("button", { name: "Log Squat" }).click();
     const reopened = page.getByRole("region", { name: "How did Squat go?" });
     await expect(reopened.getByLabel("Set 1 weight in kg")).toHaveValue("12.5");
     await reopened.getByLabel("Set 1 weight in kg").fill("");
     await reopened.getByLabel("Set 1 weight in kg").blur();
     await expect(reopened.getByText("Saved", { exact: true })).toBeVisible();
-    await expect(page.getByRole("list", { name: "Logged" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Logged" })).toHaveCount(0);
+    // The auto-created session was empty, so clearing the log removed it.
+    await expect(page.getByRole("button", { name: "Mark as done" })).toBeVisible();
   });
 
   test("the physio previewing a link cannot log a session", async ({ page, physio }) => {
