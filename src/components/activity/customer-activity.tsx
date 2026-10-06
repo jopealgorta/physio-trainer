@@ -7,10 +7,9 @@ import { getCustomerActivity } from "@/server/activity/queries";
 
 import { ActivityHeatmap } from "./activity-heatmap";
 import { ActivitySummary } from "./activity-summary";
-import { CommentsFeed } from "./comments-feed";
-import { ExerciseLogFeed } from "./exercise-log-feed";
 import { MarkCommentsSeen } from "./mark-comments-seen";
 import { PainChart } from "./pain-chart";
+import { SessionFeed } from "./session-feed";
 
 /**
  * A customer's Activity tab (spec 13): what they logged from their link over the last 12 weeks
@@ -29,10 +28,7 @@ export async function CustomerActivity({
   const activity = await withPhysio((tx, physioId) =>
     getCustomerActivity(tx, physioId, customerId, todayIn(timeZone)),
   );
-  const nothingYet =
-    activity.summary.lastLoggedOn === null &&
-    activity.comments.length === 0 &&
-    activity.exerciseLogs.length === 0;
+  const nothingYet = activity.summary.lastLoggedOn === null && activity.sessions.length === 0;
 
   return (
     <section className="grid gap-6" aria-labelledby="customer-activity-title">
@@ -57,8 +53,7 @@ export async function CustomerActivity({
           <ActivitySummary summary={activity.summary} />
           <ActivityHeatmap weeks={activity.weeks} cells={activity.cells} />
           <PainChart overall={activity.pain.overall} routines={activity.pain.routines} />
-          <CommentsFeed comments={activity.comments} />
-          <ExerciseLogFeed logs={activity.exerciseLogs} />
+          <SessionFeed sessions={activity.sessions} />
           <MarkCommentsSeen
             customerId={customerId}
             ids={activity.unseenIds}

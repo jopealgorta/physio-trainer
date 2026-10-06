@@ -1,6 +1,20 @@
 import "server-only";
 
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { Tx } from "@/db/rls";
 import {
@@ -27,15 +41,14 @@ import {
 } from "@/lib/adherence";
 import { customerName } from "@/lib/customers";
 import { addDays } from "@/lib/phases";
-import { COMMENTS_LIMIT } from "@/lib/session-logs";
 import { buildDashboard, type Dashboard, type UnseenSummary } from "@/lib/dashboard";
 import { attentionWindows } from "@/lib/attention";
 
 import { isUuid } from "@/server/customers/schemas";
 
 export const ACTIVITY_WEEKS = 12;
-/** How many exercise logs the Activity tab lists. */
-const EXERCISE_LOGS_LIMIT = 50;
+/** How many sessions the Activity tab lists. */
+export const SESSIONS_LIMIT = 30;
 
 type ScheduleFacts = { plans: PlanFact[]; singles: SingleFact[] };
 
@@ -147,30 +160,30 @@ async function loadScheduleFacts(
   return facts;
 }
 
-export type ActivityComment = {
+export type ActivitySessionExercise = {
   id: string;
-  routineName: string;
-  performedOn: string;
-  comment: string;
-  pain: number | null;
-  rpe: number | null;
-  /** Has the physio opened the Activity tab since this comment arrived? */
-  seen: boolean;
-};
-
-export type ActivityExerciseLog = {
-  id: string;
-  performedOn: string;
-  routineId: string;
-  routineName: string;
   exerciseName: string;
-  pain: number | null;
+  pain: number | null; // legacy (spec 19)
   rpe: number | null;
-  weightKg: number | null;
+  weightKg: number | null; // legacy single weight
   setWeightsKg: (number | null)[] | null;
   comment: string | null;
   /** True when there is no comment or the physio has already seen it. */
   seen: boolean;
+};
+
+export type ActivitySession = {
+  id: string;
+  routineName: string;
+  performedOn: string;
+  completed: boolean;
+  pain: number | null;
+  rpe: number | null;
+  comment: string | null;
+  /** True when there is no comment or the physio has already seen it. */
+  seen: boolean;
+  /** In the order they were first logged. */
+  exercises: ActivitySessionExercise[];
 };
 
 export type CustomerActivity = {
@@ -182,13 +195,14 @@ export type CustomerActivity = {
     overall: PainPoint[];
     routines: { id: string; name: string; points: PainPoint[] }[];
   };
-  /** The newest comments of all time (not just the 12 weeks), newest first. */
-  comments: ActivityComment[];
-  /** Ids of the unseen comments in `comments`: what the tab marks as seen once shown. */
+  /**
+   * The newest sessions of all time (not just the 12 weeks) that have something to read (pain,
+   * RPE, a comment or exercise logs), newest first, with their exercises (spec 21).
+   */
+  sessions: ActivitySession[];
+  /** Ids of the unseen session comments in `sessions`: what the tab marks as seen once shown. */
   unseenIds: string[];
-  /** The newest exercise logs (spec 19), newest first. */
-  exerciseLogs: ActivityExerciseLog[];
-  /** Ids of the unseen exercise comments in `exerciseLogs`. */
+  /** Ids of the unseen exercise comments in `sessions`. */
   unseenExerciseIds: string[];
   summary: {
     completed: number;
@@ -212,9 +226,8 @@ export async function getCustomerActivity(
     weeks,
     cells: [],
     pain: { overall: [], routines: [] },
-    comments: [],
+    sessions: [],
     unseenIds: [],
-    exerciseLogs: [],
     unseenExerciseIds: [],
     summary: {
       completed: 0,
@@ -224,7 +237,7 @@ export async function getCustomerActivity(
   };
   if (!isUuid(customerId)) return empty;
 
-  const [rows, commentRows, exerciseRows, facts] = await Promise.all([
+  const [rows, sessionRows, facts] = await Promise.all([
     tx
       .select({
         id: sessionLogs.id,
@@ -257,9 +270,10 @@ export async function getCustomerActivity(
         id: sessionLogs.id,
         routineName: routines.name,
         performedOn: sessionLogs.performedOn,
-        comment: sessionLogs.comment,
+        completed: sessionLogs.completed,
         pain: sessionLogs.pain,
         rpe: sessionLogs.rpe,
+        comment: sessionLogs.comment,
         seenAt: sessionLogs.seenByPhysioAt,
       })
       .from(sessionLogs)
@@ -271,42 +285,76 @@ export async function getCustomerActivity(
         and(
           eq(sessionLogs.physioId, physioId),
           eq(sessionLogs.customerId, customerId),
-          isNotNull(sessionLogs.comment),
+          or(
+            isNotNull(sessionLogs.pain),
+            isNotNull(sessionLogs.rpe),
+            isNotNull(sessionLogs.comment),
+            exists(
+              tx
+                .select({ one: sql`1` })
+                .from(exerciseLogs)
+                .where(
+                  and(
+                    eq(exerciseLogs.physioId, sessionLogs.physioId),
+                    eq(exerciseLogs.sessionLogId, sessionLogs.id),
+                  ),
+                ),
+            ),
+          ),
         ),
       )
       .orderBy(desc(sessionLogs.performedOn), desc(sessionLogs.updatedAt))
-      .limit(COMMENTS_LIMIT),
-    tx
-      .select({
-        id: exerciseLogs.id,
-        performedOn: exerciseLogs.performedOn,
-        routineId: exerciseLogs.routineId,
-        routineName: routines.name,
-        exerciseName: exercises.name,
-        pain: exerciseLogs.pain,
-        rpe: exerciseLogs.rpe,
-        weightKg: exerciseLogs.weightKg,
-        setWeightsKg: exerciseLogs.setWeightsKg,
-        comment: exerciseLogs.comment,
-        seenAt: exerciseLogs.seenByPhysioAt,
-      })
-      .from(exerciseLogs)
-      .innerJoin(
-        routines,
-        and(eq(routines.physioId, exerciseLogs.physioId), eq(routines.id, exerciseLogs.routineId)),
-      )
-      .innerJoin(
-        exercises,
-        and(
-          eq(exercises.physioId, exerciseLogs.physioId),
-          eq(exercises.id, exerciseLogs.exerciseId),
-        ),
-      )
-      .where(and(eq(exerciseLogs.physioId, physioId), eq(exerciseLogs.customerId, customerId)))
-      .orderBy(desc(exerciseLogs.performedOn), desc(exerciseLogs.updatedAt), asc(exerciseLogs.id))
-      .limit(EXERCISE_LOGS_LIMIT),
+      .limit(SESSIONS_LIMIT),
     loadScheduleFacts(tx, physioId, customerId),
   ]);
+
+  const exerciseRows =
+    sessionRows.length === 0
+      ? []
+      : await tx
+          .select({
+            id: exerciseLogs.id,
+            sessionLogId: exerciseLogs.sessionLogId,
+            exerciseName: exercises.name,
+            pain: exerciseLogs.pain,
+            rpe: exerciseLogs.rpe,
+            weightKg: exerciseLogs.weightKg,
+            setWeightsKg: exerciseLogs.setWeightsKg,
+            comment: exerciseLogs.comment,
+            seenAt: exerciseLogs.seenByPhysioAt,
+          })
+          .from(exerciseLogs)
+          .innerJoin(
+            exercises,
+            and(
+              eq(exercises.physioId, exerciseLogs.physioId),
+              eq(exercises.id, exerciseLogs.exerciseId),
+            ),
+          )
+          .where(
+            and(
+              eq(exerciseLogs.physioId, physioId),
+              inArray(
+                exerciseLogs.sessionLogId,
+                sessionRows.map((row) => row.id),
+              ),
+            ),
+          )
+          .orderBy(asc(exerciseLogs.createdAt), asc(exerciseLogs.id));
+  const exercisesOf = new Map<string, ActivitySessionExercise[]>();
+  for (const { sessionLogId, seenAt, ...row } of exerciseRows) {
+    const list = exercisesOf.get(sessionLogId) ?? [];
+    list.push({
+      ...row,
+      seen: row.comment === null || seenAt !== null,
+    });
+    exercisesOf.set(sessionLogId, list);
+  }
+  const sessions: ActivitySession[] = sessionRows.map(({ seenAt, ...row }) => ({
+    ...row,
+    seen: row.comment === null || seenAt !== null,
+    exercises: exercisesOf.get(row.id) ?? [],
+  }));
 
   const logs: LogFact[] = rows;
   const plans = facts.get(customerId)?.plans ?? [];
@@ -322,20 +370,10 @@ export async function getCustomerActivity(
         .filter((routine) => routine.points.length > 0)
         .sort((a, b) => a.name.localeCompare(b.name)),
     },
-    comments: commentRows.map((row) => ({
-      id: row.id,
-      routineName: row.routineName,
-      performedOn: row.performedOn,
-      comment: row.comment!,
-      pain: row.pain,
-      rpe: row.rpe,
-      seen: row.seenAt !== null,
-    })),
-    unseenIds: commentRows.filter((row) => row.seenAt === null).map((row) => row.id),
-    exerciseLogs: exerciseRows.map(({ seenAt, ...row }) => ({
-      ...row,
-      seen: row.comment === null || seenAt !== null,
-    })),
+    sessions,
+    unseenIds: sessionRows
+      .filter((row) => row.comment !== null && row.seenAt === null)
+      .map((row) => row.id),
     unseenExerciseIds: exerciseRows
       .filter((row) => row.comment !== null && row.seenAt === null)
       .map((row) => row.id),

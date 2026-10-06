@@ -88,3 +88,11 @@ export function normalizeSetWeights(
   while (rounded.length > 0 && rounded.at(-1) === null) rounded.pop();
   return rounded.length === 0 ? null : rounded;
 }
+
+/** Per-set weights as one line: values joined with " · ", a set left empty as an en dash. */
+export function formatSetWeights(
+  weights: readonly (number | null)[],
+  formatNumber: (kg: number) => string,
+): string {
+  return weights.map((kg) => (kg !== null ? formatNumber(kg) : "–")).join(" · ");
+}

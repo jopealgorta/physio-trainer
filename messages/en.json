@@ -1557,22 +1557,15 @@
         "none": "{date}: nothing planned"
       }
     },
-    "comments": {
-      "title": "Comments",
-      "empty": "No comments yet.",
-      "new": "New",
-      "newCount": "{count, plural, one {# new comment} other {# new comments}}",
-      "painValue": "Pain {value, number}/10",
-      "rpeValue": "RPE {value, number}/10"
-    },
-    "exercises": {
-      "title": "Exercise log",
-      "description": "What the patient noted on each exercise.",
-      "empty": "No exercise logs yet.",
-      "group": "{date} · {routine}",
+    "sessions": {
+      "title": "Sessions",
+      "empty": "No sessions logged yet.",
+      "done": "Done",
+      "notDone": "Not done",
       "pain": "Pain {value, number}/10",
       "rpe": "RPE {value, number}/10",
       "weight": "{value} kg",
+      "exercises": "Exercises",
       "new": "New"
     }
   },
