@@ -119,7 +119,7 @@ describe("ExerciseList", () => {
     expect(dots.filter((dot) => dot.dataset.done === "true")).toHaveLength(2);
   });
 
-  it("shows what is logged for the shown day as chips, locale-formatted", () => {
+  it("shows no logged chips; the Log toggle is the only trace, and only when loggable", () => {
     const log: PatientExerciseLog = {
       routineId: ROUTINE,
       entryId: null,
@@ -129,19 +129,12 @@ describe("ExerciseList", () => {
       setWeightsKg: [20, null, 25],
       comment: null,
     };
-    const other = { ...log, performedOn: "2026-10-06", rpe: 9 };
-    const { unmount } = setup({ logging: logging([other, log]) });
-    const chips = within(screen.getByRole("list", { name: "Logged" }));
-    expect(chips.getAllByRole("listitem").map((chip) => chip.textContent)).toEqual([
-      "20 · – · 25 kg",
-      "RPE 7",
-    ]);
-    expect(screen.queryByText("RPE 9")).not.toBeInTheDocument();
-    // Owner preview (no loggable days): chips only, no Log toggle.
+    setup({ logging: logging([log]) });
+    expect(screen.queryByRole("list", { name: "Logged" })).not.toBeInTheDocument();
+    expect(screen.queryByText("RPE 7")).not.toBeInTheDocument();
+    expect(screen.queryByText("20 · – · 25 kg")).not.toBeInTheDocument();
+    // Owner preview (no loggable days): no Log toggle.
     expect(screen.queryByRole("button", { name: "Log Squat" })).not.toBeInTheDocument();
-    unmount();
-    setup({ logging: logging([{ ...log, setWeightsKg: [12.5] }]) }, "es");
-    expect(screen.getByText("12,5 kg")).toBeInTheDocument();
   });
 
   describe("inline log", () => {
@@ -185,7 +178,7 @@ describe("ExerciseList", () => {
       expect(screen.queryByRole("region", { name: "How did Squat go?" })).not.toBeInTheDocument();
     });
 
-    it("updates the chips and the toggle as soon as the panel saves", async () => {
+    it("updates the toggle as soon as the panel saves", async () => {
       const user = userEvent.setup();
       setup({ logging: loggable() });
       const toggle = screen.getByRole("button", { name: "Log Squat" });
@@ -195,7 +188,6 @@ describe("ExerciseList", () => {
       await user.tab();
       await act(async () => {});
       expect(m.log).toHaveBeenCalledTimes(1);
-      expect(screen.getByText("20 kg")).toBeInTheDocument();
       expect(toggle).toHaveClass("text-primary");
     });
 

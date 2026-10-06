@@ -2,11 +2,10 @@
 
 import { DumbbellIcon, NotebookPenIcon, PlayIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { YouTubeThumbnail } from "@/components/library/youtube-thumbnail";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrescription, type PrescriptionTranslate } from "@/lib/prescription";
 import { cn } from "@/lib/utils";
@@ -22,9 +21,9 @@ export type ExerciseLogging = {
   code: string;
   routineId: string;
   entryId: string | null;
-  /** The days that can still be logged (none: chips only, e.g. the physio previewing). */
+  /** The days that can still be logged (none, e.g. the physio previewing). */
   days: LoggableDay[];
-  /** The day the chips and the filled Log toggle stand for. */
+  /** The day the filled Log toggle stands for. */
   shownDate: string;
   /** This routine and entry's exercise logs, any day. */
   logs: PatientExerciseLog[];
@@ -79,8 +78,8 @@ export function ExerciseList({
   const [ownOpen, setOwnOpen] = useState<ReadonlySet<string>>(() => new Set());
   const open = openLogs ?? ownOpen;
   const setOpen = onOpenLogsChange ?? setOwnOpen;
-  // Saved logs by "exerciseId|date": rows of the same exercise share one log, and the chips
-  // follow a save at once instead of waiting for a refreshed page.
+  // Saved logs by "exerciseId|date": rows of the same exercise share one log, and the Log
+  // toggle follows a save at once instead of waiting for a refreshed page.
   const saved = useSavedLogs<PatientExerciseLog>((key) => {
     const [exerciseId = "", date = ""] = key.split("|");
     return logging ? exerciseLogFor(logging.logs, exerciseId, date) : null;
@@ -174,7 +173,6 @@ function ExerciseRow({
 } & WorkoutProps) {
   const t = useTranslations("Patient");
   const tPrescription = useTranslations("Prescription");
-  const format = useFormatter();
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const summary: PrescriptionTranslate = (key, values) => tPrescription(key, values);
@@ -182,22 +180,6 @@ function ExerciseRow({
   const current = currentItemId === item.id;
   const video = item.media[0];
   const log = logs ? logs.logFor(logs.logging.shownDate) : null;
-  const chips = log
-    ? [
-        log.setWeightsKg !== null
-          ? t("exerciseLog.chips.weights", {
-              value: log.setWeightsKg
-                .map((kg) =>
-                  kg === null
-                    ? "–"
-                    : format.number(kg, { useGrouping: false, maximumFractionDigits: 1 }),
-                )
-                .join(" · "),
-            })
-          : null,
-        log.rpe !== null ? t("exerciseLog.chips.rpe", { value: log.rpe }) : null,
-      ].filter((chip) => chip !== null)
-    : [];
   const canLog = logs !== undefined && logs.logging.days.length > 0;
   const expanded = canLog && logs.expanded;
   const logLabel = t("exercise.log", { name: item.name });
@@ -266,15 +248,6 @@ function ExerciseRow({
                 />
               ))}
             </p>
-          ) : null}
-          {chips.length > 0 ? (
-            <ul aria-label={t("exercise.logged")} className="flex flex-wrap gap-1 pt-1">
-              {chips.map((chip) => (
-                <li key={chip}>
-                  <Badge variant="secondary">{chip}</Badge>
-                </li>
-              ))}
-            </ul>
           ) : null}
         </div>
         {canLog ? (

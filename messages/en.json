@@ -1300,6 +1300,12 @@
       "dayPlain": "{day}",
       "logged": "session logged"
     },
+    "summary": {
+      "title": "Logged",
+      "pain": "Pain {value, number}",
+      "rpe": "RPE {value, number}",
+      "weights": "{value} kg"
+    },
     "restDay": "Nothing scheduled for {day}.",
     "yourRoutines": "Your routines",
     "sessions": {
@@ -1316,7 +1322,6 @@
       "open": "Watch {name}",
       "detailTitle": "About {name}",
       "log": "Log {name}",
-      "logged": "Logged",
       "noVideo": "No video for this exercise",
       "thumbnailAlt": "{name}, video {number, number}"
     },
@@ -1429,10 +1434,6 @@
         "error": "Couldn't save."
       },
       "retry": "Retry",
-      "chips": {
-        "rpe": "RPE {value, number}",
-        "weights": "{value} kg"
-      },
       "errors": {
         "generic": "Something went wrong. Try again.",
         "invalid": "Check what you entered and try again.",
