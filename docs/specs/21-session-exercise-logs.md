@@ -161,3 +161,8 @@ Answered 2026-10-06 before design:
   real SQL without leaving data behind.
 - **The patient summary is server-rendered**, so it appears after the exercise list's debounced
   refresh (about 1.5 s after the last save).
+- **Remembered "Done" yields to fresh server props.** `LogSessionButton` drops what it remembered
+  when new `logs` props arrive (`useSavedLogs(loaded, source)`), so a session the server deleted
+  after its last exercise log was cleared no longer shows "Done" once the page refreshes.
+- **Activity lists exercises in routine order.** By the exercise's first position in the session's
+  routine, as the patient summary does; exercises no longer in the routine go last, in log order.

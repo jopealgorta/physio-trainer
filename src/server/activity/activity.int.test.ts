@@ -244,27 +244,39 @@ describe("activity", () => {
       });
     });
 
-    it("lists a session's exercises in the order they were logged", async () => {
+    it("lists a session's exercises in routine order, removed ones last in log order", async () => {
+      const lunge = await insertExercise(physio.id, { name: "Lunge" });
+      const plank = await insertExercise(physio.id, { name: "Plank" });
+      const bridge = await insertExercise(physio.id, { name: "Bridge" });
+      const gone = await insertExercise(physio.id, { name: "Removed one" });
+      const routine = await insertRoutine(physio.id, beto, {
+        name: "Beto order",
+        status: "active",
+        // Plank (position 0) and Lunge (1) are in the routine; Lunge appears again later.
+        items: [{ exerciseId: plank }, { exerciseId: lunge }, { exerciseId: lunge }],
+      });
       const sessionLogId = await insertSessionLog(physio.id, {
         customerId: beto,
-        routineId: kneeRoutine,
+        routineId: routine,
         performedOn: "2026-10-03",
       });
-      const lunge = await insertExercise(physio.id, { name: "Lunge" });
-      const base = { physioId: physio.id, customerId: beto, routineId: kneeRoutine, sessionLogId };
-      const [first] = await db
-        .insert(exerciseLogs)
-        .values({ ...base, exerciseId: lunge, performedOn: "2026-10-03", rpe: 3 })
-        .returning({ id: exerciseLogs.id });
-      const [second] = await db
-        .insert(exerciseLogs)
-        .values({ ...base, exerciseId: squat, performedOn: "2026-10-03", rpe: 4 })
-        .returning({ id: exerciseLogs.id });
+      const base = { physioId: physio.id, customerId: beto, routineId: routine, sessionLogId };
+      const ids: string[] = [];
+      // Logged in the opposite order: removed, bridge (also removed), lunge, then plank.
+      for (const exerciseId of [gone, bridge, lunge, plank]) {
+        const [row] = await db
+          .insert(exerciseLogs)
+          .values({ ...base, exerciseId, performedOn: "2026-10-03", rpe: 3 })
+          .returning({ id: exerciseLogs.id });
+        ids.push(row!.id);
+      }
       const { sessions } = await as(physio, (tx, id) => getCustomerActivity(tx, id, beto, TODAY));
       const shown = sessions.find((session) => session.id === sessionLogId)!;
-      expect(shown.exercises.map((e) => [e.id, e.exerciseName])).toEqual([
-        [first!.id, "Lunge"],
-        [second!.id, "Goblet squat"],
+      expect(shown.exercises.map((e) => e.exerciseName)).toEqual([
+        "Plank",
+        "Lunge",
+        "Removed one",
+        "Bridge",
       ]);
       await db.delete(sessionLogs).where(eq(sessionLogs.id, sessionLogId));
     });

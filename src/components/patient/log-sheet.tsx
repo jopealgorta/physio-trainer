@@ -134,10 +134,17 @@ export function useLogDay(days: LoggableDay[], shownDate: string) {
 
 /**
  * Logs as the page loaded them, overridden by what was saved here since (null: cleared), so the
- * button follows at once instead of waiting for the refreshed page.
+ * button follows at once instead of waiting for the refreshed page. Pass `source` (the loaded
+ * data) to drop what was remembered once a fresh one arrives: the server then wins, e.g. when it
+ * deleted a session that was left empty.
  */
-export function useSavedLogs<T>(loaded: (date: string) => T | null) {
+export function useSavedLogs<T>(loaded: (date: string) => T | null, source?: unknown) {
   const [saved, setSaved] = useState<Record<string, T | null>>({});
+  const [seen, setSeen] = useState(source);
+  if (seen !== source) {
+    setSeen(source);
+    setSaved({});
+  }
   return {
     logFor: (date: string): T | null =>
       Object.hasOwn(saved, date) ? (saved[date] ?? null) : loaded(date),

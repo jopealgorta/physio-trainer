@@ -21,6 +21,7 @@ import {
   customers,
   exerciseLogs,
   exercises,
+  routineItems,
   routines,
   sessionLogs,
   shareLinks,
@@ -181,7 +182,7 @@ export type ActivitySession = {
   comment: string | null;
   /** True when there is no comment or the physio has already seen it. */
   seen: boolean;
-  /** In the order they were first logged. */
+  /** In routine order (first position in the routine); exercises since removed come last, in log order. */
   exercises: ActivitySessionExercise[];
 };
 
@@ -339,7 +340,18 @@ export async function getCustomerActivity(
               ),
             ),
           )
-          .orderBy(asc(exerciseLogs.createdAt), asc(exerciseLogs.id));
+          // Routine order (the exercise's first position in that routine, as the patient's summary
+          // does); exercises no longer in the routine go last, in log order.
+          .orderBy(
+            sql`(
+              select min(${routineItems.position}) from ${routineItems}
+              where ${routineItems.physioId} = ${exerciseLogs.physioId}
+                and ${routineItems.routineId} = ${exerciseLogs.routineId}
+                and ${routineItems.exerciseId} = ${exerciseLogs.exerciseId}
+            ) asc nulls last`,
+            asc(exerciseLogs.createdAt),
+            asc(exerciseLogs.id),
+          );
   const exercisesOf = new Map<string, ActivitySessionExercise[]>();
   for (const { sessionLogId, seenAt, ...row } of exerciseRows) {
     const list = exercisesOf.get(sessionLogId) ?? [];

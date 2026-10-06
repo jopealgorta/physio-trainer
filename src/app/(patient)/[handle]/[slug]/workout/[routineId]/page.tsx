@@ -79,7 +79,7 @@ export default async function WorkoutPage({
     getPatientLogs(shell, link, today, today),
     getPatientExerciseLogs(shell, link, today, today),
   ]);
-  // The workout logs today only; the owner previewing the link sees the chips but never writes.
+  // The workout logs today only; the owner previewing the link sees the logged state but never writes.
   const days: LoggableDay[] = owner ? [] : [{ date: today, relative: "today" }];
   const exerciseLogging: ExerciseLogging = {
     code: shell.code,
