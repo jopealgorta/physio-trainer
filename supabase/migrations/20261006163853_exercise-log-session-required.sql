@@ -1,0 +1,1 @@
+ALTER TABLE "exercise_logs" ALTER COLUMN "session_log_id" SET NOT NULL;

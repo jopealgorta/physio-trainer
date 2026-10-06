@@ -32,6 +32,7 @@ import { customers } from "./customers";
 import { exercises } from "./library";
 import { physios } from "./physios";
 import { routines } from "./routines";
+import { sessionLogs } from "./session-logs";
 
 /**
  * numeric(5,1)[] read as `(number | null)[]`. Drizzle's own `numeric(...).array()` maps every
@@ -77,6 +78,7 @@ export const exerciseLogs = pgTable(
     customerId: uuid().notNull(),
     shareLinkId: uuid(),
     routineId: uuid().notNull(),
+    sessionLogId: uuid().notNull(),
     weeklyPlanEntryId: uuid(),
     exerciseId: uuid().notNull(),
     performedOn: date({ mode: "string" }).notNull(),
@@ -105,10 +107,16 @@ export const exerciseLogs = pgTable(
       columns: [t.physioId, t.exerciseId],
       foreignColumns: [exercises.physioId, exercises.id],
     }).onDelete("cascade"),
+    foreignKey({
+      name: "exercise_logs_session_fk",
+      columns: [t.physioId, t.sessionLogId],
+      foreignColumns: [sessionLogs.physioId, sessionLogs.id],
+    }).onDelete("cascade"),
     unique("exercise_logs_routine_entry_exercise_day_unique")
       .on(t.routineId, t.weeklyPlanEntryId, t.exerciseId, t.performedOn)
       .nullsNotDistinct(),
     index("exercise_logs_customer_idx").on(t.physioId, t.customerId, t.performedOn.desc()),
+    index("exercise_logs_session_idx").on(t.sessionLogId),
     index("exercise_logs_routine_idx").on(t.physioId, t.routineId),
     check(
       "exercise_logs_pain_range",

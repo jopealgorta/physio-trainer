@@ -253,6 +253,27 @@
       "when": 1791050967974,
       "tag": "20261003180927_exercise-log-set-weights-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791304722472,
+      "tag": "20261006163842_exercise-log-session",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791304723229,
+      "tag": "20261006163843_exercise-log-session-backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791304733253,
+      "tag": "20261006163853_exercise-log-session-required",
+      "breakpoints": true
     }
   ]
 }

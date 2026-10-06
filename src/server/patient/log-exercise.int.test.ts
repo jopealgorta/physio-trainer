@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
 import { exerciseLogs, weeklyPlanEntries } from "@/db/schema";
 import { insertCustomer, insertExercise, insertPlan, insertRoutine } from "@/test/int/content";
+import { insertSessionLog } from "@/test/int/logs";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { ensureShareLink } from "@/server/sharing/mutations";
 
@@ -118,10 +119,16 @@ describe("logExercise", () => {
 
   it("replaces a legacy pain/weight log: they end up null", async () => {
     await db.delete(exerciseLogs).where(eq(exerciseLogs.routineId, standalone));
+    const sessionLogId = await insertSessionLog(physio.id, {
+      customerId,
+      routineId: standalone,
+      performedOn: TODAY,
+    });
     await db.insert(exerciseLogs).values({
       physioId: physio.id,
       customerId,
       routineId: standalone,
+      sessionLogId,
       weeklyPlanEntryId: null,
       exerciseId,
       performedOn: TODAY,

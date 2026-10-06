@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
 import { exerciseLogs, sessionLogs, weeklyPlanEntries } from "@/db/schema";
 import { insertCustomer, insertExercise, insertPlan, insertRoutine } from "@/test/int/content";
+import { insertSessionLog } from "@/test/int/logs";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { ensureShareLink, revokeShareLink } from "@/server/sharing/mutations";
 import { setCustomerArchived } from "@/server/customers/mutations";
@@ -180,24 +181,32 @@ describe("activity", () => {
     let kneeRoutine: string;
     let oneId: string;
     let twoId: string;
-    const addExerciseLog = (
+    const addExerciseLog = async (
       customerId: string,
       performedOn: string,
       values: Partial<typeof exerciseLogs.$inferInsert> = {},
       physioId = physio.id,
-    ) =>
-      db
+    ) => {
+      const sessionLogId = await insertSessionLog(physioId, {
+        customerId,
+        routineId: kneeRoutine,
+        performedOn,
+        weeklyPlanEntryId: values.weeklyPlanEntryId,
+      });
+      const [row] = await db
         .insert(exerciseLogs)
         .values({
           physioId,
           customerId,
           routineId: kneeRoutine,
+          sessionLogId,
           exerciseId: squat,
           performedOn,
           ...values,
         })
-        .returning({ id: exerciseLogs.id })
-        .then(([row]) => row!.id);
+        .returning({ id: exerciseLogs.id });
+      return row!.id;
+    };
 
     beforeAll(async () => {
       squat = await insertExercise(physio.id, { name: "Goblet squat" });
@@ -395,10 +404,16 @@ describe("activity", () => {
         items: [{ exerciseId: squat }],
       });
       await live(fay);
+      const faySession = await insertSessionLog(dash.id, {
+        customerId: fay,
+        routineId: fayRoutine,
+        performedOn: "2026-10-07",
+      });
       await db.insert(exerciseLogs).values({
         physioId: dash.id,
         customerId: fay,
         routineId: fayRoutine,
+        sessionLogId: faySession,
         exerciseId: squat,
         performedOn: "2026-10-07",
         pain: 8,
