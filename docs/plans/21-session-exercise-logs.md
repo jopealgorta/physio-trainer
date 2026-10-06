@@ -73,8 +73,8 @@ Library, Playwright.
 
 - [ ] **Step 1: Schema, nullable first.** Add the column without `.notNull()`, the FK, the index
       and the `session_logs` unique. Run `pnpm db:generate --name exercise-log-session`.
-- [ ] **Step 2: Backfill migration.** `pnpm exec drizzle-kit generate --custom --name
-    exercise-log-session-backfill`, content:
+- [ ] **Step 2: Backfill migration.** Run
+      `pnpm exec drizzle-kit generate --custom --name exercise-log-session-backfill`, content:
 
 ```sql
 -- Spec 21: every exercise log belongs to the session of its routine, entry and day. Logs that
@@ -98,8 +98,8 @@ update public.exercise_logs e
     and e.session_log_id is null;
 ```
 
-- [ ] **Step 3: Required.** Add `.notNull()`; `pnpm db:generate --name
-    exercise-log-session-required`. Check the three SQL files apply in order: `pnpm db:reset`.
+- [ ] **Step 3: Required.** Add `.notNull()`;
+      `pnpm db:generate --name exercise-log-session-required`. Check the three SQL files apply in order: `pnpm db:reset`.
 - [ ] **Step 4: Helper + fix existing direct inserts.** Write `insertSessionLog`; every test
       that inserts `exercise_logs` directly creates a session first and passes `sessionLogId`.
 - [ ] **Step 5: Integration tests** in `src/db/exercise-logs.int.test.ts`, new
