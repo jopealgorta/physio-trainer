@@ -1,6 +1,6 @@
 {
-  "id": "d5551039-d2b6-4bcc-8158-d63dba8cecbb",
-  "prevId": "6caa799b-8c45-4968-8ade-980718281080",
+  "id": "0aae668c-26a6-4f95-98f0-ccfc0c25c942",
+  "prevId": "70edd09c-7455-42ca-90df-f0326a0ec8f9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3688,12 +3688,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "session_log_id": {
-          "name": "session_log_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "weekly_plan_entry_id": {
           "name": "weekly_plan_entry_id",
           "type": "uuid",
@@ -3791,21 +3785,6 @@
           "method": "btree",
           "with": {}
         },
-        "exercise_logs_session_idx": {
-          "name": "exercise_logs_session_idx",
-          "columns": [
-            {
-              "expression": "session_log_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "exercise_logs_routine_idx": {
           "name": "exercise_logs_routine_idx",
           "columns": [
@@ -3879,21 +3858,6 @@
           "columnsFrom": [
             "physio_id",
             "exercise_id"
-          ],
-          "columnsTo": [
-            "physio_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "exercise_logs_session_fk": {
-          "name": "exercise_logs_session_fk",
-          "tableFrom": "exercise_logs",
-          "tableTo": "session_logs",
-          "columnsFrom": [
-            "physio_id",
-            "session_log_id"
           ],
           "columnsTo": [
             "physio_id",

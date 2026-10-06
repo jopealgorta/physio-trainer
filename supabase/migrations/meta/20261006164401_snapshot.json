@@ -1,6 +1,6 @@
 {
-  "id": "6caa799b-8c45-4968-8ade-980718281080",
-  "prevId": "81bcf84a-54d1-4b97-b82b-9cc76e9ab8e4",
+  "id": "aedc8da7-cdab-465c-ab33-31e99aeeed91",
+  "prevId": "0aae668c-26a6-4f95-98f0-ccfc0c25c942",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -121,26 +121,26 @@
         "physios_id_users_id_fk": {
           "name": "physios_id_users_id_fk",
           "tableFrom": "physios",
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsFrom": [
             "id"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "physios_handle_unique": {
           "name": "physios_handle_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "handle"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -266,21 +266,21 @@
             },
             {
               "expression": "coalesce(\"parent_id\", '00000000-0000-0000-0000-000000000000'::uuid)",
-              "isExpression": true,
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             },
             {
               "expression": "lower(\"name\")",
-              "isExpression": true,
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "exercise_categories_parent_id_idx": {
           "name": "exercise_categories_parent_id_idx",
@@ -299,50 +299,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "exercise_categories_physio_id_physios_id_fk": {
           "name": "exercise_categories_physio_id_physios_id_fk",
           "tableFrom": "exercise_categories",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "exercise_categories_parent_fk": {
           "name": "exercise_categories_parent_fk",
           "tableFrom": "exercise_categories",
+          "tableTo": "exercise_categories",
           "columnsFrom": [
             "physio_id",
             "parent_id"
           ],
-          "tableTo": "exercise_categories",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "exercise_categories_physio_id_id_unique": {
           "name": "exercise_categories_physio_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -454,51 +454,51 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "exercise_media_physio_id_physios_id_fk": {
           "name": "exercise_media_physio_id_physios_id_fk",
           "tableFrom": "exercise_media",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "exercise_media_exercise_fk": {
           "name": "exercise_media_exercise_fk",
           "tableFrom": "exercise_media",
+          "tableTo": "exercises",
           "columnsFrom": [
             "physio_id",
             "exercise_id"
           ],
-          "tableTo": "exercises",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "exercise_media_position_unique": {
           "name": "exercise_media_position_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "exercise_id",
             "position"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -622,9 +622,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "exercises_category_id_idx": {
           "name": "exercises_category_id_idx",
@@ -643,9 +643,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "exercises_body_areas_idx": {
           "name": "exercises_body_areas_idx",
@@ -658,9 +658,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "gin",
-          "concurrently": false
+          "with": {}
         },
         "exercises_tags_idx": {
           "name": "exercises_tags_idx",
@@ -673,35 +673,35 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "gin",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "exercises_physio_id_physios_id_fk": {
           "name": "exercises_physio_id_physios_id_fk",
           "tableFrom": "exercises",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "exercises_physio_id_id_unique": {
           "name": "exercises_physio_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -877,51 +877,51 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "cases_physio_id_physios_id_fk": {
           "name": "cases_physio_id_physios_id_fk",
           "tableFrom": "cases",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "cases_customer_fk": {
           "name": "cases_customer_fk",
           "tableFrom": "cases",
+          "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "cases_physio_customer_id_unique": {
           "name": "cases_physio_customer_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "customer_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1097,35 +1097,35 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "customers_physio_id_physios_id_fk": {
           "name": "customers_physio_id_physios_id_fk",
           "tableFrom": "customers",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "customers_physio_id_id_unique": {
           "name": "customers_physio_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1234,51 +1234,51 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "routine_groups_physio_id_physios_id_fk": {
           "name": "routine_groups_physio_id_physios_id_fk",
           "tableFrom": "routine_groups",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "routine_groups_routine_fk": {
           "name": "routine_groups_routine_fk",
           "tableFrom": "routine_groups",
+          "tableTo": "routines",
           "columnsFrom": [
             "physio_id",
             "routine_id"
           ],
-          "tableTo": "routines",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "routine_groups_physio_routine_id_unique": {
           "name": "routine_groups_physio_routine_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "routine_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1386,42 +1386,42 @@
         "routine_item_sets_physio_id_physios_id_fk": {
           "name": "routine_item_sets_physio_id_physios_id_fk",
           "tableFrom": "routine_item_sets",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "routine_item_sets_item_fk": {
           "name": "routine_item_sets_item_fk",
           "tableFrom": "routine_item_sets",
+          "tableTo": "routine_items",
           "columnsFrom": [
             "physio_id",
             "routine_item_id"
           ],
-          "tableTo": "routine_items",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "routine_item_sets_position_unique": {
           "name": "routine_item_sets_position_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "routine_item_id",
             "position"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1571,91 +1571,91 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "routine_items_physio_id_physios_id_fk": {
           "name": "routine_items_physio_id_physios_id_fk",
           "tableFrom": "routine_items",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "routine_items_routine_fk": {
           "name": "routine_items_routine_fk",
           "tableFrom": "routine_items",
+          "tableTo": "routines",
           "columnsFrom": [
             "physio_id",
             "routine_id"
           ],
-          "tableTo": "routines",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "routine_items_exercise_fk": {
           "name": "routine_items_exercise_fk",
           "tableFrom": "routine_items",
+          "tableTo": "exercises",
           "columnsFrom": [
             "physio_id",
             "exercise_id"
           ],
-          "tableTo": "exercises",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "restrict"
+          "onDelete": "restrict",
+          "onUpdate": "no action"
         },
         "routine_items_group_fk": {
           "name": "routine_items_group_fk",
           "tableFrom": "routine_items",
+          "tableTo": "routine_groups",
           "columnsFrom": [
             "physio_id",
             "routine_id",
             "group_id"
           ],
-          "tableTo": "routine_groups",
           "columnsTo": [
             "physio_id",
             "routine_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "routine_items_physio_id_id_unique": {
           "name": "routine_items_physio_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "routine_items_position_unique": {
           "name": "routine_items_position_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "routine_id",
             "position"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1845,9 +1845,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routines_template_idx": {
           "name": "routines_template_idx",
@@ -1872,9 +1872,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routines_previous_idx": {
           "name": "routines_previous_idx",
@@ -1893,50 +1893,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "routines_physio_id_physios_id_fk": {
           "name": "routines_physio_id_physios_id_fk",
           "tableFrom": "routines",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "routines_customer_fk": {
           "name": "routines_customer_fk",
           "tableFrom": "routines",
+          "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "routines_physio_id_id_unique": {
           "name": "routines_physio_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -2054,42 +2054,42 @@
         "weekly_plan_days_physio_id_physios_id_fk": {
           "name": "weekly_plan_days_physio_id_physios_id_fk",
           "tableFrom": "weekly_plan_days",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "weekly_plan_days_plan_fk": {
           "name": "weekly_plan_days_plan_fk",
           "tableFrom": "weekly_plan_days",
+          "tableTo": "weekly_plans",
           "columnsFrom": [
             "physio_id",
             "weekly_plan_id"
           ],
-          "tableTo": "weekly_plans",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "weekly_plan_days_plan_weekday_unique": {
           "name": "weekly_plan_days_plan_weekday_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "weekly_plan_id",
             "weekday"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -2208,9 +2208,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "weekly_plan_entries_routine_idx": {
           "name": "weekly_plan_entries_routine_idx",
@@ -2229,54 +2229,54 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "weekly_plan_entries_physio_id_physios_id_fk": {
           "name": "weekly_plan_entries_physio_id_physios_id_fk",
           "tableFrom": "weekly_plan_entries",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "weekly_plan_entries_plan_fk": {
           "name": "weekly_plan_entries_plan_fk",
           "tableFrom": "weekly_plan_entries",
+          "tableTo": "weekly_plans",
           "columnsFrom": [
             "physio_id",
             "weekly_plan_id"
           ],
-          "tableTo": "weekly_plans",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "weekly_plan_entries_routine_fk": {
           "name": "weekly_plan_entries_routine_fk",
           "tableFrom": "weekly_plan_entries",
+          "tableTo": "routines",
           "columnsFrom": [
             "physio_id",
             "routine_id"
           ],
-          "tableTo": "routines",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "restrict"
+          "onDelete": "restrict",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2441,9 +2441,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "weekly_plans_template_idx": {
           "name": "weekly_plans_template_idx",
@@ -2468,9 +2468,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "weekly_plans_previous_idx": {
           "name": "weekly_plans_previous_idx",
@@ -2489,50 +2489,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "weekly_plans_physio_id_physios_id_fk": {
           "name": "weekly_plans_physio_id_physios_id_fk",
           "tableFrom": "weekly_plans",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "weekly_plans_customer_fk": {
           "name": "weekly_plans_customer_fk",
           "tableFrom": "weekly_plans",
+          "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "weekly_plans_physio_id_id_unique": {
           "name": "weekly_plans_physio_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -2688,39 +2688,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "visit_notes_physio_id_physios_id_fk": {
           "name": "visit_notes_physio_id_physios_id_fk",
           "tableFrom": "visit_notes",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "visit_notes_customer_fk": {
           "name": "visit_notes_customer_fk",
           "tableFrom": "visit_notes",
+          "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2877,9 +2877,9 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "share_links_customer_idx": {
           "name": "share_links_customer_idx",
@@ -2898,9 +2898,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "share_links_live_customer_unique": {
           "name": "share_links_live_customer_unique",
@@ -2913,10 +2913,10 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "\"share_links\".\"target\" = 'customer' and \"share_links\".\"revoked_at\" is null",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "share_links_live_routine_unique": {
           "name": "share_links_live_routine_unique",
@@ -2929,10 +2929,10 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "\"share_links\".\"target\" = 'routine' and \"share_links\".\"revoked_at\" is null",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "share_links_live_weekly_plan_unique": {
           "name": "share_links_live_weekly_plan_unique",
@@ -2945,70 +2945,70 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "\"share_links\".\"target\" = 'weekly_plan' and \"share_links\".\"revoked_at\" is null",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
         "share_links_physio_id_physios_id_fk": {
           "name": "share_links_physio_id_physios_id_fk",
           "tableFrom": "share_links",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "share_links_customer_fk": {
           "name": "share_links_customer_fk",
           "tableFrom": "share_links",
+          "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "share_links_routine_fk": {
           "name": "share_links_routine_fk",
           "tableFrom": "share_links",
+          "tableTo": "routines",
           "columnsFrom": [
             "physio_id",
             "routine_id"
           ],
-          "tableTo": "routines",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "share_links_weekly_plan_fk": {
           "name": "share_links_weekly_plan_fk",
           "tableFrom": "share_links",
+          "tableTo": "weekly_plans",
           "columnsFrom": [
             "physio_id",
             "weekly_plan_id"
           ],
-          "tableTo": "weekly_plans",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3162,9 +3162,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "session_logs_physio_day_idx": {
           "name": "session_logs_physio_day_idx",
@@ -3183,9 +3183,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "session_logs_routine_idx": {
           "name": "session_logs_routine_idx",
@@ -3204,74 +3204,74 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "session_logs_physio_id_physios_id_fk": {
           "name": "session_logs_physio_id_physios_id_fk",
           "tableFrom": "session_logs",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "session_logs_customer_fk": {
           "name": "session_logs_customer_fk",
           "tableFrom": "session_logs",
+          "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "session_logs_routine_fk": {
           "name": "session_logs_routine_fk",
           "tableFrom": "session_logs",
+          "tableTo": "routines",
           "columnsFrom": [
             "physio_id",
             "routine_id"
           ],
-          "tableTo": "routines",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "session_logs_routine_entry_day_unique": {
           "name": "session_logs_routine_entry_day_unique",
+          "nullsNotDistinct": true,
           "columns": [
             "routine_id",
             "weekly_plan_entry_id",
             "performed_on"
-          ],
-          "nullsNotDistinct": true
+          ]
         },
         "session_logs_physio_id_unique": {
           "name": "session_logs_physio_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "physio_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -3388,50 +3388,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "routine_versions_physio_id_physios_id_fk": {
           "name": "routine_versions_physio_id_physios_id_fk",
           "tableFrom": "routine_versions",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "routine_versions_routine_fk": {
           "name": "routine_versions_routine_fk",
           "tableFrom": "routine_versions",
+          "tableTo": "routines",
           "columnsFrom": [
             "physio_id",
             "routine_id"
           ],
-          "tableTo": "routines",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "routine_versions_routine_version_unique": {
           "name": "routine_versions_routine_version_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "routine_id",
             "version"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -3565,50 +3565,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "weekly_plan_versions_physio_id_physios_id_fk": {
           "name": "weekly_plan_versions_physio_id_physios_id_fk",
           "tableFrom": "weekly_plan_versions",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "weekly_plan_versions_plan_fk": {
           "name": "weekly_plan_versions_plan_fk",
           "tableFrom": "weekly_plan_versions",
+          "tableTo": "weekly_plans",
           "columnsFrom": [
             "physio_id",
             "weekly_plan_id"
           ],
-          "tableTo": "weekly_plans",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "weekly_plan_versions_plan_version_unique": {
           "name": "weekly_plan_versions_plan_version_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "weekly_plan_id",
             "version"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -3787,9 +3787,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "exercise_logs_session_idx": {
           "name": "exercise_logs_session_idx",
@@ -3802,9 +3802,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "exercise_logs_routine_idx": {
           "name": "exercise_logs_routine_idx",
@@ -3823,97 +3823,97 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "exercise_logs_physio_id_physios_id_fk": {
           "name": "exercise_logs_physio_id_physios_id_fk",
           "tableFrom": "exercise_logs",
+          "tableTo": "physios",
           "columnsFrom": [
             "physio_id"
           ],
-          "tableTo": "physios",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "exercise_logs_customer_fk": {
           "name": "exercise_logs_customer_fk",
           "tableFrom": "exercise_logs",
+          "tableTo": "customers",
           "columnsFrom": [
             "physio_id",
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "exercise_logs_routine_fk": {
           "name": "exercise_logs_routine_fk",
           "tableFrom": "exercise_logs",
+          "tableTo": "routines",
           "columnsFrom": [
             "physio_id",
             "routine_id"
           ],
-          "tableTo": "routines",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "exercise_logs_exercise_fk": {
           "name": "exercise_logs_exercise_fk",
           "tableFrom": "exercise_logs",
+          "tableTo": "exercises",
           "columnsFrom": [
             "physio_id",
             "exercise_id"
           ],
-          "tableTo": "exercises",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "exercise_logs_session_fk": {
           "name": "exercise_logs_session_fk",
           "tableFrom": "exercise_logs",
+          "tableTo": "session_logs",
           "columnsFrom": [
             "physio_id",
             "session_log_id"
           ],
-          "tableTo": "session_logs",
           "columnsTo": [
             "physio_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "exercise_logs_routine_entry_exercise_day_unique": {
           "name": "exercise_logs_routine_entry_exercise_day_unique",
+          "nullsNotDistinct": true,
           "columns": [
             "routine_id",
             "weekly_plan_entry_id",
             "exercise_id",
             "performed_on"
-          ],
-          "nullsNotDistinct": true
+          ]
         }
       },
       "policies": {
@@ -4066,10 +4066,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

@@ -257,22 +257,29 @@
     {
       "idx": 36,
       "version": "7",
-      "when": 1791304722472,
-      "tag": "20261006163842_exercise-log-session",
+      "when": 1791305039359,
+      "tag": "20261006164359_session-logs-physio-id-unique",
       "breakpoints": true
     },
     {
       "idx": 37,
       "version": "7",
-      "when": 1791304723229,
-      "tag": "20261006163843_exercise-log-session-backfill",
+      "when": 1791305041171,
+      "tag": "20261006164401_exercise-log-session",
       "breakpoints": true
     },
     {
       "idx": 38,
       "version": "7",
-      "when": 1791304733253,
-      "tag": "20261006163853_exercise-log-session-required",
+      "when": 1791305042949,
+      "tag": "20261006164402_exercise-log-session-backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791305045102,
+      "tag": "20261006164405_exercise-log-session-required",
       "breakpoints": true
     }
   ]

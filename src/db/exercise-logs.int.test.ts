@@ -5,9 +5,9 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
-import { exerciseLogs, sessionLogs } from "@/db/schema";
+import { exerciseLogs, sessionLogs, weeklyPlanEntries } from "@/db/schema";
 import { SET_WEIGHTS_MAX } from "@/lib/session-logs";
-import { insertCustomer, insertExercise, insertRoutine } from "@/test/int/content";
+import { insertCustomer, insertExercise, insertPlan, insertRoutine } from "@/test/int/content";
 import { insertSessionLog } from "@/test/int/logs";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
@@ -163,9 +163,16 @@ describe("exercise_logs.session_log_id", () => {
       performedOn: "2026-11-02",
     });
 
-    await expect(
-      db.insert(exerciseLogs).values(base(foreignSession, "2026-11-02")),
-    ).rejects.toThrow();
+    const error = await db
+      .insert(exerciseLogs)
+      .values(base(foreignSession, "2026-11-02"))
+      .then(
+        () => null,
+        (e: unknown) => e as { code?: string; cause?: { code?: string; constraint_name?: string } },
+      );
+    expect(error).not.toBeNull();
+    expect(error!.cause?.code ?? error!.code).toBe("23503");
+    expect(error!.cause?.constraint_name).toBe("exercise_logs_session_fk");
   });
 
   it("backfills a done session for an orphan log (migration statements)", async () => {
@@ -178,6 +185,15 @@ describe("exercise_logs.session_log_id", () => {
       performedOn: "2026-11-04",
       completed: false,
     });
+
+    const planId = await insertPlan(physio.id, customerId, {
+      entries: [{ weekday: 3, routineId }],
+    });
+    const [entry] = await db
+      .select({ id: weeklyPlanEntries.id })
+      .from(weeklyPlanEntries)
+      .where(eq(weeklyPlanEntries.weeklyPlanId, planId));
+    const entryId = entry!.id;
 
     const rollback = new Error("rollback");
     await expect(
@@ -192,6 +208,15 @@ describe("exercise_logs.session_log_id", () => {
         const [attached] = await tx
           .insert(exerciseLogs)
           .values({ ...base(null, "2026-11-04"), sessionLogId: null as unknown as string })
+          .returning({ id: exerciseLogs.id });
+
+        const [planned] = await tx
+          .insert(exerciseLogs)
+          .values({
+            ...base(null, "2026-11-04"),
+            sessionLogId: null as unknown as string,
+            weeklyPlanEntryId: entryId,
+          })
           .returning({ id: exerciseLogs.id });
 
         await tx.execute(sql.raw(backfill.replaceAll("--> statement-breakpoint", "")));
@@ -213,6 +238,21 @@ describe("exercise_logs.session_log_id", () => {
         expect(attachedRow!.sessionLogId).toBe(existing);
         const [kept] = await tx.select().from(sessionLogs).where(eq(sessionLogs.id, existing));
         expect(kept!.completed).toBe(false);
+
+        const [plannedRow] = await tx
+          .select()
+          .from(exerciseLogs)
+          .where(eq(exerciseLogs.id, planned!.id));
+        expect(plannedRow!.sessionLogId).not.toBe(existing);
+        const [plannedSession] = await tx
+          .select()
+          .from(sessionLogs)
+          .where(eq(sessionLogs.id, plannedRow!.sessionLogId));
+        expect(plannedSession).toMatchObject({
+          completed: true,
+          performedOn: "2026-11-04",
+          weeklyPlanEntryId: entryId,
+        });
         throw rollback;
       }),
     ).rejects.toBe(rollback);

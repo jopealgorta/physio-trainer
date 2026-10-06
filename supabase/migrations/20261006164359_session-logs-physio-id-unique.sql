@@ -1,0 +1,1 @@
+ALTER TABLE "session_logs" ADD CONSTRAINT "session_logs_physio_id_unique" UNIQUE("physio_id","id");

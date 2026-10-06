@@ -1,6 +1,6 @@
 {
-  "id": "81bcf84a-54d1-4b97-b82b-9cc76e9ab8e4",
-  "prevId": "70edd09c-7455-42ca-90df-f0326a0ec8f9",
+  "id": "0aa3abf5-d011-4e23-883f-cf3a65ae90e2",
+  "prevId": "bc8b1c99-3c41-48b5-9984-5e0b7d135ba3",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3692,7 +3692,7 @@
           "name": "session_log_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "weekly_plan_entry_id": {
           "name": "weekly_plan_entry_id",
