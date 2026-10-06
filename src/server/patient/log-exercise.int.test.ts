@@ -360,10 +360,33 @@ describe("logExercise", () => {
       }
     });
 
+    it("keeps a log saved while another is cleared", async () => {
+      for (let round = 0; round < 5; round++) {
+        await reset();
+        await log(customerCode, { routineId: twoItems, rpe: 4 });
+        await Promise.all([
+          log(customerCode, { routineId: twoItems }),
+          log(customerCode, { routineId: twoItems, exerciseId: secondExercise, rpe: 5 }),
+        ]);
+        const stored = await rows(twoItems);
+        expect(stored).toHaveLength(1);
+        expect(stored[0]).toMatchObject({ exerciseId: secondExercise });
+        const found = await sessions(twoItems);
+        expect(found).toHaveLength(1);
+        expect(found[0]).toMatchObject({ id: stored[0]!.sessionLogId, completed: true });
+      }
+    });
+
     it("writes nothing when refused", async () => {
-      await log(customerCode, { routineId: foreign, rpe: 1 });
-      await log(customerCode, { exerciseId: strangerExercise, rpe: 1 });
-      await log(customerCode, { performedOn: "2026-10-05", rpe: 1 });
+      const unreachable = { ok: false, error: "unreachable" };
+      expect(await log(customerCode, { routineId: foreign, rpe: 1 })).toEqual(unreachable);
+      expect(await log(customerCode, { exerciseId: strangerExercise, rpe: 1 })).toEqual(
+        unreachable,
+      );
+      expect(await log(customerCode, { performedOn: "2026-10-05", rpe: 1 })).toEqual({
+        ok: false,
+        error: "date",
+      });
       const all = await db
         .select()
         .from(sessionLogs)

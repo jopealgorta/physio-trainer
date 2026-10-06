@@ -76,10 +76,18 @@ export async function logExercise(
   if (!item) return { ok: false, error: "unreachable" };
 
   const scope = (column: AnyPgColumn) =>
-    input.entryId === null ? sql`${column} is null` : eq(column, input.entryId);
+    input.entryId === null ? isNull(column) : eq(column, input.entryId);
+
+  // Saving and clearing the same session race (a clear may delete a session a save is joining),
+  // so both take a transaction-scoped lock on the session key first.
+  const lockSession = (tx: Pick<typeof db, "execute">) =>
+    tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${input.routineId} || ':' || coalesce(${input.entryId}::text, '') || ':' || ${input.performedOn}::text, 0))`,
+    );
 
   if (input.rpe === null && input.setWeightsKg === null && input.comment === null) {
     await db.transaction(async (tx) => {
+      await lockSession(tx);
       const [removed] = await tx
         .delete(exerciseLogs)
         .where(
@@ -115,9 +123,10 @@ export async function logExercise(
   }
 
   const row = await db.transaction(async (tx) => {
-    // find or create the routine's session for that day; an existing one is left untouched.
-    // Two concurrent first logs both insert: the loser waits for the winner, does nothing, and
-    // the select below (new snapshot) sees the committed row.
+    // The advisory lock serialises every save and clear of this session key, so the session
+    // found or created below cannot be deleted by a concurrent clear before the log is attached.
+    // Find or create the routine's session for that day; an existing one is left untouched.
+    await lockSession(tx);
     await tx
       .insert(sessionLogs)
       .values({
@@ -145,7 +154,8 @@ export async function logExercise(
         ),
       )
       .limit(1);
-    const sessionLogId = session!.id;
+    if (!session) throw new Error("session log missing after find-or-create");
+    const sessionLogId = session.id;
 
     const [saved] = await tx
       .insert(exerciseLogs)
