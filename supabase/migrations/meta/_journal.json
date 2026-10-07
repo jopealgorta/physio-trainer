@@ -253,6 +253,34 @@
       "when": 1791050967974,
       "tag": "20261003180927_exercise-log-set-weights-extras",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791305039359,
+      "tag": "20261006164359_session-logs-physio-id-unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791305041171,
+      "tag": "20261006164401_exercise-log-session",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791305042949,
+      "tag": "20261006164402_exercise-log-session-backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791305045102,
+      "tag": "20261006164405_exercise-log-session-required",
+      "breakpoints": true
     }
   ]
 }

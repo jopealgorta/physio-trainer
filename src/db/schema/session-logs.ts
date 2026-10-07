@@ -74,6 +74,8 @@ export const sessionLogs = pgTable(
     unique("session_logs_routine_entry_day_unique")
       .on(t.routineId, t.weeklyPlanEntryId, t.performedOn)
       .nullsNotDistinct(),
+    // Target of exercise_logs_session_fk (composite, tenancy-safe).
+    unique("session_logs_physio_id_unique").on(t.physioId, t.id),
     index("session_logs_customer_idx").on(t.physioId, t.customerId, t.performedOn.desc()),
     index("session_logs_physio_day_idx").on(t.physioId, t.performedOn.desc()),
     index("session_logs_routine_idx").on(t.physioId, t.routineId),

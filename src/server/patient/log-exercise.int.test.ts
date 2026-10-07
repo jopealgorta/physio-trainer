@@ -1,19 +1,22 @@
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { and, eq, inArray } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
-import { exerciseLogs, weeklyPlanEntries } from "@/db/schema";
+import { exerciseLogs, sessionLogs, weeklyPlanEntries } from "@/db/schema";
 import { insertCustomer, insertExercise, insertPlan, insertRoutine } from "@/test/int/content";
+import { insertSessionLog } from "@/test/int/logs";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { ensureShareLink } from "@/server/sharing/mutations";
 
 import { getPatientExerciseLogs, logExercise } from "./log-exercise";
+import { logSession } from "./log-session";
 import type { LogExerciseInput } from "./exercise-log-schema";
 import { resolveLink } from "./resolve-link";
 
 const NOW = new Date("2026-10-07T10:00:00Z");
 const TODAY = "2026-10-07";
+const YESTERDAY = "2026-10-06";
 
 describe("logExercise", () => {
   const created: TestPhysio[] = [];
@@ -118,10 +121,17 @@ describe("logExercise", () => {
 
   it("replaces a legacy pain/weight log: they end up null", async () => {
     await db.delete(exerciseLogs).where(eq(exerciseLogs.routineId, standalone));
+    await db.delete(sessionLogs).where(eq(sessionLogs.routineId, standalone));
+    const sessionLogId = await insertSessionLog(physio.id, {
+      customerId,
+      routineId: standalone,
+      performedOn: TODAY,
+    });
     await db.insert(exerciseLogs).values({
       physioId: physio.id,
       customerId,
       routineId: standalone,
+      sessionLogId,
       weeklyPlanEntryId: null,
       exerciseId,
       performedOn: TODAY,
@@ -215,5 +225,178 @@ describe("logExercise", () => {
     await log(customerCode, { rpe: 2 });
     expect((await as(physio, (tx) => tx.select().from(exerciseLogs))).length).toBeGreaterThan(0);
     expect(await as(other, (tx) => tx.select().from(exerciseLogs))).toEqual([]);
+  });
+
+  describe("session", () => {
+    let secondExercise: string;
+    let twoItems: string;
+
+    const sessions = (routineId: string) =>
+      db.select().from(sessionLogs).where(eq(sessionLogs.routineId, routineId));
+    const reset = async () => {
+      const ids = [standalone, inPlan, twoItems];
+      await db.delete(exerciseLogs).where(inArray(exerciseLogs.routineId, ids));
+      await db.delete(sessionLogs).where(inArray(sessionLogs.routineId, ids));
+    };
+
+    beforeAll(async () => {
+      secondExercise = await insertExercise(physio.id, { name: "Bridge" });
+      twoItems = await insertRoutine(physio.id, customerId, {
+        name: "Two",
+        status: "active",
+        items: [{ exerciseId }, { exerciseId: secondExercise }],
+      });
+    });
+    beforeEach(reset);
+
+    it("creates a done session on the first exercise log", async () => {
+      await log(customerCode, { rpe: 4 });
+      const found = await sessions(standalone);
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({
+        physioId: physio.id,
+        customerId,
+        weeklyPlanEntryId: null,
+        performedOn: TODAY,
+        completed: true,
+        pain: null,
+        rpe: null,
+        comment: null,
+      });
+      expect((await rows(standalone))[0]!.sessionLogId).toBe(found[0]!.id);
+    });
+
+    it("attaches later logs to the same session without changing it", async () => {
+      await log(customerCode, { routineId: twoItems, rpe: 4 });
+      const [before] = await sessions(twoItems);
+      await log(customerCode, { routineId: twoItems, exerciseId: secondExercise, rpe: 5 });
+      const after = await sessions(twoItems);
+      expect(after).toHaveLength(1);
+      expect(after[0]!.updatedAt).toEqual(before!.updatedAt);
+      const stored = await rows(twoItems);
+      expect(stored).toHaveLength(2);
+      expect(stored.every((l) => l.sessionLogId === before!.id)).toBe(true);
+    });
+
+    it("leaves an undone session undone", async () => {
+      const { shell, link } = await resolved(customerCode);
+      const done = await logSession(
+        shell,
+        link,
+        {
+          routineId: standalone,
+          entryId: null,
+          performedOn: TODAY,
+          completed: false,
+          pain: null,
+          rpe: null,
+          comment: null,
+        },
+        NOW,
+      );
+      expect(done.ok).toBe(true);
+      await log(customerCode, { rpe: 4 });
+      const found = await sessions(standalone);
+      expect(found).toHaveLength(1);
+      expect(found[0]!.completed).toBe(false);
+      expect((await rows(standalone))[0]!.sessionLogId).toBe(found[0]!.id);
+    });
+
+    it("creates one session when two logs race", async () => {
+      await Promise.all([
+        log(customerCode, { routineId: twoItems, rpe: 4 }),
+        log(customerCode, { routineId: twoItems, exerciseId: secondExercise, rpe: 5 }),
+      ]);
+      const found = await sessions(twoItems);
+      expect(found).toHaveLength(1);
+      const stored = await rows(twoItems);
+      expect(stored).toHaveLength(2);
+      expect(stored.every((l) => l.sessionLogId === found[0]!.id)).toBe(true);
+    });
+
+    it("keeps plan entry and standalone sessions apart", async () => {
+      await log(customerCode, { routineId: inPlan, entryId, rpe: 1 });
+      await log(customerCode, { routineId: inPlan, entryId: null, rpe: 2 });
+      const found = await sessions(inPlan);
+      expect(found).toHaveLength(2);
+      expect(found.map((s) => s.weeklyPlanEntryId).sort()).toEqual([entryId, null].sort());
+    });
+
+    it("logs yesterday into yesterday's session", async () => {
+      await log(customerCode, { performedOn: YESTERDAY, rpe: 4 });
+      const found = await sessions(standalone);
+      expect(found.map((s) => s.performedOn)).toEqual([YESTERDAY]);
+    });
+
+    it("deletes the session when its last log is cleared and it is empty", async () => {
+      await log(customerCode, { rpe: 4 });
+      expect(await sessions(standalone)).toHaveLength(1);
+      await log(customerCode, {});
+      expect(await sessions(standalone)).toHaveLength(0);
+    });
+
+    it("keeps the session when other logs remain", async () => {
+      await log(customerCode, { routineId: twoItems, rpe: 4 });
+      await log(customerCode, { routineId: twoItems, exerciseId: secondExercise, rpe: 5 });
+      await log(customerCode, { routineId: twoItems });
+      expect(await sessions(twoItems)).toHaveLength(1);
+      expect(await rows(twoItems)).toHaveLength(1);
+    });
+
+    it("keeps the session when it has a comment, pain or RPE", async () => {
+      for (const extra of [{ comment: "hurt" }, { pain: 3 }, { rpe: 7 }]) {
+        await reset();
+        await insertSessionLog(physio.id, {
+          customerId,
+          routineId: standalone,
+          performedOn: TODAY,
+          ...extra,
+        });
+        await log(customerCode, { rpe: 4 });
+        await log(customerCode, {});
+        const found = await sessions(standalone);
+        expect(found, JSON.stringify(extra)).toHaveLength(1);
+        expect(await rows(standalone)).toHaveLength(0);
+      }
+    });
+
+    it("keeps a log saved while another is cleared", async () => {
+      for (let round = 0; round < 5; round++) {
+        await reset();
+        await log(customerCode, { routineId: twoItems, rpe: 4 });
+        await Promise.all([
+          log(customerCode, { routineId: twoItems }),
+          log(customerCode, { routineId: twoItems, exerciseId: secondExercise, rpe: 5 }),
+        ]);
+        const stored = await rows(twoItems);
+        expect(stored).toHaveLength(1);
+        expect(stored[0]).toMatchObject({ exerciseId: secondExercise });
+        const found = await sessions(twoItems);
+        expect(found).toHaveLength(1);
+        expect(found[0]).toMatchObject({ id: stored[0]!.sessionLogId, completed: true });
+      }
+    });
+
+    it("writes nothing when refused", async () => {
+      const unreachable = { ok: false, error: "unreachable" };
+      expect(await log(customerCode, { routineId: foreign, rpe: 1 })).toEqual(unreachable);
+      expect(await log(customerCode, { exerciseId: strangerExercise, rpe: 1 })).toEqual(
+        unreachable,
+      );
+      expect(await log(customerCode, { performedOn: "2026-10-05", rpe: 1 })).toEqual({
+        ok: false,
+        error: "date",
+      });
+      const all = await db
+        .select()
+        .from(sessionLogs)
+        .where(
+          and(
+            eq(sessionLogs.physioId, physio.id),
+            inArray(sessionLogs.routineId, [foreign, standalone]),
+          ),
+        );
+      expect(all).toEqual([]);
+    });
   });
 });

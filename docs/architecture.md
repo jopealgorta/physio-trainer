@@ -154,25 +154,26 @@ erDiagram
   share_links ||--o{ exercise_logs : "logged through"
   exercises ||--o{ exercise_logs : "logged for"
   routines ||--o{ exercise_logs : "logged in"
+  session_logs ||--o{ exercise_logs : "contains"
   customers ||--o{ visit_notes : has
 ```
 
-| Table                                      | Spec                           | Purpose                                                                                                                |
-| ------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `physios`                                  | 01 (+09 branding columns)      | Profile, 1:1 with `auth.users` (`id` = auth user id). `handle` unique. `avatar_url`: Google photo, set on sign-in.     |
-| `exercise_categories`                      | 03                             | Two-level tree (`parent_id` null = top level).                                                                         |
-| `exercises`, `exercise_media`              | 03 (+19 kind)                  | Library entries (strength or aerobic `kind`, no prescription of their own) and ordered media.                          |
-| `customers`                                | 04                             | Patient contact/basic info, `locale`.                                                                                  |
-| `cases`                                    | 04                             | Injury episodes per customer (body area/side from spec 02).                                                            |
-| `routines`, `routine_groups`               | 05 (+07 templates, +08 phases) | Routine header; a group is one superset (shared rest). Template ⇔ `customer_id` null; copies keep `source_template_id` |
-| `routine_items`, `routine_item_sets`       | 05                             | Ordered exercises (per-item prescription) and one row per set.                                                         |
-| `weekly_plans`, `weekly_plan_entries`      | 06 (+07, +08)                  | Mon–Sun; entries reference routines by id. Same template/`source_template_id` rules.                                   |
-| `weekly_plan_days`                         | 19                             | One note per weekday of a plan (row exists only while the note is non-empty).                                          |
-| `share_links`                              | 10                             | Link code, target, PIN hash, expiry, revocation.                                                                       |
-| `session_logs`                             | 13 (+19 RPE)                   | Patient-submitted completion/pain/RPE/comment per routine per date.                                                    |
-| `exercise_logs`                            | 19, 20                         | Patient-submitted RPE/set weights/comment per exercise per routine per date (legacy pain/weight kept).                 |
-| `routine_versions`, `weekly_plan_versions` | 15                             | JSON snapshots on each save.                                                                                           |
-| `visit_notes`                              | 16                             | Private per-visit clinical notes (SOAP).                                                                               |
+| Table                                      | Spec                           | Purpose                                                                                                                                                           |
+| ------------------------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `physios`                                  | 01 (+09 branding columns)      | Profile, 1:1 with `auth.users` (`id` = auth user id). `handle` unique. `avatar_url`: Google photo, set on sign-in.                                                |
+| `exercise_categories`                      | 03                             | Two-level tree (`parent_id` null = top level).                                                                                                                    |
+| `exercises`, `exercise_media`              | 03 (+19 kind)                  | Library entries (strength or aerobic `kind`, no prescription of their own) and ordered media.                                                                     |
+| `customers`                                | 04                             | Patient contact/basic info, `locale`.                                                                                                                             |
+| `cases`                                    | 04                             | Injury episodes per customer (body area/side from spec 02).                                                                                                       |
+| `routines`, `routine_groups`               | 05 (+07 templates, +08 phases) | Routine header; a group is one superset (shared rest). Template ⇔ `customer_id` null; copies keep `source_template_id`                                            |
+| `routine_items`, `routine_item_sets`       | 05                             | Ordered exercises (per-item prescription) and one row per set.                                                                                                    |
+| `weekly_plans`, `weekly_plan_entries`      | 06 (+07, +08)                  | Mon–Sun; entries reference routines by id. Same template/`source_template_id` rules.                                                                              |
+| `weekly_plan_days`                         | 19                             | One note per weekday of a plan (row exists only while the note is non-empty).                                                                                     |
+| `share_links`                              | 10                             | Link code, target, PIN hash, expiry, revocation.                                                                                                                  |
+| `session_logs`                             | 13 (+19 RPE)                   | Patient-submitted completion/pain/RPE/comment per routine per date.                                                                                               |
+| `exercise_logs`                            | 19, 20, 21                     | Patient-submitted RPE/set weights/comment per exercise per routine per date; belongs to its routine session (`session_log_id`, cascade). Legacy pain/weight kept. |
+| `routine_versions`, `weekly_plan_versions` | 15                             | JSON snapshots on each save.                                                                                                                                      |
+| `visit_notes`                              | 16                             | Private per-visit clinical notes (SOAP).                                                                                                                          |
 
 ### Shared column conventions
 

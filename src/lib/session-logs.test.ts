@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PAIN_SCALE,
   dateForWeekday,
+  formatSetWeights,
   loggedWeekdays,
   weekLogRange,
   isLoggableDate,
@@ -120,5 +121,11 @@ describe("normalizeSetWeights", () => {
     expect(normalizeSetWeights([null, null])).toBeNull();
     expect(normalizeSetWeights([])).toBeNull();
     expect(normalizeSetWeights(null)).toBeNull();
+  });
+});
+
+describe("formatSetWeights", () => {
+  it("joins the weights with a dot and shows a missing one as an en dash", () => {
+    expect(formatSetWeights([20, null, 22.5], String)).toBe("20 · – · 22.5");
   });
 });

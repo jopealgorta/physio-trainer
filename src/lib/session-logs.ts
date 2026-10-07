@@ -6,8 +6,8 @@ import { WEEKDAYS } from "./plans";
 
 /** Session log limits and pure helpers shared by the schema, the action and the UI (spec 13). */
 export const LOG_COMMENT_MAX = 1000;
-/** The Activity tab's comments feed shows this many of the newest comments. */
-export const COMMENTS_LIMIT = 50;
+/** The Activity tab's feed shows this many of the newest sessions (spec 21). */
+export const SESSIONS_LIMIT = 30;
 export const PAIN_MIN = 0;
 export const PAIN_MAX = 10;
 /** 0..10, the values of the patient's pain control. */
@@ -87,4 +87,12 @@ export function normalizeSetWeights(
   const rounded = values.map((v) => (v === null ? null : Math.round(v * 10) / 10));
   while (rounded.length > 0 && rounded.at(-1) === null) rounded.pop();
   return rounded.length === 0 ? null : rounded;
+}
+
+/** Per-set weights as one line: values joined with " · ", a set left empty as an en dash. */
+export function formatSetWeights(
+  weights: readonly (number | null)[],
+  formatNumber: (kg: number) => string,
+): string {
+  return weights.map((kg) => (kg !== null ? formatNumber(kg) : "–")).join(" · ");
 }

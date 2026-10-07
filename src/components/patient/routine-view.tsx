@@ -6,6 +6,8 @@ import { getTranslations } from "next-intl/server";
 
 import { ExerciseList, type ExerciseLogging } from "@/components/patient/exercise-list";
 import { PATIENT_ROW_BUTTON } from "@/components/patient/row-button";
+import { SessionSummary } from "@/components/patient/session-summary";
+import type { SessionSummaryData } from "@/components/patient/session-summary-data";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import type { PatientRoutine } from "@/server/patient/view";
@@ -22,6 +24,7 @@ export async function RoutineView({
   startHref,
   logSlot,
   exerciseLogging,
+  summary,
 }: {
   routine: PatientRoutine;
   locale: Locale;
@@ -34,6 +37,8 @@ export async function RoutineView({
   logSlot?: ReactNode;
   /** Per-exercise logs (spec 19) for this routine and plan entry. */
   exerciseLogging?: ExerciseLogging;
+  /** What was logged for the shown day (spec 21), under the action row. */
+  summary?: SessionSummaryData | null;
 }) {
   const t = await getTranslations({ locale, namespace: "Patient" });
   const Heading = headingLevel === 2 ? "h2" : "h3";
@@ -71,6 +76,7 @@ export async function RoutineView({
         ) : null}
         {logSlot}
       </div>
+      {summary ? <SessionSummary summary={summary} /> : null}
       {routine.notes ? (
         <section aria-label={t("notes")} className="bg-muted rounded-lg p-3 text-sm">
           <p className="wrap-anywhere whitespace-pre-line">{routine.notes}</p>

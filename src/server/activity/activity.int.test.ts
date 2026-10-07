@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
 import { exerciseLogs, sessionLogs, weeklyPlanEntries } from "@/db/schema";
 import { insertCustomer, insertExercise, insertPlan, insertRoutine } from "@/test/int/content";
+import { insertSessionLog } from "@/test/int/logs";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { ensureShareLink, revokeShareLink } from "@/server/sharing/mutations";
 import { setCustomerArchived } from "@/server/customers/mutations";
@@ -118,20 +119,6 @@ describe("activity", () => {
       ]);
     });
 
-    it("lists comments newest first with their routine and seen state", async () => {
-      const { comments, unseenIds } = await as(physio, (tx, id) =>
-        getCustomerActivity(tx, id, ana, TODAY),
-      );
-      expect(comments).toHaveLength(1);
-      expect(comments[0]).toMatchObject({
-        comment: "pinchy",
-        routineName: "Knee",
-        performedOn: "2026-10-06",
-        seen: false,
-      });
-      expect(unseenIds).toEqual([comments[0]!.id]);
-    });
-
     it("sums the last 12 weeks", async () => {
       const { summary } = await as(physio, (tx, id) => getCustomerActivity(tx, id, ana, TODAY));
       // 4 completed sessions, one logged as not completed (and not counted as "last logged").
@@ -149,19 +136,20 @@ describe("activity", () => {
       expect(summary.completed).toBe(0);
     });
 
-    it("keeps comments from before the 12 weeks in the feed", async () => {
+    it("keeps sessions from before the 12 weeks in the feed", async () => {
       const old = await addLog(physio.id, ana, knee, "2026-01-05", { comment: "months ago" });
-      const { comments, unseenIds } = await as(physio, (tx, id) =>
+      const { sessions, unseenIds } = await as(physio, (tx, id) =>
         getCustomerActivity(tx, id, ana, TODAY),
       );
-      expect(comments.map((c) => c.comment)).toEqual(["pinchy", "months ago"]);
+      expect(sessions.map((session) => session.comment)).toContain("months ago");
+      expect(sessions.at(-1)!.id).toBe(old);
       expect(unseenIds).toContain(old);
       await db.delete(sessionLogs).where(eq(sessionLogs.id, old));
     });
 
     it("is empty for a customer with no logs and refuses another physio's customer", async () => {
       const empty = await as(physio, (tx, id) => getCustomerActivity(tx, id, beto, TODAY));
-      expect(empty.comments).toEqual([]);
+      expect(empty.sessions).toEqual([]);
       expect(empty.pain.overall).toEqual([]);
       expect(empty.summary).toEqual({
         completed: 0,
@@ -170,7 +158,7 @@ describe("activity", () => {
       });
 
       const foreign = await as(other, (tx, id) => getCustomerActivity(tx, id, ana, TODAY));
-      expect(foreign.comments).toEqual([]);
+      expect(foreign.sessions).toEqual([]);
       expect(foreign.pain.overall).toEqual([]);
     });
   });
@@ -180,24 +168,36 @@ describe("activity", () => {
     let kneeRoutine: string;
     let oneId: string;
     let twoId: string;
-    const addExerciseLog = (
+    let sessionOne: string;
+    let sessionTwo: string;
+    let lastSessionId = "";
+    const addExerciseLog = async (
       customerId: string,
       performedOn: string,
       values: Partial<typeof exerciseLogs.$inferInsert> = {},
       physioId = physio.id,
-    ) =>
-      db
+    ) => {
+      const sessionLogId = await insertSessionLog(physioId, {
+        customerId,
+        routineId: kneeRoutine,
+        performedOn,
+        weeklyPlanEntryId: values.weeklyPlanEntryId,
+      });
+      const [row] = await db
         .insert(exerciseLogs)
         .values({
           physioId,
           customerId,
           routineId: kneeRoutine,
+          sessionLogId,
           exerciseId: squat,
           performedOn,
           ...values,
         })
-        .returning({ id: exerciseLogs.id })
-        .then(([row]) => row!.id);
+        .returning({ id: exerciseLogs.id });
+      lastSessionId = sessionLogId;
+      return row!.id;
+    };
 
     beforeAll(async () => {
       squat = await insertExercise(physio.id, { name: "Goblet squat" });
@@ -212,29 +212,93 @@ describe("activity", () => {
         weightKg: 12.5,
         setWeightsKg: [20, null, 25],
       });
+      sessionOne = lastSessionId;
       twoId = await addExerciseLog(beto, "2026-10-07", { comment: "felt ok" });
+      sessionTwo = lastSessionId;
     });
 
-    it("returns them newest first with exercise and routine names", async () => {
-      const { exerciseLogs: logs, unseenExerciseIds } = await as(physio, (tx, id) =>
-        getCustomerActivity(tx, id, beto, TODAY),
-      );
-      expect(logs.map((log) => log.id)).toEqual([twoId, oneId]);
-      expect(logs[1]).toEqual({
-        id: oneId,
-        performedOn: "2026-10-06",
-        routineId: kneeRoutine,
+    it("lists sessions newest first with their exercises", async () => {
+      const { sessions } = await as(physio, (tx, id) => getCustomerActivity(tx, id, beto, TODAY));
+      expect(sessions.map((session) => session.performedOn)).toEqual(["2026-10-07", "2026-10-06"]);
+      expect(sessions[1]).toEqual({
+        id: sessionOne,
         routineName: "Beto knee",
-        exerciseName: "Goblet squat",
-        pain: 4,
-        rpe: 6,
-        weightKg: 12.5,
-        setWeightsKg: [20, null, 25],
+        performedOn: "2026-10-06",
+        completed: true,
+        pain: null,
+        rpe: null,
         comment: null,
         seen: true,
+        exercises: [
+          {
+            id: oneId,
+            exerciseName: "Goblet squat",
+            pain: 4,
+            rpe: 6,
+            weightKg: 12.5,
+            setWeightsKg: [20, null, 25],
+            comment: null,
+            seen: true,
+          },
+        ],
       });
-      expect(logs[0]).toMatchObject({ comment: "felt ok", seen: false });
+    });
+
+    it("lists a session's exercises in routine order, removed ones last in log order", async () => {
+      const lunge = await insertExercise(physio.id, { name: "Lunge" });
+      const plank = await insertExercise(physio.id, { name: "Plank" });
+      const bridge = await insertExercise(physio.id, { name: "Bridge" });
+      const gone = await insertExercise(physio.id, { name: "Removed one" });
+      const routine = await insertRoutine(physio.id, beto, {
+        name: "Beto order",
+        status: "active",
+        // Plank (position 0) and Lunge (1) are in the routine; Lunge appears again later.
+        items: [{ exerciseId: plank }, { exerciseId: lunge }, { exerciseId: lunge }],
+      });
+      const sessionLogId = await insertSessionLog(physio.id, {
+        customerId: beto,
+        routineId: routine,
+        performedOn: "2026-10-03",
+      });
+      const base = { physioId: physio.id, customerId: beto, routineId: routine, sessionLogId };
+      const ids: string[] = [];
+      // Logged in the opposite order: removed, bridge (also removed), lunge, then plank.
+      for (const exerciseId of [gone, bridge, lunge, plank]) {
+        const [row] = await db
+          .insert(exerciseLogs)
+          .values({ ...base, exerciseId, performedOn: "2026-10-03", rpe: 3 })
+          .returning({ id: exerciseLogs.id });
+        ids.push(row!.id);
+      }
+      const { sessions } = await as(physio, (tx, id) => getCustomerActivity(tx, id, beto, TODAY));
+      const shown = sessions.find((session) => session.id === sessionLogId)!;
+      expect(shown.exercises.map((e) => e.exerciseName)).toEqual([
+        "Plank",
+        "Lunge",
+        "Removed one",
+        "Bridge",
+      ]);
+      await db.delete(sessionLogs).where(eq(sessionLogs.id, sessionLogId));
+    });
+
+    it("returns unseen ids for the shown session and exercise comments", async () => {
+      const sessionId = await insertSessionLog(physio.id, {
+        customerId: beto,
+        routineId: kneeRoutine,
+        performedOn: "2026-10-08",
+        comment: "whole session",
+      });
+      const { sessions, unseenIds, unseenExerciseIds } = await as(physio, (tx, id) =>
+        getCustomerActivity(tx, id, beto, TODAY),
+      );
+      expect(sessions[0]).toMatchObject({ id: sessionId, comment: "whole session", seen: false });
+      expect(unseenIds).toEqual([sessionId]);
       expect(unseenExerciseIds).toEqual([twoId]);
+      expect(sessions.find((session) => session.id === sessionTwo)!.exercises[0]).toMatchObject({
+        comment: "felt ok",
+        seen: false,
+      });
+      await db.delete(sessionLogs).where(eq(sessionLogs.id, sessionId));
     });
 
     it("marks only the given ids of that customer as seen", async () => {
@@ -259,6 +323,74 @@ describe("activity", () => {
       expect(kept!.seenByPhysioAt).toBeNull();
       const [done] = await db.select().from(exerciseLogs).where(eq(exerciseLogs.id, mine));
       expect(done!.seenByPhysioAt).toEqual(NOW);
+    });
+  });
+
+  describe("session feed", () => {
+    it("leaves out sessions with nothing to read", async () => {
+      const carla = await insertCustomer(physio.id, { firstName: "Carla" });
+      const routine = await insertRoutine(physio.id, carla, { status: "active" });
+      await insertSessionLog(physio.id, {
+        customerId: carla,
+        routineId: routine,
+        performedOn: TODAY,
+      });
+      const { sessions } = await as(physio, (tx, id) => getCustomerActivity(tx, id, carla, TODAY));
+      expect(sessions).toEqual([]);
+    });
+
+    it("shows an undone session that has exercise logs", async () => {
+      const dora = await insertCustomer(physio.id, { firstName: "Dora" });
+      const exerciseId = await insertExercise(physio.id, { name: "Plank" });
+      const routine = await insertRoutine(physio.id, dora, {
+        status: "active",
+        items: [{ exerciseId }],
+      });
+      const sessionLogId = await insertSessionLog(physio.id, {
+        customerId: dora,
+        routineId: routine,
+        performedOn: TODAY,
+        completed: false,
+      });
+      await db.insert(exerciseLogs).values({
+        physioId: physio.id,
+        customerId: dora,
+        routineId: routine,
+        sessionLogId,
+        exerciseId,
+        performedOn: TODAY,
+        rpe: 5,
+      });
+      const { sessions } = await as(physio, (tx, id) => getCustomerActivity(tx, id, dora, TODAY));
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]).toMatchObject({ id: sessionLogId, completed: false });
+      expect(sessions[0]!.exercises.map((e) => e.exerciseName)).toEqual(["Plank"]);
+    });
+
+    it("caps the feed at 30 sessions", async () => {
+      const eli = await insertCustomer(physio.id, { firstName: "Eli" });
+      const routine = await insertRoutine(physio.id, eli, { status: "active" });
+      const days = Array.from({ length: 31 }, (_, i) => {
+        const date = new Date(Date.UTC(2026, 8, 1 + i));
+        return date.toISOString().slice(0, 10);
+      });
+      const inserted = await db
+        .insert(sessionLogs)
+        .values(
+          days.map((performedOn) => ({
+            physioId: physio.id,
+            customerId: eli,
+            routineId: routine,
+            performedOn,
+            comment: `on ${performedOn}`,
+          })),
+        )
+        .returning({ id: sessionLogs.id, performedOn: sessionLogs.performedOn });
+      const { sessions } = await as(physio, (tx, id) => getCustomerActivity(tx, id, eli, TODAY));
+      expect(sessions).toHaveLength(30);
+      expect(sessions[0]!.performedOn).toBe(days.at(-1));
+      const oldest = inserted.find((row) => row.performedOn === days[0])!;
+      expect(sessions.map((session) => session.id)).not.toContain(oldest.id);
     });
   });
 
@@ -395,10 +527,16 @@ describe("activity", () => {
         items: [{ exerciseId: squat }],
       });
       await live(fay);
+      const faySession = await insertSessionLog(dash.id, {
+        customerId: fay,
+        routineId: fayRoutine,
+        performedOn: "2026-10-07",
+      });
       await db.insert(exerciseLogs).values({
         physioId: dash.id,
         customerId: fay,
         routineId: fayRoutine,
+        sessionLogId: faySession,
         exerciseId: squat,
         performedOn: "2026-10-07",
         pain: 8,

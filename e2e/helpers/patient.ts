@@ -41,6 +41,8 @@ export async function insertRoutine(
     standalone?: boolean;
     sessionsPerWeek?: number;
     exercise?: string;
+    /** A second exercise (3 sets of 12) after the first. */
+    secondExercise?: string;
     /** Attach this YouTube video (an 11-character id) to the exercise. */
     videoId?: string;
   } = {},
@@ -65,6 +67,18 @@ export async function insertRoutine(
   await sql`
     insert into public.routine_item_sets (physio_id, routine_item_id, position, reps)
     select ${physioId}, ${item.id}, n, 12 from generate_series(0, 2) n`;
+  if (options.secondExercise) {
+    const [second] = await sql<{ id: string }[]>`
+      insert into public.exercises (physio_id, name, instructions)
+      values (${physioId}, ${options.secondExercise}, 'Keep your back straight.')
+      returning id`;
+    const [secondItem] = await sql<{ id: string }[]>`
+      insert into public.routine_items (physio_id, routine_id, exercise_id, position)
+      values (${physioId}, ${routine.id}, ${second.id}, 1) returning id`;
+    await sql`
+      insert into public.routine_item_sets (physio_id, routine_item_id, position, reps)
+      select ${physioId}, ${secondItem.id}, n, 12 from generate_series(0, 2) n`;
+  }
   return routine.id;
 }
 

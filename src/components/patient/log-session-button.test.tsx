@@ -119,6 +119,35 @@ describe("LogSessionButton", () => {
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
   });
 
+  it("lets fresh server logs win over a remembered Done", async () => {
+    const user = userEvent.setup();
+    const ui = (logs: PatientLog[]) => (
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <LogSessionButton
+          code="7k2m9qpx"
+          routineId={ROUTINE}
+          entryId={null}
+          routineName="Knee rehab"
+          days={[{ date: TODAY, relative: "today" }]}
+          logs={logs}
+          shownDate={TODAY}
+        />
+      </NextIntlClientProvider>
+    );
+    const loaded: PatientLog[] = [];
+    const { rerender } = render(ui(loaded));
+    await user.click(screen.getByRole("button", { name: "Mark as done" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(screen.getByText("Done")).toBeInTheDocument());
+    // The remembered save holds until the refreshed page arrives (same props)...
+    rerender(ui(loaded));
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    // ...and then the server's logs win: the session is gone (cleared exercise logs).
+    rerender(ui([]));
+    expect(screen.getByRole("button", { name: "Mark as done" })).toBeInTheDocument();
+    expect(screen.queryByText("Done")).not.toBeInTheDocument();
+  });
+
   it("sends no pain and no comment when the patient leaves them empty", async () => {
     const user = userEvent.setup();
     setup();

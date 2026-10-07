@@ -63,6 +63,7 @@ export function LogSessionButton({
   const [open, setOpen] = useState(defaultOpen);
   const { logFor, remember } = useSavedLogs(
     (date) => logs.find((entry) => entry.performedOn === date) ?? null,
+    logs,
   );
   const { day, select, reset } = useLogDay(days, shownDate);
 

@@ -1300,6 +1300,12 @@
       "dayPlain": "{day}",
       "logged": "sesión registrada"
     },
+    "summary": {
+      "title": "Registrado",
+      "pain": "Dolor {value, number}",
+      "rpe": "RPE {value, number}",
+      "weights": "{value} kg"
+    },
     "restDay": "No hay nada programado para {day}.",
     "yourRoutines": "Tus rutinas",
     "sessions": {
@@ -1316,7 +1322,6 @@
       "open": "Ver {name}",
       "detailTitle": "Sobre {name}",
       "log": "Registrar {name}",
-      "logged": "Registrado",
       "noVideo": "Este ejercicio no tiene video",
       "thumbnailAlt": "{name}, video {number, number}"
     },
@@ -1429,10 +1434,6 @@
         "error": "No se pudo guardar."
       },
       "retry": "Reintentar",
-      "chips": {
-        "rpe": "RPE {value, number}",
-        "weights": "{value} kg"
-      },
       "errors": {
         "generic": "Algo salió mal. Probá de nuevo.",
         "invalid": "Revisá lo que ingresaste y probá de nuevo.",
@@ -1557,22 +1558,15 @@
         "none": "{date}: nada planificado"
       }
     },
-    "comments": {
-      "title": "Comentarios",
-      "empty": "Todavía no hay comentarios.",
-      "new": "Nuevo",
-      "newCount": "{count, plural, one {# comentario nuevo} other {# comentarios nuevos}}",
-      "painValue": "Dolor {value, number}/10",
-      "rpeValue": "RPE {value, number}/10"
-    },
-    "exercises": {
-      "title": "Registro de ejercicios",
-      "description": "Lo que el paciente anotó en cada ejercicio.",
-      "empty": "Todavía no hay registros de ejercicios.",
-      "group": "{date} · {routine}",
+    "sessions": {
+      "title": "Sesiones",
+      "empty": "Todavía no hay sesiones registradas.",
+      "done": "Hecha",
+      "notDone": "Sin hacer",
       "pain": "Dolor {value, number}/10",
       "rpe": "RPE {value, number}/10",
       "weight": "{value} kg",
+      "exercises": "Ejercicios",
       "new": "Nuevo"
     }
   },

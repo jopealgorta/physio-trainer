@@ -31,6 +31,7 @@ feature list agreed in the initial brainstorm.
 | 18  | [Installable physio app (PWA)](./18-pwa.md)                            | Core    | 01, 17                     | Done   |
 | 19  | [Patient page v2](./19-patient-page-v2.md)                             | C, D    | 05, 06, 10, 12, 13, 14, 15 | Done   |
 | 20  | [Inline exercise log](./20-inline-exercise-log.md)                     | D       | 13, 19                     | Done   |
+| 21  | [Exercise logs belong to the session](./21-session-exercise-logs.md)   | D       | 13, 19, 20                 | Done   |
 
 ```mermaid
 graph LR
@@ -44,6 +45,7 @@ graph LR
   10 --> 11 & 12 & 13 & 14
   10 --> 19
   19 --> 20
+  20 --> 21
 ```
 
 Specs 09, 15 and 16 can be built in parallel with the main chain once their dependencies are

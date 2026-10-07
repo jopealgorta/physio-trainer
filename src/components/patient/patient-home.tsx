@@ -10,13 +10,14 @@ import { dateForWeekday, isLoggableDate, loggedWeekdays } from "@/lib/session-lo
 import { workoutHref } from "@/lib/workout/enabled";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientLog } from "@/server/patient/log-session";
-import type { PatientView } from "@/server/patient/view";
+import type { PatientRoutine, PatientView } from "@/server/patient/view";
 
 import { DayStrip } from "./day-strip";
 import type { ExerciseLogging } from "./exercise-list";
 import { LogSessionButton } from "./log-session-button";
 import type { LoggableDay } from "./log-sheet";
 import { RoutineView } from "./routine-view";
+import { sessionSummary } from "./session-summary-data";
 
 /** The patient page body: greeting, plans for the chosen day with the week strip, and routines. */
 export async function PatientHome({
@@ -97,6 +98,24 @@ export async function PatientHome({
     ),
   });
 
+  // The routine's session and exercise logs for the shown day.
+  const summary = (routine: PatientRoutine, entryId: string | null, shownDate: string) =>
+    sessionSummary(
+      routine,
+      logging.logs.find(
+        (entry) =>
+          entry.routineId === routine.id &&
+          entry.entryId === entryId &&
+          entry.performedOn === shownDate,
+      ) ?? null,
+      logging.exerciseLogs.filter(
+        (entry) =>
+          entry.routineId === routine.id &&
+          entry.entryId === entryId &&
+          entry.performedOn === shownDate,
+      ),
+    );
+
   return (
     <div className="grid gap-8">
       <div className="grid justify-items-start gap-3">
@@ -176,6 +195,7 @@ export async function PatientHome({
                     startHref={workoutHref(path, entry.routine.id, entry.id)}
                     logSlot={logSlot(entry.routine, entry.id, planDays, dayDate)}
                     exerciseLogging={exerciseLogging(entry.routine.id, entry.id, planDays, dayDate)}
+                    summary={summary(entry.routine, entry.id, dayDate)}
                   />
                 ))
               )}
@@ -205,6 +225,7 @@ export async function PatientHome({
               startHref={workoutHref(path, routine.id)}
               logSlot={logSlot(routine, null, singleDays, view.today)}
               exerciseLogging={exerciseLogging(routine.id, null, singleDays, view.today)}
+              summary={summary(routine, null, view.today)}
             />
           ))}
         </section>
