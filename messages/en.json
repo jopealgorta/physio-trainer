@@ -282,10 +282,11 @@
     "form": {
       "newTitle": "New exercise",
       "name": "Name",
-      "category": "Categories",
+      "categories": "Categories",
       "uncategorised": "Uncategorised",
       "categoriesTitle": "Choose categories",
       "categoriesHint": "Pick any number. Filtering by a category also shows its sub-categories' exercises.",
+      "categoriesLimit": "Up to {max, number} categories.",
       "subcategoryOption": "{parent} › {name}",
       "instructions": "Instructions",
       "instructionsHint": "Cues and steps. Line breaks are kept.",

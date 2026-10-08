@@ -282,10 +282,11 @@
     "form": {
       "newTitle": "Nuevo ejercicio",
       "name": "Nombre",
-      "category": "Categorías",
+      "categories": "Categorías",
       "uncategorised": "Sin categoría",
       "categoriesTitle": "Elegí categorías",
       "categoriesHint": "Elegí las que quieras. Al filtrar por una categoría también aparecen los ejercicios de sus subcategorías.",
+      "categoriesLimit": "Hasta {max, number} categorías.",
       "subcategoryOption": "{parent} › {name}",
       "instructions": "Instrucciones",
       "instructionsHint": "Indicaciones y pasos. Se respetan los saltos de línea.",

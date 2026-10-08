@@ -216,14 +216,6 @@ describe("exercise library tables", () => {
     ).rejects.toMatchObject(rejectsWith("23505"));
   });
 
-  it("has no category_id or tags columns on exercises", async () => {
-    const columns = await db.execute<{ column_name: string }>(sql`
-      select column_name from information_schema.columns
-      where table_schema = 'public' and table_name = 'exercises'
-        and column_name in ('category_id', 'tags')`);
-    expect(columns.map((row) => row.column_name)).toEqual([]);
-  });
-
   it("backfills a link from each exercise's old category (migration statements)", async () => {
     const dir = path.join(process.cwd(), "supabase/migrations");
     const file = fs
@@ -233,18 +225,14 @@ describe("exercise library tables", () => {
     const rollback = new Error("rollback");
     await expect(
       db.transaction(async (tx) => {
-        await tx.execute(sql`alter table public.exercises add column category_id uuid`);
         const [filed] = await tx
           .insert(exercises)
-          .values({ physioId: a.id, name: "Filed" })
+          .values({ physioId: a.id, name: "Filed", categoryId: aCategory })
           .returning({ id: exercises.id });
         const [loose] = await tx
           .insert(exercises)
           .values({ physioId: a.id, name: "Loose" })
           .returning({ id: exercises.id });
-        await tx.execute(
-          sql`update public.exercises set category_id = ${aCategory} where id = ${filed.id}`,
-        );
         await tx.execute(sql.raw(backfill.replaceAll("--> statement-breakpoint", "")));
         const links = await tx
           .select()

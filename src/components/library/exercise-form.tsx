@@ -137,9 +137,12 @@ export function ExerciseForm({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor={`${id}-category`}>{t("category")}</Label>
+            <Label id={`${id}-category-label`} htmlFor={`${id}-category`}>
+              {t("categories")}
+            </Label>
             <CategoryMultiSelect
               id={`${id}-category`}
+              labelId={`${id}-category-label`}
               name="categoryIds"
               categories={categories}
               defaultValue={defaults.categoryIds}

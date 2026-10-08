@@ -210,10 +210,14 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
   parent: the parent's filter already covers it); cards show **category badges** (tree order,
   "Parent › Sub", two then "+N").
   - Data: `exercise_category_links (physio_id, exercise_id, category_id)` with composite FKs
-    cascading from both ends, RLS, PK `(exercise_id, category_id)`. Three migrations: create the
-    table; a custom backfill copying each `category_id` into a link; drop `category_id` and
-    `tags` (their FK and GIN index go with them). The backfill test runs the migration file in a
-    rolled-back transaction after re-adding the old column.
+    cascading from both ends, RLS, PK `(exercise_id, category_id)`. Two migrations: create the
+    table; a custom backfill copying each `category_id` into a link (the backfill test runs the
+    migration file in a rolled-back transaction).
+  - Expand, then contract: `exercises.category_id` and `tags` stay in the database (marked
+    `@deprecated` in the Drizzle schema, never read or written by the app) so the previous app
+    version keeps working while migrations and the deploy land in either order. A follow-up
+    `chore(db)` PR re-runs the backfill (catching categories the old app saved during the
+    rollout) and then drops both columns with their FK, index and check.
   - Server: links are replaced wholesale on save in the exercise's savepoint, so a foreign
     category (`exercise_category_links_category_fk`) rolls the whole save back as
     `categoryNotFound`. `ExerciseSummary`/`ExerciseDetail` carry `categoryIds` (sorted by id; the

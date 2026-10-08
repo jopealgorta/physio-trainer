@@ -295,13 +295,6 @@
       "when": 1791473136684,
       "tag": "20261008152536_exercise-category-links-backfill",
       "breakpoints": true
-    },
-    {
-      "idx": 42,
-      "version": "7",
-      "when": 1791473148756,
-      "tag": "20261008152548_exercises-drop-category-tags",
-      "breakpoints": true
     }
   ]
 }

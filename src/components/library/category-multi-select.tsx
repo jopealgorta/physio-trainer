@@ -20,6 +20,7 @@ import { NewCategoryDialog, type CreatedCategory } from "./new-category-dialog";
  */
 export function CategoryMultiSelect({
   id,
+  labelId,
   name,
   categories: serverCategories,
   defaultValue,
@@ -27,6 +28,8 @@ export function CategoryMultiSelect({
   describedBy,
 }: {
   id: string;
+  /** The field label's id: the trigger is named by it plus the current picks. */
+  labelId?: string;
   name: string;
   categories: CategoryNode[];
   defaultValue: string[];
@@ -53,11 +56,13 @@ export function CategoryMultiSelect({
       : category.name;
   const toggle = (categoryId: string, on: boolean) =>
     setChosen((current) => {
+      if (on && current.size >= MAX_CATEGORIES_PER_EXERCISE) return current;
       const next = new Set(current);
       if (on) next.add(categoryId);
       else next.delete(categoryId);
       return next;
     });
+  const valueId = `${id}-value`;
   const option = (category: { id: string; name: string; parent: string | null }) => {
     const optionId = `${id}-${category.id}`;
     const checked = chosen.has(category.id);
@@ -91,19 +96,24 @@ export function CategoryMultiSelect({
               id={id}
               type="button"
               variant="outline"
+              aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
               aria-invalid={invalid}
               aria-describedby={describedBy}
               className="min-w-0 flex-1 justify-between font-normal"
             >
-              <span className="truncate">
+              <span id={valueId} className="truncate">
                 {selected.length > 0 ? selected.map(label).join(", ") : t("uncategorised")}
               </span>
               <ChevronDownIcon aria-hidden className="text-muted-foreground" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="sm:max-h-96 sm:w-80 sm:overflow-y-auto">
+          <PopoverContent className="sm:max-h-(--radix-popover-content-available-height) sm:w-80 sm:overflow-y-auto">
             <PopoverTitle>{t("categoriesTitle")}</PopoverTitle>
-            <p className="text-muted-foreground">{t("categoriesHint")}</p>
+            <p className="text-muted-foreground">
+              {full
+                ? t("categoriesLimit", { max: MAX_CATEGORIES_PER_EXERCISE })
+                : t("categoriesHint")}
+            </p>
             <div className="grid gap-3">
               {categories.map((node) => (
                 <div key={node.id} role="group" aria-label={node.name} className="grid gap-2">
@@ -120,6 +130,7 @@ export function CategoryMultiSelect({
           parents={categories}
           onCreated={(category) => {
             setCreated((current) => [...current, category]);
+            // Ticked unless the limit is reached; it can still be ticked after unticking another.
             toggle(category.id, true);
           }}
         />

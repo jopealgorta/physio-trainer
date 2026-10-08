@@ -39,9 +39,12 @@ function setup({
           onOuterSubmit();
         }}
       >
-        <label htmlFor="category">Categories</label>
+        <label id="category-label" htmlFor="category">
+          Categories
+        </label>
         <CategoryMultiSelect
           id="category"
+          labelId="category-label"
           name="categoryIds"
           categories={categories}
           defaultValue={defaultValue}
@@ -76,6 +79,8 @@ describe("CategoryMultiSelect", () => {
   it("shows Uncategorised and submits nothing when none is chosen", () => {
     const { values } = setup();
     expect(screen.getByLabelText("Categories")).toHaveTextContent("Uncategorised");
+    // The picks are part of the trigger's accessible name, as a select's value would be.
+    expect(screen.getByRole("button", { name: "Categories Uncategorised" })).toBeInTheDocument();
     expect(values()).toEqual([]);
   });
 
@@ -113,6 +118,48 @@ describe("CategoryMultiSelect", () => {
     const list = await openList(user);
     expect(within(list).getByRole("checkbox", { name: "Lower limb" })).toBeChecked();
     expect(within(list).getByRole("checkbox", { name: "Lower limb › Glutes" })).not.toBeChecked();
+  });
+});
+
+describe("CategoryMultiSelect limit", () => {
+  const many: CategoryNode[] = Array.from({ length: 21 }, (_, i) => ({
+    ...leaf(`m${i}`, `Cat ${i}`, i),
+    children: [],
+  }));
+  const twenty = many.slice(0, 20).map((node) => node.id);
+
+  it("disables the rest and says why once 20 are ticked", async () => {
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <label htmlFor="c">Categories</label>
+        <CategoryMultiSelect id="c" name="categoryIds" categories={many} defaultValue={twenty} />
+      </NextIntlClientProvider>,
+    );
+    await user.click(screen.getByLabelText("Categories"));
+    const list = await screen.findByRole("dialog", { name: "Choose categories" });
+    expect(within(list).getByRole("checkbox", { name: "Cat 20" })).toBeDisabled();
+    expect(within(list).getByRole("checkbox", { name: "Cat 0" })).toBeEnabled();
+    expect(within(list).getByText("Up to 20 categories.")).toBeInTheDocument();
+  });
+
+  it("does not tick a new category when 20 are already ticked", async () => {
+    const user = userEvent.setup();
+    create.mockResolvedValue({ ok: true, data: { id: "new-x" } });
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <label htmlFor="c">Categories</label>
+        <CategoryMultiSelect id="c" name="categoryIds" categories={many} defaultValue={twenty} />
+      </NextIntlClientProvider>,
+    );
+    const dialog = await openDialog(user);
+    await user.type(within(dialog).getByLabelText("Category name"), "Extra{Enter}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const values = [
+      ...document.querySelectorAll<HTMLInputElement>('input[name="categoryIds"]'),
+    ].map((input) => input.value);
+    expect(values).toHaveLength(20);
+    expect(values).not.toContain("new-x");
   });
 });
 
