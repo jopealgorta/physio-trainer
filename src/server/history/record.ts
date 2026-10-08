@@ -125,17 +125,14 @@ async function routineState(tx: Tx, physioId: string, routineId: string) {
     }
   }
 
-  // Sections by position, keyed s0, s1...; an item with no section (never after the backfill)
-  // falls in the first one.
+  // Sections by position, keyed s0, s1... (every item has one of its routine's sections).
   const sectionRows = await tx
     .select({ id: routineSections.id, name: routineSections.name })
     .from(routineSections)
     .where(and(eq(routineSections.physioId, physioId), eq(routineSections.routineId, routineId)))
     .orderBy(asc(routineSections.position));
   const sectionKeys = new Map(sectionRows.map((section, index) => [section.id, `s${index}`]));
-  const sectionKeyOf = (sectionId: string | null): string | null =>
-    (sectionId === null ? null : sectionKeys.get(sectionId)) ??
-    (sectionRows.length > 0 ? "s0" : null);
+  const sectionKeyOf = (sectionId: string): string | null => sectionKeys.get(sectionId) ?? null;
 
   const snapshot: RoutineSnapshot = {
     schema: SNAPSHOT_SCHEMA,

@@ -9,6 +9,7 @@ import {
   customers,
   exercises,
   routineGroups,
+  routineSections,
   routineItems,
   routineItemSets,
   routines,
@@ -30,6 +31,7 @@ describe("routines tables", () => {
   let aExercise: string;
   let aRoutine: string;
   let aGroup: string;
+  let aSection: string;
   let aItem: string;
   let aItem2: string;
   let aSet: string;
@@ -65,11 +67,29 @@ describe("routines tables", () => {
         .insert(routineGroups)
         .values({ physioId, routineId: aRoutine, restSeconds: 60 })
         .returning({ id: routineGroups.id });
+      [{ id: aSection }] = await tx
+        .insert(routineSections)
+        .values({ physioId, routineId: aRoutine, name: "Main", position: 0 })
+        .returning({ id: routineSections.id });
       [{ id: aItem }, { id: aItem2 }] = await tx
         .insert(routineItems)
         .values([
-          { physioId, routineId: aRoutine, exerciseId: aExercise, position: 0, groupId: aGroup },
-          { physioId, routineId: aRoutine, exerciseId: aExercise, position: 1, restSeconds: 30 },
+          {
+            physioId,
+            routineId: aRoutine,
+            exerciseId: aExercise,
+            position: 0,
+            groupId: aGroup,
+            sectionId: aSection,
+          },
+          {
+            physioId,
+            routineId: aRoutine,
+            exerciseId: aExercise,
+            position: 1,
+            restSeconds: 30,
+            sectionId: aSection,
+          },
         ])
         .returning({ id: routineItems.id });
       [{ id: aSet }] = await tx
@@ -148,6 +168,7 @@ describe("routines tables", () => {
           routineId: aRoutine,
           exerciseId: aExercise,
           position: 9,
+          sectionId: aSection,
         }),
       (tx: Parameters<Parameters<typeof runAsPhysio>[1]>[0]) =>
         tx.insert(routineItemSets).values({ physioId: a.id, routineItemId: aItem, position: 9 }),
@@ -166,9 +187,13 @@ describe("routines tables", () => {
 
     it("rejects an item pointing at another physio's exercise", async () => {
       await expect(
-        db
-          .insert(routineItems)
-          .values({ physioId: a.id, routineId: aRoutine, exerciseId: bExercise, position: 5 }),
+        db.insert(routineItems).values({
+          physioId: a.id,
+          routineId: aRoutine,
+          exerciseId: bExercise,
+          position: 5,
+          sectionId: aSection,
+        }),
       ).rejects.toSatisfy((error) => isForeignKeyViolation(error, "routine_items_exercise_fk"));
     });
 
@@ -177,6 +202,10 @@ describe("routines tables", () => {
         .insert(routines)
         .values({ physioId: a.id, customerId: aCustomer, name: "Other" })
         .returning();
+      const [otherSection] = await db
+        .insert(routineSections)
+        .values({ physioId: a.id, routineId: other.id, name: "Main", position: 0 })
+        .returning();
       await expect(
         db.insert(routineItems).values({
           physioId: a.id,
@@ -184,6 +213,7 @@ describe("routines tables", () => {
           exerciseId: aExercise,
           position: 0,
           groupId: aGroup,
+          sectionId: otherSection.id,
         }),
       ).rejects.toSatisfy((error) => isForeignKeyViolation(error, "routine_items_group_fk"));
     });
@@ -193,9 +223,13 @@ describe("routines tables", () => {
         db.insert(routineGroups).values({ physioId: b.id, routineId: aRoutine }),
       ).rejects.toSatisfy((error) => isForeignKeyViolation(error, "routine_groups_routine_fk"));
       await expect(
-        db
-          .insert(routineItems)
-          .values({ physioId: b.id, routineId: aRoutine, exerciseId: bExercise, position: 7 }),
+        db.insert(routineItems).values({
+          physioId: b.id,
+          routineId: aRoutine,
+          exerciseId: bExercise,
+          position: 7,
+          sectionId: aSection,
+        }),
       ).rejects.toSatisfy((error) => isForeignKeyViolation(error, "routine_items_routine_fk"));
       await expect(
         db.insert(routineItemSets).values({ physioId: b.id, routineItemId: aItem, position: 7 }),
@@ -251,6 +285,10 @@ describe("routines tables", () => {
         .insert(routineGroups)
         .values({ physioId: a.id, routineId: routine.id })
         .returning();
+      const [section] = await db
+        .insert(routineSections)
+        .values({ physioId: a.id, routineId: routine.id, name: "Main", position: 0 })
+        .returning();
       const [item] = await db
         .insert(routineItems)
         .values({
@@ -259,6 +297,7 @@ describe("routines tables", () => {
           exerciseId: aExercise,
           position: 0,
           groupId: group.id,
+          sectionId: section.id,
         })
         .returning();
       await db
@@ -320,6 +359,7 @@ describe("routines tables", () => {
       routineId: aRoutine,
       exerciseId: aExercise,
       position,
+      sectionId: aSection,
     });
     it("rejects rest on a grouped item and a negative position", async () => {
       await expect(
@@ -389,9 +429,19 @@ describe("routines tables", () => {
         .insert(routineGroups)
         .values({ physioId, routineId: routine.id })
         .returning();
+      const [section] = await tx
+        .insert(routineSections)
+        .values({ physioId, routineId: routine.id, name: "Main", position: 0 })
+        .returning();
       const [item] = await tx
         .insert(routineItems)
-        .values({ physioId, routineId: routine.id, exerciseId: aExercise, position: 0 })
+        .values({
+          physioId,
+          routineId: routine.id,
+          exerciseId: aExercise,
+          position: 0,
+          sectionId: section.id,
+        })
         .returning();
       const [set] = await tx
         .insert(routineItemSets)

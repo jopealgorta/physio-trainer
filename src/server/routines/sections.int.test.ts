@@ -7,27 +7,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { isForeignKeyViolation } from "@/db/errors";
 import { runAsPhysio } from "@/db/rls";
-import {
-  customers,
-  exercises,
-  physios,
-  routineItems,
-  routineSections,
-  routines,
-} from "@/db/schema";
+import { customers, physios, routineItems, routineSections, routines } from "@/db/schema";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { insertCustomer, insertExercise, insertRoutine } from "@/test/int/content";
 
-const BACKFILL_MARKER = "-- backfill";
-
-function backfillSql(): string {
+/** The re-run backfill that precedes `section_id` becoming NOT NULL (the whole migration file). */
+function rebackfillSql(): string {
   const dir = path.join(process.cwd(), "supabase/migrations");
-  const file = readdirSync(dir).find((name) => name.endsWith("_routine-sections-extras.sql"));
-  if (!file) throw new Error("routine-sections-extras migration not found");
-  const text = readFileSync(path.join(dir, file), "utf8");
-  const at = text.indexOf(BACKFILL_MARKER);
-  if (at < 0) throw new Error("backfill marker missing");
-  return text.slice(at);
+  const file = readdirSync(dir).find((name) => name.endsWith("_routine-sections-rebackfill.sql"));
+  if (!file) throw new Error("routine-sections-rebackfill migration not found");
+  return readFileSync(path.join(dir, file), "utf8");
 }
 
 describe("routine sections", () => {
@@ -141,7 +130,21 @@ describe("routine sections", () => {
     ).rejects.toThrow();
   });
 
-  it("backfill gives every legacy routine one localized section", async () => {
+  it("requires every item to have a section", async () => {
+    const error = await db
+      .execute(
+        sql`insert into routine_items (physio_id, routine_id, exercise_id, position, section_id)
+            values (${a.id}, ${routineA}, ${exerciseA}, 99, null)`,
+      )
+      .then(
+        () => null,
+        (e: unknown) => e,
+      );
+    // 23502: not_null_violation (Drizzle wraps the Postgres error in `cause`).
+    expect((error as { cause?: { code?: string } } | null)?.cause?.code).toBe("23502");
+  });
+
+  it("re-run backfill gives every routine without sections one localized section", async () => {
     const es = await createTestPhysio({ onboarded: true });
     const en = await createTestPhysio({ onboarded: true });
     // The backfill's statements are global: run them in a transaction that rolls back, so they
@@ -151,38 +154,24 @@ describe("routine sections", () => {
       await db
         .transaction(async (tx) => {
           await tx.update(physios).set({ locale: "es" }).where(eq(physios.id, es.id));
-          const made: { routineId: string; itemId: string; name: string }[] = [];
+          const made: { routineId: string; name: string }[] = [];
           for (const [who, name] of [
             [es, "Principal"],
             [en, "Main"],
           ] as const) {
-            // A pre-migration routine: no sections, and an item without a section.
+            // A routine the previous app version created: no sections.
             const [customer] = await tx
               .insert(customers)
               .values({ physioId: who.id, firstName: "Ana", locale: "en" })
               .returning({ id: customers.id });
-            const [exercise] = await tx
-              .insert(exercises)
-              .values({ physioId: who.id, name: "Squat" })
-              .returning({ id: exercises.id });
             const [routine] = await tx
               .insert(routines)
               .values({ physioId: who.id, customerId: customer!.id, name: "Legacy" })
               .returning({ id: routines.id });
-            const [item] = await tx
-              .insert(routineItems)
-              .values({
-                physioId: who.id,
-                routineId: routine!.id,
-                exerciseId: exercise!.id,
-                position: 0,
-                sectionId: null,
-              })
-              .returning({ id: routineItems.id });
-            made.push({ routineId: routine!.id, itemId: item!.id, name });
+            made.push({ routineId: routine!.id, name });
           }
 
-          await tx.execute(sql.raw(backfillSql()));
+          await tx.execute(sql.raw(rebackfillSql()));
 
           for (const m of made) {
             const sections = await tx
@@ -191,15 +180,10 @@ describe("routine sections", () => {
               .where(eq(routineSections.routineId, m.routineId));
             expect(sections).toHaveLength(1);
             expect(sections[0]).toMatchObject({ name: m.name, position: 0 });
-            const [item] = await tx
-              .select()
-              .from(routineItems)
-              .where(eq(routineItems.id, m.itemId));
-            expect(item?.sectionId).toBe(sections[0]!.id);
           }
 
           // Idempotent: running again adds nothing.
-          await tx.execute(sql.raw(backfillSql()));
+          await tx.execute(sql.raw(rebackfillSql()));
           for (const m of made) {
             const sections = await tx
               .select()

@@ -61,9 +61,10 @@ export async function insertRoutine(
     values (${physioId}, ${customerId}, ${name}, 'Warm up first.', 'active',
       ${options.standalone ?? true}, ${options.sessionsPerWeek ?? null})
     returning id`;
+  const sectionId = await insertSection(physioId, routine.id);
   const [item] = await sql<{ id: string }[]>`
-    insert into public.routine_items (physio_id, routine_id, exercise_id, position)
-    values (${physioId}, ${routine.id}, ${exercise.id}, 0) returning id`;
+    insert into public.routine_items (physio_id, routine_id, exercise_id, position, section_id)
+    values (${physioId}, ${routine.id}, ${exercise.id}, 0, ${sectionId}) returning id`;
   await sql`
     insert into public.routine_item_sets (physio_id, routine_item_id, position, reps)
     select ${physioId}, ${item.id}, n, 12 from generate_series(0, 2) n`;
@@ -73,13 +74,21 @@ export async function insertRoutine(
       values (${physioId}, ${options.secondExercise}, 'Keep your back straight.')
       returning id`;
     const [secondItem] = await sql<{ id: string }[]>`
-      insert into public.routine_items (physio_id, routine_id, exercise_id, position)
-      values (${physioId}, ${routine.id}, ${second.id}, 1) returning id`;
+      insert into public.routine_items (physio_id, routine_id, exercise_id, position, section_id)
+      values (${physioId}, ${routine.id}, ${second.id}, 1, ${sectionId}) returning id`;
     await sql`
       insert into public.routine_item_sets (physio_id, routine_item_id, position, reps)
       select ${physioId}, ${secondItem.id}, n, 12 from generate_series(0, 2) n`;
   }
   return routine.id;
+}
+
+/** Every routine item needs a section (spec 22): seeded routines get one "Main" section. */
+async function insertSection(physioId: string, routineId: string): Promise<string> {
+  const [section] = await sql<{ id: string }[]>`
+    insert into public.routine_sections (physio_id, routine_id, name, position)
+    values (${physioId}, ${routineId}, 'Main', 0) returning id`;
+  return section.id;
 }
 
 /** Activates every draft routine of a customer (routines made through the UI start as drafts). */
@@ -183,6 +192,7 @@ export async function insertWorkoutRoutine(
   const [routine] = await sql<{ id: string }[]>`
     insert into public.routines (physio_id, customer_id, name, status, is_standalone)
     values (${physioId}, ${customerId}, ${name}, 'active', true) returning id`;
+  const sectionId = await insertSection(physioId, routine.id);
   const exercise = async (
     title: string,
     position: number,
@@ -192,8 +202,8 @@ export async function insertWorkoutRoutine(
     const [ex] = await sql<{ id: string }[]>`
       insert into public.exercises (physio_id, name) values (${physioId}, ${title}) returning id`;
     const [item] = await sql<{ id: string }[]>`
-      insert into public.routine_items (physio_id, routine_id, exercise_id, position, hold_seconds, rest_seconds)
-      values (${physioId}, ${routine.id}, ${ex.id}, ${position}, ${hold}, ${rest}) returning id`;
+      insert into public.routine_items (physio_id, routine_id, exercise_id, position, hold_seconds, rest_seconds, section_id)
+      values (${physioId}, ${routine.id}, ${ex.id}, ${position}, ${hold}, ${rest}, ${sectionId}) returning id`;
     return item.id;
   };
   const bridge = await exercise("Bridge", 0, 5, 20);

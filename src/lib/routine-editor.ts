@@ -57,7 +57,7 @@ export type LoadedItem = ItemPrescription & {
   exerciseArchived: boolean;
   cover: { videoId: string; isShort: boolean } | null;
   groupId: string | null;
-  sectionId: string | null;
+  sectionId: string;
   sets: SetPrescription[];
 };
 export type LoadedGroup = { id: string; restSeconds: number | null };

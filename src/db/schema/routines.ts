@@ -181,8 +181,8 @@ export const routineItems = pgTable(
     exerciseId: uuid().notNull(),
     position: integer().notNull(),
     groupId: uuid(),
-    // Nullable while old app versions may still save without sections (spec 22, expand/contract).
-    sectionId: uuid(),
+    // Every item belongs to a section of its routine (spec 22; required since the contract chore).
+    sectionId: uuid().notNull(),
     ...itemPrescriptionColumns(),
     ...timestamps,
   },
@@ -205,7 +205,7 @@ export const routineItems = pgTable(
       columns: [t.physioId, t.routineId, t.groupId],
       foreignColumns: [routineGroups.physioId, routineGroups.routineId, routineGroups.id],
     }),
-    // A NULL section_id skips this FK; otherwise the section must belong to the same routine.
+    // The section must belong to the same routine.
     foreignKey({
       name: "routine_items_section_fk",
       columns: [t.physioId, t.routineId, t.sectionId],

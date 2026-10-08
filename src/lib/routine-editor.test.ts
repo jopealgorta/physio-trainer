@@ -481,7 +481,7 @@ describe("fromLoaded", () => {
     exerciseArchived: false,
     cover: null,
     groupId,
-    sectionId: null,
+    sectionId: "s",
     sets: sets.map((s) => ({ ...EMPTY_SET, ...s })),
     ...extra,
   });

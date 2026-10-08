@@ -8,6 +8,7 @@ import {
   exercises,
   routineItemSets,
   routineItems,
+  routineSections,
   routines,
   weeklyPlanDays,
   weeklyPlanEntries,
@@ -60,6 +61,10 @@ describe("phases server layer", () => {
       .returning({ id: routines.id });
     if (items > 0) {
       const exerciseId = await exercise(who);
+      const [section] = await db
+        .insert(routineSections)
+        .values({ physioId: who.id, routineId: row.id, name: "Main", position: 0 })
+        .returning({ id: routineSections.id });
       const itemRows = await db
         .insert(routineItems)
         .values(
@@ -68,6 +73,7 @@ describe("phases server layer", () => {
             routineId: row.id,
             exerciseId,
             position,
+            sectionId: section.id,
           })),
         )
         .returning({ id: routineItems.id });

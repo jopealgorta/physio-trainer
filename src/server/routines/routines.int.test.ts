@@ -14,7 +14,6 @@ import {
   routines,
 } from "@/db/schema";
 import type { SaveItem } from "@/lib/routine-editor";
-import { fromLoadedSections } from "@/lib/routine-sections";
 import { DEFAULT_ROUTINE_FILTERS, type RoutineFilters } from "@/lib/routine-params";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
@@ -697,42 +696,6 @@ describe("routines server layer", () => {
         expect(rows.map((row) => row.position)).toEqual([0, 1, 2]);
         expect(rows.some((row) => source.some((s) => s.id === row.id))).toBe(false);
       }
-    });
-
-    it("keeps a null item section null in a copy", async () => {
-      const id = await routine(p, customerId, "Legacy copy");
-      await save(p, payload(id, { items: [item(ex)] }));
-      await db.update(routineItems).set({ sectionId: null }).where(eq(routineItems.routineId, id));
-      const dup = await as(p, (tx, pid) =>
-        duplicateRoutine(tx, pid, id, { name: "Legacy dup", isStandalone: true }),
-      );
-      if (!dup.ok) throw new Error(dup.error);
-      const rows = await db
-        .select()
-        .from(routineItems)
-        .where(eq(routineItems.routineId, dup.data.id));
-      expect(rows.map((row) => row.sectionId)).toEqual([null]);
-    });
-
-    it("loads a legacy item without section into the first section", async () => {
-      const id = await routine(p, customerId, "Legacy");
-      await save(p, payload(id, { items: [item(ex)] }));
-      await db.update(routineItems).set({ sectionId: null }).where(eq(routineItems.routineId, id));
-      const detail = (await as(p, (tx, pid) => getRoutine(tx, pid, id)))!;
-      expect(detail.items.map((row) => row.sectionId)).toEqual([null]);
-      let n = 0;
-      const sections = fromLoadedSections(
-        detail.items,
-        detail.groups,
-        detail.sections,
-        "Main",
-        () => `k${n++}`,
-      );
-      // The saved "Main" section, holding the legacy item.
-      expect(detail.sections).toHaveLength(1);
-      expect(sections).toHaveLength(1);
-      expect(sections[0]).toMatchObject({ name: "Main" });
-      expect(sections[0].blocks).toHaveLength(1);
     });
   });
 });
