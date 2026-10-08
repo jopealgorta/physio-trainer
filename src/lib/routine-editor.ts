@@ -42,6 +42,7 @@ export type SaveSet = SetPrescription;
 export type SaveItem = ItemPrescription & {
   exerciseId: string;
   groupKey: string | null;
+  sectionKey: string;
   sets: SaveSet[];
 };
 export type SaveGroup = { key: string; restSeconds: number | null };
@@ -56,6 +57,7 @@ export type LoadedItem = ItemPrescription & {
   exerciseArchived: boolean;
   cover: { videoId: string; isShort: boolean } | null;
   groupId: string | null;
+  sectionId: string | null;
   sets: SetPrescription[];
 };
 export type LoadedGroup = { id: string; restSeconds: number | null };
@@ -341,7 +343,8 @@ export function ungroup(blocks: EditorBlock[], groupKey: string): EditorBlock[] 
   return [...blocks.slice(0, at), ...singles, ...blocks.slice(at + 1)];
 }
 
-export function toSaveBlocks(blocks: EditorBlock[]): SaveBlocks {
+/** `sectionKey` tags every item with its section (spec 22); toSaveSections passes the real one. */
+export function toSaveBlocks(blocks: EditorBlock[], sectionKey = ""): SaveBlocks {
   const groups: SaveGroup[] = [];
   const items: SaveItem[] = [];
   for (const block of blocks) {
@@ -351,6 +354,7 @@ export function toSaveBlocks(blocks: EditorBlock[]): SaveBlocks {
       items.push({
         exerciseId: item.exerciseId,
         groupKey,
+        sectionKey,
         holdSeconds: item.holdSeconds,
         restSeconds: groupKey === null ? item.restSeconds : null,
         side: item.side,
