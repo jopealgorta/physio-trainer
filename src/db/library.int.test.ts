@@ -216,32 +216,55 @@ describe("exercise library tables", () => {
     ).rejects.toMatchObject(rejectsWith("23505"));
   });
 
-  it("backfills a link from each exercise's old category (migration statements)", async () => {
-    const dir = path.join(process.cwd(), "supabase/migrations");
-    const file = fs
-      .readdirSync(dir)
-      .find((f) => f.endsWith("_exercise-category-links-backfill.sql"));
-    const backfill = fs.readFileSync(path.join(dir, file!), "utf8");
-    const rollback = new Error("rollback");
-    await expect(
-      db.transaction(async (tx) => {
-        const [filed] = await tx
-          .insert(exercises)
-          .values({ physioId: a.id, name: "Filed", categoryId: aCategory })
-          .returning({ id: exercises.id });
-        const [loose] = await tx
-          .insert(exercises)
-          .values({ physioId: a.id, name: "Loose" })
-          .returning({ id: exercises.id });
-        await tx.execute(sql.raw(backfill.replaceAll("--> statement-breakpoint", "")));
-        const links = await tx
-          .select()
-          .from(exerciseCategoryLinks)
-          .where(inArray(exerciseCategoryLinks.exerciseId, [filed.id, loose.id]));
-        expect(links).toEqual([{ physioId: a.id, exerciseId: filed.id, categoryId: aCategory }]);
-        throw rollback;
-      }),
-    ).rejects.toBe(rollback);
+  // The original backfill and its re-run in the contract PR (catching categories the previous app
+  // version saved during the rollout). `category_id` is gone, so each run re-adds it in a
+  // rolled-back transaction.
+  it.each(["backfill", "rebackfill"])(
+    "%s copies each exercise's old category into a link (migration statements)",
+    async (name) => {
+      const dir = path.join(process.cwd(), "supabase/migrations");
+      const file = fs
+        .readdirSync(dir)
+        .find((f) => f.endsWith(`_exercise-category-links-${name}.sql`));
+      const backfill = fs.readFileSync(path.join(dir, file!), "utf8");
+      const rollback = new Error("rollback");
+      await expect(
+        db.transaction(async (tx) => {
+          await tx.execute(sql`alter table public.exercises add column category_id uuid`);
+          const [filed, linked, loose] = await tx
+            .insert(exercises)
+            .values(["Filed", "Linked", "Loose"].map((n) => ({ physioId: a.id, name: n })))
+            .returning({ id: exercises.id });
+          await tx.execute(sql`
+            update public.exercises set category_id = ${aCategory}
+            where id in (${filed.id}, ${linked.id})`);
+          await tx
+            .insert(exerciseCategoryLinks)
+            .values({ physioId: a.id, exerciseId: linked.id, categoryId: aCategory });
+          await tx.execute(sql.raw(backfill.replaceAll("--> statement-breakpoint", "")));
+          const links = await tx
+            .select()
+            .from(exerciseCategoryLinks)
+            .where(inArray(exerciseCategoryLinks.exerciseId, [filed.id, linked.id, loose.id]));
+          expect(links).toHaveLength(2);
+          expect(links).toEqual(
+            expect.arrayContaining([
+              { physioId: a.id, exerciseId: filed.id, categoryId: aCategory },
+              { physioId: a.id, exerciseId: linked.id, categoryId: aCategory },
+            ]),
+          );
+          throw rollback;
+        }),
+      ).rejects.toBe(rollback);
+    },
+  );
+
+  it("has no category_id or tags columns on exercises (contract after several categories)", async () => {
+    const columns = await db.execute<{ column_name: string }>(sql`
+      select column_name from information_schema.columns
+      where table_schema = 'public' and table_name = 'exercises'
+        and column_name in ('category_id', 'tags')`);
+    expect(columns.map((row) => row.column_name)).toEqual([]);
   });
 
   it("has no default-prescription columns or checks on exercises (spec 05)", async () => {

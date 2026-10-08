@@ -71,29 +71,15 @@ export const exerciseCategories = pgTable(
   ],
 );
 
-/**
- * Library exercises. Their categories are in exercise_category_links.
- *
- * Deprecated, unused by the app: `category_id` (its FK (physio_id, category_id) → categories ON
- * DELETE SET NULL (category_id) lives in a custom migration) and `tags`. They stay until the
- * follow-up migration drops them, so the previous app version keeps working while a deploy rolls
- * out (expand, then contract: docs/architecture.md).
- */
+/** Library exercises. Their categories are in exercise_category_links. */
 export const exercises = pgTable(
   "exercises",
   {
     id: uuid().primaryKey().defaultRandom(),
     physioId: physioId(),
-    /** @deprecated Replaced by exercise_category_links; dropped in a follow-up migration. */
-    categoryId: uuid(),
     name: text().notNull(),
     instructions: text(),
     bodyAreas: bodyAreaEnum()
-      .array()
-      .notNull()
-      .default(sql`'{}'`),
-    /** @deprecated Tags were removed; dropped in a follow-up migration. */
-    tags: text()
       .array()
       .notNull()
       .default(sql`'{}'`),
@@ -104,12 +90,9 @@ export const exercises = pgTable(
   (t) => [
     unique("exercises_physio_id_id_unique").on(t.physioId, t.id),
     index("exercises_physio_id_archived_at_idx").on(t.physioId, t.archivedAt),
-    index("exercises_category_id_idx").on(t.physioId, t.categoryId),
     index("exercises_body_areas_idx").using("gin", t.bodyAreas),
-    index("exercises_tags_idx").using("gin", t.tags),
     check("exercises_name_length", sql`char_length(${t.name}) between 1 and 120`),
     check("exercises_instructions_length", sql`char_length(${t.instructions}) <= 5000`),
-    check("exercises_tags_count", sql`cardinality(${t.tags}) <= 20`),
     ownRows("exercises_own", t.physioId),
   ],
 );
