@@ -49,7 +49,7 @@ const session = (values: Partial<PatientLog> = {}): PatientLog => ({
 
 describe("sessionSummary", () => {
   it("lists exercises in routine order across single and group blocks", () => {
-    const result = sessionSummary({ blocks }, session(), [
+    const result = sessionSummary({ sections: [{ key: "s", name: "", blocks }] }, session(), [
       exLog("c", { rpe: 5 }),
       exLog("a", { rpe: 7 }),
       exLog("b", { rpe: 6 }),
@@ -58,17 +58,28 @@ describe("sessionSummary", () => {
   });
 
   it("drops logs of exercises no longer in the routine", () => {
-    const result = sessionSummary({ blocks }, session(), [exLog("a", { rpe: 7 }), exLog("gone")]);
+    const result = sessionSummary({ sections: [{ key: "s", name: "", blocks }] }, session(), [
+      exLog("a", { rpe: 7 }),
+      exLog("gone"),
+    ]);
     expect(result?.exercises.map((e) => e.exerciseId)).toEqual(["ex-a"]);
   });
 
   it("is null when the session only says completed and there are no exercises", () => {
-    expect(sessionSummary({ blocks }, session(), [])).toBeNull();
-    expect(sessionSummary({ blocks }, null, [])).toBeNull();
+    expect(
+      sessionSummary({ sections: [{ key: "s", name: "", blocks }] }, session(), []),
+    ).toBeNull();
+    expect(sessionSummary({ sections: [{ key: "s", name: "", blocks }] }, null, [])).toBeNull();
   });
 
   it("keeps a session comment with no exercises", () => {
-    expect(sessionSummary({ blocks }, session({ comment: "Felt fine" }), [])).toEqual({
+    expect(
+      sessionSummary(
+        { sections: [{ key: "s", name: "", blocks }] },
+        session({ comment: "Felt fine" }),
+        [],
+      ),
+    ).toEqual({
       pain: null,
       rpe: null,
       comment: "Felt fine",

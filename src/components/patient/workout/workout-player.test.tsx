@@ -53,7 +53,13 @@ function routineOf(...items: PatientItem[]): PatientRoutine {
     notes: null,
     sessionsPerWeek: null,
     sessionsPerDay: null,
-    blocks: items.map((it) => ({ kind: "single" as const, item: it })),
+    sections: [
+      {
+        key: "s",
+        name: "",
+        blocks: items.map((it) => ({ kind: "single" as const, item: it })),
+      },
+    ],
   };
 }
 

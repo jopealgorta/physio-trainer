@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "../../../messages/en.json";
 import es from "../../../messages/es.json";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
-import type { PatientBlock, PatientItem } from "@/server/patient/view";
+import type { PatientItem, PatientSection } from "@/server/patient/view";
 import { ExerciseList, REFRESH_AFTER_SAVE_MS, type ExerciseLogging } from "./exercise-list";
 
 const m = vi.hoisted(() => ({ log: vi.fn(), refresh: vi.fn() }));
@@ -39,13 +39,19 @@ const squat = item("squat", "Squat", {
   notes: "Slowly on the way down",
   media: [{ videoId: VIDEO, isShort: false }],
 });
-const blocks: PatientBlock[] = [
-  { kind: "single", item: squat },
+const sections: PatientSection[] = [
   {
-    kind: "group",
-    key: "g1",
-    restSeconds: 60,
-    items: [item("bridge", "Bridge"), item("plank", "Plank")],
+    key: "s1",
+    name: "",
+    blocks: [
+      { kind: "single", item: squat },
+      {
+        kind: "group",
+        key: "g1",
+        restSeconds: 60,
+        items: [item("bridge", "Bridge"), item("plank", "Plank")],
+      },
+    ],
   },
 ];
 
@@ -64,10 +70,42 @@ function setup(
 ) {
   return render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? messages : es}>
-      <ExerciseList blocks={blocks} {...props} />
+      <ExerciseList sections={sections} {...props} />
     </NextIntlClientProvider>,
   );
 }
+
+describe("ExerciseList sections", () => {
+  const two: PatientSection[] = [
+    { key: "a", name: "Warm-up", blocks: [{ kind: "single", item: item("w1", "Cat-cow") }] },
+    { key: "empty", name: "Skipped", blocks: [] },
+    {
+      key: "b",
+      name: "Main",
+      blocks: [
+        { kind: "single", item: item("m1", "Squat 2") },
+        { kind: "single", item: item("m2", "Lunge") },
+      ],
+    },
+  ];
+
+  it("shows each name and numbers exercises across sections", () => {
+    setup({ sections: two });
+    expect(screen.getByRole("heading", { level: 3, name: "Warm-up" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Main" })).toBeInTheDocument();
+    expect(screen.queryByText("Skipped")).not.toBeInTheDocument();
+    const numbers = screen
+      .getAllByRole("heading", { level: 4 })
+      .map((h) => h.textContent?.match(/^\d+/)?.[0]);
+    expect(numbers).toEqual(["1", "2", "3"]);
+  });
+
+  it("shows no heading when only one section has exercises", () => {
+    setup({ sections: [two[0]!, two[1]!] });
+    expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 4, name: /Cat-cow/ })).toBeInTheDocument();
+  });
+});
 
 describe("ExerciseList", () => {
   it("renders a compact row per exercise with its prescription, and no video yet", () => {

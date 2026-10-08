@@ -1,3 +1,4 @@
+import { flattenSections } from "@/lib/routine-sections";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientLog } from "@/server/patient/log-session";
 import type { PatientRoutine } from "@/server/patient/view";
@@ -21,11 +22,11 @@ export type SessionSummaryData = {
  * are left out. `exerciseLogs` is already narrowed to the routine, entry and day.
  */
 export function sessionSummary(
-  routine: Pick<PatientRoutine, "blocks">,
+  routine: Pick<PatientRoutine, "sections">,
   session: PatientLog | null,
   exerciseLogs: PatientExerciseLog[],
 ): SessionSummaryData | null {
-  const items = routine.blocks.flatMap((block) =>
+  const items = flattenSections(routine.sections).flatMap((block) =>
     block.kind === "single" ? [block.item] : block.items,
   );
   const seen = new Set<string>();

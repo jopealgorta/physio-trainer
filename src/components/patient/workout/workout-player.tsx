@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { flattenSections } from "@/lib/routine-sections";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { useCues } from "@/lib/workout/cues";
@@ -121,16 +122,17 @@ function Player({
   const router = useRouter();
   const { soundOn, toggleSound, unlock, cue } = useCues();
 
-  const steps = useMemo(() => buildSteps(routine.blocks), [routine.blocks]);
+  const blocks = useMemo(() => flattenSections(routine.sections), [routine.sections]);
+  const steps = useMemo(() => buildSteps(blocks), [blocks]);
   const items = useMemo(() => {
     const byId = new Map<string, PatientItem>();
-    for (const block of routine.blocks) {
+    for (const block of blocks) {
       for (const item of block.kind === "single" ? [block.item] : block.items) {
         byId.set(item.id, item);
       }
     }
     return byId;
-  }, [routine.blocks]);
+  }, [blocks]);
   const exerciseCount = items.size;
   const storageKey = workoutStorageKey(code, routine.id, today);
 
@@ -412,7 +414,7 @@ function Player({
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <div className="mx-auto max-w-2xl">
           <ExerciseList
-            blocks={routine.blocks}
+            sections={routine.sections}
             currentItemId={step.itemId}
             doneSets={doneSets}
             currentRef={currentRef}

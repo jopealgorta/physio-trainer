@@ -319,7 +319,7 @@ describe("routines server layer", () => {
       expect(copy!.items[0].sets).toEqual([aerobic]);
 
       const content = await as(a, (tx, p) => loadRoutineContent(tx, p, customerId, [id]));
-      const block = content.get(id)!.blocks[0];
+      const block = content.get(id)!.sections[0]!.blocks[0];
       if (block.kind !== "single") throw new Error("expected single");
       expect(block.item).toMatchObject({ exerciseId: run.id, kind: "aerobic", sets: [aerobic] });
     });

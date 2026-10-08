@@ -8,9 +8,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { YouTubeThumbnail } from "@/components/library/youtube-thumbnail";
 import { Button } from "@/components/ui/button";
 import { formatPrescription, type PrescriptionTranslate } from "@/lib/prescription";
+import { visibleSections } from "@/lib/routine-sections";
 import { cn } from "@/lib/utils";
 import type { PatientExerciseLog } from "@/server/patient/log-exercise";
-import type { PatientBlock, PatientItem } from "@/server/patient/view";
+import type { PatientItem, PatientSection } from "@/server/patient/view";
 
 import { ExerciseDetail } from "./exercise-detail";
 import { ExerciseLogPanel, exerciseLogFor, type LogDraft } from "./exercise-log-panel";
@@ -62,19 +63,20 @@ type WorkoutProps = {
  * at a time. Supersets keep their dashed bracket. Shared by the patient page and the workout.
  */
 export function ExerciseList({
-  blocks,
+  sections,
   logging,
   openLogs,
   onOpenLogsChange,
   ...workout
 }: {
-  blocks: PatientBlock[];
+  sections: PatientSection[];
   logging?: ExerciseLogging;
   /** Item ids whose log is expanded, when the parent controls it (the workout bar). */
   openLogs?: ReadonlySet<string>;
   onOpenLogsChange?: (ids: ReadonlySet<string>) => void;
 } & WorkoutProps) {
   const t = useTranslations("Patient");
+  const listId = useId();
   const [ownOpen, setOwnOpen] = useState<ReadonlySet<string>>(() => new Set());
   const open = openLogs ?? ownOpen;
   const setOpen = onOpenLogsChange ?? setOwnOpen;
@@ -122,40 +124,72 @@ export function ExerciseList({
       },
     };
 
+  const shown = visibleSections(sections);
+  // First number of each section: numbering continues across sections.
+  const starts: number[] = [];
+  for (const section of shown.sections) {
+    const previous = starts.length;
+    starts.push(
+      previous === 0 ? 1 : starts[previous - 1]! + shown.sections[previous - 1]!.blocks.length,
+    );
+  }
   return (
-    <ol className="grid gap-2">
-      {blocks.map((block, index) =>
-        block.kind === "single" ? (
-          <ExerciseRow
-            key={block.item.id}
-            item={block.item}
-            position={index + 1}
-            logs={logsFor(block.item)}
-            {...workout}
-          />
-        ) : (
-          <li key={block.key}>
-            <section className="grid gap-2 rounded-xl border-2 border-dashed p-2">
-              <header className="flex flex-wrap items-center justify-between gap-2 px-1">
-                <p className="text-sm font-semibold">
-                  {t("exercise.superset")} · {index + 1}
-                </p>
-                {block.restSeconds !== null ? (
-                  <p className="text-muted-foreground text-xs">
-                    {t("exercise.supersetRest", { value: block.restSeconds })}
-                  </p>
-                ) : null}
-              </header>
-              <ul className="grid gap-2">
-                {block.items.map((item) => (
-                  <ExerciseRow key={item.id} item={item} logs={logsFor(item)} {...workout} />
-                ))}
-              </ul>
-            </section>
-          </li>
-        ),
-      )}
-    </ol>
+    <div className="grid gap-4">
+      {shown.sections.map((section, sectionIndex) => {
+        const start = starts[sectionIndex]!;
+        return (
+          <section
+            key={section.key}
+            aria-labelledby={shown.headings ? `${listId}-${section.key}` : undefined}
+            className="grid gap-2"
+          >
+            {shown.headings ? (
+              <h3 id={`${listId}-${section.key}`} className="text-base font-semibold wrap-anywhere">
+                {section.name}
+              </h3>
+            ) : null}
+            <ol start={start} className="grid gap-2">
+              {section.blocks.map((block, index) =>
+                block.kind === "single" ? (
+                  <ExerciseRow
+                    key={block.item.id}
+                    item={block.item}
+                    position={start + index}
+                    logs={logsFor(block.item)}
+                    {...workout}
+                  />
+                ) : (
+                  <li key={block.key}>
+                    <section className="grid gap-2 rounded-xl border-2 border-dashed p-2">
+                      <header className="flex flex-wrap items-center justify-between gap-2 px-1">
+                        <p className="text-sm font-semibold">
+                          {t("exercise.superset")} · {start + index}
+                        </p>
+                        {block.restSeconds !== null ? (
+                          <p className="text-muted-foreground text-xs">
+                            {t("exercise.supersetRest", { value: block.restSeconds })}
+                          </p>
+                        ) : null}
+                      </header>
+                      <ul className="grid gap-2">
+                        {block.items.map((item) => (
+                          <ExerciseRow
+                            key={item.id}
+                            item={item}
+                            logs={logsFor(item)}
+                            {...workout}
+                          />
+                        ))}
+                      </ul>
+                    </section>
+                  </li>
+                ),
+              )}
+            </ol>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 
