@@ -14,7 +14,7 @@ export type PdfDeps = { fetchImpl?: typeof fetch };
 function videoIds(doc: ExportDocument): string[] {
   const ids = new Set<string>();
   for (const routine of doc.routines) {
-    for (const block of routine.blocks) {
+    for (const block of routine.sections.flatMap((section) => section.blocks)) {
       const items = block.kind === "single" ? [block.item] : block.items;
       for (const item of items) if (item.videoId) ids.add(item.videoId);
     }

@@ -8,6 +8,7 @@ import {
 } from "@/lib/prescription";
 import { distanceDisplay } from "@/lib/distance";
 import { shareSlug } from "@/lib/share-links";
+import { visibleSections } from "@/lib/routine-sections";
 import { youtubeWatchUrl } from "@/lib/youtube";
 import type { ContentItem, RoutineContent } from "@/server/routines/content";
 
@@ -80,7 +81,10 @@ export type ExportRoutine = {
   sessionsPerDay: number | null;
   /** ISO weekdays the routine is scheduled on in the exported plans; [] = any day. */
   weekdays: number[];
-  blocks: ExportBlock[];
+  /** Non-empty sections in order; the implicit section has name "". */
+  sections: { name: string; blocks: ExportBlock[] }[];
+  /** True with two or more non-empty sections: only then are section headings shown. */
+  sectionHeadings: boolean;
 };
 export type ExportWeekDay = {
   weekday: number;
@@ -170,20 +174,24 @@ function exportRoutine(
   locale: string,
 ): ExportRoutine {
   let groupIndex = 0;
-  const blocks = routine.blocks.map((block): ExportBlock => {
-    if (block.kind === "single") {
-      return { kind: "single", item: exportItem(block.item, null, summary, locale) };
-    }
-    const letter = String.fromCharCode(65 + groupIndex++);
-    return {
-      kind: "group",
-      label: letter,
-      restSeconds: block.restSeconds,
-      items: block.items.map((item, index) =>
-        exportItem(item, `${letter}${index + 1}`, summary, locale),
-      ),
-    };
-  });
+  const { sections: visible, headings } = visibleSections(routine.sections);
+  const sections = visible.map((section) => ({
+    name: section.name,
+    blocks: section.blocks.map((block): ExportBlock => {
+      if (block.kind === "single") {
+        return { kind: "single", item: exportItem(block.item, null, summary, locale) };
+      }
+      const letter = String.fromCharCode(65 + groupIndex++);
+      return {
+        kind: "group",
+        label: letter,
+        restSeconds: block.restSeconds,
+        items: block.items.map((item, index) =>
+          exportItem(item, `${letter}${index + 1}`, summary, locale),
+        ),
+      };
+    }),
+  }));
   return {
     id: routine.id,
     name: routine.name,
@@ -192,7 +200,8 @@ function exportRoutine(
     sessionsPerWeek: routine.sessionsPerWeek,
     sessionsPerDay: routine.sessionsPerDay,
     weekdays,
-    blocks,
+    sections,
+    sectionHeadings: headings,
   };
 }
 
@@ -238,7 +247,7 @@ export function buildExportDocument(
     return [exportRoutine(routine, weekdays, summary, source.locale)];
   });
 
-  const hasItems = exportRoutines.some((routine) => routine.blocks.length > 0);
+  const hasItems = exportRoutines.some((routine) => routine.sections.length > 0);
   const hasEntries = exportPlans.some((plan) => plan.week.some((day) => day.entries.length > 0));
   return {
     ...rest,

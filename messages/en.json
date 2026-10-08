@@ -1647,6 +1647,7 @@
       "sheetFallback": "Routine",
       "columns": {
         "group": "Group",
+        "section": "Section",
         "exercise": "Exercise",
         "sets": "Sets",
         "reps": "Reps",

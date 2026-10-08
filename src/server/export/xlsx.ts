@@ -8,8 +8,8 @@ import type { ExportDocument, ExportItem, ExportRoutine } from "./model";
 import { type ExportTranslate, frequencyLine } from "./translate";
 
 const MAX_SHEET_NAME = 31;
-const COLUMN_WIDTHS = [8, 32, 6, 14, 8, 12, 8, 14, 12, 14, 12, 30, 60, 44];
-const INSTRUCTIONS_COLUMN = 13;
+const COLUMN_WIDTHS = [8, 16, 32, 6, 14, 8, 12, 8, 14, 12, 14, 12, 30, 60, 44];
+const INSTRUCTIONS_COLUMN = 14;
 const HEADER_ROW = 6;
 const NOTES_MAX_LINES = 8;
 
@@ -114,9 +114,14 @@ function overviewSheet(
   sheet.getColumn(3).width = 50;
 }
 
-function itemRow(item: ExportItem, summary: PrescriptionTranslate): ExcelJS.CellValue[] {
+function itemRow(
+  item: ExportItem,
+  section: string,
+  summary: PrescriptionTranslate,
+): ExcelJS.CellValue[] {
   return [
     item.label ?? "",
+    section,
     item.name,
     item.columns.count,
     numberOrText(item.columns.reps),
@@ -152,6 +157,7 @@ function routineSheet(
   else sheet.addRow([]);
   const keys = [
     "group",
+    "section",
     "exercise",
     "sets",
     "reps",
@@ -175,10 +181,12 @@ function routineSheet(
   COLUMN_WIDTHS.forEach((width, index) => {
     sheet.getColumn(index + 1).width = width;
   });
-  for (const block of routine?.blocks ?? []) {
-    for (const item of block.kind === "single" ? [block.item] : block.items) {
-      const row = sheet.addRow(itemRow(item, summary));
-      row.getCell(INSTRUCTIONS_COLUMN).alignment = { wrapText: true, vertical: "top" };
+  for (const section of routine?.sections ?? []) {
+    for (const block of section.blocks) {
+      for (const item of block.kind === "single" ? [block.item] : block.items) {
+        const row = sheet.addRow(itemRow(item, section.name, summary));
+        row.getCell(INSTRUCTIONS_COLUMN).alignment = { wrapText: true, vertical: "top" };
+      }
     }
   }
 }
