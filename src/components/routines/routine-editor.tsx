@@ -187,13 +187,15 @@ export function RoutineEditor({
       setFlash((previous) => ({ name: exercise.name, token: (previous?.token ?? 0) + 1 }));
     }
   };
-  const picker = (
+  // In the sheet, the picker opens its exercise form as a nested sheet.
+  const picker = (inSheet: boolean) => (
     <ExercisePicker
       categories={categories}
       recent={recent}
       initial={exercises}
       disabledReason={canAddItem(blocks) ? null : tPicker("full", { max: MAX_ITEMS })}
       added={added}
+      inSheet={inSheet}
       onPick={pick}
     />
   );
@@ -309,7 +311,7 @@ export function RoutineEditor({
                   <DrawerTitle>{tPicker("title")}</DrawerTitle>
                 </DrawerHeader>
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-2">
-                  {picker}
+                  {picker(true)}
                 </div>
                 <DrawerFooter className="border-t pt-3">
                   {/* Seen, not heard: the picker's live region already announces each pick.
@@ -354,7 +356,7 @@ export function RoutineEditor({
           <h2 id="picker-title" className="text-sm font-semibold">
             {tPicker("title")}
           </h2>
-          {picker}
+          {picker(false)}
         </aside>
       </div>
     </div>

@@ -14,6 +14,14 @@ function Drawer({ autoFocus = true, ...props }: React.ComponentProps<typeof Draw
   return <DrawerPrimitive.Root data-slot="drawer" autoFocus={autoFocus} {...props} />;
 }
 
+/** A drawer opened from inside another drawer: vaul scales the parent back while it is open. */
+function DrawerNested({
+  autoFocus = true,
+  ...props
+}: React.ComponentProps<typeof DrawerPrimitive.NestedRoot>) {
+  return <DrawerPrimitive.NestedRoot data-slot="drawer" autoFocus={autoFocus} {...props} />;
+}
+
 function DrawerTrigger({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {
   return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
@@ -131,6 +139,7 @@ function DrawerDescription({
 
 export {
   Drawer,
+  DrawerNested,
   DrawerPortal,
   DrawerOverlay,
   DrawerTrigger,

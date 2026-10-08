@@ -212,6 +212,16 @@ Namespace `Routines`, `Prescription` (units and summary patterns, with plural ru
   same query is a new search. The server only checks that a saved exercise belongs to the
   physio, so a crafted payload could still add an archived one (harmless; archived exercises
   still resolve).
+- **Creating an exercise from the picker** (added after spec 05 shipped). "New exercise" (always)
+  and "Create “<search>”" (when a search finds nothing) open the library's exercise form,
+  prefilled with the search text and the category / body-area filters, as a dialog beside the
+  editor or a nested drawer inside the picker sheet. `createExerciseForRoutineAction` saves it
+  to the library like any other exercise and returns its `ExerciseRef` instead of redirecting;
+  the picker then picks it (unsaved, like any pick), runs the search again and refreshes the
+  page so the idle list and Recent include it. A thrown action shows the form's generic error
+  instead of reaching the error boundary (which would lose the unsaved routine). Closing the
+  form while it is saving does not cancel: the exercise exists, so it is still added. The empty
+  library no longer links to `/library/new`.
 - **Plan hook stubs.** `listPlansUsingRoutine` (`src/server/routines/hooks.ts`) returns `[]`
   until spec 06 queries the plans that schedule a routine; rule 4 (archive blocked, message
   listing the plans) is wired to it in `saveRoutine` (`blockedByPlans`) but inert until then.

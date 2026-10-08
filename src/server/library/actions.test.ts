@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createCategoryAction,
+  createExerciseForRoutineAction,
   deleteCategoryAction,
   deleteExerciseAction,
   saveExerciseAction,
@@ -95,6 +96,63 @@ describe("saveExerciseAction", () => {
     });
     expect(m.updateExercise).not.toHaveBeenCalled();
     expect(m.createExercise).not.toHaveBeenCalled();
+  });
+});
+
+describe("createExerciseForRoutineAction", () => {
+  it("returns field errors without touching the database", async () => {
+    await expect(createExerciseForRoutineAction(idle, form({ name: " " }))).resolves.toEqual({
+      status: "error",
+      fieldErrors: { name: "nameRequired" },
+    });
+    expect(m.createExercise).not.toHaveBeenCalled();
+  });
+
+  it("creates and returns the exercise for the routine instead of redirecting", async () => {
+    m.createExercise.mockResolvedValue({ ok: true, data: { id: UUID } });
+    const data = form({ name: "  Wall sit ", kind: "aerobic" });
+    data.append("media", "https://www.youtube.com/shorts/abcdefghijk");
+    data.append("media", "https://youtu.be/bcdefghijkl");
+    await expect(createExerciseForRoutineAction(idle, data)).resolves.toEqual({
+      status: "created",
+      exercise: {
+        id: UUID,
+        name: "Wall sit",
+        kind: "aerobic",
+        archived: false,
+        cover: { videoId: "abcdefghijk", isShort: true },
+      },
+    });
+    expect(m.createExercise).toHaveBeenCalledWith(
+      {},
+      "physio-1",
+      expect.objectContaining({ name: "Wall sit" }),
+    );
+    expect(m.revalidatePath).toHaveBeenCalledWith("/library", "layout");
+    expect(m.redirect).not.toHaveBeenCalled();
+  });
+
+  it("has no cover without media", async () => {
+    m.createExercise.mockResolvedValue({ ok: true, data: { id: UUID } });
+    await expect(
+      createExerciseForRoutineAction(idle, form({ name: "Plank" })),
+    ).resolves.toMatchObject({ exercise: { cover: null } });
+  });
+
+  it("never updates, even when given an id", async () => {
+    m.createExercise.mockResolvedValue({ ok: true, data: { id: UUID } });
+    await createExerciseForRoutineAction(idle, form({ id: UUID, name: "Plank" }));
+    expect(m.updateExercise).not.toHaveBeenCalled();
+    expect(m.createExercise).toHaveBeenCalled();
+  });
+
+  it("maps a missing category to a field error", async () => {
+    m.createExercise.mockResolvedValue({ ok: false, error: "categoryNotFound" });
+    await expect(createExerciseForRoutineAction(idle, form({ name: "a" }))).resolves.toEqual({
+      status: "error",
+      fieldErrors: { categoryIds: "categoryInvalid" },
+    });
+    expect(m.revalidatePath).not.toHaveBeenCalled();
   });
 });
 

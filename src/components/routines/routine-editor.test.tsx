@@ -20,6 +20,13 @@ vi.mock("@/server/routines/actions", () => ({
   searchExercisesAction: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+const { createExerciseForRoutineAction } = vi.hoisted(() => ({
+  createExerciseForRoutineAction: vi.fn(),
+}));
+vi.mock("@/server/library/actions", () => ({
+  createExerciseForRoutineAction,
+  createCategoryAction: vi.fn(),
+}));
 const history = vi.hoisted(() => ({
   listVersionsAction: vi.fn(),
   getSnapshotsAction: vi.fn(),
@@ -222,6 +229,56 @@ describe("RoutineEditor", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe("creating an exercise from the picker", () => {
+    const WALL_SIT = {
+      id: "00000000-0000-4000-8000-000000000009",
+      name: "Wall sit",
+      kind: "strength",
+      archived: false,
+      cover: null,
+    } as const;
+    beforeEach(() => {
+      createExerciseForRoutineAction.mockReset();
+      createExerciseForRoutineAction.mockResolvedValue({ status: "created", exercise: WALL_SIT });
+    });
+
+    it("adds it as a new row from the side panel's dialog", async () => {
+      const user = userEvent.setup();
+      setup();
+      const aside = within(screen.getByRole("complementary"));
+      await user.click(aside.getByRole("button", { name: "New exercise" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      expect(dialog).not.toHaveAttribute("data-vaul-drawer");
+      await user.type(within(dialog).getByLabelText("Name"), "Wall sit");
+      await user.click(within(dialog).getByRole("button", { name: "Create and add" }));
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      const rows = screen.getAllByTestId("item-row");
+      expect(rows).toHaveLength(2);
+      expect(rows[1]).toHaveTextContent("Wall sit");
+      expect(save()).toBeEnabled();
+    });
+
+    it("opens a nested sheet from the picker sheet and counts what it added", async () => {
+      const user = userEvent.setup();
+      setup();
+      await user.click(screen.getByRole("button", { name: "Add exercises" }));
+      const sheet = within(await screen.findByRole("dialog", { name: "Add exercises" }));
+      await user.click(sheet.getByRole("button", { name: "New exercise" }));
+      const form = await screen.findByRole("dialog", { name: "New exercise" });
+      expect(form).toHaveAttribute("data-vaul-drawer");
+      await user.type(within(form).getByLabelText("Name"), "Wall sit");
+      await user.click(within(form).getByRole("button", { name: "Create and add" }));
+
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "New exercise" })).not.toBeInTheDocument(),
+      );
+      expect(sheet.getByRole("button", { name: "1 added · Done" })).toBeInTheDocument();
+      expect(sheet.getByTestId("picker-flash")).toHaveTextContent("Added Wall sit");
+      expect(screen.getAllByTestId("item-row")[1]).toHaveTextContent("Wall sit");
+    });
   });
 
   it("disables the picker once the routine has 50 exercises", () => {
