@@ -49,6 +49,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   addEntryAction,
+  addNewRoutineEntryAction,
   copyEntryAction,
   makeSeparateCopyAction,
   moveEntryAction,
@@ -62,7 +63,6 @@ import type { PlanActionError } from "@/server/plans/schemas";
 import { EntryCard } from "./entry-card";
 import { AttachRoutineDialog, EntryLabelDialog, RemoveEntryDialog } from "./entry-dialogs";
 import { EntryMenu } from "./entry-menu";
-import { NewRoutineEntryDialog } from "./new-routine-entry-dialog";
 
 type Entry = PlanEntryDetail;
 
@@ -92,8 +92,7 @@ function applyChange(entries: Entry[], change: OptimisticChange): Entry[] {
 type Dialog =
   | { kind: "label"; entryId: string }
   | { kind: "remove"; entryId: string }
-  | { kind: "attach"; weekday: Weekday }
-  | { kind: "new"; weekday: Weekday };
+  | { kind: "attach"; weekday: Weekday };
 
 const dayDroppableId = (weekday: number) => `day-${weekday}`;
 const weekdayOfDroppable = (id: string | number) => {
@@ -132,7 +131,9 @@ export function PlanBoard({
       return next;
     },
   );
+  const tRoutine = useTranslations("Routines.new");
   const [, startAction] = useTransition();
+  const [creating, startCreate] = useTransition();
   const [error, setError] = useState<PlanActionError | "generic" | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -172,6 +173,20 @@ export function PlanBoard({
     run({ type: "move", id: entryId, weekday, index }, () =>
       moveEntryAction({ planId, entryId, weekday, index }),
     );
+
+  /** A draft routine with a default name on the day; the action opens it in the editor. */
+  function addNewRoutine(weekday: number) {
+    setError(null);
+    const formData = new FormData();
+    formData.set("planId", planId);
+    formData.set("weekday", String(weekday));
+    formData.set("name", tRoutine("defaultName"));
+    // A success redirects: its rejection is left to Next's redirect boundary.
+    startCreate(async () => {
+      const state = await addNewRoutineEntryAction({ status: "idle" }, formData);
+      if (state.status === "error") setError(state.formError ?? "invalid");
+    });
+  }
 
   const shiftWithinDay = (entry: Entry, delta: -1 | 1) => {
     const index = days[entry.weekday - 1].findIndex((candidate) => candidate.id === entry.id);
@@ -309,7 +324,8 @@ export function PlanBoard({
                   )
                 }
                 onAddExisting={() => setDialog({ kind: "attach", weekday })}
-                onAddNew={() => setDialog({ kind: "new", weekday })}
+                onAddNew={() => addNewRoutine(weekday)}
+                creating={creating}
               >
                 <SortableContext
                   items={dayEntries.map((entry) => entry.id)}
@@ -419,13 +435,6 @@ export function PlanBoard({
           );
         }}
       />
-      <NewRoutineEntryDialog
-        open={dialog?.kind === "new"}
-        onOpenChange={(open) => !open && setDialog(null)}
-        planId={planId}
-        weekday={dialog?.kind === "new" ? dialog.weekday : 1}
-        dayName={dialog?.kind === "new" ? dayName(dialog.weekday) : ""}
-      />
     </section>
   );
 }
@@ -439,6 +448,7 @@ function DayColumn({
   onSaveNote,
   onAddExisting,
   onAddNew,
+  creating,
   children,
 }: {
   weekday: number;
@@ -449,6 +459,8 @@ function DayColumn({
   onSaveNote: (notes: string) => void;
   onAddExisting: () => void;
   onAddNew: () => void;
+  /** A new routine is on the way: no second one until it lands. */
+  creating: boolean;
   children: React.ReactNode;
 }) {
   const t = useTranslations("Plans.board.day");
@@ -495,7 +507,9 @@ function DayColumn({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={onAddExisting}>{t("addExisting")}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={onAddNew}>{t("addNew")}</DropdownMenuItem>
+              <DropdownMenuItem disabled={creating} onSelect={onAddNew}>
+                {t("addNew")}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

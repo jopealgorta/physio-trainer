@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyPlans, NoPlanResults, PlanList } from "@/components/plans/plan-list";
 import { PlansToolbar } from "@/components/plans/plans-toolbar";
 import { ListTabs } from "@/components/templates/list-tabs";
-import { NewTemplateDialog } from "@/components/templates/new-template-dialog";
+import { NewTemplateButton } from "@/components/templates/new-template-button";
 import {
   EmptyTemplates,
   NoTemplateResults,
@@ -59,7 +59,7 @@ export default async function PlansPage({ searchParams }: PageProps<"/plans">) {
     <div className="grid gap-6">
       <PageHeader
         title={t("title")}
-        actions={isTemplates && !nothingYet ? <NewTemplateDialog kind="plan" /> : undefined}
+        actions={isTemplates && !nothingYet ? <NewTemplateButton kind="plan" /> : undefined}
       />
       <PendingScope>
         <ListTabs kind="plan" active={filters.tab} />

@@ -474,15 +474,31 @@ describe("adding a routine", () => {
     expect(screen.getByRole("button", { name: "Add routine to Tuesday" })).toBeEnabled();
   });
 
-  it("opens the new-routine dialog for the day", async () => {
+  it("creates a routine for the day at once, with a default name", async () => {
     const user = userEvent.setup();
+    a.addNewRoutineEntryAction.mockResolvedValue({ status: "idle" });
     setup();
     await user.click(screen.getByRole("button", { name: "Add routine to Friday" }));
-    await user.click(await screen.findByRole("menuitem", { name: "New routine…" }));
-    const dialog = await screen.findByRole("dialog", { name: "New routine for Friday" });
-    expect(dialog.querySelector('input[name="planId"]')).toHaveValue(PLAN);
-    expect(dialog.querySelector('input[name="weekday"]')).toHaveValue("5");
-    expect(within(dialog).getByLabelText("Name")).toBeRequired();
+    await user.click(await screen.findByRole("menuitem", { name: "New routine" }));
+    await waitFor(() => expect(a.addNewRoutineEntryAction).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const data = (a.addNewRoutineEntryAction.mock.calls[0] as unknown as [unknown, FormData])[1];
+    expect(data.get("planId")).toBe(PLAN);
+    expect(data.get("weekday")).toBe("5");
+    expect(data.get("name")).toBe("New routine");
+  });
+
+  it("says why the day's new routine was not created", async () => {
+    const user = userEvent.setup();
+    a.addNewRoutineEntryAction.mockResolvedValue({
+      status: "error",
+      fieldErrors: {},
+      formError: "dayFull",
+    });
+    setup();
+    await user.click(screen.getByRole("button", { name: "Add routine to Friday" }));
+    await user.click(await screen.findByRole("menuitem", { name: "New routine" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("A day holds at most 6 routines.");
   });
 });
 

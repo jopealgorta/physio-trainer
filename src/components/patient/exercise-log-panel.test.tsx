@@ -340,7 +340,10 @@ describe("ExerciseLogPanel", () => {
     await user.click(screen.getByRole("button", { name: "Add set" }));
     await user.type(setInput(4), "30");
     await wait(AUTOSAVE_DELAY_MS);
-    expect(m.log).toHaveBeenLastCalledWith("7k2m9qpx", sent({ setWeightsKg: [20, null, null, 30] }));
+    expect(m.log).toHaveBeenLastCalledWith(
+      "7k2m9qpx",
+      sent({ setWeightsKg: [20, null, null, 30] }),
+    );
     expect(screen.getAllByRole("button", { name: /^Remove set/ })).toHaveLength(1);
 
     await user.click(screen.getByRole("button", { name: "Remove set 4" }));

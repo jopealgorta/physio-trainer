@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyRoutines, NoRoutineResults, RoutineList } from "@/components/routines/routine-list";
 import { RoutinesToolbar } from "@/components/routines/routines-toolbar";
 import { ListTabs } from "@/components/templates/list-tabs";
-import { NewTemplateDialog } from "@/components/templates/new-template-dialog";
+import { NewTemplateButton } from "@/components/templates/new-template-button";
 import {
   EmptyTemplates,
   NoTemplateResults,
@@ -59,7 +59,7 @@ export default async function RoutinesPage({ searchParams }: PageProps<"/routine
     <div className="grid gap-6">
       <PageHeader
         title={t("title")}
-        actions={isTemplates && !nothingYet ? <NewTemplateDialog kind="routine" /> : undefined}
+        actions={isTemplates && !nothingYet ? <NewTemplateButton kind="routine" /> : undefined}
       />
       <PendingScope>
         <ListTabs kind="routine" active={filters.tab} />

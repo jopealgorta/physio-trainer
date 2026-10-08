@@ -670,18 +670,10 @@
     },
     "new": {
       "button": "Nueva rutina",
-      "title": "Nueva rutina para {name}",
-      "name": "Nombre",
-      "case": "Caso",
-      "noCase": "Sin caso",
-      "create": "Crear rutina",
+      "defaultName": "Nueva rutina",
       "creating": "Creando…",
-      "cancel": "Cancelar",
       "errors": {
-        "nameRequired": "Ingresá un nombre.",
-        "nameTooLong": "Usá como máximo {max, number} caracteres.",
         "customerNotFound": "Este cliente ya no existe.",
-        "caseNotFound": "Ese caso no pertenece a este cliente.",
         "invalid": "Revisá el formulario y probá de nuevo."
       }
     },
@@ -825,18 +817,10 @@
     },
     "new": {
       "button": "Nuevo plan",
-      "title": "Nuevo plan semanal para {name}",
-      "name": "Nombre",
-      "case": "Caso",
-      "noCase": "Sin caso",
-      "create": "Crear plan",
+      "defaultName": "Nuevo plan",
       "creating": "Creando…",
-      "cancel": "Cancelar",
       "errors": {
-        "nameRequired": "Ingresá un nombre.",
-        "nameTooLong": "Usá como máximo {max, number} caracteres.",
         "customerNotFound": "Este cliente ya no existe.",
-        "caseNotFound": "Ese caso no pertenece a este cliente.",
         "invalid": "Revisá el formulario y probá de nuevo."
       }
     },
@@ -868,7 +852,7 @@
         "add": "Agregar rutina al {day}",
         "addShort": "Agregar",
         "addExisting": "Rutina existente…",
-        "addNew": "Nueva rutina…",
+        "addNew": "Nueva rutina",
         "full": "Este día está completo ({max, number} rutinas)."
       },
       "entry": {
@@ -909,14 +893,6 @@
         "adding": "Agregando…",
         "cancel": "Cancelar",
         "meta": "{count, plural, one {# ejercicio} other {# ejercicios}}"
-      },
-      "newRoutine": {
-        "title": "Nueva rutina para el {day}",
-        "name": "Nombre",
-        "hint": "Empieza como borrador y se abre en el editor.",
-        "create": "Crear y editar",
-        "creating": "Creando…",
-        "cancel": "Cancelar"
       },
       "remove": {
         "title": "¿Quitar “{routine}” del plan?",
@@ -1023,14 +999,11 @@
         "routine": "Nueva plantilla de rutina",
         "plan": "Nueva plantilla de plan"
       },
-      "title": {
+      "defaultName": {
         "routine": "Nueva plantilla de rutina",
         "plan": "Nueva plantilla de plan"
       },
-      "name": "Nombre",
-      "create": "Crear plantilla",
-      "creating": "Creando…",
-      "cancel": "Cancelar"
+      "creating": "Creando…"
     },
     "badge": "Plantilla",
     "from": "Desde la plantilla: <link></link>",
