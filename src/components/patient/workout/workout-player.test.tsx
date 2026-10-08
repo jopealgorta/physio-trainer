@@ -276,6 +276,20 @@ describe("WorkoutPlayer", () => {
     expect(dots(currentRow())).toEqual(["true", "false"]);
   });
 
+  it("lists the exercises without section headings, numbered straight through", () => {
+    setup({
+      ...routineOf(),
+      sections: [
+        { key: "w", name: "Warm-up", blocks: [{ kind: "single", item: item("a", "Squat") }] },
+        { key: "m", name: "Main", blocks: [{ kind: "single", item: item("b", "Bridge") }] },
+      ],
+    });
+    expect(screen.queryByRole("heading", { name: "Warm-up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Main" })).not.toBeInTheDocument();
+    const names = screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent);
+    expect(names).toEqual(["1.Squat", "2.Bridge"]);
+  });
+
   it("scrolls the current exercise into view as it changes", async () => {
     const scroll = vi.spyOn(Element.prototype, "scrollIntoView");
     const user = setup(routineOf(item("a", "Squat"), item("b", "Bridge")));

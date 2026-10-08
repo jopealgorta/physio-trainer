@@ -64,12 +64,15 @@ type WorkoutProps = {
  */
 export function ExerciseList({
   sections,
+  sectionHeadingLevel = 3,
   logging,
   openLogs,
   onOpenLogsChange,
   ...workout
 }: {
   sections: PatientSection[];
+  /** One level under the routine name's heading (shown with two or more non-empty sections). */
+  sectionHeadingLevel?: 3 | 4;
   logging?: ExerciseLogging;
   /** Item ids whose log is expanded, when the parent controls it (the workout bar). */
   openLogs?: ReadonlySet<string>;
@@ -125,14 +128,12 @@ export function ExerciseList({
     };
 
   const shown = visibleSections(sections);
+  const SectionHeading = sectionHeadingLevel === 4 ? "h4" : "h3";
   // First number of each section: numbering continues across sections.
   const starts: number[] = [];
-  for (const section of shown.sections) {
-    const previous = starts.length;
-    starts.push(
-      previous === 0 ? 1 : starts[previous - 1]! + shown.sections[previous - 1]!.blocks.length,
-    );
-  }
+  shown.sections.forEach((_, index) => {
+    starts.push(index === 0 ? 1 : starts[index - 1]! + shown.sections[index - 1]!.blocks.length);
+  });
   return (
     <div className="grid gap-4">
       {shown.sections.map((section, sectionIndex) => {
@@ -144,9 +145,12 @@ export function ExerciseList({
             className="grid gap-2"
           >
             {shown.headings ? (
-              <h3 id={`${listId}-${section.key}`} className="text-base font-semibold wrap-anywhere">
+              <SectionHeading
+                id={`${listId}-${section.key}`}
+                className="text-base font-semibold wrap-anywhere"
+              >
                 {section.name}
-              </h3>
+              </SectionHeading>
             ) : null}
             <ol start={start} className="grid gap-2">
               {section.blocks.map((block, index) =>

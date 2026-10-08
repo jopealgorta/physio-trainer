@@ -105,6 +105,68 @@ describe("diffRoutines sections", () => {
     expect(diff.changes).toEqual([{ field: "section", from: "Warm-up", to: "Main" }]);
   });
 
+  it("reports a renamed section only in the header, not on its exercises", () => {
+    const before = routine(
+      [item("a", inSection("s0")), item("b", inSection("s0")), item("c", inSection("s1"))],
+      {},
+      [],
+      sec("Warm-up", "Main"),
+    );
+    const after = routine(
+      [item("a", inSection("s0")), item("b", inSection("s0")), item("c", inSection("s1"))],
+      {},
+      [],
+      sec("Activation", "Main"),
+    );
+    const diff = diffRoutines(before, after);
+    expect(diff.header).toEqual([
+      { field: "sections", from: "Warm-up, Main", to: "Activation, Main" },
+    ]);
+    expect(diff.items.map((i) => i.changes)).toEqual([[], [], []]);
+    expect(diff.items.map((i) => i.status)).toEqual(["unchanged", "unchanged", "unchanged"]);
+  });
+
+  it("reports reordered sections only in the header", () => {
+    // Keys are positional: after the reorder "Main" is s0 and "Warm-up" s1.
+    const before = routine(
+      [item("a", inSection("s0")), item("b", inSection("s1"))],
+      {},
+      [],
+      sec("Warm-up", "Main"),
+    );
+    const after = routine(
+      [item("b", inSection("s0")), item("a", inSection("s1"))],
+      {},
+      [],
+      sec("Main", "Warm-up"),
+    );
+    const diff = diffRoutines(before, after);
+    expect(diff.header).toEqual([
+      { field: "sections", from: "Warm-up, Main", to: "Main, Warm-up" },
+    ]);
+    expect(diff.items.map((i) => i.changes)).toEqual([[], []]);
+  });
+
+  it("reports a move into a renamed section with both names", () => {
+    const before = routine(
+      [item("a", inSection("s0")), item("b", inSection("s1"))],
+      {},
+      [],
+      sec("Warm-up", "Main"),
+    );
+    const after = routine(
+      [item("a", inSection("s1")), item("b", inSection("s1"))],
+      {},
+      [],
+      sec("Warm-up", "Strength"),
+    );
+    const diff = diffRoutines(before, after);
+    expect(diff.items.map((i) => i.changes)).toEqual([
+      [{ field: "section", from: "Warm-up", to: "Strength" }],
+      [],
+    ]);
+  });
+
   it("counts section changes in the summary", () => {
     const before = routine([item("a", inSection("s0"))], {}, [], sec("Warm-up", "Main"));
     const after = routine([item("a", inSection("s1"))], {}, [], sec("Warm-up", "Main"));

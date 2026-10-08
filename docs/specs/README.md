@@ -47,7 +47,7 @@ graph LR
   10 --> 19
   19 --> 20
   20 --> 21
-  05 --> 22
+  05 & 07 & 08 & 10 & 14 & 15 & 19 --> 22
 ```
 
 Specs 09, 15 and 16 can be built in parallel with the main chain once their dependencies are

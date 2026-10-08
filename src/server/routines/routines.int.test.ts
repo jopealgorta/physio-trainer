@@ -728,7 +728,10 @@ describe("routines server layer", () => {
         "Main",
         () => `k${n++}`,
       );
-      expect(sections).toHaveLength(detail.sections.length || 1);
+      // The saved "Main" section, holding the legacy item.
+      expect(detail.sections).toHaveLength(1);
+      expect(sections).toHaveLength(1);
+      expect(sections[0]).toMatchObject({ name: "Main" });
       expect(sections[0].blocks).toHaveLength(1);
     });
   });

@@ -83,7 +83,11 @@ export async function RoutineView({
           <p className="wrap-anywhere whitespace-pre-line">{routine.notes}</p>
         </section>
       ) : null}
-      <ExerciseList sections={routine.sections} logging={exerciseLogging} />
+      <ExerciseList
+        sections={routine.sections}
+        sectionHeadingLevel={headingLevel === 2 ? 3 : 4}
+        logging={exerciseLogging}
+      />
     </article>
   );
 }

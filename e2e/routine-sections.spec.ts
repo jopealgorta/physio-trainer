@@ -111,10 +111,11 @@ test("a physio adds a section, moves an exercise into it, reorders sections and 
   await expectLayout(page, { "Warm-up": ["Squat"], Main: ["Bridge"] });
   await expect(status(page)).toHaveText("");
 
-  // The patient sees both headings, in order.
+  // The patient sees both headings, in order, one level under the routine name.
   await activateRoutines(customerId);
   const link = await insertCustomerLink(physio, customerId);
   await page.goto(link.path);
+  await expect(page.getByRole("heading", { level: 2, name: "Knee rehab" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 3, name: /^(Warm-up|Main)$/ })).toHaveText([
     "Warm-up",
     "Main",

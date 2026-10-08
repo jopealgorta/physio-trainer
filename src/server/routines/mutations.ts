@@ -189,7 +189,8 @@ export async function saveRoutine(
         routineId: input.id,
         exerciseId: item.exerciseId,
         position,
-        sectionId: sectionIds.get(item.sectionKey) ?? null,
+        // The schema (validateStructure) rejects an item whose section key is unknown.
+        sectionId: sectionIds.get(item.sectionKey)!,
         groupId: item.groupKey === null ? null : (groupIds.get(item.groupKey) ?? null),
         holdSeconds: item.holdSeconds,
         restSeconds: item.restSeconds,

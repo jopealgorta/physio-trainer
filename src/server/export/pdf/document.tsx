@@ -114,7 +114,15 @@ const styles = StyleSheet.create({
   groupFirst: { marginTop: 8 },
   groupCaption: { paddingTop: 4 },
   sectionSpaced: { marginTop: 28 },
-  sectionHeading: { marginTop: 12, marginBottom: 2 },
+  // A routine section's name: a step under the routine title, distinct from the superset caption.
+  sectionHeading: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: FOREGROUND,
+    lineHeight: 1.2,
+    marginTop: 14,
+    marginBottom: 4,
+  },
   footer: {
     position: "absolute",
     left: 32,
@@ -377,7 +385,7 @@ function GroupedRows({
       const next = list[i + 1];
       out.push(
         <View key={rowKey(row, i)} wrap={false}>
-          <Text style={[styles.caption, styles.sectionHeading]}>{row.name}</Text>
+          <Text style={styles.sectionHeading}>{row.name}</Text>
           {next && next.kind === "item" ? (
             <RowView row={next} routine={routine} {...context} />
           ) : null}

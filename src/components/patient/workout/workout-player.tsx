@@ -123,6 +123,8 @@ function Player({
   const { soundOn, toggleSound, unlock, cue } = useCues();
 
   const blocks = useMemo(() => flattenSections(routine.sections), [routine.sections]);
+  // Workout mode lists the exercises without section headings (spec 22 non-goal): one section.
+  const listSections = useMemo(() => [{ key: "all", name: "", blocks }], [blocks]);
   const steps = useMemo(() => buildSteps(blocks), [blocks]);
   const items = useMemo(() => {
     const byId = new Map<string, PatientItem>();
@@ -414,7 +416,7 @@ function Player({
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <div className="mx-auto max-w-2xl">
           <ExerciseList
-            sections={routine.sections}
+            sections={listSections}
             currentItemId={step.itemId}
             doneSets={doneSets}
             currentRef={currentRef}

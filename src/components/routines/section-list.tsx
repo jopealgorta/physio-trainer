@@ -25,7 +25,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useTranslations } from "next-intl";
-import { useId, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useId, useRef, type Dispatch, type SetStateAction } from "react";
 
 import { SortableRow } from "@/components/sortable/sortable-list";
 import type { EditorBlock, NewKey } from "@/lib/routine-editor";
@@ -61,13 +61,20 @@ const dragData = (node: { data: { current?: unknown } } | null | undefined) =>
 
 /**
  * Sections drop onto sections; blocks onto blocks and empty sections. A block follows the pointer
- * when it is over one, and the closest target otherwise (keyboard drags have no pointer).
+ * when it is over one, and the closest target otherwise. A keyboard drag has no pointer: its block
+ * only meets its own section's blocks (the keyboard way to another section is "Move to section"),
+ * or a tall neighbour could make a block in the next section the closest.
  */
 const collisionDetection: CollisionDetection = (args) => {
-  const draggingSection = dragData(args.active)?.type === "section";
-  const droppableContainers = args.droppableContainers.filter(
-    (container) => (dragData(container)?.type === "section") === draggingSection,
-  );
+  const own = dragData(args.active);
+  const draggingSection = own?.type === "section";
+  const keyboard = args.pointerCoordinates === null;
+  const droppableContainers = args.droppableContainers.filter((container) => {
+    const data = dragData(container);
+    if ((data?.type === "section") !== draggingSection) return false;
+    if (draggingSection || !keyboard) return true;
+    return data?.sortable?.containerId === own?.sortable?.containerId;
+  });
   const scoped = { ...args, droppableContainers };
   if (!draggingSection) {
     const within = pointerWithin(scoped);
@@ -132,6 +139,18 @@ export function SectionList({
   );
   // The sections when the drag started: a cancelled drag puts a block back where it was.
   const before = useRef<EditorSection[] | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  // What gets focus once a change lands: the control that was used went away with its row or
+  // section (selector within this list).
+  const focusNext = useRef<string | null>(null);
+  useEffect(() => {
+    const selector = focusNext.current;
+    if (selector === null) return;
+    focusNext.current = null;
+    // After the closing menu or dialog has restored focus (Radix does it in a timeout), or that
+    // would take it back.
+    setTimeout(() => root.current?.querySelector<HTMLElement>(selector)?.focus(), 0);
+  }, [sections]);
 
   const total = totalItems(sections);
   const canAddItem = total < MAX_ITEMS;
@@ -226,13 +245,27 @@ export function SectionList({
     }
   }
 
+  function deleteSection(key: string) {
+    const index = sections.findIndex((section) => section.key === key);
+    const neighbour = sections[index - 1] ?? sections[index + 1];
+    if (neighbour) {
+      focusNext.current = `[data-sortable-id=${JSON.stringify(sectionDragId(neighbour.key))}] [data-section-menu]`;
+    }
+    onChange((current) => removeSection(current, key));
+  }
+
+  function moveBlockTo(blockKey: string, to: string) {
+    focusNext.current = `[data-drag-handle=${JSON.stringify(blockKey)}]`;
+    onChange((current) => moveBlockToSection(current, blockKey, to));
+  }
+
   function onDragCancel() {
     if (before.current) onChange(before.current);
     before.current = null;
   }
 
   return (
-    <div className="grid min-w-0 gap-4">
+    <div ref={root} className="grid min-w-0 gap-4">
       <DndContext
         id={dndId}
         sensors={sensors}
@@ -273,7 +306,7 @@ export function SectionList({
                     onMove={(delta) =>
                       onChange((current) => moveSection(current, section.key, delta))
                     }
-                    onDelete={() => onChange((current) => removeSection(current, section.key))}
+                    onDelete={() => deleteSection(section.key)}
                   >
                     <BlockList
                       sectionKey={section.key}
@@ -289,9 +322,7 @@ export function SectionList({
                       targets={sections
                         .filter((other) => other.key !== section.key)
                         .map(({ key, name }) => ({ key, name }))}
-                      onMoveTo={(blockKey, to) =>
-                        onChange((current) => moveBlockToSection(current, blockKey, to))
-                      }
+                      onMoveTo={moveBlockTo}
                       onDuplicate={(itemKey) =>
                         onChange((current) => duplicateItemIn(current, itemKey, newKey))
                       }

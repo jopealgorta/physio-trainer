@@ -145,6 +145,28 @@ function diffSets(before: SnapshotSet[], after: SnapshotSet[]): SetDiff[] {
 }
 
 /**
+ * Pairs each section of `before` with one of `after`: the same name first (k-th occurrence with
+ * k-th), then the leftovers by their order. A renamed or reordered section keeps its pairing, so
+ * only an exercise that really changed section reports it.
+ */
+function pairSections(before: string[], after: string[]): (number | null)[] {
+  const pairs: (number | null)[] = before.map(() => null);
+  const taken = new Set<number>();
+  before.forEach((name, i) => {
+    const j = after.findIndex((candidate, k) => candidate === name && !taken.has(k));
+    if (j !== -1) {
+      pairs[i] = j;
+      taken.add(j);
+    }
+  });
+  const freeAfter = after.flatMap((_, k) => (taken.has(k) ? [] : [k]));
+  before.forEach((_, i) => {
+    if (pairs[i] === null && freeAfter.length > 0) pairs[i] = freeAfter.shift()!;
+  });
+  return pairs;
+}
+
+/**
  * Section names of both snapshots, or null when either predates sections (stored jsonb is not
  * re-parsed, so `sections` may be missing): an old version has no sections to compare against.
  */
@@ -152,14 +174,25 @@ function sectionNames(before: RoutineSnapshot, after: RoutineSnapshot) {
   const a = before.sections ?? [];
   const b = after.sections ?? [];
   if (a.length === 0 || b.length === 0) return null;
-  const nameOf = (sections: typeof a, item: SnapshotItem) => {
-    const key = item.prescription.sectionKey ?? null;
-    return sections.find((section) => section.key === key)?.name ?? sections[0].name;
-  };
+  // A null or unknown key joins the first section.
+  const indexOf = (sections: typeof a, item: SnapshotItem) =>
+    Math.max(
+      sections.findIndex((section) => section.key === (item.prescription.sectionKey ?? null)),
+      0,
+    );
+  const pairs = pairSections(
+    a.map((section) => section.name),
+    b.map((section) => section.name),
+  );
   return {
     before: a.map((section) => section.name),
     after: b.map((section) => section.name),
-    of: (side: "before" | "after", item: SnapshotItem) => nameOf(side === "before" ? a : b, item),
+    /** The item's section change, or null when it stayed in the same (maybe renamed) section. */
+    change: (old: SnapshotItem, item: SnapshotItem) => {
+      const from = indexOf(a, old);
+      const to = indexOf(b, item);
+      return pairs[from] === to ? null : { from: a[from].name, to: b[to].name };
+    },
   };
 }
 
@@ -169,6 +202,7 @@ function diffItem(
   beforeGroup: unknown,
   afterGroup: unknown,
   moved: boolean,
+  /** The section the item left and joined, when it changed section. */
   section: { from: string; to: string } | null,
 ): ItemDiff {
   const a = before.prescription;
@@ -181,7 +215,7 @@ function diffItem(
   if (JSON.stringify(beforeGroup) !== JSON.stringify(afterGroup)) {
     changes.push({ field: "group", from: beforeGroup, to: afterGroup });
   }
-  if (section && section.from !== section.to) {
+  if (section) {
     changes.push({ field: "section", from: section.from, to: section.to });
   }
   if (a.sets.length !== b.sets.length) {
@@ -237,7 +271,7 @@ export function diffRoutines(before: RoutineSnapshot, after: RoutineSnapshot): R
       groupSignature(before, old),
       groupSignature(after, item),
       !stable.has(i),
-      names && { from: names.of("before", old), to: names.of("after", item) },
+      names?.change(old, item) ?? null,
     );
   });
 

@@ -100,6 +100,13 @@ describe("ExerciseList sections", () => {
     expect(numbers).toEqual(["1", "2", "3"]);
   });
 
+  it("puts the section headings at the level it is given", () => {
+    setup({ sections: two, sectionHeadingLevel: 4 });
+    expect(screen.getByRole("heading", { level: 4, name: "Warm-up" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 4, name: "Main" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
+  });
+
   it("shows no heading when only one section has exercises", () => {
     setup({ sections: [two[0]!, two[1]!] });
     expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();

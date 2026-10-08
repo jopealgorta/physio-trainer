@@ -122,6 +122,28 @@ function textOf(node: ReactNode): string[] {
   return textOf(props.children);
 }
 
+/** The merged style of the first element whose only child is `text`. */
+function styleOf(node: ReactNode, text: string): Record<string, unknown> | null {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = styleOf(child, text);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!isValidElement(node)) return null;
+  const { type, props } = node as {
+    type: unknown;
+    props: { children?: ReactNode; style?: unknown };
+  };
+  if (typeof type === "function") return styleOf((type as (p: unknown) => ReactNode)(props), text);
+  if (props.children === text) {
+    const styles = [props.style].flat(Infinity).filter(Boolean) as Record<string, unknown>[];
+    return Object.assign({}, ...styles);
+  }
+  return styleOf(props.children, text);
+}
+
 const pageCount = (buffer: Buffer) =>
   (buffer.toString("latin1").match(/\/Type \/Page\b/g) ?? []).length;
 
@@ -227,6 +249,14 @@ describe("renderExportPdf", () => {
     expect(texts).toContain("Calentamiento");
     expect(texts).toContain("Fuerza");
     expect(texts).not.toContain("Vacía");
+    // A heading of its own: larger than the superset caption, in the text colour, not uppercase.
+    const heading = styleOf(
+      ExportPdf({ doc: two.doc, t: two.t, thumbnails: new Map(), logo: null }),
+      "Calentamiento",
+    );
+    expect(heading).toMatchObject({ fontSize: 10.5, fontWeight: 700, color: "#171717" });
+    expect(heading?.textTransform).toBeUndefined();
+    expect(heading?.marginTop).toBeGreaterThan(0);
 
     const one = await build(
       source({

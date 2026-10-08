@@ -32,7 +32,7 @@ import { DragHandle } from "./drag-handle";
  * One section of the routine: drag handle, its name (renamed in place: pencil, then Enter or
  * blur confirms, Escape cancels), a menu (rename, move up/down, delete) and its blocks as
  * `children`. Deleting a section that holds exercises asks first; the only section can't be
- * deleted or moved.
+ * deleted or moved (and shows no drag handle).
  */
 export function SectionCard({
   name,
@@ -76,7 +76,8 @@ export function SectionCard({
       className="bg-muted/20 grid min-w-0 gap-3 rounded-xl border p-3"
     >
       <div className="flex min-w-0 items-center gap-2">
-        <DragHandle handle={handle} />
+        {/* Nothing to reorder with one section. */}
+        {count > 1 ? <DragHandle handle={handle} /> : null}
         <SectionName
           name={name}
           editing={editing}
@@ -91,6 +92,7 @@ export function SectionCard({
               size="icon"
               className="ml-auto shrink-0"
               aria-label={t("menu")}
+              data-section-menu
             >
               <EllipsisVerticalIcon aria-hidden />
             </Button>

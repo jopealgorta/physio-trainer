@@ -7,7 +7,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { isForeignKeyViolation } from "@/db/errors";
 import { runAsPhysio } from "@/db/rls";
-import { physios, routineItems, routineSections } from "@/db/schema";
+import {
+  customers,
+  exercises,
+  physios,
+  routineItems,
+  routineSections,
+  routines,
+} from "@/db/schema";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 import { insertCustomer, insertExercise, insertRoutine } from "@/test/int/content";
 
@@ -137,53 +144,74 @@ describe("routine sections", () => {
   it("backfill gives every legacy routine one localized section", async () => {
     const es = await createTestPhysio({ onboarded: true });
     const en = await createTestPhysio({ onboarded: true });
+    // The backfill's statements are global: run them in a transaction that rolls back, so they
+    // never touch (or lock for long) the rows of integration files running in parallel.
+    const rollback = new Error("rollback");
     try {
-      await db.update(physios).set({ locale: "es" }).where(eq(physios.id, es.id));
-      const made: { physioId: string; routineId: string; itemId: string; name: string }[] = [];
-      for (const [who, name] of [
-        [es, "Principal"],
-        [en, "Main"],
-      ] as const) {
-        const customer = await insertCustomer(who.id);
-        const exercise = await insertExercise(who.id);
-        const routineId = await insertRoutine(who.id, customer, {
-          items: [{ exerciseId: exercise }],
+      await db
+        .transaction(async (tx) => {
+          await tx.update(physios).set({ locale: "es" }).where(eq(physios.id, es.id));
+          const made: { routineId: string; itemId: string; name: string }[] = [];
+          for (const [who, name] of [
+            [es, "Principal"],
+            [en, "Main"],
+          ] as const) {
+            // A pre-migration routine: no sections, and an item without a section.
+            const [customer] = await tx
+              .insert(customers)
+              .values({ physioId: who.id, firstName: "Ana", locale: "en" })
+              .returning({ id: customers.id });
+            const [exercise] = await tx
+              .insert(exercises)
+              .values({ physioId: who.id, name: "Squat" })
+              .returning({ id: exercises.id });
+            const [routine] = await tx
+              .insert(routines)
+              .values({ physioId: who.id, customerId: customer!.id, name: "Legacy" })
+              .returning({ id: routines.id });
+            const [item] = await tx
+              .insert(routineItems)
+              .values({
+                physioId: who.id,
+                routineId: routine!.id,
+                exerciseId: exercise!.id,
+                position: 0,
+                sectionId: null,
+              })
+              .returning({ id: routineItems.id });
+            made.push({ routineId: routine!.id, itemId: item!.id, name });
+          }
+
+          await tx.execute(sql.raw(backfillSql()));
+
+          for (const m of made) {
+            const sections = await tx
+              .select()
+              .from(routineSections)
+              .where(eq(routineSections.routineId, m.routineId));
+            expect(sections).toHaveLength(1);
+            expect(sections[0]).toMatchObject({ name: m.name, position: 0 });
+            const [item] = await tx
+              .select()
+              .from(routineItems)
+              .where(eq(routineItems.id, m.itemId));
+            expect(item?.sectionId).toBe(sections[0]!.id);
+          }
+
+          // Idempotent: running again adds nothing.
+          await tx.execute(sql.raw(backfillSql()));
+          for (const m of made) {
+            const sections = await tx
+              .select()
+              .from(routineSections)
+              .where(eq(routineSections.routineId, m.routineId));
+            expect(sections).toHaveLength(1);
+          }
+          throw rollback;
+        })
+        .catch((error: unknown) => {
+          if (error !== rollback) throw error;
         });
-        // Simulate a pre-migration routine: no sections, items without section.
-        await db
-          .update(routineItems)
-          .set({ sectionId: null })
-          .where(eq(routineItems.routineId, routineId));
-        await db.delete(routineSections).where(eq(routineSections.routineId, routineId));
-        const [it] = await db
-          .select({ id: routineItems.id })
-          .from(routineItems)
-          .where(eq(routineItems.routineId, routineId));
-        made.push({ physioId: who.id, routineId, itemId: it!.id, name });
-      }
-
-      await db.execute(sql.raw(backfillSql()));
-
-      for (const m of made) {
-        const sections = await db
-          .select()
-          .from(routineSections)
-          .where(eq(routineSections.routineId, m.routineId));
-        expect(sections).toHaveLength(1);
-        expect(sections[0]).toMatchObject({ name: m.name, position: 0 });
-        const [item] = await db.select().from(routineItems).where(eq(routineItems.id, m.itemId));
-        expect(item?.sectionId).toBe(sections[0]!.id);
-      }
-
-      // Idempotent: running again adds nothing.
-      await db.execute(sql.raw(backfillSql()));
-      for (const m of made) {
-        const sections = await db
-          .select()
-          .from(routineSections)
-          .where(eq(routineSections.routineId, m.routineId));
-        expect(sections).toHaveLength(1);
-      }
     } finally {
       await deleteTestPhysios(es, en);
     }

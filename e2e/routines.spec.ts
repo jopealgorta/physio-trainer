@@ -14,8 +14,8 @@ import { chooseOption } from "./helpers/select";
 
 // Version conflicts and the unsaved-changes guard are covered in routine-editor.spec.ts.
 
-// Block handles only: the routine's one section ("Main") has a "Reorder Main" handle too.
-const handles = (page: Page) => page.getByRole("button", { name: /^Reorder (?!Main$)/ });
+// The block handles (the routine's one section has no handle of its own).
+const handles = (page: Page) => page.getByRole("button", { name: /^Reorder / });
 const handleNames = (page: Page) =>
   handles(page).evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")));
 const row = (page: Page, name: string) =>

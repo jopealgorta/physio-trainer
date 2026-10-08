@@ -126,6 +126,7 @@ export function SortableRow({
   return (
     <li
       ref={setNodeRef}
+      data-sortable-id={id}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(isDragging ? "relative z-10 min-w-0 opacity-80" : "min-w-0", className)}
     >
@@ -134,6 +135,7 @@ export function SortableRow({
         ...listeners,
         ref: setActivatorNodeRef,
         "aria-label": handleLabel,
+        "data-drag-handle": id,
       })}
     </li>
   );

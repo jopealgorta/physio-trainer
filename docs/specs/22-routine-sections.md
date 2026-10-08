@@ -146,8 +146,8 @@ history diff lines. Every key in `en` and `es` (Rioplatense voseo). Suggestion c
   zod rules, snapshot/diff/restore, content grouping, patient list headings, export model.
 - Integration (incl. RLS): save with sections, cross-routine section rejected, backfill, legacy
   null `section_id` read, copies keep sections, RLS on `routine_sections`.
-- E2E: add a section with a chip, add exercises, move one between sections (menu and keyboard
-  drag), save, reload; patient page shows the headings.
+- E2E: add a section with a chip, add exercises, move one between sections (menu move, keyboard
+  section reorder, pointer drag), save, reload; patient page shows the headings.
 
 ## Open questions
 
@@ -183,14 +183,23 @@ history diff lines. Every key in `en` and `es` (Rioplatense voseo). Suggestion c
   restoring physio's locale; a null `sectionKey` joins the first section.
 - **The diff shows section changes only when both snapshots have sections** (a "Sections" line
   with the ordered names, and an exercise's "Section" change), so the first save after the
-  migration doesn't report every exercise as moved.
+  migration doesn't report every exercise as moved. Snapshot keys are positional, so the diff
+  pairs the old sections with the new ones (same name first, then the leftovers in order): a
+  renamed or reordered section is only a "Sections" change, and an exercise reports "Section"
+  (old name → new name) only when it changed section.
 - **Readers without sections.** The patient content groups items per section (a null or unknown
   `section_id` joins the first section; a routine with items but no sections reads as one unnamed
   section). `visibleSections` drops empty sections and turns headings on at two or more;
   workout mode, the routine view and the session summary flatten them (`flattenSections`).
+  The workout player's exercise list gets one flattened, unnamed section, so it never shows
+  section headings (non-goal).
+- **Patient section headings sit one level under the routine name**: `RoutineView` passes
+  `sectionHeadingLevel` (its `headingLevel` + 1) to `ExerciseList`, so an `h2` routine (the only
+  one) has `h3` sections and an `h3` routine (several routines, or a plan) has `h4` sections.
 - **Exports.** Superset letters and exercise numbers continue across sections. A PDF heading
-  is kept on the same page as its first exercise (`wrap={false}`). The Excel "Section" column
-  sits after the label column.
+  is kept on the same page as its first exercise (`wrap={false}`) and has its own style
+  (10.5 pt bold, text colour, not uppercase, space above), distinct from the small grey superset
+  caption. The Excel "Section" column sits after the label column.
 - **Superset "Move to section" is a dropdown button on the superset card**, next to "Group with
   next" and "Ungroup" (the card has no ⋯ menu). A member's own menu doesn't offer it, because a
   member can't leave its group. A single exercise gets a "Move to section" submenu in its ⋯ menu.
@@ -201,9 +210,18 @@ history diff lines. Every key in `en` and `es` (Rioplatense voseo). Suggestion c
   `closestCenter`): the block joins the hovered section in `onDragOver`, before or after the
   hovered block, and a cancelled drag restores the sections captured at drag start. Block
   announcements name the section (`Routines.sections.movedTo` / `droppedIn`); section drags reuse
-  `Sortable.*`.
+  `Sortable.*`. Collision detection is scoped the same way for keyboard drags (no pointer
+  coordinates): a block only collides with its own section's blocks, or a tall neighbour could
+  make a block of the next section the closest target.
 - **Section cards.** The name is an `h2` renamed in place (pencil; Enter or blur confirms,
   Escape cancels; a blank or too-long name keeps the input open with an error, like the routine
-  title). Deleting a section with exercises asks first; an empty one goes at once.
+  title). Deleting a section with exercises asks first; an empty one goes at once. The only
+  section shows no drag handle (nothing to reorder).
+- **Focus after moves.** The control used goes away with its row or section, so focus is placed
+  after the change lands (in a timeout, after Radix's menu/dialog focus restore): "Move to
+  section" focuses the moved block's drag handle in its new section; deleting a section focuses
+  the "Section options" button of the previous section (the new first one when the first was
+  deleted). That button rather than the previous section's handle, which is hidden when only one
+  section is left, and rather than the "Add section" input, which would open the phone keyboard.
 - **E2E pointer drags wait 100 ms after the drop.** dnd-kit swallows clicks for 50 ms after a
   drag, so a Save clicked by the test right away was lost (a person never clicks that fast).
