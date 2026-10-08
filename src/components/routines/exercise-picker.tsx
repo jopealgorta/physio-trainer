@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckIcon, DumbbellIcon, PlusIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -137,6 +138,7 @@ export function ExercisePicker({
   const tAreas = useTranslations("BodyAreas.areas");
   const tCategory = useTranslations("Library.form");
   const id = useId();
+  const router = useRouter();
 
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("");
@@ -145,11 +147,13 @@ export function ExercisePicker({
   const [announcement, setAnnouncement] = useState({ text: "", count: 0 });
   // What the exercise form opened with; null while it is closed.
   const [creating, setCreating] = useState<NewExerciseStart | null>(null);
+  // Bumped after creating an exercise, so the same search runs again and finds it.
+  const [generation, setGeneration] = useState(0);
   const sequence = useRef(0);
 
   const term = q.trim();
   const idle = term === "" && category === "" && area === "";
-  const key = JSON.stringify([term, category, area]);
+  const key = JSON.stringify([term, category, area, generation]);
 
   // Once the filters go idle the last results (or failure) no longer describe anything: drop
   // them, so retyping the same query is treated as a new search (busy, no stale error).
@@ -223,6 +227,10 @@ export function ExercisePicker({
   function created(exercise: ExerciseRef) {
     setCreating(null);
     pick(exercise);
+    // Otherwise "No exercises match" and "Create “…”" stay up, inviting a duplicate. The idle
+    // list and Recent come from the page; the editor keeps its unsaved edits across a refresh.
+    setGeneration((value) => value + 1);
+    router.refresh();
   }
 
   return (

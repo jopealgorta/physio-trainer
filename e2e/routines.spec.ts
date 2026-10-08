@@ -209,6 +209,21 @@ test("a physio creates an exercise from the picker: it joins the routine and the
   await expect(form.getByLabel("Name")).toHaveValue("Wall sit");
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
   await form.getByLabel("Instructions").fill("Back flat against the wall, knees at 90°.");
+
+  // The form's own layers stack on top of it (sheets on a phone) and close back to it.
+  await form.getByRole("button", { name: "New category" }).click();
+  const newCategory = page.getByRole("dialog", { name: "New category" });
+  await newCategory.getByLabel("Category name").fill("Isometrics");
+  await newCategory.getByRole("button", { name: "Create category" }).click();
+  await expect(newCategory).toBeHidden();
+  await expect(form.getByLabel("Categories")).toHaveText("Isometrics");
+  await form.getByLabel("Categories").click();
+  const categories = page.getByRole("dialog", { name: "Choose categories" });
+  await expect(categories.getByRole("checkbox", { name: "Isometrics", exact: true })).toBeChecked();
+  await page.keyboard.press("Escape");
+  await expect(categories).toBeHidden();
+  await expect(form).toBeVisible();
+
   await form.getByRole("button", { name: "Create and add" }).click();
   await expect(form).toBeHidden();
 
@@ -227,6 +242,7 @@ test("a physio creates an exercise from the picker: it joins the routine and the
   await expect(page.getByLabel("Instructions")).toHaveValue(
     "Back flat against the wall, knees at 90°.",
   );
+  await expect(page.getByLabel("Categories")).toHaveText("Isometrics");
 });
 
 test("the editor fits a phone and the picker opens as a sheet", async ({

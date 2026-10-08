@@ -11,10 +11,12 @@ import { chooseOption } from "@/test/select";
 import messages from "../../../messages/en.json";
 import { ExercisePicker } from "./exercise-picker";
 
-const { searchExercisesAction, createExerciseForRoutineAction } = vi.hoisted(() => ({
+const { searchExercisesAction, createExerciseForRoutineAction, refresh } = vi.hoisted(() => ({
   searchExercisesAction: vi.fn(),
   createExerciseForRoutineAction: vi.fn(),
+  refresh: vi.fn(),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/server/routines/actions", () => ({ searchExercisesAction }));
 vi.mock("@/server/library/actions", () => ({
   createExerciseForRoutineAction,
@@ -76,6 +78,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   searchExercisesAction.mockReset();
   createExerciseForRoutineAction.mockReset();
+  refresh.mockReset();
   onPick.mockReset();
 });
 afterEach(() => vi.useRealTimers());
@@ -363,6 +366,41 @@ describe("ExercisePicker", () => {
       expect(createExerciseForRoutineAction.mock.calls[0][1].get("name")).toBe("Wall sit");
       expect(screen.queryByRole("dialog")).toBeNull();
       expect(screen.getByTestId("picker-announcer")).toHaveTextContent("Added Wall sit.");
+    });
+
+    it("searches again and refreshes the lists once it is created", async () => {
+      const user = fakeTimerUser();
+      searchExercisesAction.mockResolvedValueOnce([]);
+      createExerciseForRoutineAction.mockResolvedValue({ status: "created", exercise: WALL_SIT });
+      setup();
+      type("Wall sit");
+      await advance();
+      await user.click(await screen.findByRole("button", { name: "Create “Wall sit”" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      searchExercisesAction.mockResolvedValueOnce([exercise("e9", "Wall sit")]);
+      await user.click(within(dialog).getByRole("button", { name: "Create and add" }));
+      await advance();
+
+      expect(searchExercisesAction).toHaveBeenCalledTimes(2);
+      expect(await within(list()).findByRole("button", { name: "Wall sit" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Create “Wall sit”" })).toBeNull();
+      // The idle list and Recent come from the page.
+      expect(refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the form open with a message when creating throws", async () => {
+      const user = fakeTimerUser();
+      createExerciseForRoutineAction.mockRejectedValue(new Error("offline"));
+      setup();
+      await user.click(screen.getByRole("button", { name: "New exercise" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      await user.type(within(dialog).getByLabelText("Name"), "Wall sit");
+      await user.click(within(dialog).getByRole("button", { name: "Create and add" }));
+      expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+        "Something went wrong. Try again.",
+      );
+      expect(within(dialog).getByLabelText("Name")).toHaveValue("Wall sit");
+      expect(onPick).not.toHaveBeenCalled();
     });
 
     it("keeps the form open with its errors when creating fails", async () => {
