@@ -11,8 +11,15 @@ import { chooseOption } from "@/test/select";
 import messages from "../../../messages/en.json";
 import { ExercisePicker } from "./exercise-picker";
 
-const { searchExercisesAction } = vi.hoisted(() => ({ searchExercisesAction: vi.fn() }));
+const { searchExercisesAction, createExerciseForRoutineAction } = vi.hoisted(() => ({
+  searchExercisesAction: vi.fn(),
+  createExerciseForRoutineAction: vi.fn(),
+}));
 vi.mock("@/server/routines/actions", () => ({ searchExercisesAction }));
+vi.mock("@/server/library/actions", () => ({
+  createExerciseForRoutineAction,
+  createCategoryAction: vi.fn(),
+}));
 
 const exercise = (id: string, name: string, over: Partial<ExerciseSummary> = {}) =>
   ({
@@ -68,6 +75,7 @@ const list = () => screen.getByTestId("picker-list");
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   searchExercisesAction.mockReset();
+  createExerciseForRoutineAction.mockReset();
   onPick.mockReset();
 });
 afterEach(() => vi.useRealTimers());
@@ -276,13 +284,104 @@ describe("ExercisePicker", () => {
     expect(onPick).not.toHaveBeenCalled();
   });
 
-  it("points to the library when it is empty", () => {
+  it("offers to create an exercise when the library is empty", () => {
     setup({ initial: [], recent: [] });
     expect(screen.getByText(/Your library is empty\./)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Add exercises in the library" })).toHaveAttribute(
-      "href",
-      "/library/new",
-    );
+    expect(screen.getByRole("button", { name: "New exercise" })).toBeEnabled();
     expect(screen.queryByTestId("picker-list")).not.toBeInTheDocument();
+  });
+
+  describe("creating an exercise", () => {
+    const WALL_SIT = {
+      id: "e9",
+      name: "Wall sit",
+      kind: "strength",
+      archived: false,
+      cover: null,
+    } as const;
+
+    it("opens the exercise form from New exercise", async () => {
+      const user = fakeTimerUser();
+      setup();
+      await user.click(screen.getByRole("button", { name: "New exercise" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      expect(within(dialog).getByLabelText("Name")).toHaveValue("");
+      expect(within(dialog).getByRole("button", { name: "Create and add" })).toBeInTheDocument();
+    });
+
+    it("offers to create the searched name when nothing matches, prefilled", async () => {
+      const user = fakeTimerUser();
+      searchExercisesAction.mockResolvedValue([]);
+      setup();
+      type("  Wall sit ");
+      await advance();
+      expect(await screen.findByText("No exercises match.")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Create “Wall sit”" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      expect(within(dialog).getByLabelText("Name")).toHaveValue("Wall sit");
+    });
+
+    it("does not offer the named create while results match", async () => {
+      searchExercisesAction.mockResolvedValue([SQUAT]);
+      setup();
+      type("Squ");
+      await advance();
+      await screen.findByText("1 exercise");
+      expect(screen.queryByRole("button", { name: /Create “/ })).toBeNull();
+    });
+
+    it("starts the new exercise in the filtered category and body area", async () => {
+      const user = fakeTimerUser();
+      searchExercisesAction.mockResolvedValue([]);
+      createExerciseForRoutineAction.mockResolvedValue({ status: "created", exercise: WALL_SIT });
+      setup();
+      await chooseOption(
+        user,
+        screen.getByRole("combobox", { name: "Category" }),
+        "Strength › Legs",
+      );
+      await chooseOption(user, screen.getByRole("combobox", { name: "Body area" }), "Glute");
+      await user.click(screen.getByRole("button", { name: "New exercise" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      await user.type(within(dialog).getByLabelText("Name"), "Wall sit");
+      await user.click(within(dialog).getByRole("button", { name: "Create and add" }));
+      const formData: FormData = createExerciseForRoutineAction.mock.calls[0][1];
+      expect(formData.getAll("categoryIds")).toEqual(["c2"]);
+      expect(formData.getAll("bodyAreas")).toEqual(["glute"]);
+    });
+
+    it("creates, closes the form, adds the exercise and announces it", async () => {
+      const user = fakeTimerUser();
+      createExerciseForRoutineAction.mockResolvedValue({ status: "created", exercise: WALL_SIT });
+      setup();
+      await user.click(screen.getByRole("button", { name: "New exercise" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      await user.type(within(dialog).getByLabelText("Name"), "Wall sit");
+      await user.click(within(dialog).getByRole("button", { name: "Create and add" }));
+
+      expect(onPick).toHaveBeenCalledWith(WALL_SIT);
+      expect(createExerciseForRoutineAction.mock.calls[0][1].get("name")).toBe("Wall sit");
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByTestId("picker-announcer")).toHaveTextContent("Added Wall sit.");
+    });
+
+    it("keeps the form open with its errors when creating fails", async () => {
+      const user = fakeTimerUser();
+      createExerciseForRoutineAction.mockResolvedValue({
+        status: "error",
+        fieldErrors: { name: "nameRequired" },
+      });
+      setup();
+      await user.click(screen.getByRole("button", { name: "New exercise" }));
+      const dialog = await screen.findByRole("dialog", { name: "New exercise" });
+      await user.click(within(dialog).getByRole("button", { name: "Create and add" }));
+      expect(await within(dialog).findByText("Enter a name.")).toBeInTheDocument();
+      expect(onPick).not.toHaveBeenCalled();
+    });
+
+    it("cannot create when the routine is full", () => {
+      setup({ disabledReason: "A routine can have up to 50 exercises." });
+      expect(screen.getByRole("button", { name: "New exercise" })).toBeDisabled();
+    });
   });
 });

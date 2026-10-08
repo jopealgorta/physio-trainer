@@ -27,10 +27,27 @@ import {
   reorderCategoriesSchema,
   type CategoryError,
   type ExerciseFormState,
+  type ExerciseInput,
   type Result,
 } from "./schemas";
 
 const revalidateLibrary = () => revalidatePath("/library", "layout");
+
+type ExerciseFieldsResult =
+  { ok: true; input: ExerciseInput } | { ok: false; state: ExerciseFormState };
+
+function parseExerciseFields(formData: FormData): ExerciseFieldsResult {
+  const parsed = exerciseSchema.safeParse(exerciseFormValues(formData));
+  return parsed.success
+    ? { ok: true, input: parsed.data }
+    : { ok: false, state: { status: "error", fieldErrors: exerciseFieldErrors(parsed.error) } };
+}
+
+function mutationErrorState(error: "categoryNotFound" | "notFound"): ExerciseFormState {
+  return error === "categoryNotFound"
+    ? { status: "error", fieldErrors: { categoryIds: "categoryInvalid" } }
+    : { status: "error", fieldErrors: {}, formError: "notFound" };
+}
 
 export async function saveExerciseAction(
   _state: ExerciseFormState,
@@ -41,22 +58,47 @@ export async function saveExerciseAction(
   if (id && !id.success) return { status: "error", fieldErrors: {}, formError: "notFound" };
 
   formData.delete("id");
-  const parsed = exerciseSchema.safeParse(exerciseFormValues(formData));
-  if (!parsed.success) return { status: "error", fieldErrors: exerciseFieldErrors(parsed.error) };
+  const fields = parseExerciseFields(formData);
+  if (!fields.ok) return fields.state;
 
   const result = await withPhysio((tx, physioId) =>
     id
-      ? updateExercise(tx, physioId, id.data, parsed.data)
-      : createExercise(tx, physioId, parsed.data),
+      ? updateExercise(tx, physioId, id.data, fields.input)
+      : createExercise(tx, physioId, fields.input),
   );
-  if (!result.ok) {
-    return result.error === "categoryNotFound"
-      ? { status: "error", fieldErrors: { categoryIds: "categoryInvalid" } }
-      : { status: "error", fieldErrors: {}, formError: "notFound" };
-  }
+  if (!result.ok) return mutationErrorState(result.error);
   revalidateLibrary();
   if (!id) redirect(`/library/${result.data.id}` as Route);
   return { status: "saved" };
+}
+
+/**
+ * Creates an exercise from the routine editor's picker. It is saved to the library like any
+ * other; instead of redirecting, the action returns it so the editor can add it to the routine.
+ */
+export async function createExerciseForRoutineAction(
+  _state: ExerciseFormState,
+  formData: FormData,
+): Promise<ExerciseFormState> {
+  formData.delete("id");
+  const fields = parseExerciseFields(formData);
+  if (!fields.ok) return fields.state;
+
+  const { input } = fields;
+  const result = await withPhysio((tx, physioId) => createExercise(tx, physioId, input));
+  if (!result.ok) return mutationErrorState(result.error);
+  revalidateLibrary();
+  const [first] = input.media;
+  return {
+    status: "created",
+    exercise: {
+      id: result.data.id,
+      name: input.name,
+      kind: input.kind,
+      archived: false,
+      cover: first ? { videoId: first.videoId, isShort: first.isShort } : null,
+    },
+  };
 }
 
 export async function setExerciseArchivedAction(

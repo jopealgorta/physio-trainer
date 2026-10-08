@@ -1,7 +1,6 @@
 "use client";
 
-import { CheckIcon, DumbbellIcon } from "lucide-react";
-import Link from "next/link";
+import { CheckIcon, DumbbellIcon, PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -28,8 +27,11 @@ import { fromSelectValue, toSelectValue } from "@/lib/select-value";
 import { searchExercisesAction } from "@/server/routines/actions";
 import type { ExerciseSummary } from "@/server/library/queries";
 
+import { CreateExerciseDialog, type NewExerciseStart } from "./create-exercise-dialog";
+
 const SEARCH_DEBOUNCE_MS = 250;
 const NONE_ADDED: ReadonlyMap<string, number> = new Map();
+const BLANK_START: NewExerciseStart = { name: "", categoryIds: [], bodyAreas: [] };
 const MAX_AREA_BADGES = 2;
 
 export const toExerciseRef = (summary: ExerciseSummary): ExerciseRef => ({
@@ -108,7 +110,8 @@ function ExerciseButton({
  * Searchable, filterable exercise list for the routine editor (spec 05). Idle (no query and no
  * filter) it shows the physio's recent exercises and the first page of the library; otherwise it
  * searches on the server, debounced, with responses sequenced so a slow older one is dropped.
- * Picking never closes anything: the physio keeps adding.
+ * Picking never closes anything: the physio keeps adding. "New exercise" (and, when a search finds
+ * nothing, "Create “<search>”") opens the exercise form; what it creates is picked like any other.
  */
 export function ExercisePicker({
   categories,
@@ -116,6 +119,7 @@ export function ExercisePicker({
   initial,
   disabledReason,
   added = NONE_ADDED,
+  inSheet = false,
   onPick,
 }: {
   categories: CategoryNode[];
@@ -125,6 +129,8 @@ export function ExercisePicker({
   added?: ReadonlyMap<string, number>;
   /** Set when nothing can be added (routine at its limit); shown and disables every pick. */
   disabledReason: string | null;
+  /** The picker is inside a bottom sheet, so the exercise form opens as a nested one. */
+  inSheet?: boolean;
   onPick: (exercise: ExerciseRef) => void;
 }) {
   const t = useTranslations("Routines.picker");
@@ -137,6 +143,8 @@ export function ExercisePicker({
   const [area, setArea] = useState("");
   const [fetched, setFetched] = useState<Fetched | null>(null);
   const [announcement, setAnnouncement] = useState({ text: "", count: 0 });
+  // What the exercise form opened with; null while it is closed.
+  const [creating, setCreating] = useState<NewExerciseStart | null>(null);
   const sequence = useRef(0);
 
   const term = q.trim();
@@ -189,15 +197,32 @@ export function ExercisePicker({
     }
   }
 
-  function pick(exercise: ExerciseSummary) {
+  function pick(exercise: ExerciseRef) {
     if (disabled) return;
-    onPick(toExerciseRef(exercise));
+    onPick(exercise);
     // The announcer alternates a trailing no-break space (U+00A0, see below) so that repeating
     // the same pick still changes the text and is announced again.
     setAnnouncement((previous) => ({
       text: t("added", { name: exercise.name }),
       count: previous.count + 1,
     }));
+  }
+
+  const pickSummary = (summary: ExerciseSummary) => pick(toExerciseRef(summary));
+
+  /** Opens the exercise form with what the physio searched and filtered by. */
+  function startCreating() {
+    const filteredArea = bodyAreaSchema.safeParse(area);
+    setCreating({
+      name: term,
+      categoryIds: category ? [category] : [],
+      bodyAreas: filteredArea.success ? [filteredArea.data] : [],
+    });
+  }
+
+  function created(exercise: ExerciseRef) {
+    setCreating(null);
+    pick(exercise);
   }
 
   return (
@@ -275,7 +300,29 @@ export function ExercisePicker({
             </Select>
           </div>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          onClick={startCreating}
+          className="justify-self-start"
+        >
+          <PlusIcon aria-hidden />
+          {t("create")}
+        </Button>
       </div>
+
+      <CreateExerciseDialog
+        open={creating !== null}
+        onOpenChange={(open) => {
+          if (!open) setCreating(null);
+        }}
+        start={creating ?? BLANK_START}
+        categories={categories}
+        nested={inSheet}
+        onCreated={created}
+      />
 
       <p role="status" data-testid="picker-announcer" className="sr-only">
         {announcement.text ? announcement.text + (announcement.count % 2 ? "" : " ") : ""}
@@ -284,15 +331,7 @@ export function ExercisePicker({
       {disabled ? <p className="text-muted-foreground text-sm">{disabledReason}</p> : null}
 
       {libraryEmpty ? (
-        <p className="text-muted-foreground text-sm">
-          {t.rich("noLibrary", {
-            link: (chunks) => (
-              <Link href="/library/new" className="text-primary underline underline-offset-2">
-                {chunks}
-              </Link>
-            ),
-          })}
-        </p>
+        <p className="text-muted-foreground text-sm">{t("noLibrary")}</p>
       ) : (
         <>
           {idle && recent.length > 0 ? (
@@ -307,7 +346,7 @@ export function ExercisePicker({
                       exercise={exercise}
                       count={added.get(exercise.id) ?? 0}
                       disabled={disabled}
-                      onPick={pick}
+                      onPick={pickSummary}
                     />
                   </li>
                 ))}
@@ -327,7 +366,22 @@ export function ExercisePicker({
                 {t("results", { count: exercises.length })}
               </p>
               {exercises.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t("none")}</p>
+                <div className="grid justify-items-start gap-2">
+                  <p className="text-muted-foreground text-sm">{t("none")}</p>
+                  {term !== "" && !busy ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={disabled}
+                      onClick={startCreating}
+                      className="h-auto max-w-full py-1.5 whitespace-normal"
+                    >
+                      <PlusIcon aria-hidden />
+                      {t("createNamed", { name: term })}
+                    </Button>
+                  ) : null}
+                </div>
               ) : (
                 <ul
                   data-testid="picker-list"
@@ -341,7 +395,7 @@ export function ExercisePicker({
                         exercise={exercise}
                         count={added.get(exercise.id) ?? 0}
                         disabled={disabled}
-                        onPick={pick}
+                        onPick={pickSummary}
                       />
                     </li>
                   ))}

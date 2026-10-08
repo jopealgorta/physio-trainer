@@ -38,10 +38,16 @@ const defaults: ExerciseFormValues = {
 function setup(
   action: (state: ExerciseFormState, formData: FormData) => Promise<ExerciseFormState>,
   values: Partial<ExerciseFormValues> = {},
+  props: { submitLabel?: string } = {},
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <ExerciseForm action={action} defaults={{ ...defaults, ...values }} categories={categories} />
+      <ExerciseForm
+        action={action}
+        defaults={{ ...defaults, ...values }}
+        categories={categories}
+        {...props}
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -59,6 +65,12 @@ describe("ExerciseForm", () => {
     expect(screen.getByRole("heading", { name: "Videos" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create exercise" })).toBeInTheDocument();
     expect(document.querySelector('input[name="id"]')).toBeNull();
+  });
+
+  it("uses the given submit label", () => {
+    setup(idleAction(), {}, { submitLabel: "Create and add" });
+    expect(screen.getByRole("button", { name: "Create and add" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create exercise" })).toBeNull();
   });
 
   it("has no default prescription fields", () => {

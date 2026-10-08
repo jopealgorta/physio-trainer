@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type { BodyArea } from "@/lib/body-areas";
 import type { CategoryNode } from "@/lib/category-tree";
 import { EXERCISE_KINDS, type ExerciseKind } from "@/lib/exercise-kinds";
@@ -62,10 +63,16 @@ export function ExerciseForm({
   action,
   defaults,
   categories,
+  submitLabel,
+  compact = false,
 }: {
   action: (state: ExerciseFormState, formData: FormData) => Promise<ExerciseFormState>;
   defaults: ExerciseFormValues;
   categories: CategoryNode[];
+  /** Replaces "Create exercise" / "Save changes". */
+  submitLabel?: string;
+  /** One column at every width, for a dialog (the page puts body areas beside the fields). */
+  compact?: boolean;
 }) {
   const t = useTranslations("Library.form");
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -101,7 +108,7 @@ export function ExerciseForm({
   return (
     <form action={formAction} onSubmit={onSubmit} noValidate className="grid gap-8">
       {editing ? <input type="hidden" name="id" value={defaults.id} /> : null}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className={cn("grid gap-8", !compact && "lg:grid-cols-[minmax(0,1fr)_20rem]")}>
         <div className="grid content-start gap-6">
           <div className="grid gap-2">
             <Label htmlFor={`${id}-name`}>{t("name")}</Label>
@@ -195,9 +202,16 @@ export function ExerciseForm({
         </Alert>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      {/* In a dialog the button stays in reach below the long form. */}
+      <div
+        className={cn(
+          "flex items-center gap-3",
+          compact &&
+            "bg-popover sticky bottom-0 z-10 -mx-6 border-t px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+        )}
+      >
         <Button type="submit" disabled={pending}>
-          {pending ? t("saving") : t(editing ? "save" : "create")}
+          {pending ? t("saving") : (submitLabel ?? t(editing ? "save" : "create"))}
         </Button>
         {state.status === "saved" && !pending ? (
           <p role="status" className="text-muted-foreground text-sm">

@@ -745,7 +745,7 @@
       "recent": "Recent",
       "results": "{count, plural, one {# exercise} other {# exercises}}",
       "none": "No exercises match.",
-      "noLibrary": "Your library is empty. <link>Add exercises in the library</link> first.",
+      "noLibrary": "Your library is empty. Create an exercise to add it here; it's saved to the library too.",
       "added": "Added {name}.",
       "full": "A routine can have up to {max, number} exercises.",
       "error": "Couldn't search. Try again.",
@@ -753,7 +753,12 @@
       "close": "{count, plural, =0 {Done} other {# added · Done}}",
       "inRoutine": "{count, plural, one {In the routine} other {In the routine # times}}",
       "flash": "Added {name}",
-      "addedCount": "×{count, number}"
+      "addedCount": "×{count, number}",
+      "create": "New exercise",
+      "createNamed": "Create “{name}”",
+      "createTitle": "New exercise",
+      "createDescription": "It's saved to your library and added to this routine.",
+      "createSubmit": "Create and add"
     }
   },
   "Plans": {
