@@ -333,6 +333,30 @@ describe("ExerciseLogPanel", () => {
     expect(add).toBeDisabled();
   });
 
+  it("removes an added set line, never a prescribed one, and saves at once", async () => {
+    const { user } = setup();
+    expect(screen.queryByRole("button", { name: /^Remove set/ })).not.toBeInTheDocument();
+    await user.type(setInput(1), "20");
+    await user.click(screen.getByRole("button", { name: "Add set" }));
+    await user.type(setInput(4), "30");
+    await wait(AUTOSAVE_DELAY_MS);
+    expect(m.log).toHaveBeenLastCalledWith("7k2m9qpx", sent({ setWeightsKg: [20, null, null, 30] }));
+    expect(screen.getAllByRole("button", { name: /^Remove set/ })).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Remove set 4" }));
+    expect(screen.queryByLabelText("Set 4 weight in kg")).not.toBeInTheDocument();
+    expect(m.log).toHaveBeenLastCalledWith("7k2m9qpx", sent({ setWeightsKg: [20] }));
+  });
+
+  it("shifts the later weights up when an added set in the middle is removed", async () => {
+    const { user } = setup({ logs: [saved({ setWeightsKg: [20, 21, 22, 23, 24] })] });
+    expect(screen.queryByRole("button", { name: "Remove set 3" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove set 4" }));
+    expect(setInput(4)).toHaveValue("24");
+    expect(screen.queryByLabelText("Set 5 weight in kg")).not.toBeInTheDocument();
+    expect(m.log).toHaveBeenLastCalledWith("7k2m9qpx", sent({ setWeightsKg: [20, 21, 22, 24] }));
+  });
+
   it("offers RPE and a comment only for an aerobic exercise", async () => {
     const { user } = setup({ item: run });
     expect(screen.queryByRole("group", { name: "Weight per set" })).not.toBeInTheDocument();

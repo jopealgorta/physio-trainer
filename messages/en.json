@@ -1449,6 +1449,7 @@
         "input": "Set {number, number} weight in kg",
         "unit": "kg",
         "add": "Add set",
+        "remove": "Remove set {number, number}",
         "invalid": "Enter a weight between 0 and {max, number} kg."
       },
       "comment": {

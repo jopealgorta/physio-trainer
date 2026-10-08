@@ -1449,6 +1449,7 @@
         "input": "Peso de la serie {number, number} en kg",
         "unit": "kg",
         "add": "Agregar serie",
+        "remove": "Quitar serie {number, number}",
         "invalid": "Ingresá un peso entre 0 y {max, number} kg."
       },
       "comment": {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, PlusIcon } from "lucide-react";
+import { CheckIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useRef, useState, type KeyboardEvent } from "react";
 
@@ -138,10 +138,9 @@ function LogFields({
         comment: log?.comment ?? "",
       },
   );
-  const [lines, setLines] = useState(() =>
-    // Aerobic exercises log no sets; one carried over from an old single weight still shows.
-    strength ? Math.max(item.sets.length, start.lines, 1) : start.lines,
-  );
+  // Aerobic exercises log no sets; one carried over from an old single weight still shows.
+  const prescribedLines = strength ? Math.max(item.sets.length, 1) : 0;
+  const [lines, setLines] = useState(() => Math.max(prescribedLines, start.lines));
   const [fields, setFields] = useState<Fields>(() => ({
     weights: start.weights,
     rpe: start.rpe,
@@ -165,10 +164,10 @@ function LogFields({
    * Applies a change, keeps it as the day's draft and queues the save; false while a weight is
    * invalid: then nothing is queued and what was queued before is dropped.
    */
-  const update = (patch: Partial<Fields>): boolean => {
+  const update = (patch: Partial<Fields>, nextLines = lines): boolean => {
     const next = { ...fields, ...patch };
     setFields(next);
-    keepDraft(date, { ...next, lines });
+    keepDraft(date, { ...next, lines: nextLines });
     const weights = next.weights.map(parseWeight);
     if (weights.some((kg) => kg === undefined)) {
       cancel();
@@ -191,6 +190,14 @@ function LogFields({
     const next = Math.min(lines + 1, SET_WEIGHTS_MAX);
     setLines(next);
     keepDraft(date, { ...fields, lines: next });
+  };
+
+  /** Drops a set line the patient added (never a prescribed one); later weights move up. */
+  const removeLine = (index: number) => {
+    const next = lines - 1;
+    setLines(next);
+    // A discrete change: saved at once.
+    if (update({ weights: fields.weights.filter((_, i) => i !== index) }, next)) flush();
   };
 
   const setWeight = (index: number, value: string) =>
@@ -260,6 +267,22 @@ function LogFields({
                       {t("exerciseLog.sets.unit")}
                     </span>
                   </div>
+                  {lines > prescribedLines ? (
+                    // Keeps the inputs aligned whether or not the row can be removed.
+                    <div className="size-9 flex-none">
+                      {index >= prescribedLines ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t("exerciseLog.sets.remove", { number: index + 1 })}
+                          onClick={() => removeLine(index)}
+                        >
+                          <Trash2Icon aria-hidden />
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </li>
               );
             })}
