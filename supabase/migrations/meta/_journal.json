@@ -299,15 +299,29 @@
     {
       "idx": 42,
       "version": "7",
-      "when": 1791478796688,
-      "tag": "20261008165956_routine-sections",
+      "when": 1791476440782,
+      "tag": "20261008162040_exercise-category-links-rebackfill",
       "breakpoints": true
     },
     {
       "idx": 43,
       "version": "7",
-      "when": 1791478797807,
-      "tag": "20261008165957_routine-sections-extras",
+      "when": 1791476451396,
+      "tag": "20261008162051_exercises-drop-category-tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791484867796,
+      "tag": "20261008184107_routine-sections",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1791484873451,
+      "tag": "20261008184113_routine-sections-extras",
       "breakpoints": true
     }
   ]

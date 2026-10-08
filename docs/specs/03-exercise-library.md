@@ -213,11 +213,16 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
     cascading from both ends, RLS, PK `(exercise_id, category_id)`. Two migrations: create the
     table; a custom backfill copying each `category_id` into a link (the backfill test runs the
     migration file in a rolled-back transaction).
-  - Expand, then contract: `exercises.category_id` and `tags` stay in the database (marked
+  - Expand, then contract: `exercises.category_id` and `tags` stayed in the database (marked
     `@deprecated` in the Drizzle schema, never read or written by the app) so the previous app
-    version keeps working while migrations and the deploy land in either order. A follow-up
-    `chore(db)` PR re-runs the backfill (catching categories the old app saved during the
-    rollout) and then drops both columns with their FK, index and check.
+    version kept working while migrations and the deploy landed in either order. Both columns
+    were **dropped on 2026-10-08** in a follow-up `chore(db)` PR, once this change was in
+    production: a custom migration re-runs the backfill (`exercise-category-links-rebackfill`,
+    catching categories the old app saved during the rollout), then
+    `exercises-drop-category-tags` drops the columns with their FK (`exercises_category_fk`),
+    indexes (`exercises_category_id_idx`, `exercises_tags_idx`) and check
+    (`exercises_tags_count`). The backfill test re-adds `category_id` in its rolled-back
+    transaction and covers both backfill files.
   - Server: links are replaced wholesale on save in the exercise's savepoint, so a foreign
     category (`exercise_category_links_category_fk`) rolls the whole save back as
     `categoryNotFound`. `ExerciseSummary`/`ExerciseDetail` carry `categoryIds` (sorted by id; the

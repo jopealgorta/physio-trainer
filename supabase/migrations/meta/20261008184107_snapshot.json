@@ -1,6 +1,6 @@
 {
-  "id": "3e3ce01e-88d5-4f70-9b59-f5ae504edf73",
-  "prevId": "26bae99b-ae83-44e7-8e2a-c9f77ec825c6",
+  "id": "a656f402-dde1-4491-bc8e-f3371273616d",
+  "prevId": "7834b441-f077-40c2-91bc-3686d9cfe3b7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -658,12 +658,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "category_id": {
-          "name": "category_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "name": {
           "name": "name",
           "type": "text",
@@ -680,13 +674,6 @@
           "name": "body_areas",
           "type": "body_area[]",
           "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
-        },
-        "tags": {
-          "name": "tags",
-          "type": "text[]",
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
@@ -742,47 +729,11 @@
           "method": "btree",
           "with": {}
         },
-        "exercises_category_id_idx": {
-          "name": "exercises_category_id_idx",
-          "columns": [
-            {
-              "expression": "physio_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "category_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "exercises_body_areas_idx": {
           "name": "exercises_body_areas_idx",
           "columns": [
             {
               "expression": "body_areas",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "gin",
-          "with": {}
-        },
-        "exercises_tags_idx": {
-          "name": "exercises_tags_idx",
-          "columns": [
-            {
-              "expression": "tags",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -840,10 +791,6 @@
         "exercises_instructions_length": {
           "name": "exercises_instructions_length",
           "value": "char_length(\"exercises\".\"instructions\") <= 5000"
-        },
-        "exercises_tags_count": {
-          "name": "exercises_tags_count",
-          "value": "cardinality(\"exercises\".\"tags\") <= 20"
         }
       },
       "isRLSEnabled": false
