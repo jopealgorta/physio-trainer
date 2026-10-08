@@ -752,7 +752,7 @@
         "distance": "Distancia (km)",
         "distanceHint": "5 o 2,5",
         "intensity": "Intensidad",
-        "intensityPlaceholder": "Zona 2, RPE 5, 5:30/km",
+        "intensityPlaceholder": "Zona 2, esfuerzo 5, 5:30/km",
         "durationMinutes": "Duración (min)",
         "durationHint": "30 o 1:30"
       },
@@ -1330,7 +1330,7 @@
     "summary": {
       "title": "Registrado",
       "pain": "Dolor {value, number}",
-      "rpe": "RPE {value, number}",
+      "rpe": "Esfuerzo {value, number}",
       "weights": "{value} kg"
     },
     "restDay": "No hay nada programado para {day}.",
@@ -1411,7 +1411,7 @@
         "clear": "Borrar"
       },
       "rpe": {
-        "legend": "Esfuerzo (RPE)",
+        "legend": "Esfuerzo",
         "hint": "¿Qué tan duro fue? 0 = reposo, 10 = máximo.",
         "clear": "Borrar",
         "selected": "{value, number} · {label}",
@@ -1592,7 +1592,7 @@
       "done": "Hecha",
       "notDone": "Sin hacer",
       "pain": "Dolor {value, number}/10",
-      "rpe": "RPE {value, number}/10",
+      "rpe": "Esfuerzo {value, number}/10",
       "weight": "{value} kg",
       "exercises": "Ejercicios",
       "new": "Nuevo"

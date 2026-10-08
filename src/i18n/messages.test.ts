@@ -92,3 +92,13 @@ describe("locales", () => {
     expect(files.map((file) => file.replace(/\.json$/, "")).sort()).toEqual([...locales].sort());
   });
 });
+
+describe("Spanish copy", () => {
+  // Patients and physios in Spanish don't read "RPE"; the scale is called "Esfuerzo".
+  it("never uses the RPE acronym", () => {
+    const withRpe = Object.entries(flatten(load("es.json")))
+      .filter(([, message]) => /\bRPE\b/.test(message))
+      .map(([key]) => key);
+    expect(withRpe).toEqual([]);
+  });
+});
