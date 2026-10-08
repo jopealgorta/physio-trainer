@@ -37,6 +37,7 @@ export type ExportKey =
   | "xlsx.standalone"
   | "xlsx.sheetFallback"
   | "xlsx.columns.group"
+  | "xlsx.columns.section"
   | "xlsx.columns.exercise"
   | "xlsx.columns.sets"
   | "xlsx.columns.reps"

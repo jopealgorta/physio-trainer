@@ -14,9 +14,25 @@ export function routineRestoreInput(
   snapshot: RoutineSnapshot,
   current: { id: string; version: number; status: RoutineStatus; caseId: string | null },
   existingExerciseIds: ReadonlySet<string>,
+  defaultSectionName: string,
 ): { input: SaveRoutineInput; dropped: number } {
   const ordered = [...snapshot.items].sort((a, b) => a.position - b.position);
-  const kept = ordered.filter((item) => existingExerciseIds.has(item.exercise.id));
+  const existing = ordered.filter((item) => existingExerciseIds.has(item.exercise.id));
+
+  // Stored snapshots are not re-parsed: one from before sections has no `sections` at runtime.
+  // It restores into a single section; a newer one keeps all its sections, even emptied ones.
+  const stored = snapshot.sections ?? [];
+  const sections = stored.length > 0 ? stored : [{ key: "s0", name: defaultSectionName }];
+  const sectionOf = (item: (typeof ordered)[number]): string => {
+    const key = item.prescription.sectionKey ?? null;
+    return stored.length > 0 && key !== null && stored.some((s) => s.key === key)
+      ? key
+      : sections[0].key;
+  };
+  // The save path wants items listed in section order (stable sort keeps the position order).
+  const sectionIndex = (item: (typeof ordered)[number]) =>
+    sections.findIndex((section) => section.key === sectionOf(item));
+  const kept = existing.sort((a, b) => sectionIndex(a) - sectionIndex(b));
 
   const members = new Map<string, number>();
   for (const { prescription } of kept) {
@@ -41,15 +57,18 @@ export function routineRestoreInput(
       sessionsPerWeek: snapshot.routine.sessionsPerWeek,
       sessionsPerDay: snapshot.routine.sessionsPerDay,
       status: current.status,
+      sections: sections.map(({ key, name }) => ({ key, name })),
       groups: snapshot.groups
         .filter((group) => keepGroup(group.key))
         .map((group) => ({ key: group.key, restSeconds: group.restSeconds })),
-      items: kept.map(({ exercise, prescription }) => {
+      items: kept.map((item) => {
+        const { exercise, prescription } = item;
         const { groupKey } = prescription;
         const dissolved = groupKey !== null && !keepGroup(groupKey);
         return {
           exerciseId: exercise.id,
           groupKey: keepGroup(groupKey) ? groupKey : null,
+          sectionKey: sectionOf(item),
           holdSeconds: prescription.holdSeconds,
           restSeconds: dissolved ? groupRest(groupKey) : prescription.restSeconds,
           side: prescription.side,

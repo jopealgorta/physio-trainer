@@ -1,3 +1,4 @@
+import { flattenSections } from "@/lib/routine-sections";
 import { PlayIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Route } from "next";
@@ -66,7 +67,7 @@ export async function RoutineView({
           takes all of it. The log slot's own elements are items of this row (see
           LogSessionButton); with neither, the empty row is hidden. */}
       <div className="flex items-center gap-3 empty:hidden sm:flex-wrap">
-        {startHref && routine.blocks.length > 0 ? (
+        {startHref && flattenSections(routine.sections).length > 0 ? (
           <Button asChild size="lg" className={PATIENT_ROW_BUTTON}>
             <Link href={startHref as Route} prefetch={false}>
               <PlayIcon aria-hidden />
@@ -82,7 +83,11 @@ export async function RoutineView({
           <p className="wrap-anywhere whitespace-pre-line">{routine.notes}</p>
         </section>
       ) : null}
-      <ExerciseList blocks={routine.blocks} logging={exerciseLogging} />
+      <ExerciseList
+        sections={routine.sections}
+        sectionHeadingLevel={headingLevel === 2 ? 3 : 4}
+        logging={exerciseLogging}
+      />
     </article>
   );
 }

@@ -114,6 +114,15 @@ const styles = StyleSheet.create({
   groupFirst: { marginTop: 8 },
   groupCaption: { paddingTop: 4 },
   sectionSpaced: { marginTop: 28 },
+  // A routine section's name: a step under the routine title, distinct from the superset caption.
+  sectionHeading: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: FOREGROUND,
+    lineHeight: 1.2,
+    marginTop: 14,
+    marginBottom: 4,
+  },
   footer: {
     position: "absolute",
     left: 32,
@@ -312,25 +321,38 @@ function ItemRow({
 }
 
 /** One exercise; superset members carry the group's left rule, the first one its caption too. */
-type Row = { item: ExportItem; caption: string | null; inGroup: boolean };
+type ItemRowData = { kind: "item"; item: ExportItem; caption: string | null; inGroup: boolean };
+/** A section heading, shown only when the routine has two or more non-empty sections. */
+type HeadingRow = { kind: "heading"; name: string };
+type Row = ItemRowData | HeadingRow;
 
 function rows(routine: ExportRoutine, t: ExportTranslate): Row[] {
-  return routine.blocks.flatMap((block: ExportBlock): Row[] => {
-    if (block.kind === "single") return [{ item: block.item, caption: null, inGroup: false }];
-    const caption =
-      block.restSeconds !== null
-        ? t("pdf.supersetRest", { seconds: block.restSeconds })
-        : t("pdf.superset");
-    return block.items.map((item, index) => ({
-      item,
-      caption: index === 0 ? caption : null,
-      inGroup: true,
-    }));
+  return routine.sections.flatMap((section): Row[] => {
+    const heading: Row[] = routine.sectionHeadings ? [{ kind: "heading", name: section.name }] : [];
+    const items = section.blocks.flatMap((block: ExportBlock): ItemRowData[] => {
+      if (block.kind === "single") {
+        return [{ kind: "item", item: block.item, caption: null, inGroup: false }];
+      }
+      const caption =
+        block.restSeconds !== null
+          ? t("pdf.supersetRest", { seconds: block.restSeconds })
+          : t("pdf.superset");
+      return block.items.map((item, index) => ({
+        kind: "item",
+        item,
+        caption: index === 0 ? caption : null,
+        inGroup: true,
+      }));
+    });
+    return [...heading, ...items];
   });
 }
 
+const rowKey = (row: Row, index: number) =>
+  row.kind === "heading" ? `heading-${index}` : row.item.id;
+
 /** Never split across pages. Consecutive members' left rules touch, so a superset reads as one. */
-function RowView({ row, ...props }: Context & { row: Row; routine: ExportRoutine }) {
+function RowView({ row, ...props }: Context & { row: ItemRowData; routine: ExportRoutine }) {
   const style = row.inGroup ? (row.caption ? [styles.group, styles.groupFirst] : styles.group) : {};
   return (
     <View style={style} wrap={false}>
@@ -342,6 +364,41 @@ function RowView({ row, ...props }: Context & { row: Row; routine: ExportRoutine
   );
 }
 
+/** Rows up to and including the next exercise, so a heading never sits alone at a page bottom. */
+function leadingRows(all: Row[]): { lead: Row[]; rest: Row[] } {
+  const firstItem = all.findIndex((row) => row.kind === "item");
+  const end = firstItem === -1 ? all.length : firstItem + 1;
+  return { lead: all.slice(0, end), rest: all.slice(end) };
+}
+
+function GroupedRows({
+  list,
+  routine,
+  ...context
+}: Context & { list: Row[]; routine: ExportRoutine }) {
+  // Consecutive headings cannot occur (empty sections are dropped), so a heading is followed by
+  // an exercise; they are rendered together in one unbreakable view.
+  const out: React.ReactNode[] = [];
+  for (let i = 0; i < list.length; i++) {
+    const row = list[i];
+    if (row.kind === "heading") {
+      const next = list[i + 1];
+      out.push(
+        <View key={rowKey(row, i)} wrap={false}>
+          <Text style={styles.sectionHeading}>{row.name}</Text>
+          {next && next.kind === "item" ? (
+            <RowView row={next} routine={routine} {...context} />
+          ) : null}
+        </View>,
+      );
+      i++;
+    } else {
+      out.push(<RowView key={rowKey(row, i)} row={row} routine={routine} {...context} />);
+    }
+  }
+  return <>{out}</>;
+}
+
 function RoutineSection({
   routine,
   spaced,
@@ -350,7 +407,7 @@ function RoutineSection({
   const { doc, t } = context;
   const phase = phaseLine(routine.phase, doc.locale, t);
   const sessions = frequencyLine(routine, t);
-  const [firstRow, ...otherRows] = rows(routine, t);
+  const { lead, rest } = leadingRows(rows(routine, t));
   return (
     <View style={spaced ? styles.sectionSpaced : undefined}>
       {/* The heading never sits alone at the bottom of a page: it moves with the first exercise. */}
@@ -364,16 +421,14 @@ function RoutineSection({
         {phase ? <Text style={styles.meta}>{phase}</Text> : null}
         {sessions ? <Text style={styles.meta}>{sessions}</Text> : null}
         {routine.notes ? <Text style={styles.notes}>{routine.notes}</Text> : null}
-        {doc.tracking && firstRow ? <TrackHeader {...context} /> : null}
-        {firstRow ? (
+        {doc.tracking && lead.length > 0 ? <TrackHeader {...context} /> : null}
+        {lead.length > 0 ? (
           <View style={styles.items}>
-            <RowView row={firstRow} routine={routine} {...context} />
+            <GroupedRows list={lead} routine={routine} {...context} />
           </View>
         ) : null}
       </View>
-      {otherRows.map((row) => (
-        <RowView key={row.item.id} row={row} routine={routine} {...context} />
-      ))}
+      <GroupedRows list={rest} routine={routine} {...context} />
     </View>
   );
 }

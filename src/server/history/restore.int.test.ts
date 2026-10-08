@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
@@ -35,6 +35,7 @@ import { getSnapshots, listVersions } from "./queries";
 const item = (exerciseId: string, reps = 10): SaveItem => ({
   exerciseId,
   groupKey: null,
+  sectionKey: "s0",
   holdSeconds: null,
   restSeconds: null,
   side: null,
@@ -65,6 +66,7 @@ const saveInput = (
   sessionsPerWeek: null,
   sessionsPerDay: null,
   status: "draft",
+  sections: [{ key: "s0", name: "Main" }],
   groups: [],
   items,
   ...header,
@@ -167,7 +169,7 @@ describe("version history: list, compare and restore", () => {
       );
 
       const restored = await as(a, (tx, physioId) =>
-        restoreRoutineVersion(tx, physioId, { id, version: 2 }),
+        restoreRoutineVersion(tx, physioId, { id, version: 2 }, "Main"),
       );
       expect(restored).toEqual({ ok: true, data: { version: 4, dropped: 0 } });
 
@@ -199,7 +201,7 @@ describe("version history: list, compare and restore", () => {
       await db.delete(exercises).where(eq(exercises.id, gone));
 
       const restored = await as(a, (tx, physioId) =>
-        restoreRoutineVersion(tx, physioId, { id, version: 2 }),
+        restoreRoutineVersion(tx, physioId, { id, version: 2 }, "Main"),
       );
       expect(restored).toEqual({ ok: true, data: { version: 4, dropped: 1 } });
       const rows = await routineRows(id);
@@ -214,9 +216,56 @@ describe("version history: list, compare and restore", () => {
       await db.update(exercises).set({ archivedAt: new Date() }).where(eq(exercises.id, ex));
 
       const restored = await as(a, (tx, physioId) =>
-        restoreRoutineVersion(tx, physioId, { id, version: 2 }),
+        restoreRoutineVersion(tx, physioId, { id, version: 2 }, "Main"),
       );
       expect(restored).toEqual({ ok: true, data: { version: 4, dropped: 0 } });
+    });
+
+    it("restores an old snapshot (no sections) into one section with the default name", async () => {
+      const ex = await exercise(a);
+      const id = await newRoutine(a, customerId);
+      data(await save(id, 1, [item(ex), item(ex)]));
+      // Make version 2 look as it was stored before sections existed.
+      await db.execute(
+        sql`update routine_versions set snapshot = (snapshot - 'sections') where routine_id = ${id} and version = 2`,
+      );
+      const restored = await as(a, (tx, physioId) =>
+        restoreRoutineVersion(tx, physioId, { id, version: 2 }, "Principal"),
+      );
+      expect(restored).toEqual({ ok: true, data: { version: 3, dropped: 0 } });
+      const snapshot = (await routineRows(id))[2].snapshot;
+      expect(snapshot.sections).toEqual([{ key: "s0", name: "Principal" }]);
+      expect(snapshot.items.map((it) => it.prescription.sectionKey)).toEqual(["s0", "s0"]);
+    });
+
+    it("restores sections and item membership, keeping a section whose exercises are gone", async () => {
+      const kept = await exercise(a, "Kept");
+      const gone = await exercise(a, "Gone");
+      const id = await newRoutine(a, customerId);
+      const inSection = (it: SaveItem, sectionKey: string): SaveItem => ({ ...it, sectionKey });
+      data(
+        await save(id, 1, [inSection(item(kept), "s0"), inSection(item(gone), "s1")], {
+          sections: [
+            { key: "s0", name: "Warm-up" },
+            { key: "s1", name: "Main" },
+          ],
+        }),
+      );
+      data(await save(id, 2, [item(kept)]));
+      await db.delete(exercises).where(eq(exercises.id, gone));
+
+      const restored = await as(a, (tx, physioId) =>
+        restoreRoutineVersion(tx, physioId, { id, version: 2 }, "Principal"),
+      );
+      expect(restored).toEqual({ ok: true, data: { version: 4, dropped: 1 } });
+      const snapshot = (await routineRows(id))[3].snapshot;
+      expect(snapshot.sections).toEqual([
+        { key: "s0", name: "Warm-up" },
+        { key: "s1", name: "Main" },
+      ]);
+      expect(snapshot.items.map((it) => [it.exercise.id, it.prescription.sectionKey])).toEqual([
+        [kept, "s0"],
+      ]);
     });
 
     it("refuses to leave an active routine empty, without recording a version", async () => {
@@ -225,7 +274,7 @@ describe("version history: list, compare and restore", () => {
       data(await save(id, 1, [item(ex)], { status: "active" }));
 
       const restored = await as(a, (tx, physioId) =>
-        restoreRoutineVersion(tx, physioId, { id, version: 1 }),
+        restoreRoutineVersion(tx, physioId, { id, version: 1 }, "Main"),
       );
       expect(restored).toEqual({ ok: false, error: "needsItems" });
       expect((await routineRows(id)).map((row) => row.version)).toEqual([1, 2]);
@@ -234,7 +283,7 @@ describe("version history: list, compare and restore", () => {
     it("reports an unknown version", async () => {
       const id = await newRoutine(a, customerId);
       const restored = await as(a, (tx, physioId) =>
-        restoreRoutineVersion(tx, physioId, { id, version: 9 }),
+        restoreRoutineVersion(tx, physioId, { id, version: 9 }, "Main"),
       );
       expect(restored).toEqual({ ok: false, error: "versionNotFound" });
     });
@@ -244,7 +293,11 @@ describe("version history: list, compare and restore", () => {
       const id = await newRoutine(a, customerId);
       data(await save(id, 1, [item(ex, 10)]));
       data(await save(id, 2, [item(ex, 12)]));
-      data(await as(a, (tx, physioId) => restoreRoutineVersion(tx, physioId, { id, version: 2 })));
+      data(
+        await as(a, (tx, physioId) =>
+          restoreRoutineVersion(tx, physioId, { id, version: 2 }, "Main"),
+        ),
+      );
 
       const versions = await as(a, (tx, physioId) =>
         listVersions(tx, physioId, { kind: "routine", id }),
@@ -278,7 +331,9 @@ describe("version history: list, compare and restore", () => {
       expect(await as(b, (tx, physioId) => listVersions(tx, physioId, target))).toBeNull();
       expect(await as(b, (tx, physioId) => getSnapshots(tx, physioId, target, [1, 2]))).toEqual({});
       expect(
-        await as(b, (tx, physioId) => restoreRoutineVersion(tx, physioId, { id, version: 1 })),
+        await as(b, (tx, physioId) =>
+          restoreRoutineVersion(tx, physioId, { id, version: 1 }, "Main"),
+        ),
       ).toEqual({ ok: false, error: "notFound" });
       expect((await routineRows(id)).map((row) => row.version)).toEqual([1, 2]);
     });

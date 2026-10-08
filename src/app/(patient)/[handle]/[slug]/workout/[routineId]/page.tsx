@@ -8,6 +8,7 @@ import { LogSessionButton } from "@/components/patient/log-session-button";
 import { PinGate } from "@/components/patient/pin-gate";
 import { Unavailable } from "@/components/patient/unavailable";
 import { WorkoutPlayer } from "@/components/patient/workout/workout-player";
+import { flattenSections } from "@/lib/routine-sections";
 import { buildWorkoutPath, isUuid } from "@/lib/patient-paths";
 import { workoutModeEnabled } from "@/lib/workout/enabled";
 import { firstParam } from "@/lib/search-params";
@@ -61,7 +62,7 @@ export default async function WorkoutPage({
   if (!unlocked) return <PinGate code={shell.code} clinicName={shell.branding.clinicName} />;
 
   const routine = await getReachableRoutine(shell, link, routineId);
-  if (!routine || routine.blocks.length === 0) notFound();
+  if (!routine || flattenSections(routine.sections).length === 0) notFound();
 
   const today = todayIn(shell.timeZone);
   // The plan entry the workout was started from (spec 13 logs it). A made-up or stale id is

@@ -58,8 +58,11 @@ describe("physio export loaders", () => {
       const [routine] = data!.routines;
       expect(routine!.id).toBe(routineId);
       expect(routine!.phase).toEqual({ label: "Phase 2", startsOn: "2026-10-01", endsOn: null });
-      expect(routine!.blocks).toHaveLength(1);
-      expect(routine!.blocks[0]).toMatchObject({ kind: "single", item: { name: "Bridge" } });
+      expect(routine!.sections[0]!.blocks).toHaveLength(1);
+      expect(routine!.sections[0]!.blocks[0]).toMatchObject({
+        kind: "single",
+        item: { name: "Bridge" },
+      });
     });
 
     it("has no phase when the routine has none", async () => {

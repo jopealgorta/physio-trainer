@@ -64,14 +64,18 @@ function item(index: number, over: Partial<ContentItem> = {}): ContentItem {
   };
 }
 
-function routine(id: string, blocks: SourceRoutine["blocks"], over: Partial<SourceRoutine> = {}) {
+function routine(
+  id: string,
+  blocks: SourceRoutine["sections"][number]["blocks"],
+  over: Partial<SourceRoutine> = {},
+) {
   return {
     id,
     name: `Routine ${id}`,
     notes: null,
     sessionsPerWeek: 3,
     sessionsPerDay: null,
-    blocks,
+    sections: [{ key: `s-${id}`, name: "", blocks }],
     phase: null,
     ...over,
   } satisfies SourceRoutine;
@@ -116,6 +120,28 @@ function textOf(node: ReactNode): string[] {
   const { type, props } = node as { type: unknown; props: { children?: ReactNode } };
   if (typeof type === "function") return textOf((type as (p: unknown) => ReactNode)(props));
   return textOf(props.children);
+}
+
+/** The merged style of the first element whose only child is `text`. */
+function styleOf(node: ReactNode, text: string): Record<string, unknown> | null {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = styleOf(child, text);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!isValidElement(node)) return null;
+  const { type, props } = node as {
+    type: unknown;
+    props: { children?: ReactNode; style?: unknown };
+  };
+  if (typeof type === "function") return styleOf((type as (p: unknown) => ReactNode)(props), text);
+  if (props.children === text) {
+    const styles = [props.style].flat(Infinity).filter(Boolean) as Record<string, unknown>[];
+    return Object.assign({}, ...styles);
+  }
+  return styleOf(props.children, text);
 }
 
 const pageCount = (buffer: Buffer) =>
@@ -165,7 +191,7 @@ describe("renderExportPdf", () => {
   it("paginates 25 long exercises with a plan, a superset and Spanish text", async () => {
     const long = "Mantené la espalda recta y respirá. ".repeat(30).slice(0, 1000);
     const items = Array.from({ length: 25 }, (_, i) => item(i + 1, { instructions: long }));
-    const blocks: SourceRoutine["blocks"] = [
+    const blocks: SourceRoutine["sections"][number]["blocks"] = [
       { kind: "group", key: "g", restSeconds: 45, items: items.slice(0, 3) },
       ...items.slice(3).map((it) => ({ kind: "single" as const, item: it })),
     ];
@@ -202,6 +228,55 @@ describe("renderExportPdf", () => {
     const buffer = await renderExportPdf(doc, t, { fetchImpl: thumbFetch });
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
     expect(pageCount(buffer)).toBeGreaterThan(1);
+  });
+
+  it("prints a heading per section only when two or more are non-empty", async () => {
+    const two = await build(
+      source({
+        routines: [
+          {
+            ...routine("R", []),
+            sections: [
+              { key: "a", name: "Calentamiento", blocks: [{ kind: "single", item: item(1) }] },
+              { key: "b", name: "Fuerza", blocks: [{ kind: "single", item: item(2) }] },
+              { key: "c", name: "Vacía", blocks: [] },
+            ],
+          },
+        ],
+      }),
+    );
+    const texts = textOf(ExportPdf({ doc: two.doc, t: two.t, thumbnails: new Map(), logo: null }));
+    expect(texts).toContain("Calentamiento");
+    expect(texts).toContain("Fuerza");
+    expect(texts).not.toContain("Vacía");
+    // A heading of its own: larger than the superset caption, in the text colour, not uppercase.
+    const heading = styleOf(
+      ExportPdf({ doc: two.doc, t: two.t, thumbnails: new Map(), logo: null }),
+      "Calentamiento",
+    );
+    expect(heading).toMatchObject({ fontSize: 10.5, fontWeight: 700, color: "#171717" });
+    expect(heading?.textTransform).toBeUndefined();
+    expect(heading?.marginTop).toBeGreaterThan(0);
+
+    const one = await build(
+      source({
+        routines: [
+          {
+            ...routine("R", []),
+            sections: [
+              { key: "a", name: "Solo uno", blocks: [{ kind: "single", item: item(1) }] },
+              { key: "b", name: "Vacía", blocks: [] },
+            ],
+          },
+        ],
+      }),
+    );
+    const oneTexts = textOf(
+      ExportPdf({ doc: one.doc, t: one.t, thumbnails: new Map(), logo: null }),
+    );
+    expect(oneTexts).not.toContain("Solo uno");
+    const buffer = await renderExportPdf(two.doc, two.t, { fetchImpl: failingFetch });
+    expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
   });
 
   it("prints the per-day frequency of a routine with no weekly count", async () => {

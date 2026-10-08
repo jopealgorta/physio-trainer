@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 import type { PlanSnapshot, RoutineSnapshot } from "@/lib/history/snapshot";
 import { withPhysio } from "@/server/auth/session";
@@ -40,14 +41,25 @@ export async function getSnapshotsAction(
     : { ok: false, error: "notFound" };
 }
 
+/** A snapshot from before sections restores into one section, named in the physio's language. */
+async function restoreRoutine(id: string, version: number) {
+  const t = await getTranslations("Routines.sections");
+  const defaultName = t("defaultName");
+  return withPhysio((tx, physioId) =>
+    restoreRoutineVersion(tx, physioId, { id, version }, defaultName),
+  );
+}
+
 export async function restoreVersionAction(
   input: unknown,
 ): Promise<Result<{ version: number; dropped: number }, RestoreError>> {
   const parsed = restoreSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { kind, id, version } = parsed.data;
-  const restore = kind === "routine" ? restoreRoutineVersion : restorePlanVersion;
-  const result = await withPhysio((tx, physioId) => restore(tx, physioId, { id, version }));
+  const result =
+    kind === "routine"
+      ? await restoreRoutine(id, version)
+      : await withPhysio((tx, physioId) => restorePlanVersion(tx, physioId, { id, version }));
   if (result.ok) {
     // A routine's name shows on the plans that use it, and a plan's entries on its routines.
     revalidatePath(kind === "routine" ? `/routines/${id}` : `/plans/${id}`);

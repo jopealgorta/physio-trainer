@@ -1,9 +1,10 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EditorBlock, EditorItem } from "@/lib/routine-editor";
+import { fromLoadedSections, type EditorSection } from "@/lib/routine-sections";
 import type { ExerciseSummary } from "@/server/library/queries";
 import { menuActions } from "@/test/page-actions";
 import { chooseOption } from "@/test/select";
@@ -64,6 +65,11 @@ const BLOCKS: EditorBlock[] = [
   },
 ];
 
+/** One section holding `blocks`, as the page builds it. */
+const sectionsOf = (blocks: EditorBlock[], key = "sec-1"): EditorSection[] => [
+  { key, name: "Main", blocks },
+];
+
 const BLOCKS_ITEM = (BLOCKS[0] as Extract<EditorBlock, { kind: "single" }>).item;
 const summary = (id: string, name: string): ExerciseSummary => ({
   id,
@@ -95,7 +101,7 @@ const PROPS: RoutineEditorProps = {
     },
     cases: [{ id: "case-1", title: "ACL rehab" }],
   },
-  initialBlocks: BLOCKS,
+  initialSections: sectionsOf(BLOCKS),
   categories: [],
   recent: [],
   exercises: [],
@@ -128,6 +134,23 @@ async function rename(user: ReturnType<typeof userEvent.setup>, name: string) {
   const input = screen.getByRole("textbox", { name: "Routine name" });
   await user.clear(input);
   await user.type(input, `${name}{Enter}`);
+}
+
+/**
+ * Opens "Move to section" and chooses a section with the keyboard: Radix's submenu pointer-grace
+ * logic needs real geometry, which jsdom does not have.
+ */
+async function moveToSection(user: ReturnType<typeof userEvent.setup>, section: string) {
+  const trigger = await screen.findByRole("menuitem", { name: "Move to section" });
+  trigger.focus();
+  await user.keyboard("{ArrowRight}");
+  await screen.findByRole("menuitem", { name: section });
+  for (let step = 0; step < 12; step++) {
+    if (document.activeElement?.textContent === section) break;
+    await user.keyboard("{ArrowDown}");
+  }
+  expect(document.activeElement).toHaveTextContent(section);
+  await user.keyboard("{Enter}");
 }
 
 beforeEach(() => {
@@ -287,7 +310,7 @@ describe("RoutineEditor", () => {
       key: `k${index}`,
       item: { ...BLOCKS_ITEM, key: `k${index}` },
     }));
-    setup({ ...PROPS, initialBlocks: many, exercises: [LUNGE] });
+    setup({ ...PROPS, initialSections: sectionsOf(many), exercises: [LUNGE] });
     expect(
       within(screen.getByRole("complementary")).getByText("A routine can have up to 50 exercises."),
     ).toBeInTheDocument();
@@ -381,11 +404,13 @@ describe("RoutineEditor", () => {
       sessionsPerWeek: 3,
       sessionsPerDay: 2,
       status: "active",
+      sections: [{ key: "sec-1", name: "Main" }],
       groups: [],
       items: [
         {
           exerciseId: "00000000-0000-4000-8000-000000000001",
           groupKey: null,
+          sectionKey: "sec-1",
           holdSeconds: null,
           restSeconds: 30,
           side: null,
@@ -455,7 +480,7 @@ describe("RoutineEditor", () => {
     ];
     rerenderWith({
       ...PROPS,
-      initialBlocks: theirs,
+      initialSections: sectionsOf(theirs, "sec-t"),
       routine: {
         ...PROPS.routine,
         version: 5,
@@ -636,7 +661,7 @@ describe("RoutineEditor", () => {
         },
       },
     ];
-    setup({ ...PROPS, initialBlocks: bad });
+    setup({ ...PROPS, initialSections: sectionsOf(bad) });
     expect(screen.getByRole("button", { name: "Edit prescription" })).toHaveAttribute(
       "aria-expanded",
       "false",
@@ -688,7 +713,7 @@ describe("RoutineEditor", () => {
         },
       },
     ];
-    setup({ ...PROPS, initialBlocks: bad });
+    setup({ ...PROPS, initialSections: sectionsOf(bad) });
     await rename(user, "Knee rehab!");
     await user.click(save());
     expect(saveRoutineAction).not.toHaveBeenCalled();
@@ -720,7 +745,7 @@ describe("RoutineEditor", () => {
 
   it("does not call the server when activating a routine with no exercises", async () => {
     const user = userEvent.setup();
-    setup({ ...PROPS, initialBlocks: [] });
+    setup({ ...PROPS, initialSections: sectionsOf([]) });
     await chooseOption(user, screen.getByRole("combobox", { name: "Status" }), "Active");
     await user.click(save());
     expect(saveRoutineAction).not.toHaveBeenCalled();
@@ -786,12 +811,332 @@ describe("RoutineEditor in template mode", () => {
 
   it("saves an active template without exercises", async () => {
     const user = userEvent.setup();
-    setup({ ...TEMPLATE, initialBlocks: [] });
+    setup({ ...TEMPLATE, initialSections: sectionsOf([]) });
     await rename(user, "Knee rehab v2");
     await user.click(save());
     await waitFor(() => expect(saveRoutineAction).toHaveBeenCalledTimes(1));
     expect(saveRoutineAction).toHaveBeenCalledWith(
       expect.objectContaining({ status: "active", items: [] }),
     );
+  });
+});
+
+describe("RoutineEditor sections", () => {
+  const SQUAT_BLOCK = BLOCKS[0];
+  const lungeBlock: EditorBlock = {
+    kind: "single",
+    key: "k2",
+    item: { ...BLOCKS_ITEM, key: "k2", exerciseId: LUNGE.id, exerciseName: "Lunge" },
+  };
+  const bridgeBlock: EditorBlock = {
+    kind: "single",
+    key: "k3",
+    item: { ...BLOCKS_ITEM, key: "k3", exerciseId: BRIDGE.id, exerciseName: "Bridge" },
+  };
+  /** Warm-up (Squat, Bridge) then Main (Lunge). */
+  const TWO: RoutineEditorProps = {
+    ...PROPS,
+    initialSections: [
+      { key: "sec-w", name: "Warm-up", blocks: [SQUAT_BLOCK, bridgeBlock] },
+      { key: "sec-m", name: "Main", blocks: [lungeBlock] },
+    ],
+  };
+
+  const sectionNames = () =>
+    screen.getAllByRole("region").map((section) => section.getAttribute("aria-label"));
+  const region = (name: string) => screen.getByRole("region", { name });
+  async function sectionMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(within(region(name)).getByRole("button", { name: "Section options" }));
+  }
+
+  it("opens a routine without sections with one Main section", () => {
+    let n = 0;
+    setup({
+      ...PROPS,
+      initialSections: fromLoadedSections([], [], [], "Main", () => `key-${++n}`),
+    });
+    expect(sectionNames()).toEqual(["Main"]);
+    expect(within(region("Main")).getByText(messages.Routines.items.empty)).toBeInTheDocument();
+  });
+
+  it("adds a section from a suggestion chip and from a typed name", async () => {
+    const user = userEvent.setup();
+    setup();
+    const add = within(screen.getByRole("group", { name: "Add section" }));
+    await user.click(add.getByRole("button", { name: "Cool-down" }));
+    await user.type(add.getByRole("textbox", { name: "New section name" }), "  Balance {Enter}");
+    expect(sectionNames()).toEqual(["Main", "Cool-down", "Balance"]);
+    expect(add.getByRole("textbox", { name: "New section name" })).toHaveValue("");
+    expect(within(region("Balance")).getByText("Drag exercises here")).toBeInTheDocument();
+    expect(save()).toBeEnabled();
+  });
+
+  it("renames a section with Enter, keeps it on Escape and refuses a blank name", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Rename Main" }));
+    const input = screen.getByRole("textbox", { name: "Section name" });
+    await user.clear(input);
+    await user.type(input, "Strength{Enter}");
+    expect(region("Strength")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Rename Strength" }));
+    await user.type(screen.getByRole("textbox", { name: "Section name" }), "ening{Escape}");
+    expect(region("Strength")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Rename Strength" }));
+    await user.clear(screen.getByRole("textbox", { name: "Section name" }));
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a name of up to 60 characters.");
+    await user.keyboard("{Escape}");
+    expect(region("Strength")).toBeInTheDocument();
+  });
+
+  it("asks before deleting a section with exercises, then removes them", async () => {
+    const user = userEvent.setup();
+    setup(TWO);
+    await sectionMenu(user, "Warm-up");
+    await user.click(await screen.findByRole("menuitem", { name: "Delete section" }));
+    const confirm = await screen.findByRole("alertdialog");
+    expect(confirm).toHaveTextContent("Delete “Warm-up” and its 2 exercises?");
+    await user.click(within(confirm).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(sectionNames()).toEqual(["Main"]);
+    expect(screen.queryByText("Squat")).not.toBeInTheDocument();
+    expect(screen.getByText("Lunge")).toBeInTheDocument();
+  });
+
+  it("deletes an empty section without asking", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Cool-down" }));
+    await sectionMenu(user, "Cool-down");
+    await user.click(await screen.findByRole("menuitem", { name: "Delete section" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Cool-down" })).not.toBeInTheDocument();
+  });
+
+  it("disables Delete and the moves on the only section", async () => {
+    const user = userEvent.setup();
+    setup();
+    await sectionMenu(user, "Main");
+    for (const name of ["Delete section", "Move up", "Move down"]) {
+      expect(await screen.findByRole("menuitem", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    }
+  });
+
+  it("moves a section down from its menu", async () => {
+    const user = userEvent.setup();
+    setup(TWO);
+    await sectionMenu(user, "Warm-up");
+    await user.click(await screen.findByRole("menuitem", { name: "Move down" }));
+    expect(sectionNames()).toEqual(["Main", "Warm-up"]);
+  });
+
+  it("moves an exercise to another section from its menu and saves its section", async () => {
+    const user = userEvent.setup();
+    setup(TWO);
+    const squat = within(region("Warm-up")).getByText("Squat").closest("[data-testid='item-row']");
+    await user.click(
+      within(squat as HTMLElement).getByRole("button", { name: "Exercise options" }),
+    );
+    await moveToSection(user, "Main");
+    expect(within(region("Main")).getByText("Squat")).toBeInTheDocument();
+    expect(within(region("Warm-up")).queryByText("Squat")).not.toBeInTheDocument();
+
+    await user.click(save());
+    await waitFor(() => expect(saveRoutineAction).toHaveBeenCalledTimes(1));
+    const payload = saveRoutineAction.mock.calls[0][0];
+    expect(payload.sections).toEqual([
+      { key: "sec-w", name: "Warm-up" },
+      { key: "sec-m", name: "Main" },
+    ]);
+    expect(
+      payload.items.map((i: { exerciseId: string; sectionKey: string }) => [
+        i.exerciseId,
+        i.sectionKey,
+      ]),
+    ).toEqual([
+      [BRIDGE.id, "sec-w"],
+      [LUNGE.id, "sec-m"],
+      [SQUAT.id, "sec-m"],
+    ]);
+  });
+
+  it("hides Move to section when the routine has one section", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Exercise options" }));
+    await screen.findByRole("menuitem", { name: "Duplicate" });
+    expect(screen.queryByRole("menuitem", { name: "Move to section" })).not.toBeInTheDocument();
+  });
+
+  it("adds picked exercises to the last section", async () => {
+    const user = userEvent.setup();
+    setup({ ...TWO, exercises: [SQUAT] });
+    await user.click(
+      within(screen.getByTestId("picker-list")).getByRole("button", { name: "Squat" }),
+    );
+    expect(within(region("Main")).getByText("Squat")).toBeInTheDocument();
+    expect(within(region("Warm-up")).getAllByText("Squat")).toHaveLength(1);
+  });
+
+  it("hides the section drag handle while the routine has one section", async () => {
+    const user = userEvent.setup();
+    setup();
+    expect(screen.queryByRole("button", { name: "Reorder Main" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cool-down" }));
+    expect(screen.getByRole("button", { name: "Reorder Main" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reorder Cool-down" })).toBeInTheDocument();
+  });
+
+  it("focuses the moved exercise's drag handle in its new section", async () => {
+    const user = userEvent.setup();
+    setup(TWO);
+    const squat = within(region("Warm-up")).getByText("Squat").closest("[data-testid='item-row']");
+    await user.click(
+      within(squat as HTMLElement).getByRole("button", { name: "Exercise options" }),
+    );
+    await moveToSection(user, "Main");
+    const handle = within(region("Main")).getByRole("button", { name: "Reorder Squat" });
+    await waitFor(() => expect(handle).toHaveFocus());
+  });
+
+  it("focuses the previous section's menu after deleting a section", async () => {
+    const user = userEvent.setup();
+    setup(TWO);
+    await sectionMenu(user, "Main");
+    await user.click(await screen.findByRole("menuitem", { name: "Delete section" }));
+    const confirm = await screen.findByRole("alertdialog");
+    await user.click(within(confirm).getByRole("button", { name: "Delete" }));
+    const menu = within(region("Warm-up")).getByRole("button", { name: "Section options" });
+    await waitFor(() => expect(menu).toHaveFocus());
+  });
+
+  it("focuses the new first section's menu after deleting the first, empty section", async () => {
+    const user = userEvent.setup();
+    setup({
+      ...TWO,
+      initialSections: [{ key: "sec-e", name: "Empty", blocks: [] }, ...TWO.initialSections],
+    });
+    await sectionMenu(user, "Empty");
+    await user.click(await screen.findByRole("menuitem", { name: "Delete section" }));
+    const menu = within(region("Warm-up")).getByRole("button", { name: "Section options" });
+    await waitFor(() => expect(menu).toHaveFocus());
+  });
+
+  describe("keyboard drags of exercises", () => {
+    // jsdom has no layout. Warm-up holds Squat (short) above Bridge (tall); Main holds Lunge,
+    // whose centre is nearer to Squat's keyboard target than Bridge's own centre is.
+    const ROWS: Record<string, [number, number]> = {
+      Squat: [50, 60],
+      Bridge: [120, 400],
+      Lunge: [560, 60],
+    };
+    const CARDS: Record<string, [number, number]> = { "Warm-up": [0, 530], Main: [540, 160] };
+    const ROW = "[data-testid='item-row']";
+    const CARD = "[data-testid='section-card']";
+    function box(element: HTMLElement): [number, number] {
+      const own = (child: Element | null, selector: string) =>
+        child?.matches(selector) ? child : null;
+      const row = element.closest(ROW) ?? own(element.firstElementChild, ROW);
+      if (row) {
+        const name = Object.keys(ROWS).find((n) => row.textContent?.includes(n));
+        return name ? ROWS[name]! : [0, 0];
+      }
+      const card = element.closest(CARD) ?? own(element.firstElementChild, CARD);
+      return (card && CARDS[card.getAttribute("aria-label") ?? ""]) || [0, 0];
+    }
+    let rect: { mockRestore: () => void };
+    beforeEach(() => {
+      rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const [top, height] = box(this);
+        return {
+          x: 0,
+          y: top,
+          top,
+          left: 0,
+          width: 300,
+          height,
+          bottom: top + height,
+          right: 300,
+          toJSON: () => ({}),
+        } as DOMRect;
+      });
+    });
+    afterEach(() => rect.mockRestore());
+
+    const blocksIn = (name: string) =>
+      within(region(name))
+        .getAllByTestId("item-row")
+        .map((row) => Object.keys(ROWS).find((n) => row.textContent?.includes(n)));
+
+    it("reorders an exercise within its section and never into the next one", async () => {
+      const user = userEvent.setup();
+      setup(TWO);
+      screen.getByRole("button", { name: "Reorder Squat" }).focus();
+      await user.keyboard(" ");
+      await user.keyboard("{ArrowDown}");
+      expect(blocksIn("Main")).toEqual(["Lunge"]);
+      await user.keyboard(" ");
+      await waitFor(() => expect(blocksIn("Warm-up")).toEqual(["Bridge", "Squat"]));
+      expect(blocksIn("Main")).toEqual(["Lunge"]);
+      expect(save()).toBeEnabled();
+    });
+
+    it("puts the exercise back where it was when the drag is cancelled", async () => {
+      const user = userEvent.setup();
+      setup(TWO);
+      screen.getByRole("button", { name: "Reorder Squat" }).focus();
+      await user.keyboard(" ");
+      await user.keyboard("{ArrowDown}");
+      await user.keyboard("{Escape}");
+      expect(await screen.findByText("Moving Squat was cancelled.")).toBeInTheDocument();
+      expect(blocksIn("Warm-up")).toEqual(["Squat", "Bridge"]);
+      expect(blocksIn("Main")).toEqual(["Lunge"]);
+      expect(save()).toBeDisabled();
+    });
+  });
+
+  it("reorders sections with the keyboard", async () => {
+    // jsdom has no layout: stack the section cards 200px apart so dnd-kit can measure them.
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        const selector = "[data-testid='section-card']";
+        // The sortable node is the card's list item; anything inside a card shares its rect.
+        const card = this.closest(selector) ?? this.querySelector(`:scope > ${selector}`);
+        const cards = [...document.querySelectorAll(selector)];
+        const top = card ? cards.indexOf(card) * 200 : 0;
+        const height = card ? 180 : 0;
+        return {
+          x: 0,
+          y: top,
+          top,
+          left: 0,
+          width: 300,
+          height,
+          bottom: top + height,
+          right: 300,
+          toJSON: () => ({}),
+        } as DOMRect;
+      });
+    try {
+      const user = userEvent.setup();
+      setup(TWO);
+      screen.getByRole("button", { name: "Reorder Warm-up" }).focus();
+      await user.keyboard(" ");
+      await user.keyboard("{ArrowDown}");
+      await user.keyboard(" ");
+      await waitFor(() => expect(sectionNames()).toEqual(["Main", "Warm-up"]));
+      expect(save()).toBeEnabled();
+    } finally {
+      rect.mockRestore();
+    }
   });
 });

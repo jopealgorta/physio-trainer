@@ -11,6 +11,7 @@ import {
   routineGroups,
   routineItemSets,
   routineItems,
+  routineSections,
   routines,
 } from "@/db/schema";
 
@@ -83,9 +84,9 @@ export async function createRoutine(
 }
 
 /**
- * Replaces a routine's header, groups, items and sets in the caller's transaction. The routine
+ * Replaces a routine's header, sections, groups, items and sets in the caller's transaction. The routine
  * row is locked first, so concurrent saves serialise and the loser sees the bumped version
- * (optimistic locking). Groups, items and sets get fresh ids on every save; client keys are
+ * (optimistic locking). Sections, groups, items and sets get fresh ids on every save; client keys are
  * never stored. Each save records a version snapshot (`record` says what kind, spec 15).
  */
 export async function saveRoutine(
@@ -145,13 +146,27 @@ export async function saveRoutine(
     if (plans.length > 0) return { ok: false, error: "blockedByPlans", plans } as const;
   }
 
-  // Items first: their group FK is NO ACTION. Sets cascade with their item.
+  // Items first: their group and section FKs are NO ACTION. Sets cascade with their item.
   await tx
     .delete(routineItems)
     .where(and(eq(routineItems.physioId, physioId), eq(routineItems.routineId, input.id)));
   await tx
     .delete(routineGroups)
     .where(and(eq(routineGroups.physioId, physioId), eq(routineGroups.routineId, input.id)));
+  await tx
+    .delete(routineSections)
+    .where(and(eq(routineSections.physioId, physioId), eq(routineSections.routineId, input.id)));
+
+  const sectionIds = new Map(input.sections.map((section) => [section.key, crypto.randomUUID()]));
+  await tx.insert(routineSections).values(
+    input.sections.map((section, position) => ({
+      id: sectionIds.get(section.key)!,
+      physioId,
+      routineId: input.id,
+      name: section.name,
+      position,
+    })),
+  );
 
   const groupIds = new Map(input.groups.map((group) => [group.key, crypto.randomUUID()]));
   if (input.groups.length > 0) {
@@ -174,6 +189,8 @@ export async function saveRoutine(
         routineId: input.id,
         exerciseId: item.exerciseId,
         position,
+        // The schema (validateStructure) rejects an item whose section key is unknown.
+        sectionId: sectionIds.get(item.sectionKey)!,
         groupId: item.groupKey === null ? null : (groupIds.get(item.groupKey) ?? null),
         holdSeconds: item.holdSeconds,
         restSeconds: item.restSeconds,
@@ -234,7 +251,7 @@ export type RoutineCopyTarget = {
 };
 
 /**
- * Copies a routine's header, groups, items and sets into a new routine described by `target`
+ * Copies a routine's header, sections, groups, items and sets into a new routine described by `target`
  * (given the source row). The source is locked `for share`, so a concurrent `saveRoutine` (which
  * locks `for update` and then replaces items) can never leave the copy with half-replaced items.
  * Callers decide the copy's owner/provenance; the DB checks keep `is_template` and `customer_id`
@@ -273,6 +290,23 @@ export async function copyRoutine(
     })
     .returning({ id: routines.id });
 
+  const sections = await tx
+    .select()
+    .from(routineSections)
+    .where(and(eq(routineSections.physioId, physioId), eq(routineSections.routineId, sourceId)));
+  const sectionIds = new Map(sections.map((section) => [section.id, crypto.randomUUID()]));
+  if (sections.length > 0) {
+    await tx.insert(routineSections).values(
+      sections.map((section) => ({
+        id: sectionIds.get(section.id)!,
+        physioId,
+        routineId: copy.id,
+        name: section.name,
+        position: section.position,
+      })),
+    );
+  }
+
   const groups = await tx
     .select()
     .from(routineGroups)
@@ -302,6 +336,7 @@ export async function copyRoutine(
         routineId: copy.id,
         exerciseId: row.exerciseId,
         position: row.position,
+        sectionId: row.sectionId === null ? null : (sectionIds.get(row.sectionId) ?? null),
         groupId: row.groupId === null ? null : (groupIds.get(row.groupId) ?? null),
         holdSeconds: row.holdSeconds,
         restSeconds: row.restSeconds,
@@ -340,7 +375,7 @@ export async function copyRoutine(
 }
 
 /**
- * Copies a routine (header, groups, items and sets) under a new name; the copy keeps the source's
+ * Copies a routine (header, sections, groups, items and sets) under a new name; the copy keeps the source's
  * status and customer. Phase fields are not carried over unless `options.phase` sets them. Used by
  * "Make a separate copy" on a weekly plan (spec 06) and by "Copy into next phase" (spec 08).
  */

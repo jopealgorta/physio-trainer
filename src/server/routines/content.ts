@@ -8,6 +8,7 @@ import {
   routineGroups,
   routineItemSets,
   routineItems,
+  routineSections,
   routines,
 } from "@/db/schema";
 import type { ExerciseKind } from "@/lib/exercise-kinds";
@@ -29,13 +30,16 @@ export type ContentBlock =
   | { kind: "single"; item: ContentItem }
   | { kind: "group"; key: string; restSeconds: number | null; items: ContentItem[] };
 
+/** A named part of a routine; the implicit one (no sections stored) has `key: "default"`, `name: ""`. */
+export type ContentSection = { key: string; name: string; blocks: ContentBlock[] };
+
 export type RoutineContent = {
   id: string;
   name: string;
   notes: string | null;
   sessionsPerWeek: number | null;
   sessionsPerDay: number | null;
-  blocks: ContentBlock[];
+  sections: ContentSection[];
 };
 
 /** Routines with their exercises, grouped into supersets, for the given (already scoped) ids. */
@@ -67,7 +71,18 @@ export async function loadRoutineContent(
   if (headers.length === 0) return result;
   const routineIds = headers.map((header) => header.id);
 
-  const [groupRows, itemRows] = await Promise.all([
+  const [sectionRows, groupRows, itemRows] = await Promise.all([
+    q
+      .select({
+        id: routineSections.id,
+        routineId: routineSections.routineId,
+        name: routineSections.name,
+      })
+      .from(routineSections)
+      .where(
+        and(eq(routineSections.physioId, physioId), inArray(routineSections.routineId, routineIds)),
+      )
+      .orderBy(asc(routineSections.routineId), asc(routineSections.position)),
     q
       .select({ id: routineGroups.id, restSeconds: routineGroups.restSeconds })
       .from(routineGroups)
@@ -80,6 +95,7 @@ export async function loadRoutineContent(
         routineId: routineItems.routineId,
         exerciseId: routineItems.exerciseId,
         groupId: routineItems.groupId,
+        sectionId: routineItems.sectionId,
         kind: exercises.kind,
         name: exercises.name,
         instructions: exercises.instructions,
@@ -155,8 +171,22 @@ export async function loadRoutineContent(
   const restOfGroup = new Map(groupRows.map((group) => [group.id, group.restSeconds]));
 
   for (const header of headers) {
-    const blocks: ContentBlock[] = [];
-    for (const row of itemRows.filter((item) => item.routineId === header.id)) {
+    const rows = itemRows.filter((item) => item.routineId === header.id);
+    const stored = sectionRows.filter((section) => section.routineId === header.id);
+    const sections: ContentSection[] = stored.map((section) => ({
+      key: section.id,
+      name: section.name,
+      blocks: [],
+    }));
+    if (sections.length === 0 && rows.length > 0) {
+      sections.push({ key: "default", name: "", blocks: [] });
+    }
+    const byId = new Map(sections.map((section) => [section.key, section]));
+    for (const row of rows) {
+      // Null or unknown section: the first one. Blocks are built per section, so a superset
+      // never crosses a boundary.
+      const section = (row.sectionId ? byId.get(row.sectionId) : undefined) ?? sections[0]!;
+      const blocks = section.blocks;
       const item: ContentItem = {
         id: row.id,
         exerciseId: row.exerciseId,
@@ -184,7 +214,7 @@ export async function loadRoutineContent(
         });
       }
     }
-    result.set(header.id, { ...header, blocks });
+    result.set(header.id, { ...header, sections });
   }
   return result;
 }

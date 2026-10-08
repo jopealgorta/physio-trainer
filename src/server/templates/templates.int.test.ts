@@ -90,11 +90,13 @@ describe("templates server layer", () => {
           sessionsPerWeek: 3,
           sessionsPerDay: 2,
           status,
+          sections: [{ key: "s", name: "Main" }],
           groups: [{ key: "g", restSeconds: 45 }],
           items: [
             {
               exerciseId,
               groupKey: "g",
+              sectionKey: "s",
               holdSeconds: 5,
               restSeconds: null,
               side: "left",
@@ -108,6 +110,7 @@ describe("templates server layer", () => {
             {
               exerciseId,
               groupKey: "g",
+              sectionKey: "s",
               holdSeconds: null,
               restSeconds: null,
               side: null,
@@ -461,6 +464,7 @@ describe("templates server layer", () => {
             sessionsPerWeek: null,
             sessionsPerDay: null,
             status: "draft",
+            sections: [{ key: "s", name: "Main" }],
             groups: [],
             items: [],
           }),

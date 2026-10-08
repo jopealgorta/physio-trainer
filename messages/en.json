@@ -601,6 +601,35 @@
     }
   },
   "Routines": {
+    "sections": {
+      "defaultName": "Main",
+      "add": "Add section",
+      "newName": "New section name",
+      "suggestions": "Suggestions",
+      "chips": {
+        "warmUp": "Warm-up",
+        "mobility": "Mobility (ROM)",
+        "main": "Main",
+        "coolDown": "Cool-down"
+      },
+      "limit": "A routine can have up to {max, number} sections.",
+      "name": "Section name",
+      "rename": "Rename {name}",
+      "menu": "Section options",
+      "renameItem": "Rename",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete section",
+      "deleteTitle": "Delete “{name}” and {count, plural, one {its exercise} other {its # exercises}}?",
+      "deleteBody": "The exercises in this section are removed from the routine. Nothing is saved until you save the routine.",
+      "deleteConfirm": "Delete",
+      "cancel": "Cancel",
+      "dropHere": "Drag exercises here",
+      "moveTo": "Move to section",
+      "nameError": "Enter a name of up to {max, number} characters.",
+      "movedTo": "{item} moved to {section}, position {position} of {total}.",
+      "droppedIn": "{item} dropped in {section}, position {position} of {total}."
+    },
     "title": "Routines",
     "status": {
       "draft": "Draft",
@@ -1649,6 +1678,7 @@
       "sheetFallback": "Routine",
       "columns": {
         "group": "Group",
+        "section": "Section",
         "exercise": "Exercise",
         "sets": "Sets",
         "reps": "Reps",
@@ -1701,6 +1731,8 @@
       "side": "Side",
       "notes": "Notes",
       "group": "Superset",
+      "section": "Section",
+      "sections": "Sections",
       "label": "Label",
       "dayNotes": "Day notes",
       "routine": "Routine",

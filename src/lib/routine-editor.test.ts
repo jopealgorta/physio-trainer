@@ -72,7 +72,9 @@ function assertValid(blocks: EditorBlock[]) {
         groupKey: item.groupKey,
         restSeconds: item.restSeconds,
         setCount: item.sets.length,
+        sectionKey: item.sectionKey,
       })),
+      [{ key: "" }],
     ),
   ).toEqual([]);
 }
@@ -429,6 +431,7 @@ describe("toSaveBlocks", () => {
     expect(out.items[0]).toEqual({
       exerciseId: "ex-a",
       groupKey: null,
+      sectionKey: "",
       holdSeconds: 3,
       restSeconds: 20,
       side: "left",
@@ -478,6 +481,7 @@ describe("fromLoaded", () => {
     exerciseArchived: false,
     cover: null,
     groupId,
+    sectionId: null,
     sets: sets.map((s) => ({ ...EMPTY_SET, ...s })),
     ...extra,
   });
@@ -537,6 +541,7 @@ describe("fromLoaded", () => {
       items.map((item) => ({
         exerciseId: item.exerciseId,
         groupKey: item.groupId,
+        sectionKey: "",
         holdSeconds: item.holdSeconds,
         restSeconds: item.restSeconds,
         side: item.side,

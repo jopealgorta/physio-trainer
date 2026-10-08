@@ -54,7 +54,7 @@ function item(id: string, over: Partial<ContentItem> = {}): ContentItem {
 function routine(
   id: string,
   name: string,
-  blocks: SourceRoutine["blocks"],
+  blocks: SourceRoutine["sections"][number]["blocks"],
   over: Partial<SourceRoutine> = {},
 ): SourceRoutine {
   return {
@@ -63,7 +63,7 @@ function routine(
     notes: null,
     sessionsPerWeek: null,
     sessionsPerDay: null,
-    blocks,
+    sections: [{ key: `s-${id}`, name: "", blocks }],
     phase: null,
     ...over,
   };
@@ -142,9 +142,9 @@ describe("renderExportXlsx", () => {
       }),
     );
     const row = workbook.worksheets[0].getRow(7);
-    expect(row.getCell(9).value).toBe("5 km");
-    expect(row.getCell(10).value).toBe("Zona 2");
-    expect(row.getCell(13).alignment).toMatchObject({ wrapText: true });
+    expect(row.getCell(10).value).toBe("5 km");
+    expect(row.getCell(11).value).toBe("Zona 2");
+    expect(row.getCell(14).alignment).toMatchObject({ wrapText: true });
   });
 
   it("round-trips a plan with duplicate routine names and a superset", async () => {
@@ -195,6 +195,7 @@ describe("renderExportXlsx", () => {
     expect(sheet.views[0]).toMatchObject({ state: "frozen", ySplit: 6 });
     const keys = [
       "group",
+      "section",
       "exercise",
       "sets",
       "reps",
@@ -214,24 +215,60 @@ describe("renderExportXlsx", () => {
     );
     const first = sheet.getRow(7);
     expect(first.getCell(1).value).toBe("A1");
-    expect(first.getCell(3).value).toBe(3);
-    expect(first.getCell(4).value).toBe("12 / 10 / 8");
-    expect(first.getCell(5).value).toBe(5);
-    expect(first.getCell(7).value).toBe(60);
-    expect(first.getCell(8).value).toBe("– / 5 kg / –");
-    expect(first.getCell(9).value).toBeNull();
+    expect(first.getCell(4).value).toBe(3);
+    expect(first.getCell(5).value).toBe("12 / 10 / 8");
+    expect(first.getCell(6).value).toBe(5);
+    expect(first.getCell(8).value).toBe(60);
+    expect(first.getCell(9).value).toBe("– / 5 kg / –");
     expect(first.getCell(10).value).toBeNull();
-    expect(first.getCell(13).alignment).toMatchObject({ wrapText: true });
-    const link = first.getCell(14).value as { text: string; hyperlink: string };
+    expect(first.getCell(11).value).toBeNull();
+    expect(first.getCell(14).alignment).toMatchObject({ wrapText: true });
+    const link = first.getCell(15).value as { text: string; hyperlink: string };
     expect(link.hyperlink).toContain("abcdefghijk");
-    expect(sheet.getRow(9).getCell(14).value).toBeNull();
+    expect(sheet.getRow(9).getCell(15).value).toBeNull();
+  });
+
+  it("puts each item's section name in the Section column", async () => {
+    const { workbook, t } = await load(
+      source({
+        kind: "routine",
+        routines: [
+          {
+            ...routine("R", "Solo", []),
+            sections: [
+              { key: "a", name: "Warm-up", blocks: [{ kind: "single", item: item("1") }] },
+              {
+                key: "b",
+                name: "Main",
+                blocks: [
+                  {
+                    kind: "group",
+                    key: "g",
+                    restSeconds: null,
+                    items: [item("2"), item("3")],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const sheet = workbook.worksheets[0];
+    expect(sheet.getRow(6).getCell(2).value).toBe(t("xlsx.columns.section"));
+    expect([7, 8, 9].map((r) => sheet.getRow(r).getCell(2).value)).toEqual([
+      "Warm-up",
+      "Main",
+      "Main",
+    ]);
+    expect(sheet.getRow(8).getCell(1).value).toBe("A1");
   });
 
   it("renders an empty document without throwing", async () => {
     const { workbook, t } = await load(source({ kind: "customer", title: null }));
     expect(workbook.worksheets.length).toBeGreaterThan(0);
     const headers = workbook.worksheets[0].getRow(6).values as unknown[];
-    expect(headers.slice(1)[1]).toBe(t("xlsx.columns.exercise"));
+    expect(headers.slice(1)[2]).toBe(t("xlsx.columns.exercise"));
   });
 
   it("skips the overview for a single standalone routine", async () => {
@@ -273,9 +310,9 @@ describe("renderExportXlsx", () => {
       `Solo · ${t("pdf.sessions", { perWeek: 3 })} · ${t("pdf.sessionsPerDay", { perDay: 2 })}`,
     );
     expect(sheet.getCell("A5").value).toBe("Hacelo despacio.");
-    expect(sheet.getRow(6).getCell(2).value).toBe(t("xlsx.columns.exercise"));
+    expect(sheet.getRow(6).getCell(3).value).toBe(t("xlsx.columns.exercise"));
     expect(sheet.views[0]).toMatchObject({ state: "frozen", ySplit: 6 });
-    expect(sheet.getRow(7).getCell(2).value).toBe("Exercise 1");
+    expect(sheet.getRow(7).getCell(3).value).toBe("Exercise 1");
   });
 
   it("keeps the routine name alone when there is no frequency or notes", async () => {

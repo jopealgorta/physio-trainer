@@ -550,11 +550,13 @@ describe("weekly plans server layer", () => {
             sessionsPerWeek: 3,
             sessionsPerDay: null,
             status: "active",
+            sections: [{ key: "s", name: "Main" }],
             groups: [{ key: "g", restSeconds: 45 }],
             items: [
               {
                 exerciseId: exercise.id,
                 groupKey: "g",
+                sectionKey: "s",
                 holdSeconds: 5,
                 restSeconds: null,
                 side: "left",
@@ -567,6 +569,7 @@ describe("weekly plans server layer", () => {
               {
                 exerciseId: exercise.id,
                 groupKey: "g",
+                sectionKey: "s",
                 holdSeconds: null,
                 restSeconds: null,
                 side: null,
@@ -859,6 +862,7 @@ describe("weekly plans server layer", () => {
             sessionsPerWeek: null,
             sessionsPerDay: null,
             status: "archived",
+            sections: [{ key: "s", name: "Main" }],
             groups: [],
             items: [],
           }),

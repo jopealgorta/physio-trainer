@@ -16,12 +16,18 @@ const set = (reps: number) => ({
 // Old snapshots carry no aerobic fields; restoring fills them with null.
 const restored = (reps: number) => ({ ...set(reps), distanceMeters: null, intensity: null });
 
-function item(exerciseId: string, groupKey: string | null = null, reps = 10): Item {
+function item(
+  exerciseId: string,
+  groupKey: string | null = null,
+  reps = 10,
+  sectionKey: string | null = null,
+): Item {
   return {
     exercise: { id: exerciseId, name: `Exercise ${exerciseId}`, instructions: null },
     position: 0,
     prescription: {
       groupKey,
+      sectionKey,
       holdSeconds: 5,
       restSeconds: groupKey === null ? 30 : null,
       side: "left",
@@ -31,7 +37,11 @@ function item(exerciseId: string, groupKey: string | null = null, reps = 10): It
   };
 }
 
-function routine(items: Item[], groups: RoutineSnapshot["groups"] = []): RoutineSnapshot {
+function routine(
+  items: Item[],
+  groups: RoutineSnapshot["groups"] = [],
+  sections: RoutineSnapshot["sections"] = [],
+): RoutineSnapshot {
   return {
     schema: 1,
     routine: {
@@ -45,6 +55,7 @@ function routine(items: Item[], groups: RoutineSnapshot["groups"] = []): Routine
       startsOn: "2026-01-01",
       endsOn: null,
     },
+    sections,
     groups,
     items: items.map((it, position) => ({ ...it, position })),
   };
@@ -63,7 +74,12 @@ describe("routineRestoreInput", () => {
       [item("a"), item("b", "g0"), item("c", "g0")],
       [{ key: "g0", restSeconds: 60 }],
     );
-    const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b", "c"]));
+    const { input, dropped } = routineRestoreInput(
+      snapshot,
+      current,
+      new Set(["a", "b", "c"]),
+      "Main",
+    );
     expect(dropped).toBe(0);
     expect(input).toEqual({
       id: "routine-1",
@@ -74,11 +90,13 @@ describe("routineRestoreInput", () => {
       sessionsPerWeek: 3,
       sessionsPerDay: 1,
       status: "active",
+      sections: [{ key: "s0", name: "Main" }],
       groups: [{ key: "g0", restSeconds: 60 }],
       items: [
         {
           exerciseId: "a",
           groupKey: null,
+          sectionKey: "s0",
           holdSeconds: 5,
           restSeconds: 30,
           side: "left",
@@ -88,6 +106,7 @@ describe("routineRestoreInput", () => {
         {
           exerciseId: "b",
           groupKey: "g0",
+          sectionKey: "s0",
           holdSeconds: 5,
           restSeconds: null,
           side: "left",
@@ -97,6 +116,7 @@ describe("routineRestoreInput", () => {
         {
           exerciseId: "c",
           groupKey: "g0",
+          sectionKey: "s0",
           holdSeconds: 5,
           restSeconds: null,
           side: "left",
@@ -107,16 +127,66 @@ describe("routineRestoreInput", () => {
     });
   });
 
+  it("puts every item of an old snapshot (no sections) in one section with the default name", () => {
+    const snapshot = routine([item("a"), item("b")]);
+    // As stored before sections existed: the keys are missing altogether.
+    delete (snapshot as { sections?: unknown }).sections;
+    for (const it of snapshot.items)
+      delete (it.prescription as { sectionKey?: unknown }).sectionKey;
+    const { input } = routineRestoreInput(snapshot, current, new Set(["a", "b"]), "Principal");
+    expect(input.sections).toEqual([{ key: "s0", name: "Principal" }]);
+    expect(input.items.map((it) => it.sectionKey)).toEqual(["s0", "s0"]);
+  });
+
+  it("keeps the sections and each item's membership, even for a section left empty", () => {
+    const snapshot = routine(
+      [item("a", null, 10, "s0"), item("gone", null, 10, "s1"), item("b", null, 10, "s2")],
+      [],
+      [
+        { key: "s0", name: "Warm-up" },
+        { key: "s1", name: "Main" },
+        { key: "s2", name: "Cool-down" },
+      ],
+    );
+    const { input } = routineRestoreInput(snapshot, current, new Set(["a", "b"]), "Principal");
+    expect(input.sections).toEqual([
+      { key: "s0", name: "Warm-up" },
+      { key: "s1", name: "Main" },
+      { key: "s2", name: "Cool-down" },
+    ]);
+    expect(input.items.map((it) => [it.exerciseId, it.sectionKey])).toEqual([
+      ["a", "s0"],
+      ["b", "s2"],
+    ]);
+  });
+
+  it("sends an item with no section to the first one and keeps items in section order", () => {
+    const snapshot = routine(
+      [item("a", null, 10, "s1"), item("b", null, 10, null), item("c", null, 10, "s0")],
+      [],
+      [
+        { key: "s0", name: "One" },
+        { key: "s1", name: "Two" },
+      ],
+    );
+    const { input } = routineRestoreInput(snapshot, current, new Set(["a", "b", "c"]), "Main");
+    expect(input.items.map((it) => [it.exerciseId, it.sectionKey])).toEqual([
+      ["b", "s0"],
+      ["c", "s0"],
+      ["a", "s1"],
+    ]);
+  });
+
   it("orders items by position", () => {
     const snapshot = routine([item("a"), item("b")]);
     snapshot.items.reverse();
-    const { input } = routineRestoreInput(snapshot, current, new Set(["a", "b"]));
+    const { input } = routineRestoreInput(snapshot, current, new Set(["a", "b"]), "Main");
     expect(input.items.map((it) => it.exerciseId)).toEqual(["a", "b"]);
   });
 
   it("drops items whose exercise no longer exists", () => {
     const snapshot = routine([item("a"), item("gone"), item("b")]);
-    const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b"]));
+    const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b"]), "Main");
     expect(dropped).toBe(1);
     expect(input.items.map((it) => it.exerciseId)).toEqual(["a", "b"]);
   });
@@ -126,7 +196,7 @@ describe("routineRestoreInput", () => {
       [item("a", "g0"), item("gone", "g0"), item("b")],
       [{ key: "g0", restSeconds: 60 }],
     );
-    const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b"]));
+    const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b"]), "Main");
     expect(dropped).toBe(1);
     expect(input.groups).toEqual([]);
     expect(input.items[0]).toMatchObject({ exerciseId: "a", groupKey: null, restSeconds: 60 });
@@ -139,7 +209,7 @@ describe("routineRestoreInput", () => {
       [item("a", "g0"), item("gone", "g0")],
       [{ key: "g0", restSeconds: null }],
     );
-    const { input } = routineRestoreInput(snapshot, current, new Set(["a"]));
+    const { input } = routineRestoreInput(snapshot, current, new Set(["a"]), "Main");
     expect(input.items[0]).toMatchObject({ exerciseId: "a", groupKey: null, restSeconds: null });
   });
 
@@ -148,7 +218,7 @@ describe("routineRestoreInput", () => {
       [item("a", "g0"), item("gone", "g0"), item("b", "g0")],
       [{ key: "g0", restSeconds: 60 }],
     );
-    const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b"]));
+    const { input, dropped } = routineRestoreInput(snapshot, current, new Set(["a", "b"]), "Main");
     expect(dropped).toBe(1);
     expect(input.groups).toEqual([{ key: "g0", restSeconds: 60 }]);
     expect(input.items.map((it) => [it.exerciseId, it.groupKey])).toEqual([

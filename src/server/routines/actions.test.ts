@@ -99,6 +99,7 @@ describe("createRoutineAction", () => {
 const item = (overrides: Record<string, unknown> = {}) => ({
   exerciseId: EX,
   groupKey: null,
+  sectionKey: "s1",
   holdSeconds: null,
   restSeconds: null,
   side: null,
@@ -115,6 +116,7 @@ const payload = (overrides: Record<string, unknown> = {}) => ({
   sessionsPerWeek: null,
   sessionsPerDay: "",
   status: "draft",
+  sections: [{ key: "s1", name: "Main" }],
   groups: [],
   items: [item()],
   ...overrides,

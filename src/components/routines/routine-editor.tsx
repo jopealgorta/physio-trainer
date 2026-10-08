@@ -18,24 +18,22 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import type { CategoryNode } from "@/lib/category-tree";
+import { flatItems, itemsWithInvalidSets, newItem, type ExerciseRef } from "@/lib/routine-editor";
 import {
-  addItem,
-  canAddItem,
-  flatItems,
-  itemsWithInvalidSets,
-  newItem,
-  toSaveBlocks,
-  type EditorBlock,
-  type ExerciseRef,
-} from "@/lib/routine-editor";
+  addItemToLast,
+  allBlocks,
+  toSaveSections,
+  totalItems,
+  type EditorSection,
+} from "@/lib/routine-sections";
 import { MAX_ITEMS } from "@/lib/routines";
 import { validateHeader, type HeaderErrors } from "@/lib/routine-validation";
 import { saveRoutineAction, type SaveRoutineActionError } from "@/server/routines/actions";
 import type { ExerciseSummary } from "@/server/library/queries";
 
-import { BlockList } from "./block-list";
 import { ExercisePicker } from "./exercise-picker";
 import { RoutineHeader, type HeaderSlots, type HeaderValues } from "./routine-header";
+import { SectionList } from "./section-list";
 import { useUnsavedGuard } from "./use-unsaved-guard";
 
 export type { HeaderValues } from "./routine-header";
@@ -51,7 +49,8 @@ export type RoutineEditorProps = {
     header: HeaderValues;
     cases: { id: string; title: string }[];
   };
-  initialBlocks: EditorBlock[];
+  /** At least one section (the page names a section-less routine's default one). */
+  initialSections: EditorSection[];
   categories: CategoryNode[];
   recent: ExerciseSummary[];
   exercises: ExerciseSummary[];
@@ -66,17 +65,17 @@ const newKey = () => crypto.randomUUID();
 /** How long "Added Squat" stays in the picker sheet's footer. */
 const FLASH_MS = 2500;
 
-const snapshotOf = (header: HeaderValues, blocks: EditorBlock[]) =>
-  JSON.stringify([header, toSaveBlocks(blocks)]);
+const snapshotOf = (header: HeaderValues, sections: EditorSection[]) =>
+  JSON.stringify([header, toSaveSections(sections)]);
 
 /**
- * The routine editor: header fields, the block list and the exercise picker, saved as one unit
- * with an optimistic version check. The picker is a sticky side panel from `lg`, and a bottom
- * sheet (the same component) below it.
+ * The routine editor: header fields, the sections with their blocks and the exercise picker
+ * (which appends to the last section), saved as one unit with an optimistic version check. The
+ * picker is a sticky side panel from `lg`, and a bottom sheet (the same component) below it.
  */
 export function RoutineEditor({
   routine,
-  initialBlocks,
+  initialSections,
   categories,
   recent,
   exercises,
@@ -87,9 +86,9 @@ export function RoutineEditor({
   const router = useRouter();
 
   const [header, setHeader] = useState(routine.header);
-  const [blocks, setBlocks] = useState(initialBlocks);
+  const [sections, setSections] = useState(initialSections);
   const [version, setVersion] = useState(routine.version);
-  const [snapshot, setSnapshot] = useState(() => snapshotOf(routine.header, initialBlocks));
+  const [snapshot, setSnapshot] = useState(() => snapshotOf(routine.header, initialSections));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<SaveError | null>(null);
   const [blockedBy, setBlockedBy] = useState<string[]>([]);
@@ -110,9 +109,9 @@ export function RoutineEditor({
   if (reloadRequested && routine.version > version) {
     setReloadRequested(false);
     setHeader(routine.header);
-    setBlocks(initialBlocks);
+    setSections(initialSections);
     setVersion(routine.version);
-    setSnapshot(snapshotOf(routine.header, initialBlocks));
+    setSnapshot(snapshotOf(routine.header, initialSections));
     setError(null);
     setFieldErrors({});
     setSavedAt(null);
@@ -125,6 +124,7 @@ export function RoutineEditor({
     router.refresh();
   }
 
+  const blocks = useMemo(() => allBlocks(sections), [sections]);
   const invalidItems = useMemo(
     () => (checkSets ? new Set(itemsWithInvalidSets(blocks)) : new Set<string>()),
     [checkSets, blocks],
@@ -136,7 +136,7 @@ export function RoutineEditor({
       return next;
     });
 
-  const current = useMemo(() => snapshotOf(header, blocks), [header, blocks]);
+  const current = useMemo(() => snapshotOf(header, sections), [header, sections]);
   const dirty = current !== snapshot;
   useUnsavedGuard(dirty, t("leaveConfirm"));
 
@@ -181,7 +181,7 @@ export function RoutineEditor({
   }, [blocks]);
 
   const pick = (exercise: ExerciseRef) => {
-    setBlocks((previous) => addItem(previous, newItem(exercise, newKey)));
+    setSections((previous) => addItemToLast(previous, newItem(exercise, newKey)));
     if (sheetOpen) {
       setAddedHere((count) => count + 1);
       setFlash((previous) => ({ name: exercise.name, token: (previous?.token ?? 0) + 1 }));
@@ -193,7 +193,7 @@ export function RoutineEditor({
       categories={categories}
       recent={recent}
       initial={exercises}
-      disabledReason={canAddItem(blocks) ? null : tPicker("full", { max: MAX_ITEMS })}
+      disabledReason={totalItems(sections) < MAX_ITEMS ? null : tPicker("full", { max: MAX_ITEMS })}
       added={added}
       inSheet={inSheet}
       onPick={pick}
@@ -234,7 +234,7 @@ export function RoutineEditor({
         sessionsPerWeek: validation.sessionsPerWeek,
         sessionsPerDay: validation.sessionsPerDay,
         status: header.status,
-        ...toSaveBlocks(blocks),
+        ...toSaveSections(sections),
       });
       if (result.ok) {
         setVersion(result.data.version);
@@ -340,9 +340,9 @@ export function RoutineEditor({
               </DrawerContent>
             </Drawer>
           </div>
-          <BlockList
-            blocks={blocks}
-            onChange={setBlocks}
+          <SectionList
+            sections={sections}
+            onChange={setSections}
             newKey={newKey}
             expanded={expanded}
             invalid={invalidItems}

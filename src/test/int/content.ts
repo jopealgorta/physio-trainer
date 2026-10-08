@@ -6,6 +6,7 @@ import {
   routineGroups,
   routineItemSets,
   routineItems,
+  routineSections,
   routines,
   weeklyPlanDays,
   weeklyPlanEntries,
@@ -54,6 +55,8 @@ export type FixtureItem = {
   notes?: string;
   /** Items sharing a group key form one superset. */
   group?: string;
+  /** Name of the section the item sits in; defaults to "Main". Sections are created in order of first use. */
+  section?: string;
 };
 
 export async function insertRoutine(
@@ -62,43 +65,58 @@ export async function insertRoutine(
   values: Partial<typeof routines.$inferInsert> & { items?: FixtureItem[] } = {},
 ): Promise<string> {
   const { items = [], ...rest } = values;
-  const [row] = await db
-    .insert(routines)
-    .values({ physioId, customerId, name: "Routine", ...rest })
-    .returning({ id: routines.id });
-  const routineId = row!.id;
+  // One transaction: no committed routine may ever lack its sections (other test files run in parallel).
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(routines)
+      .values({ physioId, customerId, name: "Routine", ...rest })
+      .returning({ id: routines.id });
+    const routineId = row!.id;
 
-  const groupIds = new Map<string, string>();
-  for (const key of new Set(items.flatMap((item) => (item.group ? [item.group] : [])))) {
-    const [group] = await db
-      .insert(routineGroups)
-      .values({ physioId, routineId })
-      .returning({ id: routineGroups.id });
-    groupIds.set(key, group!.id);
-  }
-  for (const [position, item] of items.entries()) {
-    const [created] = await db
-      .insert(routineItems)
-      .values({
-        physioId,
-        routineId,
-        exerciseId: item.exerciseId,
-        position,
-        notes: item.notes ?? null,
-        groupId: item.group ? groupIds.get(item.group)! : null,
-      })
-      .returning({ id: routineItems.id });
-    const count = item.sets ?? 3;
-    await db.insert(routineItemSets).values(
-      Array.from({ length: count }, (_, setPosition) => ({
-        physioId,
-        routineItemId: created!.id,
-        position: setPosition,
-        reps: item.reps ?? 10,
-      })),
-    );
-  }
-  return routineId;
+    const groupIds = new Map<string, string>();
+    for (const key of new Set(items.flatMap((item) => (item.group ? [item.group] : [])))) {
+      const [group] = await tx
+        .insert(routineGroups)
+        .values({ physioId, routineId })
+        .returning({ id: routineGroups.id });
+      groupIds.set(key, group!.id);
+    }
+    const sectionIds = new Map<string, string>();
+    const sectionName = (item: FixtureItem) => item.section ?? "Main";
+    // A routine always has at least the "Main" section, even with no items.
+    const names = items.length ? items.map(sectionName) : ["Main"];
+    for (const name of new Set(names)) {
+      const [section] = await tx
+        .insert(routineSections)
+        .values({ physioId, routineId, name, position: sectionIds.size })
+        .returning({ id: routineSections.id });
+      sectionIds.set(name, section!.id);
+    }
+    for (const [position, item] of items.entries()) {
+      const [created] = await tx
+        .insert(routineItems)
+        .values({
+          physioId,
+          routineId,
+          exerciseId: item.exerciseId,
+          position,
+          notes: item.notes ?? null,
+          sectionId: sectionIds.get(sectionName(item))!,
+          groupId: item.group ? groupIds.get(item.group)! : null,
+        })
+        .returning({ id: routineItems.id });
+      const count = item.sets ?? 3;
+      await tx.insert(routineItemSets).values(
+        Array.from({ length: count }, (_, setPosition) => ({
+          physioId,
+          routineItemId: created!.id,
+          position: setPosition,
+          reps: item.reps ?? 10,
+        })),
+      );
+    }
+    return routineId;
+  });
 }
 
 export async function insertPlan(

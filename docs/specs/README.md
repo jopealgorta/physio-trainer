@@ -32,6 +32,7 @@ feature list agreed in the initial brainstorm.
 | 19  | [Patient page v2](./19-patient-page-v2.md)                             | C, D    | 05, 06, 10, 12, 13, 14, 15 | Done   |
 | 20  | [Inline exercise log](./20-inline-exercise-log.md)                     | D       | 13, 19                     | Done   |
 | 21  | [Exercise logs belong to the session](./21-session-exercise-logs.md)   | D       | 13, 19, 20                 | Done   |
+| 22  | [Routine sections](./22-routine-sections.md)                           | Core    | 05, 07, 08, 10, 14, 15, 19 | Done   |
 
 ```mermaid
 graph LR
@@ -46,6 +47,7 @@ graph LR
   10 --> 19
   19 --> 20
   20 --> 21
+  05 & 07 & 08 & 10 & 14 & 15 & 19 --> 22
 ```
 
 Specs 09, 15 and 16 can be built in parallel with the main chain once their dependencies are

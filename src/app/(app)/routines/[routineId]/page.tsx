@@ -13,7 +13,7 @@ import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-di
 import { TemplateActions } from "@/components/templates/template-actions";
 import { todayIn } from "@/lib/calendar-date";
 import { customerName } from "@/lib/customers";
-import { fromLoaded } from "@/lib/routine-editor";
+import { fromLoadedSections } from "@/lib/routine-sections";
 import { firstParam } from "@/lib/search-params";
 import { idSchema } from "@/server/routines/schemas";
 import { loadRoutine } from "@/server/routines/load";
@@ -35,6 +35,7 @@ export default async function RoutinePage({
   if (!loaded) notFound();
   const { routine, timeZone, categories, recent, exercises, customers } = loaded;
   const t = await getTranslations("Routines.editor");
+  const tSections = await getTranslations("Routines.sections");
 
   // Coming from a plan board ("New routine" on a day): offer the way back to that plan.
   const fromPlan = idSchema.safeParse(firstParam(sp.plan));
@@ -122,7 +123,13 @@ export default async function RoutinePage({
           },
           cases: routine.cases.map(({ id, title }) => ({ id, title })),
         }}
-        initialBlocks={fromLoaded(routine.items, routine.groups, () => crypto.randomUUID())}
+        initialSections={fromLoadedSections(
+          routine.items,
+          routine.groups,
+          routine.sections,
+          tSections("defaultName"),
+          () => crypto.randomUUID(),
+        )}
         categories={categories}
         recent={recent}
         exercises={exercises}

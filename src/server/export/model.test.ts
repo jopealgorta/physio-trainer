@@ -38,17 +38,25 @@ function item(id: string, over: Partial<ContentItem> = {}): ContentItem {
     ...over,
   };
 }
-function routine(id: string, blocks: SourceRoutine["blocks"] = []): SourceRoutine {
+function routine(
+  id: string,
+  blocks: SourceRoutine["sections"][number]["blocks"] = [],
+): SourceRoutine {
   return {
     id,
     name: `R ${id}`,
     notes: null,
     sessionsPerWeek: null,
     sessionsPerDay: null,
-    blocks,
+    sections: [{ key: `s-${id}`, name: "", blocks }],
     phase: null,
   };
 }
+const sec = (key: string, name: string, blocks: SourceRoutine["sections"][number]["blocks"]) => ({
+  key,
+  name,
+  blocks,
+});
 const single = (i: ContentItem) => ({ kind: "single" as const, item: i });
 const grp = (key: string, items: ContentItem[]) => ({
   kind: "group" as const,
@@ -170,7 +178,7 @@ describe("buildExportDocument", () => {
       }),
       t,
     );
-    const blocks = doc.routines[0].blocks;
+    const blocks = doc.routines[0].sections[0].blocks;
     expect(blocks[0]).toMatchObject({ kind: "group", label: "A" });
     if (blocks[0].kind === "group") {
       expect(blocks[0].items.map((i) => i.label)).toEqual(["A1", "A2"]);
@@ -178,10 +186,50 @@ describe("buildExportDocument", () => {
     expect(blocks[1]).toMatchObject({ kind: "single", item: { label: null } });
     expect(blocks[2]).toMatchObject({ kind: "group", label: "B" });
   });
+  it("drops empty sections and continues superset letters across sections", () => {
+    const doc = buildExportDocument(
+      source({
+        routines: [
+          {
+            ...routine("R"),
+            sections: [
+              sec("s1", "Warm-up", [grp("g1", [item("a"), item("b")])]),
+              sec("s2", "Empty", []),
+              sec("s3", "Main", [grp("g2", [item("c"), item("d")]), single(item("e"))]),
+            ],
+          },
+        ],
+      }),
+      t,
+    );
+    const r = doc.routines[0];
+    expect(r.sections.map((s) => s.name)).toEqual(["Warm-up", "Main"]);
+    expect(r.sectionHeadings).toBe(true);
+    expect(r.sections[0].blocks[0]).toMatchObject({ kind: "group", label: "A" });
+    expect(r.sections[1].blocks[0]).toMatchObject({ kind: "group", label: "B" });
+    if (r.sections[1].blocks[0].kind === "group") {
+      expect(r.sections[1].blocks[0].items.map((i) => i.label)).toEqual(["B1", "B2"]);
+    }
+  });
+  it("shows section headings only with two or more non-empty sections", () => {
+    const doc = buildExportDocument(
+      source({
+        routines: [
+          {
+            ...routine("R"),
+            sections: [sec("s1", "A", [single(item("a"))]), sec("s2", "B", [])],
+          },
+        ],
+      }),
+      t,
+    );
+    expect(doc.routines[0].sections).toHaveLength(1);
+    expect(doc.routines[0].sectionHeadings).toBe(false);
+  });
   it("builds summary, columns and video url", () => {
     const i = item("a", { holdSeconds: 5, media: [{ videoId: "abc", isShort: false }] });
     const doc = buildExportDocument(source({ routines: [routine("R", [single(i)])] }), t);
-    const out = doc.routines[0].blocks[0];
+    const out = doc.routines[0].sections[0].blocks[0];
     if (out.kind !== "single") throw new Error("expected single");
     expect(out.item.summary).toBe(formatPrescription(i, t));
     expect(out.item.videoId).toBe("abc");
@@ -190,7 +238,7 @@ describe("buildExportDocument", () => {
   });
   it("has null video without media", () => {
     const doc = buildExportDocument(source({ routines: [routine("R", [single(item("a"))])] }), t);
-    const out = doc.routines[0].blocks[0];
+    const out = doc.routines[0].sections[0].blocks[0];
     if (out.kind !== "single") throw new Error("expected single");
     expect(out.item.videoUrl).toBeNull();
     expect(out.item.videoId).toBeNull();

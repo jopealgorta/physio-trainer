@@ -321,7 +321,7 @@ describe("patient data layer", () => {
       });
       expect(evening).toMatchObject({ label: "Evening", routine: { name: "Rehab" } });
       const item = (
-        morning!.routine.blocks[0] as {
+        morning!.routine.sections[0]!.blocks[0] as {
           kind: "single";
           item: {
             name: string;
@@ -367,8 +367,8 @@ describe("patient data layer", () => {
       });
       const link = await customerLink(physio, customerId);
       const [routine] = (await viewOf(link.code)).routines;
-      expect(routine!.blocks.map((block) => block.kind)).toEqual(["group", "single"]);
-      const group = routine!.blocks[0]!;
+      expect(routine!.sections[0]!.blocks.map((block) => block.kind)).toEqual(["group", "single"]);
+      const group = routine!.sections[0]!.blocks[0]!;
       if (group.kind !== "group") throw new Error("expected a group");
       expect(group.items.map((item) => item.name)).toEqual(["A", "B"]);
     });
@@ -641,7 +641,7 @@ describe("patient data layer", () => {
 
       const daily = await reach(code, standalone);
       expect(daily).toMatchObject({ id: standalone, name: "Daily" });
-      expect(daily!.blocks).toHaveLength(1);
+      expect(daily!.sections[0]!.blocks).toHaveLength(1);
       // Any weekday of the plan: the patient may do Friday's routine on Wednesday.
       expect(await reach(code, inPlan)).toMatchObject({ id: inPlan, name: "Gym" });
     });

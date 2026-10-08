@@ -19,7 +19,7 @@ import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 // Relative imports: drizzle-kit loads the schema without the "@/" alias.
 import { PHASE_LABEL_MAX } from "../../lib/phases";
 import { PRESCRIPTION_LIMITS } from "../../lib/prescription";
-import { ROUTINE_NAME_MAX, ROUTINE_NOTES_MAX } from "../../lib/routines";
+import { ROUTINE_NAME_MAX, ROUTINE_NOTES_MAX, SECTION_NAME_MAX } from "../../lib/routines";
 import { timestamps } from "./_columns";
 import {
   itemPrescriptionChecks,
@@ -138,6 +138,39 @@ export const routineGroups = pgTable(
   ],
 );
 
+/**
+ * A named, ordered part of a routine (spec 22): "Warm-up", "Main", ... Items point at one via
+ * routine_items_section_fk. The set_updated_at trigger and the backfill live in the custom
+ * migration.
+ */
+export const routineSections = pgTable(
+  "routine_sections",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    physioId: physioId(),
+    routineId: uuid().notNull(),
+    name: text().notNull(),
+    position: integer().notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    unique("routine_sections_physio_routine_id_unique").on(t.physioId, t.routineId, t.id),
+    unique("routine_sections_position_unique").on(t.physioId, t.routineId, t.position),
+    foreignKey({
+      name: "routine_sections_routine_fk",
+      columns: [t.physioId, t.routineId],
+      foreignColumns: [routines.physioId, routines.id],
+    }).onDelete("cascade"),
+    index("routine_sections_routine_idx").on(t.physioId, t.routineId),
+    check("routine_sections_position", sql`${t.position} >= 0`),
+    check(
+      "routine_sections_name_length",
+      sql`char_length(${t.name}) between 1 and ${sql.raw(String(SECTION_NAME_MAX))}`,
+    ),
+    ownRows("routine_sections_own", t.physioId),
+  ],
+);
+
 /** An exercise in a routine, ordered by position, optionally inside a superset group. */
 export const routineItems = pgTable(
   "routine_items",
@@ -148,6 +181,8 @@ export const routineItems = pgTable(
     exerciseId: uuid().notNull(),
     position: integer().notNull(),
     groupId: uuid(),
+    // Nullable while old app versions may still save without sections (spec 22, expand/contract).
+    sectionId: uuid(),
     ...itemPrescriptionColumns(),
     ...timestamps,
   },
@@ -169,6 +204,12 @@ export const routineItems = pgTable(
       name: "routine_items_group_fk",
       columns: [t.physioId, t.routineId, t.groupId],
       foreignColumns: [routineGroups.physioId, routineGroups.routineId, routineGroups.id],
+    }),
+    // A NULL section_id skips this FK; otherwise the section must belong to the same routine.
+    foreignKey({
+      name: "routine_items_section_fk",
+      columns: [t.physioId, t.routineId, t.sectionId],
+      foreignColumns: [routineSections.physioId, routineSections.routineId, routineSections.id],
     }),
     index("routine_items_routine_idx").on(t.physioId, t.routineId),
     check("routine_items_position", sql`${t.position} >= 0`),
@@ -203,6 +244,7 @@ export const routineItemSets = pgTable(
 );
 
 export type Routine = typeof routines.$inferSelect;
+export type RoutineSection = typeof routineSections.$inferSelect;
 export type RoutineGroup = typeof routineGroups.$inferSelect;
 export type RoutineItem = typeof routineItems.$inferSelect;
 export type RoutineItemSet = typeof routineItemSets.$inferSelect;

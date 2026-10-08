@@ -17,6 +17,9 @@ vi.mock("./mutations", () => ({
   restoreRoutineVersion: m.restoreRoutineVersion,
   restorePlanVersion: m.restorePlanVersion,
 }));
+vi.mock("next-intl/server", () => ({
+  getTranslations: async () => (key: string) => `t:${key}`,
+}));
 vi.mock("next/cache", () => ({ revalidatePath: m.revalidatePath }));
 
 const UUID = "0b0e5a2e-8c1f-4a47-9a55-3f6f1c1f2a10";
@@ -94,7 +97,12 @@ describe("restoreVersionAction", () => {
       ok: true,
       data: { version: 5, dropped: 0 },
     });
-    expect(m.restoreRoutineVersion).toHaveBeenCalledWith({}, "physio-1", { id: UUID, version: 2 });
+    expect(m.restoreRoutineVersion).toHaveBeenCalledWith(
+      {},
+      "physio-1",
+      { id: UUID, version: 2 },
+      "t:defaultName",
+    );
     expect(m.restorePlanVersion).not.toHaveBeenCalled();
     expect(m.revalidatePath).toHaveBeenCalledWith(`/routines/${UUID}`);
     expect(m.revalidatePath).toHaveBeenCalledWith("/routines", "layout");

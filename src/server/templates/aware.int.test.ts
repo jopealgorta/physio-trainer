@@ -87,12 +87,14 @@ describe("templates in routine and plan queries and mutations", () => {
           sessionsPerWeek: null,
           sessionsPerDay: null,
           status,
+          sections: [{ key: "s", name: "Main" }],
           groups: [],
           items: withItem
             ? [
                 {
                   exerciseId,
                   groupKey: null,
+                  sectionKey: "s",
                   holdSeconds: null,
                   restSeconds: null,
                   side: null,
@@ -458,6 +460,7 @@ describe("templates in routine and plan queries and mutations", () => {
             sessionsPerWeek: null,
             sessionsPerDay: null,
             status: "active",
+            sections: [{ key: "s", name: "Main" }],
             groups: [],
             items: [],
           }),

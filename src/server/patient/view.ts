@@ -7,7 +7,12 @@ import { routines, weeklyPlanDays, weeklyPlanEntries, weeklyPlans } from "@/db/s
 import { isoWeekday, todayIn } from "@/lib/calendar-date";
 import { nextStart } from "@/lib/schedule";
 import { loadRoutineContent } from "@/server/routines/content";
-import type { ContentBlock, ContentItem, RoutineContent } from "@/server/routines/content";
+import type {
+  ContentBlock,
+  ContentItem,
+  ContentSection,
+  RoutineContent,
+} from "@/server/routines/content";
 import { scheduleFilter } from "@/server/schedule/active";
 
 import type { ActiveLink, LinkShell } from "./resolve-link";
@@ -19,6 +24,7 @@ import type { ActiveLink, LinkShell } from "./resolve-link";
  */
 export type PatientItem = ContentItem;
 export type PatientBlock = ContentBlock;
+export type PatientSection = ContentSection;
 export type PatientRoutine = RoutineContent;
 
 export type PatientPlan = {
