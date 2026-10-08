@@ -1,6 +1,6 @@
 # 22 · Routine sections
 
-- **Status:** In progress
+- **Status:** Done
 - **Feature:** Core (extends 05)
 - **Depends on:** 05, 07, 08, 10, 14, 15, 19
 
@@ -125,16 +125,20 @@ history diff lines. Every key in `en` and `es` (Rioplatense voseo). Suggestion c
 
 ## Acceptance criteria
 
-- [ ] Migration creates `routine_sections`, `routine_items.section_id`, and backfills one section
+- [x] Migration creates `routine_sections`, `routine_items.section_id`, and backfills one section
       per routine with the physio's locale name.
-- [ ] Editor: add (input + chips), rename, reorder, delete (confirm, not the last) sections;
+- [x] Editor: add (input + chips), rename, reorder, delete (confirm, not the last) sections;
       move blocks between sections by drag and by the menu; supersets never span sections.
-- [ ] Save/reload keeps sections and their order; validation rules 1–2 enforced server-side.
-- [ ] Rule 3 fallback for null `section_id` and section-less routines.
-- [ ] Patient page and PDF show headings (2+ non-empty sections rule); Excel has a Section column.
-- [ ] History snapshot/diff/restore include sections; old snapshots still restore.
-- [ ] Copies keep sections.
-- [ ] RLS tests for `routine_sections`.
+      (End to end: chip, menu move, keyboard section reorder, and a mouse drag across sections,
+      into an empty section's drop zone too.)
+- [ ] Touch drag across sections: dnd-kit's `PointerSensor` handles it, but the e2e drag uses a
+      mouse, so this stays unchecked until someone tries it on a real phone.
+- [x] Save/reload keeps sections and their order; validation rules 1–2 enforced server-side.
+- [x] Rule 3 fallback for null `section_id` and section-less routines.
+- [x] Patient page and PDF show headings (2+ non-empty sections rule); Excel has a Section column.
+- [x] History snapshot/diff/restore include sections; old snapshots still restore.
+- [x] Copies keep sections.
+- [x] RLS tests for `routine_sections`.
 
 ## Test plan
 
@@ -157,4 +161,49 @@ history diff lines. Every key in `en` and `es` (Rioplatense voseo). Suggestion c
 
 ## Decisions made during implementation
 
-(Fill in while building.)
+- **Expand now, contract later.** `routine_items.section_id` stays nullable here; a follow-up
+  chore PR sets it `NOT NULL` once no deployed code writes nulls. The backfill and the
+  `set_updated_at` trigger live in a separate custom migration
+  (`20261008165957_routine-sections-extras.sql`, statements after a `-- backfill` marker,
+  idempotent). Its integration test runs those statements against a section-less routine.
+- **`insertRoutine` (integration fixture) is atomic**: one `db.transaction`, so no committed
+  routine ever lacks its section. Integration files run in parallel with the backfill test, whose
+  global statements would otherwise pick up another file's half-built routine. The patient
+  test for a section-less routine runs in a rolled-back transaction for the same reason.
+- **New routines get their section on first save.** `createRoutine` is unchanged and creates no
+  section: the editor opens a section-less routine with one default "Main" section
+  (`fromLoadedSections`, localized) and the save writes it.
+- **Validation.** `validateStructure` takes the sections as a required argument, so no caller can
+  skip the section checks; issues `unknownSection`, `duplicateSection`, `sectionOrder` (an
+  item's section must not come before the previous item's) and `groupSpansSections`. The save
+  maps section keys to fresh ids (spec 05) and deletes items → groups → sections.
+- **History: the snapshot stays schema 1.** `sections` (`key`, `name`; keys `s0`, `s1`… by
+  position) and the item `sectionKey` are additive fields defaulting to `[]` and `null`, like
+  earlier additions, not a schema bump. Old snapshots restore as one section named by the
+  restoring physio's locale; a null `sectionKey` joins the first section.
+- **The diff shows section changes only when both snapshots have sections** (a "Sections" line
+  with the ordered names, and an exercise's "Section" change), so the first save after the
+  migration doesn't report every exercise as moved.
+- **Readers without sections.** The patient content groups items per section (a null or unknown
+  `section_id` joins the first section; a routine with items but no sections reads as one unnamed
+  section). `visibleSections` drops empty sections and turns headings on at two or more;
+  workout mode, the routine view and the session summary flatten them (`flattenSections`).
+- **Exports.** Superset letters and exercise numbers continue across sections. A PDF heading
+  is kept on the same page as its first exercise (`wrap={false}`). The Excel "Section" column
+  sits after the label column.
+- **Superset "Move to section" is a dropdown button on the superset card**, next to "Group with
+  next" and "Ungroup" (the card has no ⋯ menu). A member's own menu doesn't offer it, because a
+  member can't leave its group. A single exercise gets a "Move to section" submenu in its ⋯ menu.
+  Both are hidden while the routine has one section.
+- **Keyboard drags stay within a section.** The keyboard coordinate getter is scoped: a section
+  moves among sections, a block among its own section's blocks. "Move to section" is the keyboard
+  (and touch) way to another section. Pointer drags cross sections (`pointerWithin`, then
+  `closestCenter`): the block joins the hovered section in `onDragOver`, before or after the
+  hovered block, and a cancelled drag restores the sections captured at drag start. Block
+  announcements name the section (`Routines.sections.movedTo` / `droppedIn`); section drags reuse
+  `Sortable.*`.
+- **Section cards.** The name is an `h2` renamed in place (pencil; Enter or blur confirms,
+  Escape cancels; a blank or too-long name keeps the input open with an error, like the routine
+  title). Deleting a section with exercises asks first; an empty one goes at once.
+- **E2E pointer drags wait 100 ms after the drop.** dnd-kit swallows clicks for 50 ms after a
+  drag, so a Save clicked by the test right away was lost (a person never clicks that fast).

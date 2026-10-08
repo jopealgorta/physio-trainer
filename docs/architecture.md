@@ -140,8 +140,10 @@ erDiagram
   cases |o--o{ routines : "optional link"
   cases |o--o{ weekly_plans : "optional link"
   routines ||--o{ routine_groups : "supersets"
+  routines ||--o{ routine_sections : "sections 1-12"
   routines ||--o{ routine_items : contains
   routine_groups |o--o{ routine_items : "groups 2-3"
+  routine_sections |o--o{ routine_items : "groups by part"
   routine_items ||--o{ routine_item_sets : "one row per set"
   exercises ||--o{ routine_items : "used in"
   weekly_plans ||--o{ weekly_plan_entries : "day slots"
@@ -169,6 +171,7 @@ erDiagram
 | `cases`                                    | 04                             | Injury episodes per customer (body area/side from spec 02).                                                                                                       |
 | `routines`, `routine_groups`               | 05 (+07 templates, +08 phases) | Routine header; a group is one superset (shared rest). Template ⇔ `customer_id` null; copies keep `source_template_id`                                            |
 | `routine_items`, `routine_item_sets`       | 05                             | Ordered exercises (per-item prescription) and one row per set.                                                                                                    |
+| `routine_sections`                         | 22                             | Named, ordered groups of a routine's exercises; items reference one (`section_id`, nullable until the contract PR).                                               |
 | `weekly_plans`, `weekly_plan_entries`      | 06 (+07, +08)                  | Mon–Sun; entries reference routines by id. Same template/`source_template_id` rules.                                                                              |
 | `weekly_plan_days`                         | 19                             | One note per weekday of a plan (row exists only while the note is non-empty).                                                                                     |
 | `share_links`                              | 10                             | Link code, target, PIN hash, expiry, revocation.                                                                                                                  |
