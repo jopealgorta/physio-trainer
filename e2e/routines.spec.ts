@@ -14,7 +14,8 @@ import { chooseOption } from "./helpers/select";
 
 // Version conflicts and the unsaved-changes guard are covered in routine-editor.spec.ts.
 
-const handles = (page: Page) => page.getByRole("button", { name: /^Reorder / });
+// Block handles only: the routine's one section ("Main") has a "Reorder Main" handle too.
+const handles = (page: Page) => page.getByRole("button", { name: /^Reorder (?!Main$)/ });
 const handleNames = (page: Page) =>
   handles(page).evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")));
 const row = (page: Page, name: string) =>
@@ -31,13 +32,15 @@ async function moveDown(page: Page, item: string) {
   await page.getByRole("button", { name: `Reorder ${item}` }).focus();
   await page.keyboard.press("Space");
   // The pick-up announcement is replaced at once by the item's current position.
-  await expect(live.first()).toContainText(`${item} moved to position 1 of 2`);
+  await expect(live.first()).toContainText(`${item} moved to Main, position 1 of 2`);
   await expect(async () => {
     await page.keyboard.press("ArrowDown");
-    await expect(live.first()).toContainText(`${item} moved to position 2 of 2`, { timeout: 500 });
+    await expect(live.first()).toContainText(`${item} moved to Main, position 2 of 2`, {
+      timeout: 500,
+    });
   }).toPass();
   await page.keyboard.press("Space");
-  await expect(live.first()).toContainText(`${item} dropped at position 2 of 2`);
+  await expect(live.first()).toContainText(`${item} dropped in Main, position 2 of 2`);
 }
 
 test("a physio builds a routine with per-set reps and a superset, and it persists", async ({
