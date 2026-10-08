@@ -6,6 +6,7 @@ import {
   routineGroups,
   routineItemSets,
   routineItems,
+  routineSections,
   routines,
   weeklyPlanDays,
   weeklyPlanEntries,
@@ -54,6 +55,8 @@ export type FixtureItem = {
   notes?: string;
   /** Items sharing a group key form one superset. */
   group?: string;
+  /** Name of the section the item sits in; defaults to "Main". Sections are created in order of first use. */
+  section?: string;
 };
 
 export async function insertRoutine(
@@ -76,6 +79,17 @@ export async function insertRoutine(
       .returning({ id: routineGroups.id });
     groupIds.set(key, group!.id);
   }
+  const sectionIds = new Map<string, string>();
+  const sectionName = (item: FixtureItem) => item.section ?? "Main";
+  // A routine always has at least the "Main" section, even with no items.
+  const names = items.length ? items.map(sectionName) : ["Main"];
+  for (const name of new Set(names)) {
+    const [section] = await db
+      .insert(routineSections)
+      .values({ physioId, routineId, name, position: sectionIds.size })
+      .returning({ id: routineSections.id });
+    sectionIds.set(name, section!.id);
+  }
   for (const [position, item] of items.entries()) {
     const [created] = await db
       .insert(routineItems)
@@ -85,6 +99,7 @@ export async function insertRoutine(
         exerciseId: item.exerciseId,
         position,
         notes: item.notes ?? null,
+        sectionId: sectionIds.get(sectionName(item))!,
         groupId: item.group ? groupIds.get(item.group)! : null,
       })
       .returning({ id: routineItems.id });
