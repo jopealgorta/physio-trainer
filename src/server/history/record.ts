@@ -8,6 +8,7 @@ import {
   routineGroups,
   routineItems,
   routineItemSets,
+  routineSections,
   routines,
   routineVersions,
   weeklyPlanDays,
@@ -60,6 +61,7 @@ async function routineState(tx: Tx, physioId: string, routineId: string) {
       id: routineItems.id,
       position: routineItems.position,
       groupId: routineItems.groupId,
+      sectionId: routineItems.sectionId,
       holdSeconds: routineItems.holdSeconds,
       restSeconds: routineItems.restSeconds,
       side: routineItems.side,
@@ -123,15 +125,29 @@ async function routineState(tx: Tx, physioId: string, routineId: string) {
     }
   }
 
+  // Sections by position, keyed s0, s1...; an item with no section (never after the backfill)
+  // falls in the first one.
+  const sectionRows = await tx
+    .select({ id: routineSections.id, name: routineSections.name })
+    .from(routineSections)
+    .where(and(eq(routineSections.physioId, physioId), eq(routineSections.routineId, routineId)))
+    .orderBy(asc(routineSections.position));
+  const sectionKeys = new Map(sectionRows.map((section, index) => [section.id, `s${index}`]));
+  const sectionKeyOf = (sectionId: string | null): string | null =>
+    (sectionId === null ? null : sectionKeys.get(sectionId)) ??
+    (sectionRows.length > 0 ? "s0" : null);
+
   const snapshot: RoutineSnapshot = {
     schema: SNAPSHOT_SCHEMA,
     routine: header,
+    sections: sectionRows.map((section, index) => ({ key: `s${index}`, name: section.name })),
     groups: [...groupKeys].map(([id, key]) => ({ key, restSeconds: groupRest.get(id) ?? null })),
     items: items.map((row) => ({
       exercise: row.exercise,
       position: row.position,
       prescription: {
         groupKey: row.groupId === null ? null : groupKeys.get(row.groupId)!,
+        sectionKey: sectionKeyOf(row.sectionId),
         holdSeconds: row.holdSeconds,
         restSeconds: row.restSeconds,
         side: row.side,

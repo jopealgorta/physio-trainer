@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { diffPlans, diffRoutines } from "./diff";
+import { summarizeRoutine } from "./summary";
 import type { PlanSnapshot, RoutineSnapshot } from "./snapshot";
 
 type Item = RoutineSnapshot["items"][number];
@@ -24,6 +25,7 @@ function item(exerciseId: string, overrides: ItemOverrides = {}): Item {
     ...rest,
     prescription: {
       groupKey: null,
+      sectionKey: null,
       holdSeconds: null,
       restSeconds: null,
       side: null,
@@ -38,6 +40,7 @@ function routine(
   items: Item[],
   header: Partial<RoutineSnapshot["routine"]> = {},
   groups: RoutineSnapshot["groups"] = [],
+  sections: RoutineSnapshot["sections"] = [],
 ): RoutineSnapshot {
   return {
     schema: 1,
@@ -53,10 +56,61 @@ function routine(
       endsOn: null,
       ...header,
     },
+    sections,
     groups,
     items: items.map((it, position) => ({ ...it, position })),
   };
 }
+
+describe("diffRoutines sections", () => {
+  const sec = (...names: string[]) => names.map((name, i) => ({ key: `s${i}`, name }));
+  const inSection = (key: string) => ({ prescription: { sectionKey: key } });
+
+  it("reports no section changes when the old snapshot has no sections", () => {
+    const before = routine([item("a")]);
+    delete (before as { sections?: unknown }).sections;
+    const after = routine([item("a", inSection("s0"))], {}, [], sec("Main"));
+    const diff = diffRoutines(before, after);
+    expect(diff.header).toEqual([]);
+    expect(diff.items[0].changes).toEqual([]);
+    expect(diff.items[0].status).toBe("unchanged");
+  });
+
+  it("reports one sections header change when a section is added", () => {
+    const before = routine([item("a", inSection("s0"))], {}, [], sec("Warm-up", "Main"));
+    const after = routine(
+      [item("a", inSection("s0"))],
+      {},
+      [],
+      sec("Warm-up", "Main", "Cool-down"),
+    );
+    expect(diffRoutines(before, after).header).toEqual([
+      { field: "sections", from: "Warm-up, Main", to: "Warm-up, Main, Cool-down" },
+    ]);
+  });
+
+  it("reports a renamed section as a header change", () => {
+    const before = routine([item("a", inSection("s0"))], {}, [], sec("Main"));
+    const after = routine([item("a", inSection("s0"))], {}, [], sec("Warm-up"));
+    expect(diffRoutines(before, after).header).toEqual([
+      { field: "sections", from: "Main", to: "Warm-up" },
+    ]);
+  });
+
+  it("reports an item moved to another section by name", () => {
+    const before = routine([item("a", inSection("s0"))], {}, [], sec("Warm-up", "Main"));
+    const after = routine([item("a", inSection("s1"))], {}, [], sec("Warm-up", "Main"));
+    const [diff] = diffRoutines(before, after).items;
+    expect(diff.status).toBe("changed");
+    expect(diff.changes).toEqual([{ field: "section", from: "Warm-up", to: "Main" }]);
+  });
+
+  it("counts section changes in the summary", () => {
+    const before = routine([item("a", inSection("s0"))], {}, [], sec("Warm-up", "Main"));
+    const after = routine([item("a", inSection("s1"))], {}, [], sec("Warm-up", "Main"));
+    expect(summarizeRoutine(diffRoutines(before, after)).fields.section).toBe(1);
+  });
+});
 
 describe("diffRoutines", () => {
   it("reports a changed intensity and distance on a set", () => {

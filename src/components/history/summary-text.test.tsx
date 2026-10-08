@@ -38,6 +38,15 @@ describe("SummaryText", () => {
     expect(text).toHaveTextContent("+2 exercises · Reps changed on 1");
   });
 
+  it("labels section changes", () => {
+    const text = setup({
+      target: "routine",
+      kind: "edited",
+      summary: summary({ changed: 1, fields: { section: 1 }, header: ["sections"] }),
+    });
+    expect(text).toHaveTextContent("Sections changed · Section changed on 1");
+  });
+
   it("lists changed fields in a fixed order, whatever order the stored summary has", () => {
     const text = setup({
       target: "routine",

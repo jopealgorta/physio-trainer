@@ -601,6 +601,9 @@
     }
   },
   "Routines": {
+    "sections": {
+      "defaultName": "Principal"
+    },
     "title": "Rutinas",
     "status": {
       "draft": "Borrador",
@@ -1696,6 +1699,8 @@
       "side": "Lado",
       "notes": "Notas",
       "group": "Superserie",
+      "section": "Sección",
+      "sections": "Secciones",
       "label": "Etiqueta",
       "dayNotes": "Notas del día",
       "routine": "Rutina",

@@ -27,6 +27,7 @@ const item = (id: string, name: string, position: number, reps: number) => ({
   position,
   prescription: {
     groupKey: null,
+    sectionKey: null,
     holdSeconds: null,
     restSeconds: null,
     side: null,
@@ -57,6 +58,7 @@ const routine = (items: RoutineSnapshot["items"]): RoutineSnapshot => ({
     startsOn: null,
     endsOn: null,
   },
+  sections: [],
   groups: [],
   items,
 });

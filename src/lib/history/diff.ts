@@ -2,7 +2,8 @@ import type { PlanSnapshot, RoutineSnapshot, SnapshotSet } from "./snapshot";
 
 export type SetField =
   "reps" | "repsMax" | "durationSeconds" | "load" | "distanceMeters" | "intensity";
-export type ItemField = "holdSeconds" | "restSeconds" | "side" | "notes" | "group" | "sets";
+export type ItemField =
+  "holdSeconds" | "restSeconds" | "side" | "notes" | "group" | "section" | "sets";
 export type FieldChange<F extends string> = { field: F; from: unknown; to: unknown };
 
 export type SetDiff =
@@ -22,7 +23,8 @@ export type ItemDiff = {
   sets: SetDiff[];
 };
 
-export type RoutineHeaderField = keyof RoutineSnapshot["routine"];
+/** "sections" = the ordered list of section names (only when both snapshots have sections). */
+export type RoutineHeaderField = keyof RoutineSnapshot["routine"] | "sections";
 export type RoutineDiff = { header: FieldChange<RoutineHeaderField>[]; items: ItemDiff[] };
 
 export type EntryDiff = {
@@ -52,7 +54,7 @@ const SET_FIELDS: SetField[] = [
   "distanceMeters",
   "intensity",
 ];
-const ROUTINE_HEADER_FIELDS: RoutineHeaderField[] = [
+const ROUTINE_HEADER_FIELDS: (keyof RoutineSnapshot["routine"])[] = [
   "name",
   "notes",
   "status",
@@ -142,12 +144,32 @@ function diffSets(before: SnapshotSet[], after: SnapshotSet[]): SetDiff[] {
   return diffs;
 }
 
+/**
+ * Section names of both snapshots, or null when either predates sections (stored jsonb is not
+ * re-parsed, so `sections` may be missing): an old version has no sections to compare against.
+ */
+function sectionNames(before: RoutineSnapshot, after: RoutineSnapshot) {
+  const a = before.sections ?? [];
+  const b = after.sections ?? [];
+  if (a.length === 0 || b.length === 0) return null;
+  const nameOf = (sections: typeof a, item: SnapshotItem) => {
+    const key = item.prescription.sectionKey ?? null;
+    return sections.find((section) => section.key === key)?.name ?? sections[0].name;
+  };
+  return {
+    before: a.map((section) => section.name),
+    after: b.map((section) => section.name),
+    of: (side: "before" | "after", item: SnapshotItem) => nameOf(side === "before" ? a : b, item),
+  };
+}
+
 function diffItem(
   before: SnapshotItem,
   after: SnapshotItem,
   beforeGroup: unknown,
   afterGroup: unknown,
   moved: boolean,
+  section: { from: string; to: string } | null,
 ): ItemDiff {
   const a = before.prescription;
   const b = after.prescription;
@@ -158,6 +180,9 @@ function diffItem(
   );
   if (JSON.stringify(beforeGroup) !== JSON.stringify(afterGroup)) {
     changes.push({ field: "group", from: beforeGroup, to: afterGroup });
+  }
+  if (section && section.from !== section.to) {
+    changes.push({ field: "section", from: section.from, to: section.to });
   }
   if (a.sets.length !== b.sets.length) {
     changes.push({ field: "sets", from: a.sets.length, to: b.sets.length });
@@ -198,6 +223,8 @@ export function diffRoutines(before: RoutineSnapshot, after: RoutineSnapshot): R
   const keep = longestIncreasing(pairedAt.map((i) => pairedBefore[i] as number));
   const stable = new Set(pairedAt.filter((_, n) => keep.has(n)));
 
+  const names = sectionNames(before, after);
+
   const items: ItemDiff[] = afterItems.map((item, i) => {
     const b = pairedBefore[i];
     if (b === null) {
@@ -210,6 +237,7 @@ export function diffRoutines(before: RoutineSnapshot, after: RoutineSnapshot): R
       groupSignature(before, old),
       groupSignature(after, item),
       !stable.has(i),
+      names && { from: names.of("before", old), to: names.of("after", item) },
     );
   });
 
@@ -232,8 +260,21 @@ export function diffRoutines(before: RoutineSnapshot, after: RoutineSnapshot): R
         ],
   );
 
+  const header: FieldChange<RoutineHeaderField>[] = headerChanges(
+    ROUTINE_HEADER_FIELDS,
+    before.routine,
+    after.routine,
+  );
+  if (names && names.before.join("\u0000") !== names.after.join("\u0000")) {
+    header.push({
+      field: "sections",
+      from: names.before.join(", "),
+      to: names.after.join(", "),
+    });
+  }
+
   return {
-    header: headerChanges(ROUTINE_HEADER_FIELDS, before.routine, after.routine),
+    header,
     items: interleave(items, removed),
   };
 }

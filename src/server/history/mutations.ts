@@ -27,12 +27,14 @@ const fail = <E extends RestoreError>(error: E) => ({ ok: false, error }) as con
 /**
  * Writes an older routine version back as the current state through the normal save path, which
  * records it as a new `restored` version (spec 15 rule 4). Content only: status and case stay as
- * they are now. Items whose exercise was deleted are dropped (archived exercises are kept).
+ * they are now. `defaultSectionName` names the single section of a version saved before sections
+ * existed. Items whose exercise was deleted are dropped (archived exercises are kept).
  */
 export async function restoreRoutineVersion(
   tx: Tx,
   physioId: string,
   { id, version }: { id: string; version: number },
+  defaultSectionName: string,
 ): Promise<Restored> {
   if (!isUuid(id)) return fail("notFound");
   const [routine] = await tx
@@ -66,6 +68,7 @@ export async function restoreRoutineVersion(
     row.snapshot,
     { id, ...routine },
     new Set(existing.map((exercise) => exercise.id)),
+    defaultSectionName,
   );
   const parsed = saveRoutineSchema.safeParse(input);
   if (!parsed.success) return fail("invalid");

@@ -40,6 +40,7 @@ import { buildPlanSnapshot, buildRoutineSnapshot } from "./record";
 const item = (exerciseId: string, reps = 10): SaveItem => ({
   exerciseId,
   groupKey: null,
+  sectionKey: "s0",
   holdSeconds: null,
   restSeconds: null,
   side: null,
@@ -65,6 +66,7 @@ const saveInput = (id: string, version: number, items: SaveItem[]): SaveRoutineI
   sessionsPerWeek: null,
   sessionsPerDay: null,
   status: "draft",
+  sections: [{ key: "s0", name: "Main" }],
   groups: [],
   items,
 });
@@ -171,6 +173,7 @@ describe("recording versions", () => {
           position: 0,
           prescription: {
             groupKey: null,
+            sectionKey: "s0",
             holdSeconds: null,
             restSeconds: null,
             side: null,
@@ -227,6 +230,29 @@ describe("recording versions", () => {
         "g0",
         "g0",
       ]);
+    });
+
+    it("records sections in order with each item's section key", async () => {
+      const id = await newRoutine(a, customerId);
+      const other = await exercise(a);
+      await as(a, (tx, physioId) =>
+        saveRoutine(tx, physioId, {
+          ...saveInput(id, 1, [
+            { ...item(exerciseId), sectionKey: "x" },
+            { ...item(other), sectionKey: "y" },
+          ]),
+          sections: [
+            { key: "x", name: "Warm-up" },
+            { key: "y", name: "Main" },
+          ],
+        }),
+      );
+      const snapshot = await as(a, (tx, physioId) => buildRoutineSnapshot(tx, physioId, id));
+      expect(snapshot.sections).toEqual([
+        { key: "s0", name: "Warm-up" },
+        { key: "s1", name: "Main" },
+      ]);
+      expect(snapshot.items.map((entry) => entry.prescription.sectionKey)).toEqual(["s0", "s1"]);
     });
 
     it("rolls the snapshot back with a failed save", async () => {

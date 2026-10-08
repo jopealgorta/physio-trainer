@@ -601,6 +601,9 @@
     }
   },
   "Routines": {
+    "sections": {
+      "defaultName": "Main"
+    },
     "title": "Routines",
     "status": {
       "draft": "Draft",
@@ -1696,6 +1699,8 @@
       "side": "Side",
       "notes": "Notes",
       "group": "Superset",
+      "section": "Section",
+      "sections": "Sections",
       "label": "Label",
       "dayNotes": "Day notes",
       "routine": "Routine",

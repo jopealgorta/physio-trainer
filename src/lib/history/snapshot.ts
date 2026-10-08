@@ -35,6 +35,9 @@ export const routineSnapshotSchema = z.object({
     startsOn: z.string().nullable(),
     endsOn: z.string().nullable(),
   }),
+  // Added with routine sections (spec 22). Stored jsonb is not re-parsed, so readers must treat a
+  // missing `sections` as [] and a missing `sectionKey` as null; keys are `s0`, `s1`... by position.
+  sections: z.array(z.object({ key: z.string(), name: z.string() })).default([]),
   groups: z.array(z.object({ key: z.string(), restSeconds: z.number().nullable() })),
   items: z.array(
     z.object({
@@ -46,6 +49,7 @@ export const routineSnapshotSchema = z.object({
       position: z.number().int(),
       prescription: z.object({
         groupKey: z.string().nullable(),
+        sectionKey: z.string().nullable().default(null),
         holdSeconds: z.number().nullable(),
         restSeconds: z.number().nullable(),
         side: z.enum(PRESCRIPTION_SIDES).nullable(),

@@ -66,6 +66,11 @@ describe("snapshot schemas", () => {
       intensity: null,
     });
   });
+  it("defaults sections and an item's section key on a snapshot saved before sections", () => {
+    const parsed = routineSnapshotSchema.parse(routine);
+    expect(parsed.sections).toEqual([]);
+    expect(parsed.items[0].prescription.sectionKey).toBeNull();
+  });
   it("parses a plan snapshot saved before day notes with no days", () => {
     expect(planSnapshotSchema.parse(plan).days).toEqual([]);
   });

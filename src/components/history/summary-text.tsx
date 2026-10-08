@@ -19,6 +19,8 @@ export const HISTORY_FIELDS = [
   "side",
   "notes",
   "group",
+  "section",
+  "sections",
   "label",
   "dayNotes",
   "routine",
