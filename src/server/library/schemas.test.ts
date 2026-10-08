@@ -10,6 +10,7 @@ import {
 
 const SHORT = "https://youtube.com/shorts/dQw4w9WgXcQ?si=x";
 const UUID = "0b0e5a2e-8c1f-4a47-9a55-3f6f1c1f2a10";
+const UUID2 = "1c1f2a10-8c1f-4a47-9a55-3f6f0b0e5a2e";
 
 function form(entries: [string, string][]) {
   const data = new FormData();
@@ -18,7 +19,7 @@ function form(entries: [string, string][]) {
 }
 
 describe("exerciseSchema kind", () => {
-  const base = { name: "Run", categoryId: null, bodyAreas: [], tags: [], media: [] };
+  const base = { name: "Run", categoryIds: [], bodyAreas: [], media: [] };
   it("defaults to strength and accepts aerobic", () => {
     expect(exerciseSchema.parse(base).kind).toBe("strength");
     expect(exerciseSchema.parse({ ...base, kind: "aerobic" }).kind).toBe("aerobic");
@@ -33,22 +34,21 @@ describe("exerciseSchema", () => {
     const values = exerciseFormValues(
       form([
         ["name", "  Single-leg bridge "],
-        ["categoryId", UUID],
+        ["categoryIds", UUID],
+        ["categoryIds", UUID2],
+        ["categoryIds", UUID],
         ["instructions", "Push through the heel.\nHold."],
         ["bodyAreas", "knee"],
         ["bodyAreas", "glute"],
         ["bodyAreas", "glute"],
-        ["tags", "Bodyweight"],
-        ["tags", "beginner"],
         ["media", SHORT],
       ]),
     );
     expect(exerciseSchema.parse(values)).toMatchObject({
       name: "Single-leg bridge",
-      categoryId: UUID,
+      categoryIds: [UUID, UUID2], // de-duplicated, in submitted order
       instructions: "Push through the heel.\nHold.",
       bodyAreas: ["glute", "knee"], // canonical BODY_AREAS order, de-duplicated
-      tags: ["bodyweight", "beginner"],
       media: [
         {
           videoId: "dQw4w9WgXcQ",
@@ -57,6 +57,18 @@ describe("exerciseSchema", () => {
         },
       ],
     });
+  });
+
+  it("ignores tags (exercises no longer have them)", () => {
+    const parsed = exerciseSchema.parse(
+      exerciseFormValues(
+        form([
+          ["name", "Plank"],
+          ["tags", "core"],
+        ]),
+      ),
+    );
+    expect(parsed).not.toHaveProperty("tags");
   });
 
   it("ignores prescription fields (exercises no longer carry defaults)", () => {
@@ -81,16 +93,15 @@ describe("exerciseSchema", () => {
         exerciseFormValues(
           form([
             ["name", "Plank"],
-            ["categoryId", ""],
+            ["categoryIds", ""],
             ["instructions", "  "],
           ]),
         ),
       ),
     ).toMatchObject({
-      categoryId: null,
+      categoryIds: [],
       instructions: null,
       bodyAreas: [],
-      tags: [],
       media: [],
     });
   });
@@ -101,9 +112,9 @@ describe("exerciseSchema", () => {
     [
       [
         ["name", "a"],
-        ["categoryId", "nope"],
+        ["categoryIds", "nope"],
       ],
-      { categoryId: "categoryInvalid" },
+      { categoryIds: "categoryInvalid" },
     ],
     [
       [
@@ -122,20 +133,6 @@ describe("exerciseSchema", () => {
     [
       [
         ["name", "a"],
-        ["tags", "x".repeat(31)],
-      ],
-      { tags: "tagTooLong" },
-    ],
-    [
-      [
-        ["name", "a"],
-        ...Array.from({ length: 21 }, (_, i) => ["tags", `t${i}`] as [string, string]),
-      ],
-      { tags: "tooManyTags" },
-    ],
-    [
-      [
-        ["name", "a"],
         ["media", "https://vimeo.com/1"],
       ],
       { media: "mediaInvalid" },
@@ -148,6 +145,24 @@ describe("exerciseSchema", () => {
     const result = exerciseSchema.safeParse(exerciseFormValues(form(entries)));
     expect(result.success).toBe(false);
     if (!result.success) expect(exerciseFieldErrors(result.error)).toEqual(expected);
+  });
+
+  it("caps the number of categories", () => {
+    const ids = Array.from(
+      { length: 21 },
+      (_, i) => UUID.slice(0, -2) + String(i).padStart(2, "0"),
+    );
+    const entries: [string, string][] = [
+      ["name", "a"],
+      ...ids.map((id) => ["categoryIds", id] as [string, string]),
+    ];
+    const result = exerciseSchema.safeParse(exerciseFormValues(form(entries)));
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(exerciseFieldErrors(result.error)).toEqual({ categoryIds: "tooManyCategories" });
+    expect(exerciseSchema.safeParse(exerciseFormValues(form(entries.slice(0, 21)))).success).toBe(
+      true,
+    );
   });
 
   it("rejects duplicate videos", () => {
@@ -167,7 +182,7 @@ describe("exerciseSchema", () => {
 
   it("ignores File values sent for text fields", () => {
     const data = form([["name", "a"]]);
-    data.append("tags", new File(["x"], "x.txt"));
+    data.append("categoryIds", new File(["x"], "x.txt"));
     expect(exerciseSchema.safeParse(exerciseFormValues(data)).success).toBe(false);
   });
 });

@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CategoryNode } from "@/lib/category-tree";
 import type { ExerciseFormState } from "@/server/library/schemas";
-import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
 
@@ -30,10 +29,9 @@ const categories: CategoryNode[] = [
 const defaults: ExerciseFormValues = {
   name: "",
   kind: "strength",
-  categoryId: null,
+  categoryIds: [],
   instructions: null,
   bodyAreas: [],
-  tags: [],
   mediaUrls: [],
 };
 
@@ -43,12 +41,7 @@ function setup(
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <ExerciseForm
-        action={action}
-        defaults={{ ...defaults, ...values }}
-        categories={categories}
-        tagSuggestions={["band"]}
-      />
+      <ExerciseForm action={action} defaults={{ ...defaults, ...values }} categories={categories} />
     </NextIntlClientProvider>,
   );
 }
@@ -59,9 +52,9 @@ describe("ExerciseForm", () => {
   it("renders the labelled fields for a new exercise", () => {
     setup(idleAction());
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Category")).toBeInTheDocument();
+    expect(screen.getByLabelText("Categories")).toBeInTheDocument();
     expect(screen.getByLabelText("Instructions")).toBeInTheDocument();
-    expect(screen.getByLabelText("Tags")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Tags")).toBeNull();
     expect(screen.getByText("Body areas")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Videos" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create exercise" })).toBeInTheDocument();
@@ -85,13 +78,12 @@ describe("ExerciseForm", () => {
   it("groups categories with their sub-categories", async () => {
     const user = userEvent.setup();
     setup(idleAction());
-    const select = screen.getByLabelText("Category");
-    expect(select).toHaveTextContent("Uncategorised");
-    await user.click(select);
-    const list = await screen.findByRole("listbox");
-    expect(within(list).getAllByRole("option")[0]).toHaveTextContent("Uncategorised");
+    const trigger = screen.getByLabelText("Categories");
+    expect(trigger).toHaveTextContent("Uncategorised");
+    await user.click(trigger);
+    const list = await screen.findByRole("dialog", { name: "Choose categories" });
     expect(within(list).getByRole("group", { name: "Lower limb" })).toBeInTheDocument();
-    expect(within(list).getByRole("option", { name: "Lower limb › Glutes" })).toBeInTheDocument();
+    expect(within(list).getByRole("checkbox", { name: "Lower limb › Glutes" })).toBeInTheDocument();
     expect(within(list).getByRole("group", { name: "Upper limb" })).toBeInTheDocument();
   });
 
@@ -100,16 +92,19 @@ describe("ExerciseForm", () => {
     const action = idleAction();
     setup(action, { bodyAreas: ["knee"] });
     await user.type(screen.getByLabelText("Name"), "Bridge");
-    await chooseOption(user, screen.getByLabelText("Category"), "Lower limb › Glutes");
-    await user.type(screen.getByLabelText("Tags"), "band{Enter}");
+    await user.click(screen.getByLabelText("Categories"));
+    const list = await screen.findByRole("dialog", { name: "Choose categories" });
+    await user.click(within(list).getByRole("checkbox", { name: "Lower limb › Glutes" }));
+    await user.click(within(list).getByRole("checkbox", { name: "Upper limb" }));
+    await user.keyboard("{Escape}");
     await user.type(screen.getByLabelText("YouTube link"), "https://youtu.be/dQw4w9WgXcQ{Enter}");
     await user.click(screen.getByRole("button", { name: "Create exercise" }));
     await waitFor(() => expect(action).toHaveBeenCalled());
     const formData = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
     expect(formData.get("name")).toBe("Bridge");
-    expect(formData.get("categoryId")).toBe("c2");
+    expect(formData.getAll("categoryIds")).toEqual(["c2", "c3"]);
     expect(formData.getAll("bodyAreas")).toEqual(["knee"]);
-    expect(formData.getAll("tags")).toEqual(["band"]);
+    expect(formData.has("tags")).toBe(false);
     expect(formData.getAll("media")).toEqual(["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]);
     expect(formData.has("sets")).toBe(false);
   });
@@ -146,11 +141,11 @@ describe("ExerciseForm", () => {
     await user.click(screen.getByRole("button", { name: "Create exercise" }));
     await waitFor(() => expect(action).toHaveBeenCalled());
     const formData = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
-    expect(formData.get("categoryId")).toBe("c9");
+    expect(formData.getAll("categoryIds")).toEqual(["c9"]);
     expect(formData.get("name")).toBe("Dead bug");
   });
 
-  it("submits an empty category for Uncategorised", async () => {
+  it("submits no category for Uncategorised", async () => {
     const user = userEvent.setup();
     const action = idleAction();
     setup(action);
@@ -158,13 +153,25 @@ describe("ExerciseForm", () => {
     await user.click(screen.getByRole("button", { name: "Create exercise" }));
     await waitFor(() => expect(action).toHaveBeenCalled());
     const formData = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
-    expect(formData.get("categoryId")).toBe("");
+    expect(formData.getAll("categoryIds")).toEqual([]);
   });
 
-  it("shows Uncategorised when the saved category no longer exists", () => {
-    setup(idleAction(), { categoryId: "gone" });
-    expect(screen.getByLabelText("Category")).toHaveTextContent("Uncategorised");
-    expect(document.querySelector('input[name="categoryId"]')).toHaveValue("");
+  it("shows Uncategorised when the saved categories no longer exist", () => {
+    setup(idleAction(), { categoryIds: ["gone"] });
+    expect(screen.getByLabelText("Categories")).toHaveTextContent("Uncategorised");
+    expect(document.querySelector('input[name="categoryIds"]')).toBeNull();
+  });
+
+  it("shows a category error with its limit", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn(async (): Promise<ExerciseFormState> => ({
+      status: "error",
+      fieldErrors: { categoryIds: "tooManyCategories" },
+    }));
+    setup(action, { name: "Bridge" });
+    await user.click(screen.getByRole("button", { name: "Create exercise" }));
+    expect(await screen.findByText("Choose at most 20 categories.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Categories")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("shows field errors and keeps what was typed", async () => {
@@ -179,7 +186,10 @@ describe("ExerciseForm", () => {
     }));
     setup(action);
     await user.type(screen.getByLabelText("Name"), "Bridge");
-    await chooseOption(user, screen.getByLabelText("Category"), "Upper limb");
+    await user.click(screen.getByLabelText("Categories"));
+    const list = await screen.findByRole("dialog", { name: "Choose categories" });
+    await user.click(within(list).getByRole("checkbox", { name: "Upper limb" }));
+    await user.keyboard("{Escape}");
     await user.type(screen.getByLabelText("Instructions"), "Slowly");
     await user.click(screen.getByRole("button", { name: "Create exercise" }));
 
@@ -190,7 +200,7 @@ describe("ExerciseForm", () => {
     expect(screen.getByLabelText("Instructions")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("Name")).toHaveValue("Bridge");
     expect(screen.getByLabelText("Instructions")).toHaveValue("Slowly");
-    expect(screen.getByLabelText("Category")).toHaveTextContent("Upper limb");
+    expect(screen.getByLabelText("Categories")).toHaveTextContent("Upper limb");
   });
 
   it("announces a successful save", async () => {
@@ -223,7 +233,6 @@ describe("ExerciseForm", () => {
           action={action}
           defaults={{ ...defaults, id: "abc", name }}
           categories={categories}
-          tagSuggestions={[]}
         />
       </NextIntlClientProvider>
     );

@@ -79,7 +79,7 @@ describe("saveExerciseAction", () => {
     m.updateExercise.mockResolvedValueOnce({ ok: false, error: "categoryNotFound" });
     await expect(saveExerciseAction(idle, form({ id: UUID, name: "a" }))).resolves.toEqual({
       status: "error",
-      fieldErrors: { categoryId: "categoryInvalid" },
+      fieldErrors: { categoryIds: "categoryInvalid" },
     });
     m.updateExercise.mockResolvedValueOnce({ ok: false, error: "notFound" });
     await expect(saveExerciseAction(idle, form({ id: UUID, name: "a" }))).resolves.toEqual({

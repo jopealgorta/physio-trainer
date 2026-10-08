@@ -18,7 +18,7 @@ import type { LoadedGroup, LoadedItem } from "@/lib/routine-editor";
 import { ROUTINES_LIST_LIMIT, type RoutineStatus } from "@/lib/routines";
 import { escapeLike } from "@/lib/sql-like";
 import { parseYouTubeUrl } from "@/lib/youtube";
-import type { ExerciseSummary } from "@/server/library/queries";
+import { exerciseCategoryIds, type ExerciseSummary } from "@/server/library/queries";
 
 import { isUuid } from "./schemas";
 
@@ -289,9 +289,8 @@ export async function listRecentExercises(
       id: exercises.id,
       name: exercises.name,
       kind: exercises.kind,
-      categoryId: exercises.categoryId,
+      categoryIds: exerciseCategoryIds,
       bodyAreas: exercises.bodyAreas,
-      tags: exercises.tags,
       archivedAt: exercises.archivedAt,
       coverUrl: sql<string | null>`(
         select m.external_url from exercise_media m

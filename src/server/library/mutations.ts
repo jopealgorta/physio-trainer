@@ -4,7 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { isCheckViolation, isForeignKeyViolation, isUniqueViolation } from "@/db/errors";
 import type { Tx } from "@/db/rls";
-import { exerciseCategories, exerciseMedia, exercises } from "@/db/schema";
+import { exerciseCategories, exerciseCategoryLinks, exerciseMedia, exercises } from "@/db/schema";
 
 import type {
   CreateCategoryInput,
@@ -119,9 +119,25 @@ export async function deleteCategory(
 }
 
 function exerciseValues(input: ExerciseInput) {
-  const values: Omit<ExerciseInput, "media"> & { media?: unknown } = { ...input };
+  const values: Omit<ExerciseInput, "media" | "categoryIds"> & {
+    media?: unknown;
+    categoryIds?: unknown;
+  } = { ...input };
   delete values.media;
+  delete values.categoryIds;
   return values;
+}
+
+async function insertCategoryLinks(
+  tx: Tx,
+  physioId: string,
+  exerciseId: string,
+  input: ExerciseInput,
+) {
+  if (input.categoryIds.length === 0) return;
+  await tx
+    .insert(exerciseCategoryLinks)
+    .values(input.categoryIds.map((categoryId) => ({ physioId, exerciseId, categoryId })));
 }
 
 async function insertMedia(tx: Tx, physioId: string, exerciseId: string, input: ExerciseInput) {
@@ -150,11 +166,13 @@ export async function createExercise(
         .values({ physioId, ...exerciseValues(input) })
         .returning({ id: exercises.id });
       await insertMedia(savepoint, physioId, created.id, input);
+      await insertCategoryLinks(savepoint, physioId, created.id, input);
       return created;
     });
     return ok(row);
   } catch (error) {
-    if (isForeignKeyViolation(error, "exercises_category_fk")) return fail("categoryNotFound");
+    if (isForeignKeyViolation(error, "exercise_category_links_category_fk"))
+      return fail("categoryNotFound");
     throw error;
   }
 }
@@ -177,11 +195,21 @@ export async function updateExercise(
         .delete(exerciseMedia)
         .where(and(eq(exerciseMedia.physioId, physioId), eq(exerciseMedia.exerciseId, id)));
       await insertMedia(savepoint, physioId, id, input);
+      await savepoint
+        .delete(exerciseCategoryLinks)
+        .where(
+          and(
+            eq(exerciseCategoryLinks.physioId, physioId),
+            eq(exerciseCategoryLinks.exerciseId, id),
+          ),
+        );
+      await insertCategoryLinks(savepoint, physioId, id, input);
       return true;
     });
     return found ? ok({ id }) : fail("notFound");
   } catch (error) {
-    if (isForeignKeyViolation(error, "exercises_category_fk")) return fail("categoryNotFound");
+    if (isForeignKeyViolation(error, "exercise_category_links_category_fk"))
+      return fail("categoryNotFound");
     throw error;
   }
 }

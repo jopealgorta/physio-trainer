@@ -62,9 +62,8 @@ const summary = (id: string, name: string): ExerciseSummary => ({
   id,
   name,
   kind: "strength",
-  categoryId: null,
+  categoryIds: [],
   bodyAreas: [],
-  tags: [],
   archivedAt: null,
   cover: null,
 });

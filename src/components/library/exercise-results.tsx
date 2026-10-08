@@ -10,12 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { categoriesInTreeOrder, type CategoryNode } from "@/lib/category-tree";
 import { DEFAULT_LIBRARY_FILTERS, libraryHref, type LibraryView } from "@/lib/library-params";
 import type { ExerciseSummary } from "@/server/library/queries";
 
 import { YouTubeThumbnail } from "./youtube-thumbnail";
 
 const MAX_AREA_BADGES = 3;
+const MAX_CATEGORY_BADGES = 2;
 
 function Meta({ exercise, archived }: { exercise: ExerciseSummary; archived: boolean }) {
   const t = useTranslations("Library");
@@ -29,16 +31,33 @@ function Meta({ exercise, archived }: { exercise: ExerciseSummary; archived: boo
       {shown.map((area) => (
         <BodyAreaBadge key={area} area={area} />
       ))}
-      {more > 0 ? <Badge variant="outline">{t("moreAreas", { count: more })}</Badge> : null}
+      {more > 0 ? <Badge variant="outline">{t("more", { count: more })}</Badge> : null}
       {archived ? <Badge variant="outline">{t("archivedBadge")}</Badge> : null}
     </>
   );
 }
 
-function Tags({ tags }: { tags: string[] }) {
-  if (tags.length === 0) return null;
+function Categories({ ids, tree }: { ids: string[]; tree: CategoryNode[] }) {
+  const t = useTranslations("Library");
+  const categories = categoriesInTreeOrder(tree, ids);
+  if (categories.length === 0) return null;
+  const shown = categories.slice(0, MAX_CATEGORY_BADGES);
+  const more = categories.length - shown.length;
   return (
-    <p className="text-muted-foreground truncate text-xs">{tags.map((t) => `#${t}`).join(" ")}</p>
+    <div className="flex min-w-0 flex-wrap items-center gap-1">
+      {shown.map((category) => (
+        <Badge key={category.id} variant="secondary" className="max-w-full truncate font-normal">
+          {category.parent
+            ? t("form.subcategoryOption", { parent: category.parent, name: category.name })
+            : category.name}
+        </Badge>
+      ))}
+      {more > 0 ? (
+        <Badge variant="secondary" className="font-normal">
+          {t("more", { count: more })}
+        </Badge>
+      ) : null}
+    </div>
   );
 }
 
@@ -56,11 +75,14 @@ const href = (id: string) => `/library/${id}` as Route;
 
 export async function ExerciseResults({
   exercises,
+  categories,
   view,
   archived,
   truncated = false,
 }: {
   exercises: ExerciseSummary[];
+  /** The category tree, to name each exercise's categories. */
+  categories: CategoryNode[];
   view: LibraryView;
   archived: boolean;
   /** More rows matched than the list cap. */
@@ -95,7 +117,7 @@ export async function ExerciseResults({
                     <Meta exercise={exercise} archived={archived} />
                   </div>
                   <div className="min-w-0 md:flex-1">
-                    <Tags tags={exercise.tags} />
+                    <Categories ids={exercise.categoryIds} tree={categories} />
                   </div>
                 </div>
               </IntentLink>
@@ -120,7 +142,7 @@ export async function ExerciseResults({
                     <div className="flex flex-wrap items-center gap-1">
                       <Meta exercise={exercise} archived={archived} />
                     </div>
-                    <Tags tags={exercise.tags} />
+                    <Categories ids={exercise.categoryIds} tree={categories} />
                   </CardContent>
                 </Card>
               </IntentLink>

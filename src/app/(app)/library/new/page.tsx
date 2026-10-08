@@ -7,7 +7,7 @@ import { ExerciseForm } from "@/components/library/exercise-form";
 import { PageHeader } from "@/components/page-header";
 import { withPhysio } from "@/server/auth/session";
 import { saveExerciseAction } from "@/server/library/actions";
-import { listCategoryTree, listTags } from "@/server/library/queries";
+import { listCategoryTree } from "@/server/library/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Library.form");
@@ -16,9 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewExercisePage() {
   const t = await getTranslations("Library.form");
-  const [categories, tags] = await withPhysio((tx, physioId) =>
-    Promise.all([listCategoryTree(tx, physioId), listTags(tx, physioId)]),
-  );
+  const categories = await withPhysio((tx, physioId) => listCategoryTree(tx, physioId));
   return (
     <div className="grid gap-8">
       <div className="grid gap-2">
@@ -34,14 +32,12 @@ export default async function NewExercisePage() {
       <ExerciseForm
         action={saveExerciseAction}
         categories={categories}
-        tagSuggestions={tags}
         defaults={{
           name: "",
           kind: "strength",
-          categoryId: null,
+          categoryIds: [],
           instructions: null,
           bodyAreas: [],
-          tags: [],
           mediaUrls: [],
         }}
       />

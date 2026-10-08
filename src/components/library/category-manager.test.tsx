@@ -141,7 +141,7 @@ describe("CategoryManager", () => {
     await user.click(screen.getByRole("button", { name: "Delete Lower limb" }));
     const dialog = screen.getByRole("alertdialog", { name: "Delete “Lower limb”?" });
     expect(dialog).toHaveTextContent("Its 2 sub-categories will be deleted too.");
-    expect(dialog).toHaveTextContent("5 exercises will move to Uncategorised.");
+    expect(dialog).toHaveTextContent("5 exercises will lose this category.");
     expect(remove).not.toHaveBeenCalled();
     await user.click(within(dialog).getByRole("button", { name: "Delete category" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith("c1"));

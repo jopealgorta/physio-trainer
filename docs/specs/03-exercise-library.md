@@ -7,8 +7,8 @@
 ## Summary
 
 Each physio has a private library of exercises (rehab and gym alike) with instructions,
-default prescription values, YouTube videos, body areas and tags, organised in a two-level
-category tree. Routines (spec 05) are built by picking from this library.
+default prescription values, YouTube videos and body areas, filed under any number of
+categories from a two-level category tree. Routines (spec 05) are built by picking from this library.
 
 ## Goals
 
@@ -16,7 +16,9 @@ category tree. Routines (spec 05) are built by picking from this library.
 - Categories: top level + one level of sub-categories; create, rename, reorder, delete.
 - Media per exercise: add YouTube links (regular videos and Shorts); reorder; first item is
   the cover.
-- Fast browsing: search by name, filter by category, body area, tag; grid and list views.
+- An exercise belongs to any number of categories (top-level or sub-categories, or none).
+- Fast browsing: search by name, filter by category (contains) and body area; grid and list
+  views.
 - Default prescription (sets, reps, hold, …) copied into routines when the exercise is added.
 
 ## Non-goals
@@ -28,8 +30,8 @@ category tree. Routines (spec 05) are built by picking from this library.
 ## User stories
 
 - As a physio, I add "Single-leg bridge" with a YouTube Short, cues and default 3 × 12.
-- As a physio, I file it under _Lower limb → Glutes_ and tag it `bodyweight`, `beginner`.
-- As a physio, I find all knee exercises that use a band in two clicks.
+- As a physio, I file it under _Lower limb → Glutes_ and _Mobility_; it shows up under both.
+- As a physio, I find all knee exercises in my _Mobility_ category in two clicks.
 
 ## Data model
 
@@ -46,19 +48,28 @@ Depth ≤ 2: enforce with a trigger (parent must have `parent_id is null`) and i
 
 `exercises`:
 
-| Column                        | Type                                        | Notes                                                                            |
-| ----------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
-| `id`, `physio_id`, timestamps |                                             |                                                                                  |
-| `category_id`                 | uuid null → categories `on delete set null` | top-level or sub-category                                                        |
-| `name`                        | text not null                               | 1–120 chars                                                                      |
-| `instructions`                | text null                                   | plain text with line breaks; up to 5 000 chars                                   |
-| `body_areas`                  | `body_area[]` not null default `{}`         | spec 02                                                                          |
-| `tags`                        | text[] not null default `{}`                | lowercase, trimmed, ≤ 20 tags, ≤ 30 chars each                                   |
-| prescription defaults         | see architecture "Prescription fields"      | build the shared Drizzle column helper + zod schema here                         |
-| `archived_at`                 | timestamptz null                            | archived exercises are hidden from pickers but keep working in existing routines |
+| Column                        | Type                                   | Notes                                                                            |
+| ----------------------------- | -------------------------------------- | -------------------------------------------------------------------------------- |
+| `id`, `physio_id`, timestamps |                                        |                                                                                  |
+| `name`                        | text not null                          | 1–120 chars                                                                      |
+| `instructions`                | text null                              | plain text with line breaks; up to 5 000 chars                                   |
+| `body_areas`                  | `body_area[]` not null default `{}`    | spec 02                                                                          |
+| prescription defaults         | see architecture "Prescription fields" | build the shared Drizzle column helper + zod schema here                         |
+| `archived_at`                 | timestamptz null                       | archived exercises are hidden from pickers but keep working in existing routines |
 
-Indexes: `(physio_id, archived_at)`, GIN on `body_areas`, GIN on `tags`, trigram index on `name`
-(`pg_trgm`) for search.
+Indexes: `(physio_id, archived_at)`, GIN on `body_areas`, trigram index on `name` (`pg_trgm`)
+for search.
+
+`exercise_category_links` (added 2026-10-08, replacing `exercises.category_id` and `tags`):
+
+| Column        | Type                                                      | Notes                                |
+| ------------- | --------------------------------------------------------- | ------------------------------------ |
+| `physio_id`   | uuid not null → physios `on delete cascade`               | RLS `physio_id = auth.uid()`         |
+| `exercise_id` | uuid not null → `exercises` `on delete cascade`           | composite with `physio_id`           |
+| `category_id` | uuid not null → `exercise_categories` `on delete cascade` | composite; top-level or sub-category |
+
+Primary key `(exercise_id, category_id)`; index `(physio_id, category_id)`. At most 20
+categories per exercise (zod).
 
 `exercise_media`:
 
@@ -70,36 +81,39 @@ Indexes: `(physio_id, archived_at)`, GIN on `body_areas`, GIN on `tags`, trigram
 | `external_id`                                          | text not null    | parsed 11-char YouTube video id                              |
 | `position`                                             | integer not null | 0 = cover                                                    |
 
-Cross-row references (`parent_id`, `category_id`, `exercise_id`) are composite foreign keys
+Cross-row references (`parent_id`, `exercise_id`, `category_id`) are composite foreign keys
 including `physio_id`, so a row can never point at another physio's row (foreign-key checks
 bypass RLS).
 
 ## Routes and UI
 
-| Route                   | Kind          | Purpose                                                                                                                                                                                                           |
-| ----------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/library`              | page          | Left: category tree (collapsible, "All", "Uncategorised", "Archived"). Main: search, filters (body area, tags), grid of exercise cards (cover thumbnail, name, area badges), toggle to list view. "New exercise". |
-| `/library/new`          | page          | Exercise form (including YouTube links).                                                                                                                                                                          |
-| `/library/[exerciseId]` | page          | Detail + edit form: name, category select (grouped), instructions, body areas (multi `BodyAreaPicker`), tags (combobox with existing tags), defaults, media list. Archive/restore/delete.                         |
-| Category management     | dialog/inline | Add, rename, drag to reorder, delete (confirm; exercises move to Uncategorised).                                                                                                                                  |
+| Route                   | Kind          | Purpose                                                                                                                                                                                                               |
+| ----------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/library`              | page          | Left: category tree (collapsible, "All", "Uncategorised", "Archived"). Main: search, body-area filter, grid of exercise cards (cover thumbnail, name, area and category badges), toggle to list view. "New exercise". |
+| `/library/new`          | page          | Exercise form (including YouTube links).                                                                                                                                                                              |
+| `/library/[exerciseId]` | page          | Detail + edit form: name, categories (checklist popover, grouped), instructions, body areas (multi `BodyAreaPicker`), media list. Archive/restore/delete.                                                             |
+| Category management     | dialog/inline | Add, rename, drag to reorder, delete (confirm; exercises lose that category).                                                                                                                                         |
 
 - Media list: paste a YouTube URL, reorder by drag, remove. Cover thumbnail from
   `i.ytimg.com`. Preview is click-to-load: the thumbnail is replaced by a privacy-enhanced
   embed that plays inline, muted and looping.
 - Empty state for a new physio: explain categories and offer "Create your first exercise".
-- Filters and search are reflected in the URL (`?q=&area=&tag=&category=&view=`).
+- Filters and search are reflected in the URL (`?q=&area=&category=&view=`).
 
 ## Behaviour and rules
 
-1. Deleting a category with sub-categories deletes the sub-categories; their exercises become
-   uncategorised (confirm dialog shows counts).
+1. Deleting a category with sub-categories deletes the sub-categories; their exercises lose
+   those categories and keep any others (confirm dialog shows counts).
 2. Exercises cannot be hard-deleted once used in a routine; offer archive. Unused exercises can
    be deleted. (Enforced by spec 05's `routine_items` foreign key; until then every exercise is
    unused.)
 3. YouTube URLs accepted: `youtube.com/watch?v=`, `youtu.be/`, `youtube.com/shorts/` (also
    `m.` and `www.` hosts). Parse to an id; render with privacy-enhanced embeds
    (`youtube-nocookie.com`).
-4. Search matches name (trigram, accent-insensitive via `unaccent`) and tags.
+4. Search matches name (trigram, accent-insensitive via `unaccent`).
+5. Filtering by a category shows every exercise whose categories contain it or one of its
+   sub-categories; "Uncategorised" shows exercises with no category. The routine exercise
+   picker's category filter works the same way.
 
 ## Security and privacy
 
@@ -116,17 +130,20 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
 
 - [x] CRUD for categories (2 levels max) and exercises; archive/restore.
 - [x] YouTube links (videos and Shorts) embed correctly; reorder media.
-- [x] Search + filter by category, body area and tag, reflected in the URL.
+- [x] Search + filter by category (contains) and body area, reflected in the URL.
+- [x] An exercise can have several categories; tags removed (2026-10-08).
 - [x] Shared prescription zod schema and Drizzle helper exist and are tested.
-- [x] RLS integration tests for all three tables.
+- [x] RLS integration tests for all library tables.
 - [x] Works on mobile (single column, filters in a sheet).
 
 ## Test plan
 
-- Unit: YouTube URL parser, tag normaliser, prescription schema, category depth rule.
-- Integration: RLS on categories/exercises/media; cross-tenant references rejected;
-  delete-category behaviour; accent-insensitive search.
-- E2E: create category + exercise with a YouTube Short link; filter by body area and tag.
+- Unit: YouTube URL parser, prescription schema, category depth rule, category multi-select.
+- Integration: RLS on categories/exercises/media/category links; cross-tenant references
+  rejected; delete-category behaviour; contains filter; distinct tree counts; backfill
+  migration; accent-insensitive search.
+- E2E: create categories + an exercise in two of them with a YouTube Short link; filter by each
+  category, a parent, Uncategorised and body area.
 
 ## Open questions
 
@@ -142,21 +159,18 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
 
 ## Decisions made during implementation
 
-- **Composite FKs everywhere**: every `(physio_id, …)` reference is composite. `exercises` →
-  `categories` is `ON DELETE SET NULL (category_id)` (custom migration, so `physio_id` is never
-  nulled). Media `position` uniqueness is scoped by `(physio_id, exercise_id, position)` so it
+- **Composite FKs everywhere**: every `(physio_id, …)` reference is composite. (Originally
+  `exercises` → `categories` was `ON DELETE SET NULL (category_id)`; superseded by
+  `exercise_category_links`, below.) Media `position` uniqueness is scoped by `(physio_id, exercise_id, position)` so it
   cannot be used as a cross-tenant existence oracle.
 - **Search**: `public.f_unaccent` immutable wrapper plus a trigram GIN index on
-  `f_unaccent(lower(name))`. The name matches as a substring, tags as a prefix; LIKE wildcards
-  are escaped.
-- **URL params**: `?q=&category=<uuid>|none|archived&area=&tag=&view=grid|list`; results are
-  capped at 500.
+  `f_unaccent(lower(name))`. The name matches as a substring; LIKE wildcards are escaped.
+- **URL params**: `?q=&category=<uuid>|none|archived&area=&view=grid|list`; results are capped
+  at 500. An old `?tag=` is ignored.
 - **Media**: YouTube only (watch, youtu.be, shorts; `www.`/`m.` hosts). The canonical URL is
   stored. Shorts are detected from a `/shorts/` URL only (a Short shared as `youtu.be` plays
   16:9). Click-to-load `youtube-nocookie` embed, `i.ytimg.com` thumbnails, at most 10 videos;
   media is replaced wholesale on save.
-- **Tags** are normalised (lowercase, trimmed, `#` and commas stripped), at most 20 of 30 chars.
-  The tag input is a combobox with a plain listbox (no shadcn command/popover).
 - **Prescription**: shared zod schema (`src/lib/prescription.ts`) and Drizzle helper
   (`src/db/schema/_prescription.ts`) with DB check constraints. New `Prescription` and
   `Sortable` message namespaces; limits live in `src/lib/library-limits.ts`.
@@ -167,8 +181,7 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
   also submitted as a hidden `media` value, so it is never silently dropped; an invalid one shows
   the error on blur. Empty "Add video" is a no-op. The preview toggle opens the embed directly.
 - **500-row cap**: the list fetches 501 rows and shows a "refine your search" hint when truncated.
-- **`listTags`** covers active (non-archived) exercises only, so the tag filter never offers a tag
-  that matches nothing in the default view. Search lower-cases the term in SQL.
+- Search lower-cases the term in SQL.
 - **Exercise form** dispatches from `onSubmit` (no React form reset) and is not re-keyed after
   save, so "Saved" persists and typed values are kept.
 - **Delete** is always allowed until spec 05 adds a `routine_items` FK (then "inUse" + archive).
@@ -190,3 +203,25 @@ Namespace `Library` (+ `Library.categories`, `Library.media`, `Library.form`).
   An adjacent button rather than a Select item, which would fight the Select's focus return
   when the dialog opens. The dialog's form calls `stopPropagation()` on submit: it is portalled
   out of the exercise form in the DOM but React still bubbles the submit to it.
+- **Several categories per exercise, no tags** (changed 2026-10-08, ad-hoc request): answers to
+  the clarifying questions: existing tags are **dropped** (no conversion); the category filter
+  stays **single pick with a "contains" match** (tree and routine picker unchanged in look); in
+  the form, sub-categories are **independent** of their parent (ticking one does not tick the
+  parent: the parent's filter already covers it); cards show **category badges** (tree order,
+  "Parent › Sub", two then "+N").
+  - Data: `exercise_category_links (physio_id, exercise_id, category_id)` with composite FKs
+    cascading from both ends, RLS, PK `(exercise_id, category_id)`. Three migrations: create the
+    table; a custom backfill copying each `category_id` into a link; drop `category_id` and
+    `tags` (their FK and GIN index go with them). The backfill test runs the migration file in a
+    rolled-back transaction after re-adding the old column.
+  - Server: links are replaced wholesale on save in the exercise's savepoint, so a foreign
+    category (`exercise_category_links_category_fk`) rolls the whole save back as
+    `categoryNotFound`. `ExerciseSummary`/`ExerciseDetail` carry `categoryIds` (sorted by id; the
+    UI orders them by the tree). Tree counts are distinct exercises across a category and its
+    sub-categories, computed in SQL, so an exercise in a parent and its child counts once
+    (`buildCategoryTree` no longer sums). At most 20 categories (`tooManyCategories`).
+  - UI: `CategoryMultiSelect` (`Popover` + `Checkbox` list grouped by top-level category, one
+    hidden `categoryIds` input per pick; the trigger lists the picks or "Uncategorised"). The
+    "New category" dialog ticks what it creates, keeping earlier picks. Deleting a category
+    says how many exercises "will lose this category". Tag input, tag filter, `listTags` and
+    `src/lib/tags.ts` are gone.

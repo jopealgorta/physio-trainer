@@ -13,22 +13,24 @@ import { Textarea } from "@/components/ui/textarea";
 import type { BodyArea } from "@/lib/body-areas";
 import type { CategoryNode } from "@/lib/category-tree";
 import { EXERCISE_KINDS, type ExerciseKind } from "@/lib/exercise-kinds";
-import { EXERCISE_NAME_MAX_LENGTH, INSTRUCTIONS_MAX_LENGTH, MAX_MEDIA } from "@/lib/library-limits";
-import { MAX_TAG_LENGTH, MAX_TAGS } from "@/lib/tags";
+import {
+  EXERCISE_NAME_MAX_LENGTH,
+  INSTRUCTIONS_MAX_LENGTH,
+  MAX_CATEGORIES_PER_EXERCISE,
+  MAX_MEDIA,
+} from "@/lib/library-limits";
 import type { ExerciseFieldErrors, ExerciseFormState } from "@/server/library/schemas";
 
-import { CategorySelect } from "./category-select";
+import { CategoryMultiSelect } from "./category-multi-select";
 import { MediaListEditor } from "./media-list-editor";
-import { TagInput } from "./tag-input";
 
 export type ExerciseFormValues = {
   id?: string;
   name: string;
   kind: ExerciseKind;
-  categoryId: string | null;
+  categoryIds: string[];
   instructions: string | null;
   bodyAreas: BodyArea[];
-  tags: string[];
   mediaUrls: string[];
 };
 
@@ -38,23 +40,21 @@ const FORM_ERROR_CODES = [
   "nameRequired",
   "nameTooLong",
   "categoryInvalid",
+  "tooManyCategories",
   "instructionsTooLong",
   "bodyAreasInvalid",
-  "tagTooLong",
-  "tooManyTags",
   "tooManyMedia",
   "mediaInvalid",
   "invalid",
 ] as const;
 
-type FieldWithMessage = "name" | "categoryId" | "instructions" | "bodyAreas" | "tags" | "media";
+type FieldWithMessage = "name" | "categoryIds" | "instructions" | "bodyAreas" | "media";
 
 const MAX_BY_FIELD: Record<FieldWithMessage, number> = {
-  categoryId: 0,
+  categoryIds: MAX_CATEGORIES_PER_EXERCISE,
   bodyAreas: 0,
   name: EXERCISE_NAME_MAX_LENGTH,
   instructions: INSTRUCTIONS_MAX_LENGTH,
-  tags: MAX_TAG_LENGTH,
   media: MAX_MEDIA,
 };
 
@@ -62,12 +62,10 @@ export function ExerciseForm({
   action,
   defaults,
   categories,
-  tagSuggestions,
 }: {
   action: (state: ExerciseFormState, formData: FormData) => Promise<ExerciseFormState>;
   defaults: ExerciseFormValues;
   categories: CategoryNode[];
-  tagSuggestions: string[];
 }) {
   const t = useTranslations("Library.form");
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -80,8 +78,7 @@ export function ExerciseForm({
     const code = errors[field];
     if (!code) return null;
     const known = FORM_ERROR_CODES.find((candidate) => candidate === code) ?? "invalid";
-    const max = field === "tags" && code === "tooManyTags" ? MAX_TAGS : MAX_BY_FIELD[field];
-    return t(`errors.${known}`, { max });
+    return t(`errors.${known}`, { max: MAX_BY_FIELD[field] });
   };
   const errorId = (field: string) => `${id}-${field}-error`;
   const errorText = (field: FieldWithMessage) => {
@@ -141,15 +138,15 @@ export function ExerciseForm({
 
           <div className="grid gap-2">
             <Label htmlFor={`${id}-category`}>{t("category")}</Label>
-            <CategorySelect
+            <CategoryMultiSelect
               id={`${id}-category`}
-              name="categoryId"
+              name="categoryIds"
               categories={categories}
-              defaultValue={defaults.categoryId}
-              invalid={errors.categoryId !== undefined}
-              describedBy={errors.categoryId ? errorId("categoryId") : undefined}
+              defaultValue={defaults.categoryIds}
+              invalid={errors.categoryIds !== undefined}
+              describedBy={errors.categoryIds ? errorId("categoryIds") : undefined}
             />
-            {errorText("categoryId")}
+            {errorText("categoryIds")}
           </div>
 
           <div className="grid gap-2">
@@ -167,17 +164,6 @@ export function ExerciseForm({
               {t("instructionsHint")}
             </p>
             {errorText("instructions")}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-tags`}>{t("tags")}</Label>
-            <TagInput
-              id={`${id}-tags`}
-              defaultValue={defaults.tags}
-              suggestions={tagSuggestions}
-              describedBy={errors.tags ? errorId("tags") : undefined}
-            />
-            {errorText("tags")}
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { runAsPhysio, type Tx } from "@/db/rls";
 import {
   customers,
   exerciseCategories,
+  exerciseCategoryLinks,
   exerciseMedia,
   exercises,
   routineItems,
@@ -24,7 +25,7 @@ import {
   setExerciseArchived,
   updateExercise,
 } from "./mutations";
-import { getExercise, hasAnyExercises, listCategoryTree, listExercises, listTags } from "./queries";
+import { getExercise, hasAnyExercises, listCategoryTree, listExercises } from "./queries";
 import {
   createCategorySchema,
   exerciseSchema,
@@ -42,10 +43,9 @@ const RANDOM_ID = "0b0e5a2e-8c1f-4a47-9a55-3f6f1c1f2a10";
 const exerciseInput = (overrides: Record<string, unknown> = {}): ExerciseInput =>
   exerciseSchema.parse({
     name: "Bridge",
-    categoryId: null,
+    categoryIds: [],
     instructions: null,
     bodyAreas: [],
-    tags: [],
     media: [],
     ...overrides,
   });
@@ -231,14 +231,18 @@ describe("library server layer", () => {
       expect(rows).toHaveLength(1);
     });
 
-    it("cascades to sub-categories and uncategorises their exercises", async () => {
+    it("cascades to sub-categories and drops their links, keeping other categories", async () => {
       const parent = await category(a, { name: "Del parent", parentId: null });
       const sub = await category(a, { name: "Del sub", parentId: parent });
-      const inParent = await exercise(a, exerciseInput({ name: "In parent", categoryId: parent }));
-      const inSub = await exercise(a, exerciseInput({ name: "In sub", categoryId: sub }));
+      const kept = await category(a, { name: "Del kept", parentId: null });
+      const inParent = await exercise(
+        a,
+        exerciseInput({ name: "In parent", categoryIds: [parent, kept] }),
+      );
+      const inSub = await exercise(a, exerciseInput({ name: "In sub", categoryIds: [sub] }));
       const archivedInSub = await exercise(
         a,
-        exerciseInput({ name: "Archived in sub", categoryId: sub }),
+        exerciseInput({ name: "Archived in sub", categoryIds: [sub] }),
       );
       await asA((tx, id) => setExerciseArchived(tx, id, archivedInSub, true));
 
@@ -251,15 +255,21 @@ describe("library server layer", () => {
         .from(exerciseCategories)
         .where(eq(exerciseCategories.physioId, a.id));
       expect(cats.some((row) => row.id === parent || row.id === sub)).toBe(false);
-      for (const id of [inParent, inSub, archivedInSub]) {
-        const [row] = await db.select().from(exercises).where(eq(exercises.id, id));
-        expect(row.categoryId).toBeNull();
-      }
+      const linksOf = async (id: string) =>
+        (
+          await db
+            .select({ categoryId: exerciseCategoryLinks.categoryId })
+            .from(exerciseCategoryLinks)
+            .where(eq(exerciseCategoryLinks.exerciseId, id))
+        ).map((row) => row.categoryId);
+      expect(await linksOf(inParent)).toEqual([kept]);
+      expect(await linksOf(inSub)).toEqual([]);
+      expect(await linksOf(archivedInSub)).toEqual([]);
     });
   });
 
   describe("listCategoryTree", () => {
-    it("nests, sorts and sums counts into parents", async () => {
+    it("nests, sorts and counts distinct exercises into parents", async () => {
       const c = await createTestPhysio({ onboarded: true });
       try {
         const asC = <T>(fn: Parameters<typeof runAsPhysio<T>>[1]) => runAsPhysio(c.claims, fn);
@@ -267,20 +277,22 @@ describe("library server layer", () => {
         const first = await category(c, { name: "Alpha", parentId: null });
         const subB = await category(c, { name: "Sub B", parentId: first });
         const subA = await category(c, { name: "Sub A", parentId: first });
-        await exercise(c, exerciseInput({ name: "e1", categoryId: first }));
-        await exercise(c, exerciseInput({ name: "e2", categoryId: subA }));
-        const archived = await exercise(c, exerciseInput({ name: "e3", categoryId: subA }));
+        await exercise(c, exerciseInput({ name: "e1", categoryIds: [first] }));
+        await exercise(c, exerciseInput({ name: "e2", categoryIds: [subA] }));
+        const archived = await exercise(c, exerciseInput({ name: "e3", categoryIds: [subA] }));
+        // Filed under the parent, a sub-category and another top level: counted once in Alpha.
+        await exercise(c, exerciseInput({ name: "e5", categoryIds: [first, subB, second] }));
         await asC((tx, id) => setExerciseArchived(tx, id, archived, true));
         await exercise(c, exerciseInput({ name: "e4" }));
 
         const tree = await asC((tx, id) => listCategoryTree(tx, id));
         expect(tree.map((node) => node.id)).toEqual([second, first]); // by position
         const alpha = tree[1];
-        expect(alpha).toMatchObject({ activeCount: 2, totalCount: 3 });
+        expect(alpha).toMatchObject({ activeCount: 3, totalCount: 4 });
         expect(alpha.children.map((child) => child.id)).toEqual([subB, subA]);
         expect(alpha.children[1]).toMatchObject({ activeCount: 1, totalCount: 2 });
-        expect(alpha.children[0]).toMatchObject({ activeCount: 0, totalCount: 0 });
-        expect(tree[0]).toMatchObject({ activeCount: 0, totalCount: 0 });
+        expect(alpha.children[0]).toMatchObject({ activeCount: 1, totalCount: 1 });
+        expect(tree[0]).toMatchObject({ activeCount: 1, totalCount: 1 });
       } finally {
         await deleteTestPhysios(c);
       }
@@ -290,14 +302,14 @@ describe("library server layer", () => {
   describe("exercises", () => {
     it("round-trips every field with media in order", async () => {
       const cat = await category(a, { name: "RT cat", parentId: null });
+      const sub = await category(a, { name: "RT sub", parentId: cat });
       const id = await exercise(
         a,
         exerciseInput({
           name: "Round trip",
-          categoryId: cat,
+          categoryIds: [sub, cat],
           instructions: "Do it slowly.",
           bodyAreas: ["knee", "glute"],
-          tags: ["Band", "rubber"],
           media: [SHORT, WATCH(V2), WATCH(V3)],
         }),
       );
@@ -306,12 +318,11 @@ describe("library server layer", () => {
         id,
         physioId: a.id,
         name: "Round trip",
-        categoryId: cat,
         instructions: "Do it slowly.",
         bodyAreas: ["glute", "knee"],
-        tags: ["band", "rubber"],
         archivedAt: null,
       });
+      expect(detail?.categoryIds.toSorted()).toEqual([cat, sub].toSorted());
       expect(detail?.media.map(({ url, videoId, isShort }) => ({ url, videoId, isShort }))).toEqual(
         [
           { url: SHORT, videoId: V1, isShort: true },
@@ -333,17 +344,25 @@ describe("library server layer", () => {
     it("refuses other physios' categories and hides other physios' exercises", async () => {
       const bCategory = await category(b, { name: "B exercise cat", parentId: null });
       expect(
-        await asA((tx, id) => createExercise(tx, id, exerciseInput({ categoryId: bCategory }))),
+        await asA((tx, id) =>
+          createExercise(tx, id, exerciseInput({ name: "Sneaky", categoryIds: [bCategory] })),
+        ),
       ).toEqual({ ok: false, error: "categoryNotFound" });
+      // The failed create leaves no half-made exercise behind.
+      const sneaky = await asA((tx, p) =>
+        listExercises(tx, p, filters({ q: "sneaky" })).then((r) => r.exercises),
+      );
+      expect(sneaky).toEqual([]);
       const bExercise = await exercise(b, exerciseInput({ name: "B secret" }));
       expect(await asA((tx, id) => getExercise(tx, id, bExercise))).toBeNull();
       expect(await asA((tx, id) => getExercise(tx, id, RANDOM_ID))).toBeNull();
     });
 
-    it("updates fields and replaces media", async () => {
+    it("updates fields and replaces media and categories", async () => {
+      const old = await category(a, { name: "Update old", parentId: null });
       const id = await exercise(
         a,
-        exerciseInput({ name: "Before", media: [WATCH(V1), WATCH(V2)], tags: ["old"] }),
+        exerciseInput({ name: "Before", media: [WATCH(V1), WATCH(V2)], categoryIds: [old] }),
       );
       const cat = await category(a, { name: "Update cat", parentId: null });
       const result = await asA((tx, physioId) =>
@@ -353,15 +372,14 @@ describe("library server layer", () => {
           id,
           exerciseInput({
             name: "After",
-            categoryId: cat,
+            categoryIds: [cat],
             media: [WATCH(V3), WATCH(V2)],
-            tags: ["new"],
           }),
         ),
       );
       expect(result).toEqual({ ok: true, data: { id } });
       const detail = await asA((tx, physioId) => getExercise(tx, physioId, id));
-      expect(detail).toMatchObject({ name: "After", categoryId: cat, tags: ["new"] });
+      expect(detail).toMatchObject({ name: "After", categoryIds: [cat] });
       expect(detail?.media.map((media) => media.videoId)).toEqual([V3, V2]);
     });
 
@@ -383,9 +401,13 @@ describe("library server layer", () => {
       const bCategory = await category(b, { name: "B update cat", parentId: null });
       expect(
         await asA((tx, id) =>
-          updateExercise(tx, id, own, exerciseInput({ name: "Own", categoryId: bCategory })),
+          updateExercise(tx, id, own, exerciseInput({ name: "Renamed", categoryIds: [bCategory] })),
         ),
       ).toEqual({ ok: false, error: "categoryNotFound" });
+      expect(await asA((tx, id) => getExercise(tx, id, own))).toMatchObject({
+        name: "Own",
+        categoryIds: [],
+      });
     });
 
     it("archives, restores and deletes (with media)", async () => {
@@ -470,6 +492,7 @@ describe("library server layer", () => {
     let e: TestPhysio;
     let top: string;
     let sub: string;
+    let other: string;
     const list = (overrides: Partial<LibraryFilters> = {}) =>
       runAsPhysio(d.claims, (tx, id) =>
         listExercises(tx, id, filters(overrides)).then((r) => r.exercises),
@@ -482,14 +505,13 @@ describe("library server layer", () => {
       ]);
       top = await category(d, { name: "Top", parentId: null });
       sub = await category(d, { name: "Sub", parentId: top });
-      await category(d, { name: "Other", parentId: null });
+      other = await category(d, { name: "Other", parentId: null });
       await exercise(
         d,
         exerciseInput({
           name: "Single-leg Bridge",
-          categoryId: top,
+          categoryIds: [top],
           bodyAreas: ["knee", "glute"],
-          tags: ["band"],
           media: [WATCH(V2), WATCH(V1)],
         }),
       );
@@ -497,30 +519,27 @@ describe("library server layer", () => {
         d,
         exerciseInput({
           name: "Elevación de talones",
-          categoryId: sub,
+          categoryIds: [sub, other],
           bodyAreas: ["ankle_foot"],
           media: [SHORT],
         }),
       );
       await exercise(d, exerciseInput({ name: "100% effort sprint", bodyAreas: ["thigh"] }));
       await exercise(d, exerciseInput({ name: "1000 m row" }));
-      await exercise(d, exerciseInput({ name: "axb", tags: ["x"] }));
+      await exercise(d, exerciseInput({ name: "axb" }));
       await exercise(d, exerciseInput({ name: "O'Brien press" }));
-      await exercise(d, exerciseInput({ name: "Wall slide", tags: ["band", "rubber"] }));
+      await exercise(d, exerciseInput({ name: "Wall slide", categoryIds: [other] }));
       await exercise(d, exerciseInput({ name: "aaa Lowercase first" }));
       const archived = await exercise(
         d,
-        exerciseInput({ name: "Old drill", categoryId: sub, bodyAreas: ["knee"] }),
+        exerciseInput({ name: "Old drill", categoryIds: [sub], bodyAreas: ["knee"] }),
       );
       await runAsPhysio(d.claims, (tx, id) => setExerciseArchived(tx, id, archived, true));
-      await exercise(
-        e,
-        exerciseInput({ name: "Single-leg Bridge", tags: ["band"], bodyAreas: ["knee"] }),
-      );
+      await exercise(e, exerciseInput({ name: "Single-leg Bridge", bodyAreas: ["knee"] }));
     });
     afterAll(() => deleteTestPhysios(d, e));
 
-    it("filters by category, including sub-categories, none and archived", async () => {
+    it("filters by contained category, including sub-categories, none and archived", async () => {
       expect(names(await list({ category: { kind: "category", id: top } }))).toEqual([
         "Elevación de talones",
         "Single-leg Bridge",
@@ -528,15 +547,24 @@ describe("library server layer", () => {
       expect(names(await list({ category: { kind: "category", id: sub } }))).toEqual([
         "Elevación de talones",
       ]);
+      expect(names(await list({ category: { kind: "category", id: other } }))).toEqual([
+        "Elevación de talones",
+        "Wall slide",
+      ]);
       const none = await list({ category: { kind: "none" } });
-      expect(none.every((row) => row.categoryId === null && row.archivedAt === null)).toBe(true);
-      expect(none).toHaveLength(6);
+      expect(none.every((row) => row.categoryIds.length === 0 && row.archivedAt === null)).toBe(
+        true,
+      );
+      expect(none).toHaveLength(5);
       expect(names(await list({ category: { kind: "archived" } }))).toEqual(["Old drill"]);
     });
 
-    it("filters by area and tag", async () => {
+    it("filters by area and returns each exercise's categories once", async () => {
       expect(names(await list({ area: "knee" }))).toEqual(["Single-leg Bridge"]);
-      expect(names(await list({ tag: "band" }))).toEqual(["Single-leg Bridge", "Wall slide"]);
+      const [elev] = await list({ q: "elevacion" });
+      expect(elev.categoryIds.toSorted()).toEqual([sub, other].toSorted());
+      const [bridge] = await list({ category: { kind: "category", id: top }, q: "bridge" });
+      expect(bridge.categoryIds).toEqual([top]);
     });
 
     it("searches names, accent-insensitively", async () => {
@@ -545,10 +573,6 @@ describe("library server layer", () => {
       expect(names(await list({ q: "Elevación" }))).toEqual(["Elevación de talones"]);
       expect(names(await list({ q: "ÉLÉV" }))).toEqual(["Elevación de talones"]);
       expect(names(await list({ q: "élévation" }))).toEqual([]);
-    });
-
-    it("searches tags by prefix", async () => {
-      expect(names(await list({ q: "band" }))).toEqual(["Single-leg Bridge", "Wall slide"]);
     });
 
     it("treats LIKE wildcards and quotes literally", async () => {
@@ -582,27 +606,6 @@ describe("library server layer", () => {
       expect(elev.cover).toEqual({ videoId: V1, isShort: true });
       const [row] = await list({ q: "1000" });
       expect(row.cover).toBeNull();
-    });
-  });
-
-  describe("listTags", () => {
-    it("returns distinct sorted tags of the physio's own active exercises", async () => {
-      const f = await createTestPhysio({ onboarded: true });
-      const g = await createTestPhysio({ onboarded: true });
-      try {
-        await exercise(f, exerciseInput({ name: "t1", tags: ["zeta", "band"] }));
-        await exercise(f, exerciseInput({ name: "t2", tags: ["band", "alpha"] }));
-        await exercise(g, exerciseInput({ name: "t3", tags: ["secret"] }));
-        const hidden = await exercise(f, exerciseInput({ name: "t4", tags: ["archived-only"] }));
-        await runAsPhysio(f.claims, (tx, id) => setExerciseArchived(tx, id, hidden, true));
-        expect(await runAsPhysio(f.claims, (tx, id) => listTags(tx, id))).toEqual([
-          "alpha",
-          "band",
-          "zeta",
-        ]);
-      } finally {
-        await deleteTestPhysios(f, g);
-      }
     });
   });
 

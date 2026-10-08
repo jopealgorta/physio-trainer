@@ -16,7 +16,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, push }) }));
 function ui(filters: Partial<LibraryFilters> = {}) {
   return (
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <LibraryToolbar filters={{ ...DEFAULT_LIBRARY_FILTERS, ...filters }} tags={["band", "core"]}>
+      <LibraryToolbar filters={{ ...DEFAULT_LIBRARY_FILTERS, ...filters }}>
         <div>
           tree <a href="?category=none">Uncategorised</a>
         </div>
@@ -76,28 +76,28 @@ describe("LibraryToolbar", () => {
     expect(replace).toHaveBeenCalledWith("/library?area=knee", { scroll: false });
   });
 
-  it("clears the tag with All tags", async () => {
+  it("clears the body area with All body areas", async () => {
     const user = fakeTimerUser();
-    setup({ tag: "band" });
-    await chooseOption(user, screen.getByRole("combobox", { name: "Tag" }), "All tags");
+    setup({ area: "knee" });
+    await chooseOption(user, screen.getByRole("combobox", { name: "Body area" }), "All body areas");
     expect(replace).toHaveBeenCalledWith("/library", { scroll: false });
   });
 
-  // Radix's internal <select> reports "" when the value changes in the same commit as its option
-  // is added (a tag from the URL that no exercise has). That must not clear the filter.
-  it("keeps a tag from the URL that is not in the list when navigating back to it", () => {
-    const { rerender } = setup();
-    rerender(ui({ tag: "not-in-list" }));
-    expect(screen.getByRole("combobox", { name: "Tag" })).toHaveTextContent("not-in-list");
-    expect(replace).not.toHaveBeenCalled();
+  it("has no tag filter and searches by name", () => {
+    setup();
+    expect(screen.queryByRole("combobox", { name: "Tag" })).not.toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Search exercises" })).toHaveAttribute(
+      "placeholder",
+      "Search by name",
+    );
   });
 
   it("links the views and marks the active one", () => {
-    setup({ view: "list", tag: "band" });
+    setup({ view: "list", area: "knee" });
     const grid = screen.getByRole("link", { name: "Grid view" });
     const list = screen.getByRole("link", { name: "List view" });
-    expect(grid).toHaveAttribute("href", "/library?tag=band");
-    expect(list).toHaveAttribute("href", "/library?tag=band&view=list");
+    expect(grid).toHaveAttribute("href", "/library?area=knee");
+    expect(list).toHaveAttribute("href", "/library?area=knee&view=list");
     expect(list).toHaveAttribute("aria-current", "page");
     expect(grid).not.toHaveAttribute("aria-current");
   });
