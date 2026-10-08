@@ -11,21 +11,17 @@ import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { withPhysio } from "@/server/auth/session";
 import { saveExerciseAction } from "@/server/library/actions";
-import { getExercise, listCategoryTree, listTags } from "@/server/library/queries";
+import { getExercise, listCategoryTree } from "@/server/library/queries";
 import { idSchema } from "@/server/library/schemas";
 
 // Shared by generateMetadata and the page within one request.
 const loadExercise = cache(async (rawId: string) => {
   const parsed = idSchema.safeParse(rawId);
   if (!parsed.success) return null;
-  const [exercise, categories, tags] = await withPhysio((tx, physioId) =>
-    Promise.all([
-      getExercise(tx, physioId, parsed.data),
-      listCategoryTree(tx, physioId),
-      listTags(tx, physioId),
-    ]),
+  const [exercise, categories] = await withPhysio((tx, physioId) =>
+    Promise.all([getExercise(tx, physioId, parsed.data), listCategoryTree(tx, physioId)]),
   );
-  return exercise ? { exercise, categories, tags } : null;
+  return exercise ? { exercise, categories } : null;
 });
 
 export async function generateMetadata({
@@ -40,7 +36,7 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
   const { exerciseId } = await params;
   const loaded = await loadExercise(exerciseId);
   if (!loaded) notFound();
-  const { exercise, categories, tags } = loaded;
+  const { exercise, categories } = loaded;
   const t = await getTranslations("Library");
 
   return (
@@ -72,15 +68,13 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
       <ExerciseForm
         action={saveExerciseAction}
         categories={categories}
-        tagSuggestions={tags}
         defaults={{
           id: exercise.id,
           name: exercise.name,
           kind: exercise.kind,
-          categoryId: exercise.categoryId,
+          categoryIds: exercise.categoryIds,
           instructions: exercise.instructions,
           bodyAreas: exercise.bodyAreas,
-          tags: exercise.tags,
           mediaUrls: exercise.media.map((item) => item.url),
         }}
       />

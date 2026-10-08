@@ -1,9 +1,12 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
-import { exerciseCategories, exerciseMedia, exercises } from "@/db/schema";
+import { exerciseCategories, exerciseCategoryLinks, exerciseMedia, exercises } from "@/db/schema";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
 const VIDEO = "dQw4w9WgXcQ";
@@ -29,14 +32,11 @@ describe("exercise library tables", () => {
         .returning({ id: exerciseCategories.id });
       [{ id: aExercise }] = await tx
         .insert(exercises)
-        .values({
-          physioId,
-          name: "Bridge",
-          categoryId: aCategory,
-          bodyAreas: ["glute"],
-          tags: ["band"],
-        })
+        .values({ physioId, name: "Bridge", bodyAreas: ["glute"] })
         .returning({ id: exercises.id });
+      await tx
+        .insert(exerciseCategoryLinks)
+        .values({ physioId, exerciseId: aExercise, categoryId: aCategory });
       await tx.insert(exerciseMedia).values({
         physioId,
         exerciseId: aExercise,
@@ -54,6 +54,7 @@ describe("exercise library tables", () => {
     ["exercise_categories", exerciseCategories],
     ["exercises", exercises],
     ["exercise_media", exerciseMedia],
+    ["exercise_category_links", exerciseCategoryLinks],
   ] as const)("RLS hides %s rows from other physios", async (_name, table) => {
     expect(await runAsPhysio(b.claims, (tx) => tx.select().from(table))).toEqual([]);
     expect((await runAsPhysio(a.claims, (tx) => tx.select().from(table))).length).toBe(1);
@@ -80,10 +81,27 @@ describe("exercise library tables", () => {
 
   it("rejects references to another physio's category or exercise", async () => {
     await expect(
-      runAsPhysio(b.claims, (tx, physioId) =>
-        tx.insert(exercises).values({ physioId, name: "Sneaky", categoryId: aCategory }),
-      ),
-    ).rejects.toMatchObject(rejectsWith("23503", "exercises_category_fk"));
+      runAsPhysio(b.claims, async (tx, physioId) => {
+        const [own] = await tx
+          .insert(exercises)
+          .values({ physioId, name: "Sneaky" })
+          .returning({ id: exercises.id });
+        await tx
+          .insert(exerciseCategoryLinks)
+          .values({ physioId, exerciseId: own.id, categoryId: aCategory });
+      }),
+    ).rejects.toMatchObject(rejectsWith("23503", "exercise_category_links_category_fk"));
+    await expect(
+      runAsPhysio(b.claims, async (tx, physioId) => {
+        const [own] = await tx
+          .insert(exerciseCategories)
+          .values({ physioId, name: "Sneaky link", position: 0 })
+          .returning({ id: exerciseCategories.id });
+        await tx
+          .insert(exerciseCategoryLinks)
+          .values({ physioId, exerciseId: aExercise, categoryId: own.id });
+      }),
+    ).rejects.toMatchObject(rejectsWith("23503", "exercise_category_links_exercise_fk"));
     await expect(
       runAsPhysio(b.claims, (tx, physioId) =>
         tx
@@ -131,8 +149,8 @@ describe("exercise library tables", () => {
     );
   });
 
-  it("deleting a category cascades to sub-categories and uncategorises their exercises", async () => {
-    const { parent, sub, inSub } = await runAsPhysio(a.claims, async (tx, physioId) => {
+  it("deleting a category cascades to sub-categories and drops only their links", async () => {
+    const { parent, sub, inSub, other } = await runAsPhysio(a.claims, async (tx, physioId) => {
       const [parent] = await tx
         .insert(exerciseCategories)
         .values({ physioId, name: "Upper limb", position: 1 })
@@ -141,20 +159,89 @@ describe("exercise library tables", () => {
         .insert(exerciseCategories)
         .values({ physioId, name: "Shoulder", parentId: parent.id, position: 0 })
         .returning();
+      const [other] = await tx
+        .insert(exerciseCategories)
+        .values({ physioId, name: "Mobility", position: 2 })
+        .returning();
       const [inSub] = await tx
         .insert(exercises)
-        .values({ physioId, name: "Pendulum", categoryId: sub.id, archivedAt: new Date() })
+        .values({ physioId, name: "Pendulum", archivedAt: new Date() })
         .returning();
+      await tx.insert(exerciseCategoryLinks).values([
+        { physioId, exerciseId: inSub.id, categoryId: sub.id },
+        { physioId, exerciseId: inSub.id, categoryId: other.id },
+      ]);
       await tx.delete(exerciseCategories).where(eq(exerciseCategories.id, parent.id));
-      return { parent, sub, inSub };
+      return { parent, sub, inSub, other };
     });
     const remaining = await db
       .select()
       .from(exerciseCategories)
       .where(inArray(exerciseCategories.id, [parent.id, sub.id]));
-    const [moved] = await db.select().from(exercises).where(eq(exercises.id, inSub.id));
+    const links = await db
+      .select({ categoryId: exerciseCategoryLinks.categoryId })
+      .from(exerciseCategoryLinks)
+      .where(eq(exerciseCategoryLinks.exerciseId, inSub.id));
+    const [kept] = await db.select().from(exercises).where(eq(exercises.id, inSub.id));
     expect(remaining).toEqual([]);
-    expect(moved).toMatchObject({ categoryId: null, physioId: a.id });
+    expect(links).toEqual([{ categoryId: other.id }]);
+    expect(kept).toMatchObject({ physioId: a.id });
+  });
+
+  it("deleting an exercise deletes its links", async () => {
+    const links = await runAsPhysio(a.claims, async (tx, physioId) => {
+      const [gone] = await tx
+        .insert(exercises)
+        .values({ physioId, name: "Short-lived" })
+        .returning();
+      await tx
+        .insert(exerciseCategoryLinks)
+        .values({ physioId, exerciseId: gone.id, categoryId: aCategory });
+      await tx.delete(exercises).where(eq(exercises.id, gone.id));
+      return tx
+        .select()
+        .from(exerciseCategoryLinks)
+        .where(eq(exerciseCategoryLinks.exerciseId, gone.id));
+    });
+    expect(links).toEqual([]);
+  });
+
+  it("links an exercise to a category at most once", async () => {
+    await expect(
+      runAsPhysio(a.claims, (tx, physioId) =>
+        tx
+          .insert(exerciseCategoryLinks)
+          .values({ physioId, exerciseId: aExercise, categoryId: aCategory }),
+      ),
+    ).rejects.toMatchObject(rejectsWith("23505"));
+  });
+
+  it("backfills a link from each exercise's old category (migration statements)", async () => {
+    const dir = path.join(process.cwd(), "supabase/migrations");
+    const file = fs
+      .readdirSync(dir)
+      .find((f) => f.endsWith("_exercise-category-links-backfill.sql"));
+    const backfill = fs.readFileSync(path.join(dir, file!), "utf8");
+    const rollback = new Error("rollback");
+    await expect(
+      db.transaction(async (tx) => {
+        const [filed] = await tx
+          .insert(exercises)
+          .values({ physioId: a.id, name: "Filed", categoryId: aCategory })
+          .returning({ id: exercises.id });
+        const [loose] = await tx
+          .insert(exercises)
+          .values({ physioId: a.id, name: "Loose" })
+          .returning({ id: exercises.id });
+        await tx.execute(sql.raw(backfill.replaceAll("--> statement-breakpoint", "")));
+        const links = await tx
+          .select()
+          .from(exerciseCategoryLinks)
+          .where(inArray(exerciseCategoryLinks.exerciseId, [filed.id, loose.id]));
+        expect(links).toEqual([{ physioId: a.id, exerciseId: filed.id, categoryId: aCategory }]);
+        throw rollback;
+      }),
+    ).rejects.toBe(rollback);
   });
 
   it("has no default-prescription columns or checks on exercises (spec 05)", async () => {

@@ -59,7 +59,7 @@ describe("CategoryTree", () => {
   });
 
   it("marks the current category and keeps the other filters in links", () => {
-    setup({ category: { kind: "none" }, tag: "band", view: "list" });
+    setup({ category: { kind: "none" }, area: "knee", view: "list" });
     expect(screen.getByRole("link", { name: /Uncategorised/ })).toHaveAttribute(
       "aria-current",
       "page",
@@ -67,7 +67,7 @@ describe("CategoryTree", () => {
     expect(screen.getByRole("link", { name: /All exercises/ })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: /Uncategorised/ })).toHaveAttribute(
       "href",
-      "/library?category=none&tag=band&view=list",
+      "/library?category=none&area=knee&view=list",
     );
   });
 

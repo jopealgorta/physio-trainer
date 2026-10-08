@@ -6,15 +6,21 @@ import {
   CATEGORY_NAME_MAX_LENGTH,
   EXERCISE_NAME_MAX_LENGTH,
   INSTRUCTIONS_MAX_LENGTH,
+  MAX_CATEGORIES_PER_EXERCISE,
   MAX_MEDIA,
 } from "@/lib/library-limits";
-import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@/lib/tags";
 import { parseYouTubeUrl, type YouTubeVideo } from "@/lib/youtube";
 
 /** Mutation/action result. Errors are i18n keys. */
 export type Result<T, E extends string> = { ok: true; data: T } | { ok: false; error: E };
 
-export { CATEGORY_NAME_MAX_LENGTH, EXERCISE_NAME_MAX_LENGTH, INSTRUCTIONS_MAX_LENGTH, MAX_MEDIA };
+export {
+  CATEGORY_NAME_MAX_LENGTH,
+  EXERCISE_NAME_MAX_LENGTH,
+  INSTRUCTIONS_MAX_LENGTH,
+  MAX_CATEGORIES_PER_EXERCISE,
+  MAX_MEDIA,
+};
 
 export const idSchema = z.uuid();
 
@@ -59,10 +65,13 @@ const BODY_AREA_ORDER = new Map(BODY_AREAS.map((area, index) => [area, index]));
 export const exerciseSchema = z.object({
   name: z.string().trim().min(1, "nameRequired").max(EXERCISE_NAME_MAX_LENGTH, "nameTooLong"),
   kind: z.enum(EXERCISE_KINDS).default("strength"),
-  categoryId: z.preprocess(
-    (value) => (value === "" || value === undefined ? null : value),
-    z.uuid("categoryInvalid").nullable(),
-  ),
+  categoryIds: z
+    .preprocess(
+      (value) => (Array.isArray(value) ? value.filter((id) => id !== "") : value),
+      z.array(z.uuid("categoryInvalid"), "categoryInvalid"),
+    )
+    .transform((ids) => [...new Set(ids)])
+    .pipe(z.array(z.string()).max(MAX_CATEGORIES_PER_EXERCISE, "tooManyCategories")),
   instructions: z
     .preprocess((value) => value ?? "", z.string("instructionsTooLong"))
     .transform((value) => value.trim())
@@ -73,9 +82,6 @@ export const exerciseSchema = z.object({
     .transform((areas) =>
       [...new Set(areas)].sort((a, b) => BODY_AREA_ORDER.get(a)! - BODY_AREA_ORDER.get(b)!),
     ),
-  tags: stringList
-    .transform(normalizeTags)
-    .pipe(z.array(z.string().max(MAX_TAG_LENGTH, "tagTooLong")).max(MAX_TAGS, "tooManyTags")),
   media: stringList.max(MAX_MEDIA, "tooManyMedia").transform((urls, ctx): YouTubeVideo[] => {
     const videos = urls.map(parseYouTubeUrl);
     const ids = videos.map((video) => video?.videoId);
@@ -89,7 +95,7 @@ export const exerciseSchema = z.object({
 
 export type ExerciseInput = z.output<typeof exerciseSchema>;
 
-const LIST_FIELDS = ["bodyAreas", "tags", "media"] as const;
+const LIST_FIELDS = ["categoryIds", "bodyAreas", "media"] as const;
 
 /** FormData → plain object for exerciseSchema (list fields use repeated names). */
 export function exerciseFormValues(formData: FormData): Record<string, unknown> {
@@ -102,17 +108,16 @@ export function exerciseFormValues(formData: FormData): Record<string, unknown> 
 }
 
 export type ExerciseField =
-  "name" | "kind" | "categoryId" | "instructions" | "bodyAreas" | "tags" | "media";
+  "name" | "kind" | "categoryIds" | "instructions" | "bodyAreas" | "media";
 export type ExerciseFieldErrors = Partial<Record<ExerciseField, string>>;
 
 const KNOWN_CODES = new Set([
   "nameRequired",
   "nameTooLong",
   "categoryInvalid",
+  "tooManyCategories",
   "instructionsTooLong",
   "bodyAreasInvalid",
-  "tagTooLong",
-  "tooManyTags",
   "tooManyMedia",
   "mediaInvalid",
   "notAWholeNumber",

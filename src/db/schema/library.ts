@@ -6,6 +6,7 @@ import {
   integer,
   pgPolicy,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -71,15 +72,19 @@ export const exerciseCategories = pgTable(
 );
 
 /**
- * Library exercises with default prescription. category_id's FK
- * (physio_id, category_id) → exercise_categories ON DELETE SET NULL (category_id) lives in the
- * custom migration: Drizzle can't express the column list.
+ * Library exercises. Their categories are in exercise_category_links.
+ *
+ * Deprecated, unused by the app: `category_id` (its FK (physio_id, category_id) → categories ON
+ * DELETE SET NULL (category_id) lives in a custom migration) and `tags`. They stay until the
+ * follow-up migration drops them, so the previous app version keeps working while a deploy rolls
+ * out (expand, then contract: docs/architecture.md).
  */
 export const exercises = pgTable(
   "exercises",
   {
     id: uuid().primaryKey().defaultRandom(),
     physioId: physioId(),
+    /** @deprecated Replaced by exercise_category_links; dropped in a follow-up migration. */
     categoryId: uuid(),
     name: text().notNull(),
     instructions: text(),
@@ -87,6 +92,7 @@ export const exercises = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'`),
+    /** @deprecated Tags were removed; dropped in a follow-up migration. */
     tags: text()
       .array()
       .notNull()
@@ -105,6 +111,34 @@ export const exercises = pgTable(
     check("exercises_instructions_length", sql`char_length(${t.instructions}) <= 5000`),
     check("exercises_tags_count", sql`cardinality(${t.tags}) <= 20`),
     ownRows("exercises_own", t.physioId),
+  ],
+);
+
+/**
+ * Which categories an exercise is filed under (any number, top-level or sub-categories). Composite
+ * references keep both ends within one physio; deleting either end deletes the link.
+ */
+export const exerciseCategoryLinks = pgTable(
+  "exercise_category_links",
+  {
+    physioId: physioId(),
+    exerciseId: uuid().notNull(),
+    categoryId: uuid().notNull(),
+  },
+  (t) => [
+    primaryKey({ name: "exercise_category_links_pkey", columns: [t.exerciseId, t.categoryId] }),
+    foreignKey({
+      name: "exercise_category_links_exercise_fk",
+      columns: [t.physioId, t.exerciseId],
+      foreignColumns: [exercises.physioId, exercises.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "exercise_category_links_category_fk",
+      columns: [t.physioId, t.categoryId],
+      foreignColumns: [exerciseCategories.physioId, exerciseCategories.id],
+    }).onDelete("cascade"),
+    index("exercise_category_links_category_idx").on(t.physioId, t.categoryId),
+    ownRows("exercise_category_links_own", t.physioId),
   ],
 );
 
@@ -141,3 +175,4 @@ export const exerciseMedia = pgTable(
 export type ExerciseCategory = typeof exerciseCategories.$inferSelect;
 export type Exercise = typeof exercises.$inferSelect;
 export type ExerciseMedia = typeof exerciseMedia.$inferSelect;
+export type ExerciseCategoryLink = typeof exerciseCategoryLinks.$inferSelect;

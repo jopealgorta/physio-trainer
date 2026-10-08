@@ -26,7 +26,7 @@ that physio.
 | Routine types        | **Single routine** (shared on its own) and **weekly plan** (Mon–Sun, each day has 0..n routines, e.g. gym + rehab).                                                                                                                                                                    |
 | Weekly plans         | One repeating 7-day template. Routines are attached by reference (edit once, updates every day); "make a separate copy" to diverge. Optional per-entry label ("Morning").                                                                                                              |
 | Progression          | "Copy into next phase" with start/end dates (feature B) rather than multi-week plans.                                                                                                                                                                                                  |
-| Categories           | Two levels (category → sub-category) plus free tags. Rehab and gym exercises share one library.                                                                                                                                                                                        |
+| Categories           | Two levels (category → sub-category); an exercise can be in several. Rehab and gym exercises share one library.                                                                                                                                                                        |
 | Media                | YouTube links only in v1 (spec 03); uploads (≤ 50 MB, Supabase Storage) and Vimeo are deferred.                                                                                                                                                                                        |
 | Export               | Branded PDF (with QR code back to the live link) and Excel `.xlsx`.                                                                                                                                                                                                                    |
 | Login                | Supabase Auth: magic link + Google.                                                                                                                                                                                                                                                    |
@@ -131,7 +131,8 @@ erDiagram
   physios ||--o{ exercise_categories : owns
   physios ||--o{ exercises : owns
   exercise_categories ||--o{ exercise_categories : "parent (max depth 2)"
-  exercise_categories ||--o{ exercises : groups
+  exercises ||--o{ exercise_category_links : "filed under"
+  exercise_categories ||--o{ exercise_category_links : contains
   exercises ||--o{ exercise_media : has
   customers ||--o{ cases : has
   customers ||--o{ routines : has
@@ -163,6 +164,7 @@ erDiagram
 | `physios`                                  | 01 (+09 branding columns)      | Profile, 1:1 with `auth.users` (`id` = auth user id). `handle` unique. `avatar_url`: Google photo, set on sign-in.                                                |
 | `exercise_categories`                      | 03                             | Two-level tree (`parent_id` null = top level).                                                                                                                    |
 | `exercises`, `exercise_media`              | 03 (+19 kind)                  | Library entries (strength or aerobic `kind`, no prescription of their own) and ordered media.                                                                     |
+| `exercise_category_links`                  | 03                             | Many-to-many exercise ↔ category (top-level or sub-category).                                                                                                     |
 | `customers`                                | 04                             | Patient contact/basic info, `locale`.                                                                                                                             |
 | `cases`                                    | 04                             | Injury episodes per customer (body area/side from spec 02).                                                                                                       |
 | `routines`, `routine_groups`               | 05 (+07 templates, +08 phases) | Routine header; a group is one superset (shared rest). Template ⇔ `customer_id` null; copies keep `source_template_id`                                            |

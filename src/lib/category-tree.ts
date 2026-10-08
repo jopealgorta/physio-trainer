@@ -1,16 +1,19 @@
-/** Two-level exercise category tree (spec 03), built from flat rows with direct counts. */
+/**
+ * Two-level exercise category tree (spec 03), built from flat rows. Counts are distinct exercises
+ * filed under the category or, for a top-level one, any of its sub-categories.
+ */
 export type CategoryRow = {
   id: string;
   parentId: string | null;
   name: string;
   position: number;
-  /** Non-archived exercises filed directly under this category. */
+  /** Non-archived exercises filed under this category or its sub-categories. */
   activeCount: number;
-  /** All exercises (archived too) filed directly under this category. */
+  /** All exercises (archived too) filed under this category or its sub-categories. */
   totalCount: number;
 };
 export type CategoryLeaf = Omit<CategoryRow, "parentId">;
-/** A top-level category; its counts include its sub-categories'. */
+/** A top-level category with its sub-categories. */
 export type CategoryNode = CategoryLeaf & { children: CategoryLeaf[] };
 
 const byPositionThenName = (a: CategoryLeaf, b: CategoryLeaf) =>
@@ -33,8 +36,6 @@ export function buildCategoryTree(rows: CategoryRow[]): CategoryNode[] {
     const parent = row.parentId === null ? undefined : nodes.get(row.parentId);
     if (!parent) continue;
     parent.children.push(leaf(row));
-    parent.activeCount += row.activeCount;
-    parent.totalCount += row.totalCount;
   }
   const tree = [...nodes.values()].sort(byPositionThenName);
   for (const node of tree) node.children.sort(byPositionThenName);
@@ -70,4 +71,25 @@ export function withCategory(
       ? { ...node, children: [...node.children, leaf(node.children)] }
       : node,
   );
+}
+
+export type FlatCategory = { id: string; name: string; parent: string | null };
+
+/**
+ * Categories in tree order (each top-level one, then its sub-categories), each with its parent's
+ * name. With `ids`, only those categories; ids not in the tree are skipped.
+ */
+export function categoriesInTreeOrder(
+  tree: CategoryNode[],
+  ids?: readonly string[],
+): FlatCategory[] {
+  const wanted = ids ? new Set(ids) : null;
+  const flat: FlatCategory[] = [];
+  for (const node of tree) {
+    flat.push({ id: node.id, name: node.name, parent: null });
+    for (const child of node.children) {
+      flat.push({ id: child.id, name: child.name, parent: node.name });
+    }
+  }
+  return wanted ? flat.filter((category) => wanted.has(category.id)) : flat;
 }

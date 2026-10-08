@@ -21,7 +21,7 @@ where an injury is (spec 04), so physios can filter exercises by the area they a
 ## Non-goals
 
 - Anatomical detail beyond the listed regions (individual muscles, joints).
-- Physio-defined custom areas (use tags in spec 03 instead).
+- Physio-defined custom areas (use categories in spec 03 instead).
 
 ## Data model
 

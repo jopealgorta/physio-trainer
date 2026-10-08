@@ -19,14 +19,12 @@ describe("parseLibraryParams", () => {
       parseLibraryParams({
         q: "  bridge ",
         area: "knee",
-        tag: "Band",
         category: UUID,
         view: "list",
       }),
     ).toEqual({
       q: "bridge",
       area: "knee",
-      tag: "band",
       category: { kind: "category", id: UUID },
       view: "list",
     });
@@ -38,14 +36,16 @@ describe("parseLibraryParams", () => {
 
   it.each([
     [{ area: "elbowz" }, "area", null],
-    [{ tag: "   " }, "tag", null],
-    [{ tag: "x".repeat(31) }, "tag", null],
     [{ category: "not-a-uuid" }, "category", { kind: "all" }],
     [{ category: "none" }, "category", { kind: "none" }],
     [{ category: "archived" }, "category", { kind: "archived" }],
     [{ view: "table" }, "view", "grid"],
   ] as const)("sanitises %j", (params, key, expected) => {
     expect(parseLibraryParams(params)[key]).toEqual(expected);
+  });
+
+  it("ignores the old tag param", () => {
+    expect(parseLibraryParams({ tag: "band" })).toEqual(DEFAULT_LIBRARY_FILTERS);
   });
 
   it("caps the search length", () => {
@@ -59,12 +59,12 @@ describe("libraryHref", () => {
   });
 
   it("serialises filters in a stable order and applies changes", () => {
-    const filters = parseLibraryParams({ q: "bridge", tag: "band", view: "list" });
+    const filters = parseLibraryParams({ q: "bridge", view: "list" });
     expect(libraryHref(filters, { category: { kind: "category", id: UUID }, area: "knee" })).toBe(
-      `/library?q=bridge&category=${UUID}&area=knee&tag=band&view=list`,
+      `/library?q=bridge&category=${UUID}&area=knee&view=list`,
     );
     expect(libraryHref(filters, { category: { kind: "archived" } })).toBe(
-      "/library?q=bridge&category=archived&tag=band&view=list",
+      "/library?q=bridge&category=archived&view=list",
     );
   });
 
@@ -79,7 +79,7 @@ describe("libraryHref", () => {
 describe("hasActiveFilters", () => {
   it("ignores the view", () => {
     expect(hasActiveFilters({ ...DEFAULT_LIBRARY_FILTERS, view: "list" })).toBe(false);
-    expect(hasActiveFilters({ ...DEFAULT_LIBRARY_FILTERS, tag: "band" })).toBe(true);
+    expect(hasActiveFilters({ ...DEFAULT_LIBRARY_FILTERS, area: "knee" })).toBe(true);
     expect(hasActiveFilters({ ...DEFAULT_LIBRARY_FILTERS, category: { kind: "none" } })).toBe(true);
   });
 });

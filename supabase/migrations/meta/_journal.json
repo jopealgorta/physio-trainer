@@ -281,6 +281,20 @@
       "when": 1791305045102,
       "tag": "20261006164405_exercise-log-session-required",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791473132932,
+      "tag": "20261008152532_exercise-category-links",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791473136684,
+      "tag": "20261008152536_exercise-category-links-backfill",
+      "breakpoints": true
     }
   ]
 }

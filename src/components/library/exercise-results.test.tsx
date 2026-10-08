@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
+import { buildCategoryTree } from "@/lib/category-tree";
 import type { ExerciseSummary } from "@/server/library/queries";
 
 import messages from "../../../messages/en.json";
@@ -20,9 +21,8 @@ const exercises: ExerciseSummary[] = [
     id: "e1",
     name: "Bridge",
     kind: "strength",
-    categoryId: null,
+    categoryIds: ["core", "glutes", "lower", "gone", "upper"],
     bodyAreas: ["knee", "hip_groin", "lower_back", "ankle_foot"],
-    tags: ["band", "core"],
     archivedAt: null,
     cover: { videoId: "abcdefghijk", isShort: false },
   },
@@ -30,13 +30,20 @@ const exercises: ExerciseSummary[] = [
     id: "e2",
     name: "Squat",
     kind: "strength",
-    categoryId: null,
+    categoryIds: [],
     bodyAreas: [],
-    tags: [],
     archivedAt: null,
     cover: null,
   },
 ];
+
+const count = { activeCount: 0, totalCount: 0 };
+const categories = buildCategoryTree([
+  { id: "lower", parentId: null, name: "Lower limb", position: 0, ...count },
+  { id: "glutes", parentId: "lower", name: "Glutes", position: 0, ...count },
+  { id: "upper", parentId: null, name: "Upper limb", position: 1, ...count },
+  { id: "core", parentId: null, name: "Core", position: 2, ...count },
+]);
 
 async function renderAsync(node: Promise<React.ReactElement>) {
   render(
@@ -48,16 +55,20 @@ async function renderAsync(node: Promise<React.ReactElement>) {
 
 describe("ExerciseResults", () => {
   it("renders cards linking to the exercise with a count", async () => {
-    await renderAsync(ExerciseResults({ exercises, view: "grid", archived: false }));
+    await renderAsync(ExerciseResults({ exercises, categories, view: "grid", archived: false }));
     expect(screen.getByRole("status")).toHaveTextContent("2 exercises");
     expect(screen.getByRole("link", { name: /Bridge/ })).toHaveAttribute("href", "/library/e1");
     expect(screen.getByText("+1")).toBeInTheDocument();
-    expect(screen.getByText("#band #core")).toBeInTheDocument();
+    // Categories in tree order, the first two shown; a deleted one is skipped.
+    expect(screen.getByText("Lower limb")).toBeInTheDocument();
+    expect(screen.getByText("Lower limb › Glutes")).toBeInTheDocument();
+    expect(screen.queryByText("Upper limb")).not.toBeInTheDocument();
+    expect(screen.getByText("+2")).toBeInTheDocument();
     expect(screen.queryByText("Archived")).not.toBeInTheDocument();
   });
 
   it("renders the list view and the archived badge", async () => {
-    await renderAsync(ExerciseResults({ exercises, view: "list", archived: true }));
+    await renderAsync(ExerciseResults({ exercises, categories, view: "list", archived: true }));
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getAllByText("Archived")).toHaveLength(2);
     expect(screen.getByRole("list").className).toContain("divide-y");
@@ -69,6 +80,7 @@ describe("ExerciseResults kind badge", () => {
     await renderAsync(
       ExerciseResults({
         exercises: [exercises[0], { ...exercises[1], kind: "aerobic" }],
+        categories,
         view: "grid",
         archived: false,
       }),
@@ -80,12 +92,12 @@ describe("ExerciseResults kind badge", () => {
 describe("ExerciseResults truncation", () => {
   it("shows the refine hint only when truncated", async () => {
     await renderAsync(
-      ExerciseResults({ exercises, view: "grid", archived: false, truncated: true }),
+      ExerciseResults({ exercises, categories, view: "grid", archived: false, truncated: true }),
     );
     expect(screen.getByText(/Showing the first 2 exercises/)).toBeInTheDocument();
   });
   it("omits the hint otherwise", async () => {
-    await renderAsync(ExerciseResults({ exercises, view: "grid", archived: false }));
+    await renderAsync(ExerciseResults({ exercises, categories, view: "grid", archived: false }));
     expect(screen.queryByText(/Showing the first/)).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCategoryTree, withCategory, type CategoryRow } from "./category-tree";
+import {
+  buildCategoryTree,
+  categoriesInTreeOrder,
+  withCategory,
+  type CategoryRow,
+} from "./category-tree";
 
 const row = (overrides: Partial<CategoryRow> & Pick<CategoryRow, "id">): CategoryRow => ({
   parentId: null,
@@ -12,7 +17,7 @@ const row = (overrides: Partial<CategoryRow> & Pick<CategoryRow, "id">): Categor
 });
 
 describe("buildCategoryTree", () => {
-  it("nests children, sorts by position then name, and sums counts into parents", () => {
+  it("nests children, sorts by position then name, and keeps each row's own counts", () => {
     const tree = buildCategoryTree([
       row({ id: "upper", position: 1, activeCount: 1, totalCount: 1 }),
       row({ id: "lower", position: 0, activeCount: 2, totalCount: 3 }),
@@ -22,7 +27,8 @@ describe("buildCategoryTree", () => {
     ]);
     expect(tree.map((node) => node.id)).toEqual(["lower", "upper"]);
     expect(tree[0].children.map((child) => child.id)).toEqual(["ankle", "glutes", "knee"]);
-    expect(tree[0]).toMatchObject({ activeCount: 7, totalCount: 9 });
+    // Rows already count their whole scope (an exercise can be in a parent and its child).
+    expect(tree[0]).toMatchObject({ activeCount: 2, totalCount: 3 });
     expect(tree[0].children[2]).toEqual({
       id: "knee",
       name: "knee",
@@ -64,5 +70,30 @@ describe("withCategory", () => {
 
   it("leaves the tree alone when the parent is gone", () => {
     expect(withCategory(tree, { id: "x", name: "X", parentId: "missing" })).toBe(tree);
+  });
+});
+
+describe("categoriesInTreeOrder", () => {
+  const tree = buildCategoryTree([
+    row({ id: "upper", name: "Upper limb", position: 1 }),
+    row({ id: "lower", name: "Lower limb" }),
+    row({ id: "glutes", parentId: "lower", name: "Glutes" }),
+    row({ id: "knee", parentId: "lower", name: "Knee", position: 1 }),
+  ]);
+
+  it("lists every category in tree order with its parent's name", () => {
+    expect(categoriesInTreeOrder(tree)).toEqual([
+      { id: "lower", name: "Lower limb", parent: null },
+      { id: "glutes", name: "Glutes", parent: "Lower limb" },
+      { id: "knee", name: "Knee", parent: "Lower limb" },
+      { id: "upper", name: "Upper limb", parent: null },
+    ]);
+  });
+
+  it("keeps only the given ids, in tree order, skipping unknown ones", () => {
+    expect(categoriesInTreeOrder(tree, ["upper", "gone", "knee"]).map((c) => c.id)).toEqual([
+      "knee",
+      "upper",
+    ]);
   });
 });

@@ -51,7 +51,7 @@ export async function saveExerciseAction(
   );
   if (!result.ok) {
     return result.error === "categoryNotFound"
-      ? { status: "error", fieldErrors: { categoryId: "categoryInvalid" } }
+      ? { status: "error", fieldErrors: { categoryIds: "categoryInvalid" } }
       : { status: "error", fieldErrors: {}, formError: "notFound" };
   }
   revalidateLibrary();

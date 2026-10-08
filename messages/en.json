@@ -282,13 +282,15 @@
     "form": {
       "newTitle": "New exercise",
       "name": "Name",
-      "category": "Category",
+      "categories": "Categories",
       "uncategorised": "Uncategorised",
+      "categoriesTitle": "Choose categories",
+      "categoriesHint": "Pick any number. Filtering by a category also shows its sub-categories' exercises.",
+      "categoriesLimit": "Up to {max, number} categories.",
       "subcategoryOption": "{parent} › {name}",
       "instructions": "Instructions",
       "instructionsHint": "Cues and steps. Line breaks are kept.",
       "bodyAreas": "Body areas",
-      "tags": "Tags",
       "media": "Videos",
       "create": "Create exercise",
       "save": "Save changes",
@@ -298,11 +300,10 @@
       "errors": {
         "nameRequired": "Enter a name.",
         "nameTooLong": "Use at most {max, number} characters.",
-        "categoryInvalid": "That category no longer exists. Choose another one.",
+        "categoryInvalid": "A category no longer exists. Choose again.",
+        "tooManyCategories": "Choose at most {max, number} categories.",
         "instructionsTooLong": "Use at most {max, number} characters.",
         "bodyAreasInvalid": "Choose body areas from the list.",
-        "tagTooLong": "Tags can have at most {max, number} characters.",
-        "tooManyTags": "Use at most {max, number} tags.",
         "tooManyMedia": "Add at most {max, number} videos.",
         "mediaInvalid": "Each video must be a different YouTube link.",
         "invalid": "Check this field.",
@@ -312,7 +313,7 @@
       "newCategory": {
         "trigger": "New category",
         "title": "New category",
-        "description": "It's added to your library and chosen for this exercise.",
+        "description": "It's added to your library and ticked for this exercise.",
         "parent": "Inside",
         "noParent": "None (top level)",
         "create": "Create category",
@@ -358,18 +359,12 @@
       },
       "preview": "Preview video {position, number}"
     },
-    "tags": {
-      "placeholder": "Add a tag and press Enter",
-      "remove": "Remove tag {tag}",
-      "suggestions": "Existing tags",
-      "limit": "Up to {max, number} tags."
-    },
     "description": "Your private exercises, organised in categories.",
     "newExercise": "New exercise",
     "manageCategories": "Manage categories",
     "empty": {
       "title": "Build your exercise library",
-      "body": "Add exercises with instructions and YouTube videos. Group them in categories (for example Lower limb → Glutes) and tag them to find them fast.",
+      "body": "Add exercises with instructions and YouTube videos, and file each one under any categories you like (for example Lower limb → Glutes and Mobility) to find it fast.",
       "cta": "Create your first exercise"
     },
     "noResults": {
@@ -380,7 +375,7 @@
     "results": "{count, plural, one {# exercise} other {# exercises}}",
     "truncated": "Showing the first {count, number} exercises. Refine your search or filters to see the rest.",
     "archivedBadge": "Archived",
-    "moreAreas": "+{count, number}",
+    "more": "+{count, number}",
     "tree": {
       "label": "Categories",
       "all": "All exercises",
@@ -390,13 +385,11 @@
     },
     "filters": {
       "search": "Search exercises",
-      "searchPlaceholder": "Search by name or tag",
+      "searchPlaceholder": "Search by name",
       "area": "Body area",
       "allAreas": "All body areas",
-      "tag": "Tag",
-      "allTags": "All tags",
       "open": "Filters",
-      "sheetDescription": "Narrow the library by category, body area or tag.",
+      "sheetDescription": "Narrow the library by category or body area.",
       "view": "View",
       "grid": "Grid view",
       "list": "List view"
@@ -415,7 +408,7 @@
       "delete": "Delete {name}",
       "deleteTitle": "Delete “{name}”?",
       "deleteSubcategories": "{count, plural, =0 {No sub-categories.} one {Its sub-category will be deleted too.} other {Its # sub-categories will be deleted too.}}",
-      "deleteExercises": "{count, plural, =0 {No exercises are affected.} one {# exercise will move to Uncategorised.} other {# exercises will move to Uncategorised.}}",
+      "deleteExercises": "{count, plural, =0 {No exercises are affected.} one {# exercise will lose this category.} other {# exercises will lose this category.}}",
       "confirmDelete": "Delete category",
       "empty": "No categories yet.",
       "done": "Done",

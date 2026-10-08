@@ -34,6 +34,22 @@ async function moveUp(page: Page, handleName: string, item: string, persists = f
   await saved;
 }
 
+/** Ticks categories in the exercise form's category list, then closes it. */
+async function tickCategories(page: Page, names: string[]) {
+  await page.getByLabel("Categories").click();
+  const list = page.getByRole("dialog", { name: "Choose categories" });
+  for (const name of names) await list.getByRole("checkbox", { name, exact: true }).check();
+  await page.keyboard.press("Escape");
+  await expect(list).toBeHidden();
+}
+
+/** Picks a category in the library's tree (inside the filters sheet on phones). */
+async function filterByCategory(page: Page, isMobile: boolean, name: RegExp) {
+  await openFilters(page, isMobile);
+  const tree = page.getByRole("navigation", { name: "Categories" }).filter({ visible: true });
+  await tree.getByRole("link", { name }).click();
+}
+
 async function addCategory(page: Page, name: string) {
   const dialog = page.getByRole("dialog", { name: "Categories" });
   await dialog.getByLabel("Category name").first().fill(name);
@@ -48,25 +64,24 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await page.goto("/library");
   await expect(page.getByRole("heading", { name: "Build your exercise library" })).toBeVisible();
 
-  // Categories: a top-level category and a sub-category.
+  // Categories: two top-level categories and a sub-category.
   await page.getByRole("button", { name: "Manage categories" }).click();
   const dialog = page.getByRole("dialog", { name: "Categories" });
   await addCategory(page, "Lower limb");
+  await addCategory(page, "Mobility");
+  await addCategory(page, "Upper limb");
   await dialog.getByRole("button", { name: "Add sub-category to Lower limb" }).click();
   await dialog.getByLabel("Category name").last().fill("Glutes");
   await dialog.getByLabel("Category name").last().press("Enter");
   await expect(dialog.getByText("Glutes")).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
 
-  // Exercise with category, area, tags and a YouTube Short.
+  // Exercise in a sub-category and another category, with an area and a YouTube Short.
   await page.getByRole("link", { name: "New exercise" }).first().click();
   await page.getByLabel("Name").fill("Single-leg bridge");
-  await chooseOption(page, page.getByLabel("Category"), "Lower limb › Glutes");
+  await tickCategories(page, ["Lower limb › Glutes", "Mobility"]);
   await page.getByLabel("Instructions").fill("Push through the heel.\nHold at the top.");
   await page.getByRole("checkbox", { name: "Glute", exact: true }).check();
-  await page.getByLabel("Tags").fill("Bodyweight");
-  await page.getByLabel("Tags").press("Enter");
-  await page.getByLabel("Tags").fill("beginner,");
   await page.getByLabel("YouTube link").fill(SHORT);
   await page.getByRole("button", { name: "Add video" }).click();
   await expect(page.getByText("Cover", { exact: true })).toBeVisible();
@@ -75,7 +90,7 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
   await page.reload();
   await expect(page.getByLabel("Name")).toHaveValue("Single-leg bridge");
-  await expect(page.getByText("bodyweight")).toBeVisible();
+  await expect(page.getByLabel("Categories")).toHaveText("Lower limb › Glutes, Mobility");
 
   // Edit keeps typed values after saving.
   await page.getByLabel("Instructions").fill("Push through the heel.\nSqueeze at the top.");
@@ -84,6 +99,22 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await expect(page.getByLabel("Instructions")).toHaveValue(
     "Push through the heel.\nSqueeze at the top.",
   );
+
+  // The card names its categories; each category it contains (or a parent of one) finds it.
+  await page.goto("/library");
+  const card = page.getByRole("link", { name: /Single-leg bridge/ });
+  await expect(card).toContainText("Lower limb › Glutes");
+  await expect(card).toContainText("Mobility");
+  for (const name of [/^Mobility/, /^Lower limb/]) {
+    await filterByCategory(page, isMobile, name);
+    await expect(page).toHaveURL(/category=[0-9a-f-]{36}/);
+    await expect(card).toBeVisible();
+  }
+  await filterByCategory(page, isMobile, /^Upper limb/);
+  await expect(page.getByRole("heading", { name: "No exercises match" })).toBeVisible();
+  await filterByCategory(page, isMobile, /^Uncategorised/);
+  await expect(page).toHaveURL(/category=none/);
+  await expect(page.getByRole("heading", { name: "No exercises match" })).toBeVisible();
 
   // Filters in the URL.
   await page.goto("/library");
@@ -97,7 +128,7 @@ test("a physio builds, finds, archives and restores an exercise", async ({
     await page.keyboard.press("Escape"); // close the filters sheet
   }
   await expect(page.getByRole("heading", { name: "No exercises match" })).toBeVisible();
-  await page.goto("/library?area=glute&tag=beginner");
+  await page.goto("/library?area=glute");
   await expect(page.getByRole("link", { name: /Single-leg bridge/ })).toBeVisible();
   await page.goto("/library?q=BRIDGE");
   await expect(page.getByRole("link", { name: /Single-leg bridge/ })).toBeVisible();
@@ -186,13 +217,13 @@ test("an exercise gets a brand new category without leaving the form", async ({
   await page.getByLabel("Name").fill("Dead bug");
   await page.getByLabel("Instructions").fill("Keep the lower back down.");
 
-  // A top-level category, then a sub-category inside it; each is selected as it is created.
+  // A top-level category, then a sub-category inside it; each is ticked as it is created.
   await page.getByRole("button", { name: "New category" }).click();
   let dialog = page.getByRole("dialog", { name: "New category" });
   await dialog.getByLabel("Category name").fill("Core");
   await dialog.getByRole("button", { name: "Create category" }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByLabel("Category")).toHaveText("Core");
+  await expect(page.getByLabel("Categories")).toHaveText("Core");
 
   await page.getByRole("button", { name: "New category" }).click();
   dialog = page.getByRole("dialog", { name: "New category" });
@@ -200,7 +231,7 @@ test("an exercise gets a brand new category without leaving the form", async ({
   await chooseOption(page, dialog.getByLabel("Inside"), "Core");
   await dialog.getByRole("button", { name: "Create category" }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByLabel("Category")).toHaveText("Core › Anti-extension");
+  await expect(page.getByLabel("Categories")).toHaveText("Core, Core › Anti-extension");
 
   // A duplicate name is refused inside the dialog.
   await page.getByRole("button", { name: "New category" }).click();
@@ -213,11 +244,11 @@ test("an exercise gets a brand new category without leaving the form", async ({
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
 
-  // The rest of the form survived, and the exercise saves with the new sub-category.
+  // The rest of the form survived, and the exercise saves with both new categories.
   await expect(page.getByLabel("Name")).toHaveValue("Dead bug");
   await expect(page.getByLabel("Instructions")).toHaveValue("Keep the lower back down.");
   await page.getByRole("button", { name: "Create exercise" }).click();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
   await page.reload();
-  await expect(page.getByLabel("Category")).toHaveText("Core › Anti-extension");
+  await expect(page.getByLabel("Categories")).toHaveText("Core, Core › Anti-extension");
 });

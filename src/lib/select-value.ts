@@ -1,6 +1,6 @@
 /**
  * Radix Select items cannot have an empty value, so "no selection" options use this stand-in.
- * It contains "#", which tags strip, so it cannot collide with a tag.
+ * It contains "#", so it cannot collide with a uuid or an enum value.
  *
  * Radix's internal <select> also reports "" when a controlled value changes in the same commit
  * its option is added. "" is therefore never a real choice: `onValueChange` handlers ignore it.

@@ -14,12 +14,7 @@ import { Button } from "@/components/ui/button";
 import { libraryLayoutState } from "@/lib/library-layout";
 import { hasActiveFilters, parseLibraryParams } from "@/lib/library-params";
 import { withPhysio } from "@/server/auth/session";
-import {
-  hasAnyExercises,
-  listCategoryTree,
-  listExercises,
-  listTags,
-} from "@/server/library/queries";
+import { hasAnyExercises, listCategoryTree, listExercises } from "@/server/library/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Library");
@@ -29,11 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LibraryPage({ searchParams }: PageProps<"/library">) {
   const filters = parseLibraryParams(await searchParams);
   const t = await getTranslations("Library");
-  const [tree, list, tags, anyExercises] = await withPhysio((tx, physioId) =>
+  const [tree, list, anyExercises] = await withPhysio((tx, physioId) =>
     Promise.all([
       listCategoryTree(tx, physioId),
       listExercises(tx, physioId, filters),
-      listTags(tx, physioId),
       hasAnyExercises(tx, physioId),
     ]),
   );
@@ -69,13 +63,12 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
           <div className="grid gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
             <aside className="hidden md:block">{categoryTree}</aside>
             <div className="grid content-start gap-6">
-              <LibraryToolbar filters={filters} tags={tags}>
-                {categoryTree}
-              </LibraryToolbar>
+              <LibraryToolbar filters={filters}>{categoryTree}</LibraryToolbar>
               <PendingContent>
                 {layout === "results" ? (
                   <ExerciseResults
                     exercises={exercises}
+                    categories={tree}
                     truncated={truncated}
                     view={filters.view}
                     archived={filters.category.kind === "archived"}

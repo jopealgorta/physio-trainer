@@ -282,13 +282,15 @@
     "form": {
       "newTitle": "Nuevo ejercicio",
       "name": "Nombre",
-      "category": "Categoría",
+      "categories": "Categorías",
       "uncategorised": "Sin categoría",
+      "categoriesTitle": "Elegí categorías",
+      "categoriesHint": "Elegí las que quieras. Al filtrar por una categoría también aparecen los ejercicios de sus subcategorías.",
+      "categoriesLimit": "Hasta {max, number} categorías.",
       "subcategoryOption": "{parent} › {name}",
       "instructions": "Instrucciones",
       "instructionsHint": "Indicaciones y pasos. Se respetan los saltos de línea.",
       "bodyAreas": "Zonas del cuerpo",
-      "tags": "Etiquetas",
       "media": "Videos",
       "create": "Crear ejercicio",
       "save": "Guardar cambios",
@@ -298,11 +300,10 @@
       "errors": {
         "nameRequired": "Ingresá un nombre.",
         "nameTooLong": "Usá como máximo {max, number} caracteres.",
-        "categoryInvalid": "Esa categoría ya no existe. Elegí otra.",
+        "categoryInvalid": "Una categoría ya no existe. Volvé a elegir.",
+        "tooManyCategories": "Elegí como máximo {max, number} categorías.",
         "instructionsTooLong": "Usá como máximo {max, number} caracteres.",
         "bodyAreasInvalid": "Elegí zonas de la lista.",
-        "tagTooLong": "Las etiquetas pueden tener hasta {max, number} caracteres.",
-        "tooManyTags": "Usá como máximo {max, number} etiquetas.",
         "tooManyMedia": "Agregá como máximo {max, number} videos.",
         "mediaInvalid": "Cada video tiene que ser un link de YouTube distinto.",
         "invalid": "Revisá este campo.",
@@ -312,7 +313,7 @@
       "newCategory": {
         "trigger": "Nueva categoría",
         "title": "Nueva categoría",
-        "description": "Se agrega a tu biblioteca y queda elegida para este ejercicio.",
+        "description": "Se agrega a tu biblioteca y queda marcada para este ejercicio.",
         "parent": "Dentro de",
         "noParent": "Ninguna (nivel superior)",
         "create": "Crear categoría",
@@ -358,18 +359,12 @@
       },
       "preview": "Ver video {position, number}"
     },
-    "tags": {
-      "placeholder": "Escribí una etiqueta y presioná Enter",
-      "remove": "Quitar etiqueta {tag}",
-      "suggestions": "Etiquetas existentes",
-      "limit": "Hasta {max, number} etiquetas."
-    },
     "description": "Tus ejercicios privados, organizados en categorías.",
     "newExercise": "Nuevo ejercicio",
     "manageCategories": "Administrar categorías",
     "empty": {
       "title": "Armá tu biblioteca de ejercicios",
-      "body": "Agregá ejercicios con instrucciones y videos de YouTube. Agrupalos en categorías (por ejemplo Miembro inferior → Glúteos) y etiquetalos para encontrarlos rápido.",
+      "body": "Agregá ejercicios con instrucciones y videos de YouTube, y guardá cada uno en las categorías que quieras (por ejemplo Miembro inferior → Glúteos y Movilidad) para encontrarlo rápido.",
       "cta": "Creá tu primer ejercicio"
     },
     "noResults": {
@@ -380,7 +375,7 @@
     "results": "{count, plural, one {# ejercicio} other {# ejercicios}}",
     "truncated": "Se muestran los primeros {count, number} ejercicios. Afiná la búsqueda o los filtros para ver el resto.",
     "archivedBadge": "Archivado",
-    "moreAreas": "+{count, number}",
+    "more": "+{count, number}",
     "tree": {
       "label": "Categorías",
       "all": "Todos los ejercicios",
@@ -390,13 +385,11 @@
     },
     "filters": {
       "search": "Buscar ejercicios",
-      "searchPlaceholder": "Buscá por nombre o etiqueta",
+      "searchPlaceholder": "Buscá por nombre",
       "area": "Zona del cuerpo",
       "allAreas": "Todas las zonas",
-      "tag": "Etiqueta",
-      "allTags": "Todas las etiquetas",
       "open": "Filtros",
-      "sheetDescription": "Filtrá la biblioteca por categoría, zona del cuerpo o etiqueta.",
+      "sheetDescription": "Filtrá la biblioteca por categoría o zona del cuerpo.",
       "view": "Vista",
       "grid": "Vista de cuadrícula",
       "list": "Vista de lista"
@@ -415,7 +408,7 @@
       "delete": "Eliminar {name}",
       "deleteTitle": "¿Eliminar “{name}”?",
       "deleteSubcategories": "{count, plural, =0 {No tiene subcategorías.} one {También se va a eliminar su subcategoría.} other {También se van a eliminar sus # subcategorías.}}",
-      "deleteExercises": "{count, plural, =0 {No afecta a ningún ejercicio.} one {# ejercicio va a pasar a Sin categoría.} other {# ejercicios van a pasar a Sin categoría.}}",
+      "deleteExercises": "{count, plural, =0 {No afecta a ningún ejercicio.} one {# ejercicio va a perder esta categoría.} other {# ejercicios van a perder esta categoría.}}",
       "confirmDelete": "Eliminar categoría",
       "empty": "Todavía no hay categorías.",
       "done": "Listo",
