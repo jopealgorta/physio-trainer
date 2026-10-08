@@ -21,6 +21,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
 import { useId, type ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+
 export type SortableHandleProps = { ref: (node: HTMLElement | null) => void } & Record<
   string,
   unknown
@@ -94,13 +96,22 @@ export function SortableList<T extends { key: string }>({
   );
 }
 
-function SortableRow({
+/**
+ * One sortable `<li>` with its drag handle props; it joins the nearest `SortableContext`, so lists
+ * that share a `DndContext` (the routine's sections) can use it too. `data` travels with drag
+ * events.
+ */
+export function SortableRow({
   id,
   handleLabel,
+  data,
+  className,
   children,
 }: {
   id: string;
   handleLabel: string;
+  data?: Record<string, unknown>;
+  className?: string;
   children: (handle: SortableHandleProps) => ReactNode;
 }) {
   const {
@@ -111,12 +122,12 @@ function SortableRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id });
+  } = useSortable({ id, data });
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? "relative z-10 min-w-0 opacity-80" : "min-w-0"}
+      className={cn(isDragging ? "relative z-10 min-w-0 opacity-80" : "min-w-0", className)}
     >
       {children({
         ...attributes,

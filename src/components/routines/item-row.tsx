@@ -13,13 +13,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPrescription } from "@/lib/prescription";
 import {
-  canAddItem,
   canGroupWithNext,
-  duplicateItem,
   groupWithNext,
   removeItem,
   ungroup,
@@ -29,13 +30,15 @@ import {
 } from "@/lib/routine-editor";
 import { cn } from "@/lib/utils";
 
+import type { SectionTarget } from "./block-list";
 import { DragHandle } from "./drag-handle";
 import { ItemEditor } from "./item-editor";
 import { useSummaryTranslator } from "./prescription-summary";
 
 /**
  * One exercise: cover, name, prescription summary, drag handle and an overflow menu, with the
- * prescription editor below when expanded. `groupKey` is set for members of a superset.
+ * prescription editor below when expanded. `groupKey` is set for members of a superset, which
+ * move to another section with their whole card, so they get no "Move to section".
  */
 export function ItemRow({
   blocks,
@@ -47,7 +50,12 @@ export function ItemRow({
   onToggle,
   onChange,
   newKey,
+  canAddItem,
+  onDuplicate,
+  targets = [],
+  onMoveTo,
 }: {
+  /** The blocks of this item's section. */
   blocks: EditorBlock[];
   item: EditorItem;
   groupKey?: string;
@@ -58,8 +66,15 @@ export function ItemRow({
   onToggle: () => void;
   onChange: (next: (blocks: EditorBlock[]) => EditorBlock[]) => void;
   newKey: NewKey;
+  /** The routine is under its exercise cap (counted across sections). */
+  canAddItem: boolean;
+  onDuplicate: () => void;
+  /** Other sections this (single) exercise can move to. */
+  targets?: SectionTarget[];
+  onMoveTo?: (sectionKey: string) => void;
 }) {
   const t = useTranslations("Routines.items");
+  const tSections = useTranslations("Routines.sections");
   const tLibrary = useTranslations("Library");
   const summarize = useSummaryTranslator();
   const grouped = groupKey !== undefined;
@@ -115,10 +130,7 @@ export function ItemRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              disabled={!canAddItem(blocks)}
-              onSelect={() => onChange((current) => duplicateItem(current, item.key, newKey))}
-            >
+            <DropdownMenuItem disabled={!canAddItem} onSelect={onDuplicate}>
               {t("duplicate")}
             </DropdownMenuItem>
             {grouped ? (
@@ -133,6 +145,18 @@ export function ItemRow({
                 {t("groupWithNext")}
               </DropdownMenuItem>
             )}
+            {!grouped && onMoveTo && targets.length > 0 ? (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>{tSections("moveTo")}</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-w-64">
+                  {targets.map((target) => (
+                    <DropdownMenuItem key={target.key} onSelect={() => onMoveTo(target.key)}>
+                      <span className="truncate">{target.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ) : null}
             <DropdownMenuItem asChild>
               <Link href={`/library/${item.exerciseId}`}>{t("openExercise")}</Link>
             </DropdownMenuItem>

@@ -602,7 +602,33 @@
   },
   "Routines": {
     "sections": {
-      "defaultName": "Principal"
+      "defaultName": "Principal",
+      "add": "Agregar sección",
+      "newName": "Nombre de la nueva sección",
+      "suggestions": "Sugerencias",
+      "chips": {
+        "warmUp": "Entrada en calor",
+        "mobility": "Movilidad (ROM)",
+        "main": "Principal",
+        "coolDown": "Vuelta a la calma"
+      },
+      "limit": "Una rutina puede tener hasta {max, number} secciones.",
+      "name": "Nombre de la sección",
+      "rename": "Renombrar {name}",
+      "menu": "Opciones de la sección",
+      "renameItem": "Renombrar",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "delete": "Eliminar sección",
+      "deleteTitle": "¿Eliminar “{name}” y {count, plural, one {su ejercicio} other {sus # ejercicios}}?",
+      "deleteBody": "Los ejercicios de esta sección se quitan de la rutina. No se guarda nada hasta que guardes la rutina.",
+      "deleteConfirm": "Eliminar",
+      "cancel": "Cancelar",
+      "dropHere": "Arrastrá ejercicios acá",
+      "moveTo": "Mover a la sección",
+      "nameError": "Ingresá un nombre de hasta {max, number} caracteres.",
+      "movedTo": "{item} se movió a {section}, posición {position} de {total}.",
+      "droppedIn": "{item} quedó en {section}, posición {position} de {total}."
     },
     "title": "Rutinas",
     "status": {

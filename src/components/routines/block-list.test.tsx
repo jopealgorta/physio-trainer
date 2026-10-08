@@ -1,7 +1,8 @@
+import { DndContext } from "@dnd-kit/core";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -16,25 +17,44 @@ import { group, item, set, single, testKey } from "@/test/routine-fixtures";
 import messages from "../../../messages/en.json";
 import { BlockList } from "./block-list";
 
-const onChange = vi.fn<Dispatch<SetStateAction<EditorBlock[]>>>();
+const onChange = vi.fn<(next: (blocks: EditorBlock[]) => EditorBlock[]) => void>();
+const onDuplicate = vi.fn<(itemKey: string) => void>();
+const onMoveTo = vi.fn<(blockKey: string, sectionKey: string) => void>();
 let shown: EditorBlock[] = [];
 
-/** What the editor's state would hold after the n-th change, whether it passed a value or an updater. */
-const applied = (call = 0, from: EditorBlock[] = shown): EditorBlock[] => {
-  const next = onChange.mock.calls[call][0];
-  return typeof next === "function" ? next(from) : next;
+/** What the section's blocks would be after the n-th change. */
+const applied = (call = 0, from: EditorBlock[] = shown): EditorBlock[] =>
+  onChange.mock.calls[call][0](from);
+
+type Options = {
+  invalid?: ReadonlySet<string>;
+  canAddItem?: boolean;
+  targets?: { key: string; name: string }[];
+  routineEmpty?: boolean;
 };
 
-/** Holds the expanded set like the editor does. */
-function Harness({ blocks, invalid }: { blocks: EditorBlock[]; invalid: ReadonlySet<string> }) {
+/** Holds the expanded set like the editor does; the section list provides the drag context. */
+function Harness({
+  blocks,
+  invalid = new Set(),
+  canAddItem = true,
+  targets = [],
+  routineEmpty = false,
+}: Options & { blocks: EditorBlock[] }) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   return (
     <BlockList
+      sectionKey="sec-1"
       blocks={blocks}
       onChange={onChange}
       newKey={testKey}
       expanded={expanded}
       invalid={invalid}
+      canAddItem={canAddItem}
+      targets={targets}
+      onMoveTo={onMoveTo}
+      onDuplicate={onDuplicate}
+      routineEmpty={routineEmpty}
       onToggle={(key) =>
         setExpanded((previous) => {
           const next = new Set(previous);
@@ -46,11 +66,13 @@ function Harness({ blocks, invalid }: { blocks: EditorBlock[]; invalid: Readonly
   );
 }
 
-function setup(blocks: EditorBlock[], invalid: ReadonlySet<string> = new Set()) {
+function setup(blocks: EditorBlock[], options: Options = {}) {
   shown = blocks;
   render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <Harness blocks={blocks} invalid={invalid} />
+      <DndContext>
+        <Harness blocks={blocks} {...options} />
+      </DndContext>
     </NextIntlClientProvider>,
   );
 }
@@ -60,12 +82,38 @@ async function openMenu(user: ReturnType<typeof userEvent.setup>, name: string) 
   await user.click(within(row).getByRole("button", { name: "Exercise options" }));
 }
 
-beforeEach(() => onChange.mockReset());
+/**
+ * Opens "Move to section" and chooses a section with the keyboard: Radix's submenu pointer-grace
+ * logic needs real geometry, which jsdom does not have.
+ */
+async function moveToSection(user: ReturnType<typeof userEvent.setup>, section: string) {
+  const trigger = await screen.findByRole("menuitem", { name: "Move to section" });
+  trigger.focus();
+  await user.keyboard("{ArrowRight}");
+  await screen.findByRole("menuitem", { name: section });
+  for (let step = 0; step < 12; step++) {
+    if (document.activeElement?.textContent === section) break;
+    await user.keyboard("{ArrowDown}");
+  }
+  expect(document.activeElement).toHaveTextContent(section);
+  await user.keyboard("{Enter}");
+}
+
+beforeEach(() => {
+  onChange.mockReset();
+  onDuplicate.mockReset();
+  onMoveTo.mockReset();
+});
 
 describe("BlockList", () => {
-  it("shows the empty state", () => {
-    setup([]);
+  it("shows the routine's empty state in an empty routine", () => {
+    setup([], { routineEmpty: true });
     expect(screen.getByText("No exercises yet. Pick some from the list.")).toBeInTheDocument();
+  });
+
+  it("shows a drop zone in an empty section of a routine with exercises", () => {
+    setup([]);
+    expect(screen.getByText("Drag exercises here")).toBeInTheDocument();
   });
 
   it("renders single rows and a superset card with its members", () => {
@@ -99,7 +147,7 @@ describe("BlockList", () => {
   });
 
   it("marks items with invalid sets", () => {
-    setup([single("a", { exerciseName: "Squat" }), single("b")], new Set(["a"]));
+    setup([single("a", { exerciseName: "Squat" }), single("b")], { invalid: new Set(["a"]) });
     expect(screen.getAllByText("Check sets")).toHaveLength(1);
   });
 
@@ -131,13 +179,52 @@ describe("BlockList", () => {
 
   it("duplicates an exercise", async () => {
     const user = userEvent.setup();
-    const blocks = [single("a", { exerciseName: "Squat" })];
-    setup(blocks);
+    setup([single("a", { exerciseName: "Squat" })]);
     await openMenu(user, "Squat");
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
-    const update = applied();
-    expect(update).toHaveLength(2);
-    expect(update[1].kind === "single" && update[1].item.exerciseId).toBe("ex-a");
+    expect(onDuplicate).toHaveBeenCalledWith("a");
+  });
+
+  it("disables Duplicate when the routine is full", async () => {
+    const user = userEvent.setup();
+    setup([single("a", { exerciseName: "Squat" })], { canAddItem: false });
+    await openMenu(user, "Squat");
+    expect(await screen.findByRole("menuitem", { name: "Duplicate" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+
+  it("moves a single exercise to another section from its menu", async () => {
+    const user = userEvent.setup();
+    setup([single("a", { exerciseName: "Squat" })], {
+      targets: [{ key: "sec-2", name: "Cool-down" }],
+    });
+    await openMenu(user, "Squat");
+    await moveToSection(user, "Cool-down");
+    expect(onMoveTo).toHaveBeenCalledWith("a", "sec-2");
+  });
+
+  it("moves a whole superset from its card, not from a member's menu", async () => {
+    const user = userEvent.setup();
+    setup([group("g", [item("b", { exerciseName: "Lunge" }), item("c")])], {
+      targets: [{ key: "sec-2", name: "Cool-down" }],
+    });
+    await openMenu(user, "Lunge");
+    await screen.findByRole("menuitem", { name: "Ungroup" });
+    expect(screen.queryByRole("menuitem", { name: "Move to section" })).not.toBeInTheDocument();
+    await user.keyboard("{Escape}");
+
+    const card = screen.getByRole("group", { name: "Superset" });
+    await user.click(within(card).getByRole("button", { name: "Move to section" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Cool-down" }));
+    expect(onMoveTo).toHaveBeenCalledWith("g", "sec-2");
+  });
+
+  it("offers no Move to section with a single section", () => {
+    setup([group("g", [item("b"), item("c")])]);
+    const card = screen.getByRole("group", { name: "Superset" });
+    expect(within(card).queryByRole("button", { name: "Move to section" })).not.toBeInTheDocument();
   });
 
   it("groups a single exercise with the next one", async () => {
