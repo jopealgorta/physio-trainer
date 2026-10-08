@@ -8,6 +8,7 @@ const EX = "1b0e5a2e-8c1f-4a47-9a55-3f6f1c1f2a11";
 const item = (overrides: Record<string, unknown> = {}) => ({
   exerciseId: EX,
   groupKey: null,
+  sectionKey: "s1",
   holdSeconds: null,
   restSeconds: null,
   side: null,
@@ -25,6 +26,7 @@ const payload = (overrides: Record<string, unknown> = {}) => ({
   sessionsPerWeek: null,
   sessionsPerDay: "",
   status: "draft",
+  sections: [{ key: "s1", name: "Warm-up" }],
   groups: [],
   items: [item()],
   ...overrides,
@@ -182,6 +184,70 @@ describe("saveRoutineSchema", () => {
       if (parsed.success) return;
       const issue = parsed.error.issues.find((i) => i.message === code);
       expect(issue?.path).toEqual(["items"]);
+    });
+  });
+
+  describe("sections", () => {
+    const sec = (key: string, name = key) => ({ key, name });
+
+    it("trims names and accepts empty sections", () => {
+      const parsed = saveRoutineSchema.parse(
+        payload({ sections: [sec("s1", "  Warm-up "), sec("s2", "Main")] }),
+      );
+      expect(parsed.sections).toEqual([sec("s1", "Warm-up"), sec("s2", "Main")]);
+    });
+
+    it("rejects 0 sections and more than 12", () => {
+      expect(saveRoutineSchema.safeParse(payload({ sections: [], items: [] })).success).toBe(false);
+      const many = Array.from({ length: 13 }, (_, i) => sec(`k${i}`));
+      expect(
+        saveRoutineSchema.safeParse(
+          payload({ sections: many, items: [item({ sectionKey: "k0" })] }),
+        ).success,
+      ).toBe(false);
+      expect(
+        saveRoutineSchema.safeParse(
+          payload({ sections: many.slice(0, 12), items: [item({ sectionKey: "k0" })] }),
+        ).success,
+      ).toBe(true);
+    });
+
+    it("rejects blank and over-long names", () => {
+      expect(saveRoutineSchema.safeParse(payload({ sections: [sec("s1", "   ")] })).success).toBe(
+        false,
+      );
+      expect(
+        saveRoutineSchema.safeParse(payload({ sections: [sec("s1", "x".repeat(61))] })).success,
+      ).toBe(false);
+      expect(
+        saveRoutineSchema.safeParse(payload({ sections: [sec("s1", "x".repeat(60))] })).success,
+      ).toBe(true);
+    });
+
+    it.each([
+      ["an unknown section key", { items: [item({ sectionKey: "nope" })] }, "unknownSection"],
+      [
+        "items out of section order",
+        {
+          sections: [sec("s1"), sec("s2")],
+          items: [item({ sectionKey: "s2" }), item({ sectionKey: "s1" })],
+        },
+        "sectionOrder",
+      ],
+      [
+        "a group across sections",
+        {
+          sections: [sec("s1"), sec("s2")],
+          groups: [{ key: "g", restSeconds: 60 }],
+          items: [
+            item({ groupKey: "g", sectionKey: "s1" }),
+            item({ groupKey: "g", sectionKey: "s2" }),
+          ],
+        },
+        "groupSpansSections",
+      ],
+    ])("rejects %s", (_name, overrides, code) => {
+      expect(messages(payload(overrides))).toContain(code);
     });
   });
 });

@@ -2,13 +2,16 @@ import { z } from "zod";
 
 import { itemShape, setSchema } from "@/lib/prescription";
 import type { SaveGroup, SaveItem } from "@/lib/routine-editor";
+import type { SaveSection } from "@/lib/routine-sections";
 import { validateStructure } from "@/lib/routine-structure";
 import {
   MAX_ITEMS,
+  MAX_SECTIONS,
   MAX_SETS,
   ROUTINE_NAME_MAX,
   ROUTINE_NOTES_MAX,
   ROUTINE_STATUSES,
+  SECTION_NAME_MAX,
   SESSIONS_PER_DAY,
   SESSIONS_PER_WEEK,
   type RoutineStatus,
@@ -69,9 +72,17 @@ export type CreateRoutineInput = { customerId: string; name: string; caseId: str
 
 const groupKey = z.string().min(1).max(64);
 
+const sectionKey = z.string().min(1).max(64);
+
+const saveSectionSchema = z.object({
+  key: sectionKey,
+  name: z.string().trim().min(1, "sectionNameRequired").max(SECTION_NAME_MAX, "sectionNameTooLong"),
+});
+
 const saveItemSchema = z.object({
   exerciseId: z.uuid(),
   groupKey: groupKey.nullable(),
+  sectionKey,
   sets: z.array(setSchema).max(MAX_SETS),
   ...itemShape,
 });
@@ -88,6 +99,7 @@ export const saveRoutineSchema = z
     sessionsPerWeek: sessions(SESSIONS_PER_WEEK),
     sessionsPerDay: sessions(SESSIONS_PER_DAY),
     status: z.enum(ROUTINE_STATUSES),
+    sections: z.array(saveSectionSchema).min(1).max(MAX_SECTIONS),
     groups: z.array(saveGroupSchema).max(MAX_ITEMS),
     items: z.array(saveItemSchema).max(MAX_ITEMS),
   })
@@ -98,7 +110,9 @@ export const saveRoutineSchema = z
         groupKey: item.groupKey,
         restSeconds: item.restSeconds,
         setCount: item.sets.length,
+        sectionKey: item.sectionKey,
       })),
+      value.sections,
     );
     for (const message of issues) ctx.addIssue({ code: "custom", path: ["items"], message });
   });
@@ -112,6 +126,7 @@ export type SaveRoutineInput = {
   sessionsPerWeek: number | null;
   sessionsPerDay: number | null;
   status: RoutineStatus;
+  sections: SaveSection[];
   groups: SaveGroup[];
   items: SaveItem[];
 };

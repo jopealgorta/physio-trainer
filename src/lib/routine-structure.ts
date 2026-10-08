@@ -5,7 +5,9 @@ export type StructureItem = {
   groupKey: string | null;
   restSeconds: number | null;
   setCount: number;
+  sectionKey: string;
 };
+export type StructureSection = { key: string };
 export type StructureIssue =
   | "unknownGroup"
   | "unusedGroup"
@@ -14,14 +16,34 @@ export type StructureIssue =
   | "groupNotConsecutive"
   | "groupSetsMismatch"
   | "groupNeedsSets"
-  | "groupItemRest";
+  | "groupItemRest"
+  | "unknownSection"
+  | "duplicateSection"
+  | "sectionOrder"
+  | "groupSpansSections";
 
 /** Superset rules (spec 05): the editor keeps them true, the save action re-checks them. */
 export function validateStructure(
   groups: StructureGroup[],
   items: StructureItem[],
+  sections: StructureSection[],
 ): StructureIssue[] {
   const issues = new Set<StructureIssue>();
+  const sectionIndex = new Map<string, number>();
+  sections.forEach((section, index) => {
+    if (sectionIndex.has(section.key)) issues.add("duplicateSection");
+    else sectionIndex.set(section.key, index);
+  });
+  let previousSection = -1;
+  for (const item of items) {
+    const index = sectionIndex.get(item.sectionKey);
+    if (index === undefined) {
+      issues.add("unknownSection");
+      continue;
+    }
+    if (index < previousSection) issues.add("sectionOrder");
+    previousSection = Math.max(previousSection, index);
+  }
   const keys = new Set<string>();
   for (const group of groups) {
     if (keys.has(group.key)) issues.add("duplicateGroup");
@@ -41,6 +63,9 @@ export function validateStructure(
       continue;
     }
     if (at.length < GROUP_MIN || at.length > GROUP_MAX) issues.add("groupSize");
+    if (new Set(at.map((index) => items[index].sectionKey)).size > 1) {
+      issues.add("groupSpansSections");
+    }
     if (at[at.length - 1] - at[0] !== at.length - 1) issues.add("groupNotConsecutive");
     const counts = at.map((index) => items[index].setCount);
     if (counts.some((count) => count === 0)) issues.add("groupNeedsSets");

@@ -72,7 +72,9 @@ function assertValid(blocks: EditorBlock[]) {
         groupKey: item.groupKey,
         restSeconds: item.restSeconds,
         setCount: item.sets.length,
+        sectionKey: item.sectionKey,
       })),
+      [{ key: "" }],
     ),
   ).toEqual([]);
 }
