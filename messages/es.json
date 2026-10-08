@@ -651,6 +651,7 @@
       "empty": {
         "title": "Todavía no hay rutinas",
         "body": "Abrí un cliente para crear su primera rutina.",
+        "bodyPick": "Elegí un cliente para crear su primera rutina.",
         "cta": "Ir a clientes"
       },
       "noResults": "Ninguna rutina coincide con estos filtros.",
@@ -675,6 +676,13 @@
       "errors": {
         "customerNotFound": "Este cliente ya no existe.",
         "invalid": "Revisá el formulario y probá de nuevo."
+      },
+      "pick": {
+        "title": "Nueva rutina",
+        "customer": "Cliente",
+        "noCustomer": "Elegí un cliente",
+        "create": "Crear rutina",
+        "cancel": "Cancelar"
       }
     },
     "editor": {

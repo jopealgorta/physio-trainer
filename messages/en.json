@@ -651,6 +651,7 @@
       "empty": {
         "title": "No routines yet",
         "body": "Open a customer to create their first routine.",
+        "bodyPick": "Pick a customer to create their first routine.",
         "cta": "Go to customers"
       },
       "noResults": "No routines match these filters.",
@@ -675,6 +676,13 @@
       "errors": {
         "customerNotFound": "This customer no longer exists.",
         "invalid": "Check the form and try again."
+      },
+      "pick": {
+        "title": "New routine",
+        "customer": "Customer",
+        "noCustomer": "Choose a customer",
+        "create": "Create routine",
+        "cancel": "Cancel"
       }
     },
     "editor": {
