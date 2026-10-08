@@ -336,7 +336,7 @@ export async function copyRoutine(
         routineId: copy.id,
         exerciseId: row.exerciseId,
         position: row.position,
-        sectionId: row.sectionId === null ? null : (sectionIds.get(row.sectionId) ?? null),
+        sectionId: sectionIds.get(row.sectionId)!,
         groupId: row.groupId === null ? null : (groupIds.get(row.groupId) ?? null),
         holdSeconds: row.holdSeconds,
         restSeconds: row.restSeconds,

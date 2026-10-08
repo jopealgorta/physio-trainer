@@ -1,0 +1,1 @@
+ALTER TABLE "routine_items" ALTER COLUMN "section_id" SET NOT NULL;

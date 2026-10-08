@@ -1,15 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import { runAsPhysio } from "@/db/rls";
-import { routineItems, routineSections } from "@/db/schema";
+import { routineSections, routines } from "@/db/schema";
 import { insertCustomer, insertExercise, insertRoutine } from "@/test/int/content";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
-import { loadRoutineContent, type RoutineContent } from "./content";
+import { loadRoutineContent } from "./content";
 
 describe("loadRoutineContent", () => {
   const created: TestPhysio[] = [];
@@ -75,48 +74,13 @@ describe("loadRoutineContent", () => {
       ]);
     });
 
-    it("puts an item with no section in the first one", async () => {
-      const exerciseId = await insertExercise(a.id);
-      const id = await insertRoutine(a.id, customerId, {
-        items: [
-          { exerciseId, section: "First" },
-          { exerciseId, section: "Second" },
-        ],
-      });
-      await db
-        .update(routineItems)
-        .set({ sectionId: null })
-        .where(and(eq(routineItems.physioId, a.id), eq(routineItems.routineId, id)));
-      const routine = (await loadRoutineContent(db, a.id, customerId, [id])).get(id)!;
-      expect(routine.sections.map((s) => s.name)).toEqual(["First", "Second"]);
-      expect(routine.sections[0]!.blocks).toHaveLength(2);
-      expect(routine.sections[1]!.blocks).toHaveLength(0);
-    });
-
-    it("gives a routine with items but no sections one implicit section", async () => {
-      const exerciseId = await insertExercise(a.id);
-      const id = await insertRoutine(a.id, customerId, { items: [{ exerciseId }] });
-      // In a transaction that rolls back: a committed routine without sections would be picked
-      // up by the migration-backfill test running in parallel.
-      const loaded = await db
-        .transaction(async (tx) => {
-          await tx
-            .update(routineItems)
-            .set({ sectionId: null })
-            .where(and(eq(routineItems.physioId, a.id), eq(routineItems.routineId, id)));
-          await tx
-            .delete(routineSections)
-            .where(and(eq(routineSections.physioId, a.id), eq(routineSections.routineId, id)));
-          const routine = (await loadRoutineContent(tx, a.id, customerId, [id])).get(id)!;
-          throw Object.assign(new Error("rollback"), { routine });
-        })
-        .catch((error: Error & { routine?: RoutineContent }) => {
-          if (!error.routine) throw error;
-          return error.routine;
-        });
-      expect(loaded.sections).toHaveLength(1);
-      expect(loaded.sections[0]).toMatchObject({ key: "default", name: "" });
-      expect(loaded.sections[0]!.blocks).toHaveLength(1);
+    it("gives a routine without sections (created, never saved) no sections", async () => {
+      const [row] = await db
+        .insert(routines)
+        .values({ physioId: a.id, customerId, name: "Blank" })
+        .returning({ id: routines.id });
+      const routine = (await loadRoutineContent(db, a.id, customerId, [row!.id])).get(row!.id)!;
+      expect(routine.sections).toEqual([]);
     });
   });
 

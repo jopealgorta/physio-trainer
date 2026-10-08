@@ -54,9 +54,9 @@ Constraints: unique `(physio_id, routine_id, id)` (target of the items FK), uniq
 `routine_sections (physio_id, routine_id, id)` (no `ON DELETE` action: the save deletes items
 before sections; the routine cascade deletes both).
 
-**Expand, then contract.** `section_id` is nullable in this spec: during a deploy the previous
-app version can still save a routine without sections. A follow-up chore PR sets it `NOT NULL`
-once no deployed code writes nulls. Until then readers apply rule 3 below.
+**Expand, then contract.** `section_id` was nullable when this spec shipped: during the deploy the
+previous app version could still save a routine without sections. The follow-up chore
+(`routine-items-section-required`) re-runs the backfill and sets it `NOT NULL`.
 
 **Backfill** (custom migration): every existing routine (templates included) gets one section at
 position 0, named "Principal" when its physio's `locale` is `es`, "Main" otherwise, and every
@@ -94,9 +94,10 @@ Patient page (spec 19 list), PDF and Excel:
    (`SECTION_NAME_MAX`). Duplicate names are allowed.
 2. Every saved item references a section of its routine; all members of a superset are in the
    same section and consecutive. "Group with next" only joins blocks of the same section.
-3. Reading (editor, patient page, exports, snapshots): an item whose `section_id` is null joins
-   the first section; a routine with items but no sections reads as one section named by the
-   reader's default ("Main", localized). Never errors.
+3. Reading (editor, patient page, exports, snapshots): every item has a section of its routine
+   (`NOT NULL` + composite FK since the contract chore). A routine with no sections (created,
+   never saved) opens in the editor with one section named the reader's default ("Main",
+   localized). History snapshots stored before sections read as one default section.
 4. Empty sections are saved; the patient page and exports skip them.
 5. Deleting a section with exercises asks for confirmation and removes its exercises. The only
    section can't be deleted (the menu item is disabled).
@@ -187,9 +188,9 @@ history diff lines. Every key in `en` and `es` (Rioplatense voseo). Suggestion c
   pairs the old sections with the new ones (same name first, then the leftovers in order): a
   renamed or reordered section is only a "Sections" change, and an exercise reports "Section"
   (old name → new name) only when it changed section.
-- **Readers without sections.** The patient content groups items per section (a null or unknown
-  `section_id` joins the first section; a routine with items but no sections reads as one unnamed
-  section). `visibleSections` drops empty sections and turns headings on at two or more;
+- **Readers without sections.** The patient content groups items per section (until the contract
+  chore, a null or unknown `section_id` joined the first section; since then every item has
+  one). `visibleSections` drops empty sections and turns headings on at two or more;
   workout mode, the routine view and the session summary flatten them (`flattenSections`).
   The workout player's exercise list gets one flattened, unnamed section, so it never shows
   section headings (non-goal).
@@ -225,3 +226,9 @@ history diff lines. Every key in `en` and `es` (Rioplatense voseo). Suggestion c
   section is left, and rather than the "Add section" input, which would open the phone keyboard.
 - **E2E pointer drags wait 100 ms after the drop.** dnd-kit swallows clicks for 50 ms after a
   drag, so a Save clicked by the test right away was lost (a person never clicks that fast).
+- **Contract chore (2026-10-08).** `routine_items.section_id` is `NOT NULL`. The migration first
+  re-runs the backfill (`*_routine-sections-rebackfill.sql`, same idempotent statements) to cover
+  routines and items the previous app version saved without sections during the spec 22 deploy,
+  so no manual production check was needed. Readers dropped their null-section branches; a
+  routine with no sections still opens with the default section in the editor. Rolling the app
+  back to a pre-spec-22 deploy now needs the database rolled back too (its saves write null).

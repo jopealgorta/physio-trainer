@@ -10,6 +10,7 @@ import {
   routineGroups,
   routineItemSets,
   routineItems,
+  routineSections,
   routines,
   weeklyPlanDays,
   weeklyPlanEntries,
@@ -885,9 +886,25 @@ describe("weekly plans server layer", () => {
         .values({ physioId: a.id, name: "Squat" })
         .returning({ id: exercises.id });
       const r = await routine(a, c, "Gym");
+      const [section] = await db
+        .insert(routineSections)
+        .values({ physioId: a.id, routineId: r, name: "Main", position: 0 })
+        .returning({ id: routineSections.id });
       await db.insert(routineItems).values([
-        { physioId: a.id, routineId: r, exerciseId: exercise.id, position: 0 },
-        { physioId: a.id, routineId: r, exerciseId: exercise.id, position: 1 },
+        {
+          physioId: a.id,
+          routineId: r,
+          exerciseId: exercise.id,
+          position: 0,
+          sectionId: section.id,
+        },
+        {
+          physioId: a.id,
+          routineId: r,
+          exerciseId: exercise.id,
+          position: 1,
+          sectionId: section.id,
+        },
       ]);
       const rest = await routine(a, c, "Rehab", { isStandalone: false });
       const e1 = await attach(a, planId, r, 4);

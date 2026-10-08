@@ -183,7 +183,7 @@ describe("toSaveSections", () => {
 });
 
 describe("fromLoadedSections", () => {
-  const loaded = (name: string, groupId: string | null, sectionId: string | null): LoadedItem => ({
+  const loaded = (name: string, groupId: string | null, sectionId: string): LoadedItem => ({
     ...EMPTY_ITEM_PRESCRIPTION,
     id: `i-${name}`,
     exerciseId: `ex-${name}`,
@@ -222,9 +222,9 @@ describe("fromLoadedSections", () => {
     expect(new Set(out.map((s) => s.key)).size).toBe(3);
   });
 
-  it("puts items with a null section into the first section", () => {
+  it("puts items with an unknown section into the first section", () => {
     const out = fromLoadedSections(
-      [loaded("a", null, null), loaded("b", null, "s2")],
+      [loaded("a", null, "gone"), loaded("b", null, "s2")],
       [],
       [
         { id: "s1", name: "One" },
@@ -239,7 +239,7 @@ describe("fromLoadedSections", () => {
 
   it("with no sections yields one section named defaultName holding everything", () => {
     const out = fromLoadedSections(
-      [loaded("a", null, null), loaded("b", null, null)],
+      [loaded("a", null, "gone"), loaded("b", null, "gone")],
       [],
       [],
       "Main",

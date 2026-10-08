@@ -10,6 +10,7 @@ import {
   exerciseMedia,
   exercises,
   routineItems,
+  routineSections,
   routines,
 } from "@/db/schema";
 import { DEFAULT_LIBRARY_FILTERS, type LibraryFilters } from "@/lib/library-params";
@@ -470,9 +471,17 @@ describe("library server layer", () => {
         .insert(routines)
         .values({ physioId: a.id, customerId: customer.id, name: "R" })
         .returning({ id: routines.id });
-      await db
-        .insert(routineItems)
-        .values({ physioId: a.id, routineId: routine.id, exerciseId: used, position: 0 });
+      const [section] = await db
+        .insert(routineSections)
+        .values({ physioId: a.id, routineId: routine.id, name: "Main", position: 0 })
+        .returning({ id: routineSections.id });
+      await db.insert(routineItems).values({
+        physioId: a.id,
+        routineId: routine.id,
+        exerciseId: used,
+        position: 0,
+        sectionId: section.id,
+      });
 
       const outcome = await asA(async (tx, p) => ({
         result: await deleteExercise(tx, p, used),

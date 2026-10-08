@@ -30,7 +30,7 @@ export type ContentBlock =
   | { kind: "single"; item: ContentItem }
   | { kind: "group"; key: string; restSeconds: number | null; items: ContentItem[] };
 
-/** A named part of a routine; the implicit one (no sections stored) has `key: "default"`, `name: ""`. */
+/** A named part of a routine, in position order; may be empty (spec 22). */
 export type ContentSection = { key: string; name: string; blocks: ContentBlock[] };
 
 export type RoutineContent = {
@@ -178,14 +178,11 @@ export async function loadRoutineContent(
       name: section.name,
       blocks: [],
     }));
-    if (sections.length === 0 && rows.length > 0) {
-      sections.push({ key: "default", name: "", blocks: [] });
-    }
     const byId = new Map(sections.map((section) => [section.key, section]));
     for (const row of rows) {
-      // Null or unknown section: the first one. Blocks are built per section, so a superset
-      // never crosses a boundary.
-      const section = (row.sectionId ? byId.get(row.sectionId) : undefined) ?? sections[0]!;
+      // Every item has a section of its routine (NOT NULL + composite FK). Blocks are built per
+      // section, so a superset never crosses a boundary.
+      const section = byId.get(row.sectionId)!;
       const blocks = section.blocks;
       const item: ContentItem = {
         id: row.id,

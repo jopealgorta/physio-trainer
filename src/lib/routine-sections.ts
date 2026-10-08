@@ -177,7 +177,7 @@ export function toSaveSections(
 }
 
 /**
- * Buckets loaded items by section (null or unknown section → the first) and runs the spec 05
+ * Buckets loaded items by section (an unknown section → the first) and runs the spec 05
  * `fromLoaded` on each bucket, so a group never crosses a section boundary. No sections yields one
  * section named `defaultName`.
  */
@@ -193,9 +193,7 @@ export function fromLoadedSections(
   const known = new Set(sections.map((section) => section.id));
   return base.map((section, index) => {
     const bucket = items.filter((item) =>
-      index === 0 && (item.sectionId === null || !known.has(item.sectionId))
-        ? true
-        : item.sectionId === section.id,
+      index === 0 && !known.has(item.sectionId) ? true : item.sectionId === section.id,
     );
     return {
       key: newKey(),
