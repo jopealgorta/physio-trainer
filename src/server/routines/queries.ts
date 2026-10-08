@@ -9,12 +9,14 @@ import {
   customers,
   exercises,
   routineGroups,
+  routineSections,
   routineItemSets,
   routineItems,
   routines,
 } from "@/db/schema";
 import type { RoutineFilters } from "@/lib/routine-params";
 import type { LoadedGroup, LoadedItem } from "@/lib/routine-editor";
+import type { LoadedSection } from "@/lib/routine-sections";
 import { ROUTINES_LIST_LIMIT, type RoutineStatus } from "@/lib/routines";
 import { escapeLike } from "@/lib/sql-like";
 import { parseYouTubeUrl } from "@/lib/youtube";
@@ -124,6 +126,7 @@ export type RoutineDetail = {
   phaseLabel: string | null;
   startsOn: string | null;
   endsOn: string | null;
+  sections: LoadedSection[];
   groups: LoadedGroup[];
   items: LoadedItem[];
   cases: { id: string; title: string; status: "open" | "closed" }[];
@@ -175,7 +178,12 @@ export async function getRoutine(
   if (!row) return null;
   const { sourceTemplateId, sourceTemplateName, ...header } = row;
 
-  const [groups, itemRows, customerCases] = await Promise.all([
+  const [sections, groups, itemRows, customerCases] = await Promise.all([
+    tx
+      .select({ id: routineSections.id, name: routineSections.name })
+      .from(routineSections)
+      .where(and(eq(routineSections.physioId, physioId), eq(routineSections.routineId, id)))
+      .orderBy(asc(routineSections.position)),
     tx
       .select({ id: routineGroups.id, restSeconds: routineGroups.restSeconds })
       .from(routineGroups)
@@ -188,6 +196,7 @@ export async function getRoutine(
         exerciseName: exercises.name,
         exerciseKind: exercises.kind,
         exerciseArchivedAt: exercises.archivedAt,
+        sectionId: routineItems.sectionId,
         groupId: routineItems.groupId,
         holdSeconds: routineItems.holdSeconds,
         restSeconds: routineItems.restSeconds,
@@ -252,6 +261,7 @@ export async function getRoutine(
       sourceTemplateId !== null && sourceTemplateName !== null
         ? { id: sourceTemplateId, name: sourceTemplateName }
         : null,
+    sections,
     groups,
     items: itemRows.map(({ exerciseArchivedAt, coverUrl, ...row }) => ({
       ...row,

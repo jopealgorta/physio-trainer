@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
@@ -10,14 +10,16 @@ import {
   routineGroups,
   routineItemSets,
   routineItems,
+  routineSections,
   routines,
 } from "@/db/schema";
 import type { SaveItem } from "@/lib/routine-editor";
+import { fromLoadedSections } from "@/lib/routine-sections";
 import { DEFAULT_ROUTINE_FILTERS, type RoutineFilters } from "@/lib/routine-params";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
 
 import { loadRoutineContent } from "./content";
-import { copyRoutine, createRoutine, saveRoutine } from "./mutations";
+import { copyRoutine, createRoutine, duplicateRoutine, saveRoutine } from "./mutations";
 import { getRoutine, listRecentExercises, listRoutines } from "./queries";
 import { saveRoutineSchema, type SaveRoutineInput } from "./schemas";
 
@@ -39,6 +41,7 @@ const set = (reps: number | null = 10, extra: Record<string, unknown> = {}) => (
 const item = (exerciseId: string, overrides: Partial<SaveItem> = {}): SaveItem => ({
   exerciseId,
   groupKey: null,
+  sectionKey: "s",
   holdSeconds: null,
   restSeconds: null,
   side: null,
@@ -101,6 +104,7 @@ describe("routines server layer", () => {
       sessionsPerWeek: null,
       sessionsPerDay: null,
       status: "draft",
+      sections: [{ key: "s", name: "Main" }],
       groups: [],
       items: [],
       ...overrides,
@@ -593,6 +597,139 @@ describe("routines server layer", () => {
 
       const names = (await as(p, (tx, pid) => listRecentExercises(tx, pid))).map((row) => row.name);
       expect(names).toEqual(["X", "Z", "Y"]);
+    });
+  });
+
+  describe("sections", () => {
+    let p: TestPhysio;
+    let customerId: string;
+    let ex: string;
+
+    beforeAll(async () => {
+      p = await fresh();
+      customerId = await customer(p);
+      ex = await exercise(p, "Sectioned");
+    });
+
+    const sectionRows = (routineId: string) =>
+      db
+        .select()
+        .from(routineSections)
+        .where(eq(routineSections.routineId, routineId))
+        .orderBy(asc(routineSections.position));
+    const sectioned = (id: string, version: number) =>
+      payload(id, {
+        version,
+        sections: [
+          { key: "w", name: "Warm-up" },
+          { key: "m", name: "Main" },
+          { key: "c", name: "Cool-down" },
+        ],
+        items: [
+          item(ex, { sectionKey: "w" }),
+          item(ex, { sectionKey: "m" }),
+          item(ex, { sectionKey: "m" }),
+        ],
+      });
+    const layout = async (id: string) => {
+      const detail = await as(p, (tx, pid) => getRoutine(tx, pid, id));
+      return detail!.sections.map((section) => ({
+        name: section.name,
+        items: detail!.items.filter((row) => row.sectionId === section.id).length,
+      }));
+    };
+
+    it("saves three sections (one empty) and getRoutine reloads names, order and membership", async () => {
+      const id = await routine(p, customerId, "Sections");
+      expect(await save(p, sectioned(id, 1))).toEqual({ ok: true, data: { version: 2 } });
+      expect(await layout(id)).toEqual([
+        { name: "Warm-up", items: 1 },
+        { name: "Main", items: 2 },
+        { name: "Cool-down", items: 0 },
+      ]);
+    });
+
+    it("replaces sections on every save with fresh ids", async () => {
+      const id = await routine(p, customerId, "Replace");
+      await save(p, sectioned(id, 1));
+      const before = await sectionRows(id);
+      await save(
+        p,
+        payload(id, {
+          version: 2,
+          sections: [{ key: "only", name: "Solo" }],
+          items: [item(ex, { sectionKey: "only" })],
+        }),
+      );
+      const after = await sectionRows(id);
+      expect(after.map((row) => row.name)).toEqual(["Solo"]);
+      expect(after.map((row) => row.position)).toEqual([0]);
+      expect(before.some((row) => row.id === after[0].id)).toBe(false);
+      expect(await layout(id)).toEqual([{ name: "Solo", items: 1 }]);
+    });
+
+    it("copies sections, order and membership through duplicateRoutine and copyRoutine", async () => {
+      const id = await routine(p, customerId, "Source");
+      await save(p, sectioned(id, 1));
+      const dup = await as(p, (tx, pid) =>
+        duplicateRoutine(tx, pid, id, { name: "Dup", isStandalone: true }),
+      );
+      const copy = await as(p, (tx, pid) =>
+        copyRoutine(tx, pid, id, () => ({
+          name: "Copy",
+          customerId,
+          caseId: null,
+          isStandalone: true,
+          status: "draft",
+          isTemplate: false,
+          sourceTemplateId: null,
+        })),
+      );
+      const source = await sectionRows(id);
+      for (const result of [dup, copy]) {
+        if (!result.ok) throw new Error(result.error);
+        expect(await layout(result.data.id)).toEqual([
+          { name: "Warm-up", items: 1 },
+          { name: "Main", items: 2 },
+          { name: "Cool-down", items: 0 },
+        ]);
+        const rows = await sectionRows(result.data.id);
+        expect(rows.map((row) => row.position)).toEqual([0, 1, 2]);
+        expect(rows.some((row) => source.some((s) => s.id === row.id))).toBe(false);
+      }
+    });
+
+    it("keeps a null item section null in a copy", async () => {
+      const id = await routine(p, customerId, "Legacy copy");
+      await save(p, payload(id, { items: [item(ex)] }));
+      await db.update(routineItems).set({ sectionId: null }).where(eq(routineItems.routineId, id));
+      const dup = await as(p, (tx, pid) =>
+        duplicateRoutine(tx, pid, id, { name: "Legacy dup", isStandalone: true }),
+      );
+      if (!dup.ok) throw new Error(dup.error);
+      const rows = await db
+        .select()
+        .from(routineItems)
+        .where(eq(routineItems.routineId, dup.data.id));
+      expect(rows.map((row) => row.sectionId)).toEqual([null]);
+    });
+
+    it("loads a legacy item without section into the first section", async () => {
+      const id = await routine(p, customerId, "Legacy");
+      await save(p, payload(id, { items: [item(ex)] }));
+      await db.update(routineItems).set({ sectionId: null }).where(eq(routineItems.routineId, id));
+      const detail = (await as(p, (tx, pid) => getRoutine(tx, pid, id)))!;
+      expect(detail.items.map((row) => row.sectionId)).toEqual([null]);
+      let n = 0;
+      const sections = fromLoadedSections(
+        detail.items,
+        detail.groups,
+        detail.sections,
+        "Main",
+        () => `k${n++}`,
+      );
+      expect(sections).toHaveLength(detail.sections.length || 1);
+      expect(sections[0].blocks).toHaveLength(1);
     });
   });
 });

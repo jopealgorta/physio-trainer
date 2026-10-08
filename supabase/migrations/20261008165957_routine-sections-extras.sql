@@ -4,6 +4,8 @@ create trigger routine_sections_set_updated_at
   before update on public.routine_sections
   for each row execute function public.set_updated_at();
 
+-- NOTE: nothing may be appended after the backfill below. sections.int.test.ts runs everything from
+-- the marker to the end of this file.
 -- backfill: every existing routine (templates included) gets one section at position 0, named by
 -- its physio's locale, and its items point at it. Only routines without sections and items
 -- without a section are touched, so it is safe to re-run.

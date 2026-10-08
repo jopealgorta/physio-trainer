@@ -1,10 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
+import { isForeignKeyViolation } from "@/db/errors";
 import { runAsPhysio } from "@/db/rls";
 import { physios, routineItems, routineSections } from "@/db/schema";
 import { createTestPhysio, deleteTestPhysios, type TestPhysio } from "@/test/int/physios";
@@ -104,12 +105,15 @@ describe("routine sections", () => {
       .select({ id: routineItems.id })
       .from(routineItems)
       .where(eq(routineItems.routineId, routineA2));
-    await expect(
-      db
-        .update(routineItems)
-        .set({ sectionId: sectionA })
-        .where(and(eq(routineItems.id, item!.id))),
-    ).rejects.toThrow();
+    const error = await db
+      .update(routineItems)
+      .set({ sectionId: sectionA })
+      .where(eq(routineItems.id, item!.id))
+      .then(
+        () => null,
+        (e: unknown) => e,
+      );
+    expect(isForeignKeyViolation(error, "routine_items_section_fk")).toBe(true);
   });
 
   it("enforces position and name checks", async () => {
