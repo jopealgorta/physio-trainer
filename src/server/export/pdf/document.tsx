@@ -42,11 +42,14 @@ const CALLOUT = "#f5f5f5";
 const MARGIN = 40;
 const GUTTER = 24;
 const VIDEO_COLUMN = 84;
+const ITEM_PADDING = 9;
 /** The superset bar sits in the page margin, so members line up with single exercises. */
 const GROUP_BAR = 2;
 const GROUP_INSET = 8;
 /** Above this many characters an exercise may break across pages instead of moving whole. */
 const LONG_INSTRUCTIONS = 1200;
+/** Room a heading needs below it, so it never sits alone at the bottom of a page. */
+const HEADING_PRESENCE = 72;
 
 const styles = StyleSheet.create({
   page: {
@@ -66,6 +69,8 @@ const styles = StyleSheet.create({
     width: 340,
     fontSize: 8,
     color: MUTED,
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
   runningCustomer: {
     position: "absolute",
@@ -75,6 +80,8 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: MUTED,
     textAlign: "right",
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   brand: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: 16 },
@@ -132,26 +139,36 @@ const styles = StyleSheet.create({
   dayNote: { color: SECONDARY, marginTop: 2 },
   items: { marginTop: 6 },
   item: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: 9,
+    paddingVertical: ITEM_PADDING,
     borderBottomWidth: 0.5,
     borderBottomColor: LIGHT_RULE,
   },
+  // The number and the video link sit beside the body, not in flex columns: when a long exercise
+  // breaks across pages react-pdf drops the columns that already printed, but the body's own
+  // margins carry over, so the continuation stays indented.
   number: {
+    position: "absolute",
+    top: ITEM_PADDING,
+    left: 0,
     width: GUTTER,
     fontSize: 10.5,
     fontWeight: 700,
     color: MUTED,
     lineHeight: 1.2,
   },
-  body: { flex: 1 },
+  body: { marginLeft: GUTTER, marginRight: VIDEO_COLUMN },
   name: { fontSize: 10.5, fontWeight: 700, lineHeight: 1.2 },
   summary: { fontSize: 9.5, marginTop: 2, lineHeight: 1.3 },
   itemNotes: { fontSize: 9, color: SECONDARY, marginTop: 3, lineHeight: 1.3 },
   notesLabel: { fontWeight: 700 },
   instructions: { fontSize: 9, color: SECONDARY, marginTop: 4, lineHeight: 1.4 },
-  videoColumn: { width: VIDEO_COLUMN, alignItems: "flex-end", paddingTop: 1.5 },
+  videoColumn: {
+    position: "absolute",
+    top: ITEM_PADDING + 1.5,
+    right: 0,
+    width: VIDEO_COLUMN,
+    alignItems: "flex-end",
+  },
   video: { flexDirection: "row", alignItems: "center", textDecoration: "none" },
   play: { width: 5.5, height: 6.5, marginRight: 4 },
   videoLabel: { fontSize: 8.5, fontWeight: 700 },
@@ -279,6 +296,7 @@ function RunningHeader({ doc, t }: Pick<Context, "doc" | "t">) {
   const customer = t("pdf.forCustomer", { name: doc.customer.firstName });
   return (
     <>
+      {/* One line each, however long the title or name: page content starts right below. */}
       <Text
         style={styles.runningTitle}
         fixed
@@ -344,6 +362,8 @@ function VideoLink({ url, t, accent }: Pick<Context, "t" | "accent"> & { url: st
 }
 
 const isLong = (item: ExportItem) => (item.instructions?.length ?? 0) > LONG_INSTRUCTIONS;
+/** A heading moves with the exercise after it, unless that exercise must be free to break. */
+const keepsWithNext = (row: Row | undefined) => !(row?.kind === "item" && isLong(row.item));
 
 function ItemRow({ item, number, t, accent }: Context & { item: ExportItem; number: string }) {
   return (
@@ -363,9 +383,11 @@ function ItemRow({ item, number, t, accent }: Context & { item: ExportItem; numb
         </View>
         {item.instructions ? <Text style={styles.instructions}>{item.instructions}</Text> : null}
       </View>
-      <View style={styles.videoColumn}>
-        {item.videoUrl ? <VideoLink url={item.videoUrl} t={t} accent={accent} /> : null}
-      </View>
+      {item.videoUrl ? (
+        <View style={styles.videoColumn}>
+          <VideoLink url={item.videoUrl} t={t} accent={accent} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -447,8 +469,13 @@ function GroupedRows({ list, ...context }: Context & { list: Row[] }) {
     if (row.kind === "heading") {
       const next = list[i + 1];
       out.push(
-        <View key={rowKey(row, i)} wrap={false}>
-          <Text style={[styles.sectionHeading, { color: context.accent }]}>{row.name}</Text>
+        <View key={rowKey(row, i)} wrap={!keepsWithNext(next)}>
+          <Text
+            style={[styles.sectionHeading, { color: context.accent }]}
+            minPresenceAhead={HEADING_PRESENCE}
+          >
+            {row.name}
+          </Text>
           {next && next.kind === "item" ? <RowView row={next} {...context} /> : null}
         </View>,
       );
@@ -471,13 +498,18 @@ function RoutineSection({
   const { lead, rest } = leadingRows(rows(routine, t));
   return (
     <View style={spaced ? styles.sectionSpaced : undefined}>
-      {/* The heading never sits alone at the bottom of a page: it moves with the first exercise. */}
-      <View wrap={false}>
+      {/*
+        The heading never sits alone at the bottom of a page: it moves with the first exercise,
+        or, when that exercise is long enough to break, keeps room for its start below it.
+      */}
+      <View wrap={!keepsWithNext(lead.find((row) => row.kind === "item"))}>
         {/* A routine export is titled with the routine's name already. */}
         {doc.plans.length === 0 &&
         doc.routines.length === 1 &&
         routine.name === doc.title ? null : (
-          <Text style={styles.sectionTitle}>{routine.name}</Text>
+          <Text style={styles.sectionTitle} minPresenceAhead={HEADING_PRESENCE}>
+            {routine.name}
+          </Text>
         )}
         {phase ? <Text style={styles.meta}>{phase}</Text> : null}
         {sessions ? <Text style={styles.meta}>{sessions}</Text> : null}

@@ -71,7 +71,6 @@ export type ExportItem = {
   side: PrescriptionSide | null;
   notes: string | null;
   instructions: string | null;
-  videoId: string | null;
   videoUrl: string | null;
 };
 export type ExportBlock =
@@ -167,7 +166,6 @@ function exportItem(
     side: item.side,
     notes: item.notes,
     instructions: item.instructions,
-    videoId: media ? media.videoId : null,
     videoUrl: media ? youtubeWatchUrl(media.videoId, media.isShort) : null,
   } satisfies ExportItem;
 }

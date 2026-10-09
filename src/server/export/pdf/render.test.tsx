@@ -19,7 +19,7 @@ import { renderExportPdf } from "./render";
 // Unit tests run without the int config's server-only alias; the real package throws here.
 vi.mock("server-only", () => ({}));
 
-const LOGO = readFileSync(join(process.cwd(), "src/server/export/__fixtures__/thumb.jpg"));
+const LOGO = readFileSync(join(process.cwd(), "src/server/export/__fixtures__/logo.jpg"));
 const logoFetch = vi.fn(
   async () => new Response(new Uint8Array(LOGO), { headers: { "content-type": "image/jpeg" } }),
 ) as unknown as typeof fetch;
@@ -258,16 +258,80 @@ describe("renderExportPdf", () => {
     expect(pageCount(buffer)).toBeGreaterThan(1);
   });
 
-  it("prints instructions in full, even when longer than a page", async () => {
-    const long = "Keep the knee over the second toe and move slowly. ".repeat(120).trim();
-    const { doc, t } = await build(
+  /** Renders and fails on react-pdf's overflow warning: an unbreakable view taller than a page. */
+  async function renderWithoutOverflow(src: ExportSource) {
+    const { doc, t } = await build(src);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const buffer = await renderExportPdf(doc, t, { fetchImpl: failingFetch });
+      const overflow = warn.mock.calls.filter((args) => String(args[0]).includes("can't wrap"));
+      expect(overflow).toEqual([]);
+      return { doc, t, buffer };
+    } finally {
+      warn.mockRestore();
+    }
+  }
+
+  const longInstructions = "Keep the knee over the second toe and move slowly. ".repeat(97).trim();
+
+  it("prints instructions in full, breaking a first exercise longer than a page", async () => {
+    const { doc, t, buffer } = await renderWithoutOverflow(
       source({
-        routines: [routine("R", [{ kind: "single", item: item(1, { instructions: long }) }])],
+        routines: [
+          routine("R", [{ kind: "single", item: item(1, { instructions: longInstructions }) }], {
+            notes: "Warm up first. ".repeat(60).trim(),
+          }),
+        ],
       }),
     );
-    expect(textOf(ExportPdf({ doc, t, logo: null }))).toContain(long);
-    const buffer = await renderExportPdf(doc, t, { fetchImpl: failingFetch });
-    expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+    expect(textOf(ExportPdf({ doc, t, logo: null }))).toContain(longInstructions);
+    expect(pageCount(buffer)).toBeGreaterThan(1);
+  });
+
+  it("breaks a long first exercise under a section heading", async () => {
+    const { buffer } = await renderWithoutOverflow(
+      source({
+        routines: [
+          {
+            ...routine("R", []),
+            sections: [
+              { key: "a", name: "Warm-up", blocks: [{ kind: "single", item: item(1) }] },
+              {
+                key: "b",
+                name: "Strength",
+                blocks: [
+                  {
+                    kind: "single",
+                    item: item(2, {
+                      instructions: longInstructions,
+                      notes: "Go slowly. ".repeat(45).trim(),
+                    }),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(pageCount(buffer)).toBeGreaterThan(1);
+  });
+
+  it("breaks a long first superset member", async () => {
+    const { buffer } = await renderWithoutOverflow(
+      source({
+        routines: [
+          routine("R", [
+            {
+              kind: "group",
+              key: "g",
+              restSeconds: 60,
+              items: [item(1, { instructions: longInstructions }), item(2)],
+            },
+          ]),
+        ],
+      }),
+    );
     expect(pageCount(buffer)).toBeGreaterThan(1);
   });
 

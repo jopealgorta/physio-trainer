@@ -178,7 +178,12 @@ numbers and the polish below were in scope, a labelled prescription strip was no
   the routine-notes rule and video links. Without an accent these are the neutral text colour.
 - **Full instructions.** No 280-character cut. An exercise still never splits across pages,
   unless its instructions exceed 1,200 characters; then it may, but its name, dose and notes stay
-  together.
+  together. A routine title or section heading followed by such an exercise no longer forces it
+  onto one page (react-pdf would overflow the page and lose text); `minPresenceAhead` keeps the
+  heading off the bottom of a page instead.
+- **Row layout.** The number and the video link are absolutely positioned and the body carries
+  the gutter as margins: when a long exercise breaks, react-pdf drops flex columns that already
+  printed, and the continuation would lose its indent.
 - **Polish.** A running header (title · "For {name}") on pages after the first; the email,
   website and footer short URL are links (the phone is not); routine notes sit in a grey callout
   with an accent rule; 40 pt page margins.
