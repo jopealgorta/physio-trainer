@@ -9,6 +9,7 @@ import {
   mixOnWhite,
   normalizeHex,
   oklchToHex,
+  printAccent,
 } from "./color";
 
 describe("normalizeHex", () => {
@@ -104,6 +105,34 @@ describe("brandTokens", () => {
             4.5,
           );
         }
+  });
+});
+
+describe("printAccent", () => {
+  it("keeps an accent that is readable as small text on paper", () => {
+    expect(printAccent("#0f766e")).toBe("#0f766e");
+  });
+
+  it("darkens an accent that only passes the UI contrast, keeping its hue", () => {
+    // #3b82f6 passes 3:1 against white (brandTokens keeps it) but not 4.5:1.
+    expect(contrastRatio("#3b82f6", LIGHT_SURFACE)).toBeLessThan(4.5);
+    const accent = printAccent("#3b82f6");
+    expect(contrastRatio(accent, LIGHT_SURFACE)).toBeGreaterThanOrEqual(4.5);
+    expect(Math.abs(hexToOklch(accent).h - hexToOklch("#3b82f6").h)).toBeLessThan(15);
+  });
+
+  it("is readable for every colour in a 16-step RGB grid", () => {
+    const steps = Array.from({ length: 16 }, (_, i) => i * 17);
+    for (const r of steps)
+      for (const g of steps)
+        for (const b of steps) {
+          const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+          expect(contrastRatio(printAccent(hex), LIGHT_SURFACE), hex).toBeGreaterThanOrEqual(4.5);
+        }
+  });
+
+  it("throws on an invalid colour", () => {
+    expect(() => printAccent("nope")).toThrow();
   });
 });
 

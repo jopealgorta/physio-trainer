@@ -79,9 +79,8 @@ function source(over: Partial<ExportSource> = {}): ExportSource {
     planRoutines: [],
     locale: "es",
     generatedOn: "2026-10-02",
-    branding: { clinicName: "Kine Sur", logoUrl: null, contact: null },
+    branding: { clinicName: "Kine Sur", logoUrl: null, accentColor: null, contact: null },
     shareUrl: null,
-    tracking: false,
     ...over,
   };
 }

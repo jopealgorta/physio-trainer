@@ -1634,7 +1634,6 @@
       "trigger": "Exportar",
       "pdf": "Exportar PDF",
       "xlsx": "Exportar Excel",
-      "tracking": "Incluir casillas de seguimiento",
       "exporting": "Exportando…",
       "error": "No se pudo exportar. Probá de nuevo.",
       "ready": {
@@ -1662,7 +1661,7 @@
       "sessions": "{perWeek, plural, =0 {} one {# sesión por semana} other {# sesiones por semana}}",
       "sessionsPerDay": "{perDay, plural, =0 {} one {# vez por día} other {# veces por día}}",
       "notes": "Notas",
-      "track": "Marcá una casilla cada día que lo hagas",
+      "watchVideo": "Ver video",
       "nothing": "Por ahora no hay nada programado.",
       "scan": "Escaneá para ver la versión actualizada",
       "page": "Página {page} de {total}"

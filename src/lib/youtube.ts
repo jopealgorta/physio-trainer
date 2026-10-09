@@ -76,8 +76,3 @@ export function youtubeWatchUrl(videoId: string, isShort: boolean): string {
     ? `https://www.youtube.com/shorts/${videoId}`
     : `https://www.youtube.com/watch?v=${videoId}`;
 }
-
-/** True 16:9 cover (320x180, no letterbox bars), for print and export. */
-export function youtubeCoverUrl(videoId: string): string {
-  return `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
-}

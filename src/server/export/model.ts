@@ -41,9 +41,14 @@ export type ExportSource = ExportSourceData & {
   kind: ExportKind;
   locale: Locale; // resolved customer locale
   generatedOn: string; // YYYY-MM-DD, physio's today
-  branding: { clinicName: string; logoUrl: string | null; contact: BrandingContact | null };
+  branding: {
+    clinicName: string;
+    logoUrl: string | null;
+    /** The physio's accent as set (the PDF makes it print-readable); null = neutral. */
+    accentColor: string | null;
+    contact: BrandingContact | null;
+  };
   shareUrl: string | null;
-  tracking: boolean;
 };
 
 export type SetColumns = {
