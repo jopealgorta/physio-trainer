@@ -164,6 +164,10 @@ export function CaseForm({
           sideName="side"
           label={t("bodyArea")}
           defaultValue={defaults.bodyArea ? { area: defaults.bodyArea, side: defaults.side } : null}
+          invalid={invalid("bodyArea") || invalid("side")}
+          describedBy={
+            [describedBy("bodyArea"), describedBy("side")].filter(Boolean).join(" ") || undefined
+          }
         />
         {errorText("bodyArea")}
         {errorText("side")}

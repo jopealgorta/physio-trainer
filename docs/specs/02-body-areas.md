@@ -125,7 +125,12 @@ Namespace `BodyAreas` with one key per area and side.
     post-action `form.reset()` has nothing to rewind; the reset-listener hack is gone (a test
     still pins that the value survives a form action).
   - **Exercise form:** body areas moved from a side column into the field stack under
-    Categories; the form is one column at every width.
+    Categories; the form is one column at every width, capped at `max-w-3xl` on the page.
+  - **Focus and errors:** opening the panel focuses the chosen chip (else the first), not Clear.
+    `invalid`/`describedBy` props put `aria-invalid` and the error message on the field (the
+    case form passes both its area and side errors).
+  - **Phone:** the map column is 8.5rem in the bottom sheet (9rem from `sm`); the chips are the
+    precise path for small regions such as the elbow.
 - **Form contract:** multi mode renders one hidden `name` input per area (canonical order,
   none when empty; read with `formData.getAll`). Single mode renders `name` (area or `""`)
   and, with `withSide`, `sideName` (default `${name}Side`, side or `""`). Radix checkbox/radio

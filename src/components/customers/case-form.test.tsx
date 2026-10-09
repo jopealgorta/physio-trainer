@@ -165,6 +165,9 @@ describe("CaseForm", () => {
     await user.click(screen.getByRole("button", { name: "Create case" }));
     expect(await screen.findByText("Enter a whole number from 0 to 10.")).toBeInTheDocument();
     expect(screen.getByText("Choose a body area to set a side.")).toBeInTheDocument();
+    const area = screen.getByRole("button", { name: /^Body area/ });
+    expect(area).toHaveAttribute("aria-invalid", "true");
+    expect(area).toHaveAccessibleDescription("Choose a body area to set a side.");
     expect(
       screen.getByText("The opening date can't be after the closing date."),
     ).toBeInTheDocument();

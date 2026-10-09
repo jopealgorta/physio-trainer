@@ -2,7 +2,7 @@
 
 import { ChevronDownIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,14 @@ import { BodyAreaBadge } from "./body-area-badge";
 import { BodyMap } from "./body-map";
 import { BODY_VIEWS, type BodyView, type MapRegion } from "./body-map-regions";
 
-type CommonProps = { name?: string; label?: string; className?: string };
+type CommonProps = {
+  name?: string;
+  label?: string;
+  className?: string;
+  /** Marks the field invalid (its error message is passed as `describedBy`). */
+  invalid?: boolean;
+  describedBy?: string;
+};
 
 export type MultiBodyAreaPickerProps = CommonProps & {
   mode: "multi";
@@ -77,7 +84,7 @@ function usePickerValue<T>(
 }
 
 // Chips: pills that fill with the accent colour when chosen. Radix marks a chosen chip with
-// data-state="on" (and aria-pressed in multi mode, aria-checked in single mode).
+// data-state="on"; `aria-pressed:bg-primary` overrides the toggle's own `aria-pressed:bg-muted`.
 const CHIP_CLASS =
   "h-7 rounded-full border border-border px-3 text-xs font-normal hover:bg-muted data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground aria-pressed:bg-primary data-[state=on]:hover:bg-primary/90";
 
@@ -97,6 +104,8 @@ function PickerShell({
   summary,
   summaryText,
   className,
+  invalid,
+  describedBy,
   hiddenInputs,
   isSelected,
   onRegionClick,
@@ -111,6 +120,8 @@ function PickerShell({
   /** The same as text, for the field's accessible name. */
   summaryText: string;
   className?: string;
+  invalid?: boolean;
+  describedBy?: string;
   hiddenInputs: ReactNode;
   isSelected: (region: MapRegion) => boolean;
   onRegionClick: (region: MapRegion) => void;
@@ -124,6 +135,7 @@ function PickerShell({
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<BodyView>("front");
   const [hovered, setHovered] = useState<MapRegion | null>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
   const labelId = `${id}-label`;
   const valueId = `${id}-value`;
   const regionLabel = (region: MapRegion) => {
@@ -136,13 +148,21 @@ function PickerShell({
       <Label id={labelId} htmlFor={`${id}-trigger`}>
         {label}
       </Label>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          setHovered(null);
+        }}
+      >
         <PopoverTrigger asChild>
           <Button
             id={`${id}-trigger`}
             type="button"
             variant="outline"
             aria-labelledby={`${labelId} ${valueId}`}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
             className="h-auto min-h-9 w-full justify-between gap-2 py-1.5 font-normal"
           >
             <span id={valueId} className="sr-only">
@@ -154,7 +174,20 @@ function PickerShell({
             <ChevronDownIcon aria-hidden className="text-muted-foreground" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="sm:max-h-(--radix-popover-content-available-height) sm:w-[38rem] sm:overflow-y-auto sm:p-4">
+        <PopoverContent
+          // Start on the chips (the keyboard path), not on Clear: the chosen chip, else the first.
+          onOpenAutoFocus={(event) => {
+            const items = chipsRef.current?.querySelectorAll<HTMLElement>(
+              '[data-slot="toggle-group-item"]',
+            );
+            const target = [...(items ?? [])].find((item) => item.dataset.state === "on");
+            const first = target ?? items?.[0];
+            if (!first) return;
+            event.preventDefault();
+            first.focus({ preventScroll: true });
+          }}
+          className="sm:max-h-(--radix-popover-content-available-height) sm:w-[38rem] sm:overflow-y-auto sm:p-4"
+        >
           {/* Title and actions share one row: the panel must fit below a field mid-form. */}
           <div className="flex items-center gap-2">
             <PopoverTitle className="mr-auto text-sm">{label}</PopoverTitle>
@@ -167,7 +200,7 @@ function PickerShell({
               {t("picker.done")}
             </Button>
           </div>
-          <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-6">
+          <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-6">
             <div className="flex flex-col items-center gap-3">
               <ToggleGroup
                 type="single"
@@ -197,7 +230,7 @@ function PickerShell({
               </p>
             </div>
             <div className="flex min-w-0 flex-col gap-4">
-              {chips}
+              <div ref={chipsRef}>{chips}</div>
               {extra}
             </div>
           </div>
@@ -246,6 +279,8 @@ function MultiPicker({
   name,
   label,
   className,
+  invalid,
+  describedBy,
 }: MultiBodyAreaPickerProps) {
   const t = useTranslations("BodyAreas");
   const [areas, setAreas] = usePickerValue(value, defaultValue, onChange);
@@ -260,6 +295,8 @@ function MultiPicker({
       }
       summaryText={chosen.map((area) => t(`areas.${area}`)).join(", ")}
       className={className}
+      invalid={invalid}
+      describedBy={describedBy}
       hiddenInputs={
         name && chosen.map((area) => <input key={area} type="hidden" name={name} value={area} />)
       }
@@ -296,6 +333,8 @@ function SinglePicker({
   sideName = name ? `${name}Side` : undefined,
   label,
   className,
+  invalid,
+  describedBy,
 }: SingleBodyAreaPickerProps) {
   const t = useTranslations("BodyAreas");
   const [selection, setSelection] = usePickerValue(value, defaultValue, onChange);
@@ -317,6 +356,8 @@ function SinglePicker({
       }
       summaryText={summaryText}
       className={className}
+      invalid={invalid}
+      describedBy={describedBy}
       hiddenInputs={
         <>
           {name && <input type="hidden" name={name} value={selection?.area ?? ""} />}

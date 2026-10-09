@@ -121,6 +121,30 @@ describe("BodyAreaPicker multi", () => {
     expect(formData().getAll("areas")).toEqual(["neck"]);
   });
 
+  it("puts focus on the chips when opened", async () => {
+    const user = userEvent.setup();
+    renderInForm({ mode: "multi", name: "areas", defaultValue: ["knee", "neck"] });
+    await openPicker(user);
+    // Radix's roving focus keeps one tab stop: the first chosen chip.
+    expect(chip("Neck")).toHaveFocus();
+  });
+
+  it("clears every area", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "multi", name: "areas", defaultValue: ["neck"] });
+    await openPicker(user);
+    await user.click(within(panel()).getByRole("button", { name: "Clear" }));
+    expect(formData().getAll("areas")).toEqual([]);
+    expect(within(panel()).queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+  });
+
+  it("ties the field to its error message", () => {
+    renderInForm({ mode: "multi", name: "areas", invalid: true, describedBy: "areas-error" });
+    const field = screen.getByRole("button", { name: /^Body areas/ });
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAttribute("aria-describedby", "areas-error");
+  });
+
   it("keeps the selection after a React form action resets the form", async () => {
     const user = userEvent.setup();
     const submitted: FormDataEntryValue[][] = [];
@@ -200,6 +224,32 @@ describe("BodyAreaPicker single with side", () => {
     // Choosing the selected chip again clears it.
     await user.click(radio("Shoulder"));
     expect(formData().get("area")).toBe("");
+  });
+
+  it("drops the side when the chosen side is chosen again", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    await openPicker(user);
+    await user.click(region("Knee · Left"));
+    await user.click(radio("Left"));
+    expect(formData().get("area")).toBe("knee");
+    expect(formData().get("areaSide")).toBe("");
+  });
+
+  it("works from the keyboard across groups and into the side", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    await openPicker(user);
+    expect(radio("Head and jaw")).toHaveFocus();
+    // Arrow keys move across group boundaries: Forearm… is the last upper-body chip.
+    await user.keyboard("{ArrowLeft}");
+    expect(radio("Ankle and foot")).toHaveFocus();
+    await user.keyboard(" ");
+    expect(formData().get("area")).toBe("ankle_foot");
+    await user.tab();
+    expect(radio("Left")).toHaveFocus();
+    await user.keyboard("{ArrowRight}{ArrowRight} ");
+    expect(formData().get("areaSide")).toBe("right");
   });
 
   it("never offers full body and can be cleared", async () => {

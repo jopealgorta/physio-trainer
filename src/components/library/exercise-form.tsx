@@ -108,7 +108,8 @@ export function ExerciseForm({
   return (
     <form action={formAction} onSubmit={onSubmit} noValidate className="grid gap-8">
       {editing ? <input type="hidden" name="id" value={defaults.id} /> : null}
-      <div className="grid content-start gap-6">
+      {/* A readable measure on wide screens; a dialog is already narrow. */}
+      <div className={cn("grid content-start gap-6", !compact && "max-w-3xl")}>
         <div className="grid gap-2">
           <Label htmlFor={`${id}-name`}>{t("name")}</Label>
           <Input
@@ -164,6 +165,8 @@ export function ExerciseForm({
             name="bodyAreas"
             label={t("bodyAreas")}
             defaultValue={defaults.bodyAreas}
+            invalid={errors.bodyAreas !== undefined}
+            describedBy={errors.bodyAreas ? errorId("bodyAreas") : undefined}
           />
           {errorText("bodyAreas")}
         </div>

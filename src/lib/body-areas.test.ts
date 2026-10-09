@@ -24,7 +24,7 @@ describe("body area lists", () => {
     expect(Object.keys(en.BodyAreas.sides).sort()).toEqual([...BODY_SIDES].sort());
   });
 
-  it("groups every area exactly once, head to toe, with a translated group name", () => {
+  it("groups every area exactly once, with a translated group name", () => {
     const grouped = BODY_AREA_GROUPS.flatMap((group) => group.areas);
     expect([...grouped].sort()).toEqual([...BODY_AREAS].sort());
     expect(new Set(grouped).size).toBe(grouped.length);
