@@ -67,4 +67,18 @@ describe("PageHeader", () => {
     expect(screen.getByRole("button", { name: "More actions" })).toBeInTheDocument();
     expect(screen.getByTestId("page-notices")).toBeInTheDocument();
   });
+
+  it("keeps the actions level with the title's first line, so a growing title never moves them", () => {
+    const { rerender } = renderWith(
+      <PageHeader title="Knee rehab" primary={<Button>Save</Button>} />,
+    );
+    expect(screen.getByTestId("page-header-actions")).toHaveClass("sm:self-start");
+    // Beside an avatar (no title to rename) they stay centred on it.
+    rerender(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <PageHeader leading={<span>AP</span>} title="Ana" primary={<Button>Share</Button>} />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByTestId("page-header-actions")).not.toHaveClass("sm:self-start");
+  });
 });

@@ -74,7 +74,12 @@ export function PageHeader({
         {hasActions ? (
           <div
             data-testid="page-header-actions"
-            className="order-2 ml-auto flex flex-wrap items-center justify-end gap-2 sm:order-3"
+            className={cn(
+              "order-2 ml-auto flex flex-wrap items-center justify-end gap-2 sm:order-3",
+              // Level with the title's first line: a rename's hint showing or hiding under it
+              // must not move Save under the pointer. Beside an avatar, centred on it.
+              !leading && "sm:self-start",
+            )}
           >
             {actions ? (
               withMenu ? (
