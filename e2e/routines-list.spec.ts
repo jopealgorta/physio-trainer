@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
 import { chooseOption } from "./helpers/select";
+import { nameNewRoutine, routineTitle } from "./helpers/page-actions";
 
 async function createCustomer(page: Page, firstName: string) {
   await page.goto("/customers/new");
@@ -28,27 +29,35 @@ test("a physio starts a routine from a customer's routines tab", async ({ physio
 
   await page.goto(`${customerPath}?tab=routines`);
   await expect(page.getByText("No routines for Rita yet.")).toBeVisible();
+  // No dialog: the routine is created with a default name and no case, and opens in the editor.
   await page.getByRole("button", { name: "New routine" }).click();
-  const dialog = page.getByRole("dialog", { name: "New routine for Rita" });
-
-  // A blank name is rejected by the server and keeps the dialog open.
-  await dialog.getByRole("button", { name: "Create routine" }).click();
-  await expect(dialog.getByText("Enter a name.")).toBeVisible();
-
-  await dialog.getByLabel("Name").fill("Week 1");
-  await chooseOption(page, dialog.getByRole("combobox", { name: "Case" }), "Meniscus");
-  await dialog.getByRole("button", { name: "Create routine" }).click();
-  // The editor page arrives with the next spec: only the redirect is checked here.
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await expect(routineTitle(page, "New routine")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Case" })).toHaveText("No case");
+});
+
+test("a physio starts a routine from the routines list by choosing the customer", async ({
+  physioPage: page,
+}) => {
+  await createCustomer(page, "Rita");
+  await page.goto("/routines");
+  await expect(page.getByText("Pick a customer to create their first routine.")).toBeVisible();
+  await page.getByRole("button", { name: "New routine" }).click();
+  const dialog = page.getByRole("dialog", { name: "New routine" });
+  await expect(dialog.getByRole("button", { name: "Create routine" })).toBeDisabled();
+  await chooseOption(page, dialog.getByRole("combobox", { name: "Customer" }), "Rita");
+  await dialog.getByRole("button", { name: "Create routine" }).click();
+  await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await expect(routineTitle(page, "New routine")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Rita" })).toBeVisible();
 });
 
 test("the routines list filters by search, status and customer", async ({ physioPage: page }) => {
   const customerPath = await createCustomer(page, "Sofia");
   await page.goto(`${customerPath}?tab=routines`);
   await page.getByRole("button", { name: "New routine" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Hip mobility");
-  await page.getByRole("button", { name: "Create routine" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await nameNewRoutine(page, "Hip mobility");
 
   await page.goto(`${customerPath}?tab=routines`);
   await expect(

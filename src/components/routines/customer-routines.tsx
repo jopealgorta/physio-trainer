@@ -9,7 +9,7 @@ import { listRoutines } from "@/server/routines/queries";
 
 import { TemplatePickerDialog } from "@/components/templates/template-picker-dialog";
 
-import { NewRoutineDialog } from "./new-routine-dialog";
+import { NewRoutineButton } from "./new-routine-button";
 import { RoutineList } from "./routine-list";
 
 /** A customer's routines tab: their routines and a way to add one (not for archived customers). */
@@ -41,7 +41,7 @@ export async function CustomerRoutines({
         customer={{ id: customerId, name: customerName }}
         cases={cases}
       />
-      <NewRoutineDialog customerId={customerId} customerName={customerName} cases={cases} />
+      <NewRoutineButton customerId={customerId} />
     </div>
   );
 

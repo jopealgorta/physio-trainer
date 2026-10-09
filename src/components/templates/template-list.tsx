@@ -20,7 +20,7 @@ import type { TemplateKind } from "@/lib/templates";
 import { duplicateTemplateAction } from "@/server/templates/actions";
 
 import { AssignTemplateDialog } from "./assign-template-dialog";
-import { NewTemplateDialog } from "./new-template-dialog";
+import { NewTemplateButton } from "./new-template-button";
 import { TemplateRowMenu } from "./template-row-menu";
 
 /** A template as the list shows it. Routines carry `itemCount`, plans `sessionsPerDay` (Monday first). */
@@ -189,7 +189,7 @@ export function EmptyTemplates({ kind }: { kind: TemplateKind }) {
         <Icon aria-hidden className="text-primary size-8" />
         <h2 className="text-base font-semibold">{t(`${kind}.title`)}</h2>
         <p className="text-muted-foreground text-sm">{t(`${kind}.body`)}</p>
-        <NewTemplateDialog kind={kind} />
+        <NewTemplateButton kind={kind} />
       </CardContent>
     </Card>
   );

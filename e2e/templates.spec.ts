@@ -3,8 +3,10 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./helpers/auth";
 import {
   expectFromTemplate,
+  nameNewRoutine,
   openFromTemplate,
   pageAction,
+  renamePlan,
   renameRoutine,
 } from "./helpers/page-actions";
 import { addExercises, createExercise, hasNoHorizontalOverflow } from "./helpers/routines";
@@ -23,18 +25,16 @@ async function createCustomer(page: Page, name: string) {
 async function createRoutineFor(page: Page, customerPath: string, name: string) {
   await page.goto(`${customerPath}?tab=routines`);
   await page.getByRole("button", { name: "New routine" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill(name);
-  await page.getByRole("button", { name: "Create routine" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await nameNewRoutine(page, name);
 }
 
 /** Creates a plan from the customer's Plans tab; leaves the page on the board. */
 async function createPlanFor(page: Page, customerPath: string, name: string) {
   await page.goto(`${customerPath}?tab=plans`);
   await page.getByRole("button", { name: "New plan" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill(name);
-  await page.getByRole("button", { name: "Create plan" }).click();
   await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
+  await renamePlan(page, name);
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 }
 
@@ -166,9 +166,8 @@ test("an archived template can no longer be assigned", async ({ physioPage: page
 
   await page.goto("/routines?tab=templates");
   await page.getByRole("button", { name: "New routine template" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Old protocol");
-  await page.getByRole("button", { name: "Create template" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await nameNewRoutine(page, "Old protocol");
   // Templates are active or archived: no draft.
   await page.getByRole("combobox", { name: "Status" }).click();
   await expect(page.getByRole("option")).toHaveText(["Active", "Archived"]);
@@ -203,9 +202,8 @@ test("templates never show up in customer lists or in another customer's pickers
 
   await page.goto("/routines?tab=templates");
   await page.getByRole("button", { name: "New routine template" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Hidden template");
-  await page.getByRole("button", { name: "Create template" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await nameNewRoutine(page, "Hidden template");
 
   // Customers tab and the customer's own tab list only the customer's routine.
   await page.goto("/routines");

@@ -3,10 +3,11 @@ import { getTranslations } from "next-intl/server";
 
 import { PendingContent, PendingScope } from "@/components/navigation-pending";
 import { PageHeader } from "@/components/page-header";
+import { NewRoutinePicker } from "@/components/routines/new-routine-picker";
 import { EmptyRoutines, NoRoutineResults, RoutineList } from "@/components/routines/routine-list";
 import { RoutinesToolbar } from "@/components/routines/routines-toolbar";
 import { ListTabs } from "@/components/templates/list-tabs";
-import { NewTemplateDialog } from "@/components/templates/new-template-dialog";
+import { NewTemplateButton } from "@/components/templates/new-template-button";
 import {
   EmptyTemplates,
   NoTemplateResults,
@@ -54,18 +55,25 @@ export default async function RoutinesPage({ searchParams }: PageProps<"/routine
   const { routines, truncated } = list;
   const filtered = hasActiveRoutineFilters(filters);
   const nothingYet = routines.length === 0 && !filtered;
+  // An empty list offers the same button in its empty state.
+  const newButton = nothingYet ? undefined : isTemplates ? (
+    <NewTemplateButton kind="routine" />
+  ) : assignable.length > 0 ? (
+    <NewRoutinePicker customers={assignable} />
+  ) : undefined;
 
   return (
     <div className="grid gap-6">
-      <PageHeader
-        title={t("title")}
-        actions={isTemplates && !nothingYet ? <NewTemplateDialog kind="routine" /> : undefined}
-      />
+      <PageHeader title={t("title")} actions={newButton} />
       <PendingScope>
         <ListTabs kind="routine" active={filters.tab} />
         {nothingYet ? (
           <PendingContent>
-            {isTemplates ? <EmptyTemplates kind="routine" /> : <EmptyRoutines />}
+            {isTemplates ? (
+              <EmptyTemplates kind="routine" />
+            ) : (
+              <EmptyRoutines customers={assignable} />
+            )}
           </PendingContent>
         ) : (
           <div className="grid content-start gap-6">

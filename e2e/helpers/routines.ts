@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 
 import { expect } from "./auth";
+import { nameNewRoutine } from "./page-actions";
 
 /** Creates an exercise with just a name through the library form. */
 export async function createExercise(page: Page, name: string) {
@@ -18,9 +19,8 @@ export async function createRoutine(page: Page, name: string, customer = "Edith"
   await expect(page).toHaveURL(/\/customers\/[0-9a-f-]{36}$/);
   await page.goto(`${new URL(page.url()).pathname}?tab=routines`);
   await page.getByRole("button", { name: "New routine" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill(name);
-  await page.getByRole("button", { name: "Create routine" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await nameNewRoutine(page, name);
 }
 
 /**

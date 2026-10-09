@@ -13,6 +13,7 @@ import { DEFAULT_ROUTINE_FILTERS, routinesHref } from "@/lib/routine-params";
 import { scheduleState } from "@/lib/schedule";
 import type { RoutineSummary } from "@/server/routines/queries";
 
+import { NewRoutinePicker } from "./new-routine-picker";
 import { StatusBadge } from "./status-badge";
 
 function RoutineLink({ routine, eager }: { routine: RoutineSummary; eager: boolean }) {
@@ -141,18 +142,27 @@ export function RoutineList({
   );
 }
 
-/** The physio has no routines at all: routines are created from a customer. */
-export function EmptyRoutines() {
+/** No routines yet: create one for a customer, or add a customer first when there are none. */
+export function EmptyRoutines({ customers }: { customers: { id: string; name: string }[] }) {
   const t = useTranslations("Routines.list.empty");
   return (
     <Card>
       <CardContent className="mx-auto grid max-w-md justify-items-center gap-3 py-10 text-center">
         <DumbbellIcon aria-hidden className="text-primary size-8" />
         <h2 className="text-base font-semibold">{t("title")}</h2>
-        <p className="text-muted-foreground text-sm">{t("body")}</p>
-        <Button asChild>
-          <Link href="/customers">{t("cta")}</Link>
-        </Button>
+        {customers.length > 0 ? (
+          <>
+            <p className="text-muted-foreground text-sm">{t("bodyPick")}</p>
+            <NewRoutinePicker customers={customers} />
+          </>
+        ) : (
+          <>
+            <p className="text-muted-foreground text-sm">{t("body")}</p>
+            <Button asChild>
+              <Link href="/customers">{t("cta")}</Link>
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );

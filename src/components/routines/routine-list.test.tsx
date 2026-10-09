@@ -1,11 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { RoutineSummary } from "@/server/routines/queries";
 
+vi.mock("@/server/routines/actions", () => ({ createRoutineAction: vi.fn() }));
+
 import messages from "../../../messages/en.json";
-import { RoutineList } from "./routine-list";
+import { EmptyRoutines, RoutineList } from "./routine-list";
 
 const base: RoutineSummary = {
   id: "r1",
@@ -114,5 +116,30 @@ describe("RoutineList", () => {
       phased({ isStandalone: false, phaseLabel: "Phase 2", startsOn: "2020-01-01" });
       expect(screen.queryByText("Phase 2")).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("EmptyRoutines", () => {
+  const empty = (customers: { id: string; name: string }[]) =>
+    render(
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <EmptyRoutines customers={customers} />
+      </NextIntlClientProvider>,
+    );
+
+  it("offers to create the first routine when there are customers", () => {
+    empty([{ id: "c1", name: "Ana Pérez" }]);
+    expect(screen.getByText("Pick a customer to create their first routine.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New routine" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Go to customers" })).not.toBeInTheDocument();
+  });
+
+  it("sends the physio to add a customer when there are none", () => {
+    empty([]);
+    expect(screen.getByRole("link", { name: "Go to customers" })).toHaveAttribute(
+      "href",
+      "/customers",
+    );
+    expect(screen.queryByRole("button", { name: "New routine" })).not.toBeInTheDocument();
   });
 });
