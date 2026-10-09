@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { SectionHeader } from "@/components/section-header";
 import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { nextLimit, notesHref, type NotesFilters } from "@/lib/visit-notes";
@@ -38,20 +39,19 @@ export async function CustomerNotes({
 
   return (
     <section className="grid gap-4" aria-labelledby="customer-notes-title">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid gap-1">
-          <h2 id="customer-notes-title" className="text-lg font-semibold">
-            {t("title")}
-          </h2>
-          <p className="text-muted-foreground text-sm">{t("tabDescription")}</p>
-        </div>
-        <NoteSheet
-          customerId={customerId}
-          customerName={customerName}
-          cases={cases}
-          today={today}
-        />
-      </div>
+      <SectionHeader
+        id="customer-notes-title"
+        title={t("title")}
+        description={t("tabDescription")}
+        actions={
+          <NoteSheet
+            customerId={customerId}
+            customerName={customerName}
+            cases={cases}
+            today={today}
+          />
+        }
+      />
 
       {cases.length > 0 ? (
         <NotesCaseFilter customerId={customerId} cases={cases} caseId={caseId} />

@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
-import { routineTitle } from "./helpers/page-actions";
+import { menuAction, routineTitle } from "./helpers/page-actions";
 import {
   addExercises,
   closePicker,
@@ -168,7 +168,7 @@ test("an exercise used by a routine cannot be deleted, and archiving hides it fr
   await page.goto("/library");
   await page.getByRole("link", { name: /Step-up/ }).click();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await menuAction(page, "Delete");
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete exercise" }).click();
   await expect(
     page.getByText(
@@ -177,7 +177,7 @@ test("an exercise used by a routine cannot be deleted, and archiving hides it fr
   ).toBeVisible();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
 
-  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await menuAction(page, "Archive");
   await expect(page.getByText(/This exercise is archived/)).toBeVisible();
 
   await page.goto(routineUrl);
@@ -306,18 +306,25 @@ test("on a phone the routine page opens with one compact row and Save pinned bel
   expect((await title.boundingBox())!.y).toBeGreaterThan(row);
   await expect(page.getByRole("textbox", { name: "Routine name" })).toHaveCount(0);
 
-  // The labelled buttons give way to the menu.
-  for (const name of ["Export", "Share routine", "History", "Save as template…"]) {
+  // An edit shows "Unsaved changes" beside Save without moving it.
+  const saveBox = (await save.boundingBox())!;
+  await page.getByLabel("Notes for the patient").fill("Warm up first");
+  await expect(page.getByTestId("save-status")).toHaveText("Unsaved changes");
+  expect((await save.boundingBox())!).toEqual(saveBox);
+
+  // Share is the main action, shown at every size; the other labelled buttons give way to the
+  // menu.
+  await expect(page.getByRole("button", { name: "Share routine", exact: true })).toBeVisible();
+  for (const name of ["Export", "History", "Save as template…"]) {
     await expect(page.getByRole("button", { name, exact: true })).toBeHidden();
   }
   await more.click();
   const menu = page.getByRole("menu");
   await expect(menu.getByRole("menuitem")).toHaveText([
-    "Share routine",
+    "Save as template…",
+    "History",
     "Export PDF",
     "Export Excel",
-    "History",
-    "Save as template…",
   ]);
   await expect(menu.getByRole("menuitemcheckbox")).toHaveCount(0);
   await menu.getByRole("menuitem", { name: "History" }).click();
@@ -326,14 +333,14 @@ test("on a phone the routine page opens with one compact row and Save pinned bel
   // History's own button is hidden here: focus comes back to the menu's.
   await expect(more).toBeFocused();
 
-  await more.click();
-  await page.getByRole("menuitem", { name: "Share routine" }).click();
+  const shareButton = page.getByRole("button", { name: "Share routine", exact: true });
+  await shareButton.click();
   const share = page.getByRole("dialog", { name: "Share this routine" });
   await expect(share).toBeVisible();
   await expect(share).toHaveAttribute("data-presentation", "sheet");
   await page.keyboard.press("Escape");
   await expect(share).toBeHidden();
-  await expect(more).toBeFocused();
+  await expect(shareButton).toBeFocused();
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
 });
 

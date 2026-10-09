@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { createPhysio, deletePhysio, expect, signIn, test } from "./helpers/auth";
 import { insertPlan, insertRoutine } from "./helpers/patient";
 import { chooseOption } from "./helpers/select";
+import { expectMenuAction, menuAction } from "./helpers/page-actions";
 
 const CUSTOMER_URL = /\/customers\/[0-9a-f-]{36}$/;
 
@@ -202,7 +203,7 @@ test("archiving a customer hides them until restored", async ({ physioPage: page
   await page.getByRole("link", { name }).filter({ visible: true }).click();
   await expect(page).toHaveURL(CUSTOMER_URL);
 
-  await page.getByRole("button", { name: "Archive" }).click();
+  await menuAction(page, "Archive");
   const confirm = page.getByRole("alertdialog", { name: "Archive José García?" });
   await confirm.getByRole("button", { name: "Archive" }).click();
   await expect(
@@ -221,9 +222,9 @@ test("archiving a customer hides them until restored", async ({ physioPage: page
 
   await archivedRow.click();
   await expect(page.getByText(/This customer is archived/)).toBeVisible();
-  await page.getByRole("button", { name: "Restore" }).click();
+  await menuAction(page, "Restore");
   await expect(page.getByText(/This customer is archived/)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Archive" })).toBeVisible();
+  await expectMenuAction(page, "Archive");
 
   await page.goto("/customers");
   await expect(page.getByRole("link", { name }).filter({ visible: true })).toHaveCount(1);
@@ -231,7 +232,7 @@ test("archiving a customer hides them until restored", async ({ physioPage: page
 
 test("archiving the only customer keeps a usable list", async ({ physioPage: page }) => {
   await createCustomer(page, "Solo");
-  await page.getByRole("button", { name: "Archive" }).click();
+  await menuAction(page, "Archive");
   await page
     .getByRole("alertdialog", { name: "Archive Solo?" })
     .getByRole("button", { name: "Archive" })

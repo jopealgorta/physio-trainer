@@ -48,15 +48,13 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
       <PageHeader
         title={t("title")}
         description={t("description")}
-        actions={
-          <>
-            <CategoryManager tree={tree} />
-            <Button asChild>
-              <Link href={exerciseHref("new", here) as Route}>
-                <PlusIcon aria-hidden /> {t("newExercise")}
-              </Link>
-            </Button>
-          </>
+        actions={<CategoryManager tree={tree} />}
+        primary={
+          <Button asChild>
+            <Link href={exerciseHref("new", here) as Route}>
+              <PlusIcon aria-hidden /> {t("newExercise")}
+            </Link>
+          </Button>
         }
       />
       {layout === "empty-page" ? (

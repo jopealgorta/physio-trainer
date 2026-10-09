@@ -24,20 +24,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fromSelectValue, toSelectValue } from "@/lib/select-value";
+import { createPlanAction, type CreatePlanFormState } from "@/server/plans/actions";
 import { createRoutineAction, type CreateRoutineFormState } from "@/server/routines/actions";
 
-const initialState: CreateRoutineFormState = { status: "idle" };
+type FormState = CreateRoutineFormState | CreatePlanFormState;
+
+const initialState: FormState = { status: "idle" };
 
 const FORM_ERRORS = ["customerNotFound", "invalid"] as const;
+
+const ACTIONS = { routine: createRoutineAction, plan: createPlanAction } as const;
+
+const NAMESPACES = { routine: "Routines.new", plan: "Plans.new" } as const;
+
+type Kind = keyof typeof ACTIONS;
 
 type Customer = { id: string; name: string };
 
 /**
- * "New routine" from the routines list: asks only for the customer, then creates a draft with a
- * default name and no case; the server action redirects to the editor.
+ * "New routine" or "New plan" from its list: asks only for the customer, then creates a draft with
+ * a default name and no case; the server action redirects to the editor.
  */
-export function NewRoutinePicker({ customers }: { customers: Customer[] }) {
-  const t = useTranslations("Routines.new");
+export function NewForCustomerPicker({ kind, customers }: { kind: Kind; customers: Customer[] }) {
+  const t = useTranslations(NAMESPACES[kind]);
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -49,15 +58,18 @@ export function NewRoutinePicker({ customers }: { customers: Customer[] }) {
         <DialogHeader>
           <DialogTitle>{t("pick.title")}</DialogTitle>
         </DialogHeader>
-        <PickerForm customers={customers} />
+        <PickerForm kind={kind} customers={customers} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function PickerForm({ customers }: { customers: Customer[] }) {
-  const t = useTranslations("Routines.new");
-  const [state, formAction, pending] = useActionState(createRoutineAction, initialState);
+function PickerForm({ kind, customers }: { kind: Kind; customers: Customer[] }) {
+  const t = useTranslations(NAMESPACES[kind]);
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    ACTIONS[kind],
+    initialState,
+  );
   const [customerId, setCustomerId] = useState("");
   const id = useId();
 

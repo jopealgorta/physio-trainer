@@ -207,7 +207,7 @@ export function HistorySheet({
     : null;
   const { onCloseAutoFocus } = usePageAction("history", {
     label: t("button"),
-    order: 30,
+    order: 20,
     icon: <HistoryIcon aria-hidden />,
     opensDialog: true,
     onSelect: () => onOpenChange(true),

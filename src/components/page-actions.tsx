@@ -29,12 +29,14 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * A page's secondary actions on phones (routine and plan pages): one "⋯" menu instead of rows of
- * labelled buttons. Each control (Share, Export, History…) stays mounted where it is, owning its
- * dialog, and inside `PageActions` also puts itself in the menu (`usePageAction`). The page hides
- * the controls' own rows below `sm` (`hidden sm:flex`; their dialogs are portalled, so they still
- * open) and shows the menu there instead. What a control says inline (an error, "Version
- * restored.") it also hands to `usePageNotice`, shown on phones by `PageNotices`.
+ * A detail page's secondary actions: one "⋯" menu. On phones it stands in for the rows of labelled
+ * buttons. Each control (Share, Export, History…) stays mounted where it is, owning its dialog,
+ * and inside `PageActions` also puts itself in the menu (`usePageAction`). `PageHeader` hides the
+ * controls' own row below `sm` (their dialogs are portalled, so they still open) and shows the
+ * menu there instead. What a control says inline (an error, "Version restored.") it also hands to
+ * `usePageNotice`, shown on phones by `PageNotices`. Rare or risky actions (Archive, Delete) have
+ * no button of their own: `menuOnly` keeps them in the menu at every size, which then shows from
+ * `sm` up too, listing only those.
  */
 export type PageAction = {
   label: string;
@@ -53,6 +55,10 @@ export type PageAction = {
   pending?: boolean;
   /** Opens a dialog or sheet: run once the menu has closed, so the two do not fight over focus. */
   opensDialog?: boolean;
+  /** No button of its own: in the menu at every size, not only on phones. */
+  menuOnly?: boolean;
+  /** Destroys or hides something (Delete): shown in red. */
+  destructive?: boolean;
 };
 
 type Entry = Omit<PageAction, "onSelect" | "icon"> & {
@@ -70,6 +76,8 @@ type Registry = {
   menuTrigger: RefObject<HTMLButtonElement | null>;
   /** Listeners for the menu opening (controls clear a stale message then). */
   menuOpened: RefObject<Set<() => void>>;
+  /** The page has menu-only actions: the menu shows from `sm` up from the first render. */
+  menuOnly: boolean;
 };
 
 const RegistryContext = createContext<Registry | null>(null);
@@ -93,14 +101,24 @@ function useRegistered<T>() {
   return [items, add] as const;
 }
 
-export function PageActions({ children }: { children: ReactNode }) {
+export function PageActions({
+  children,
+  menuOnly = false,
+}: {
+  children: ReactNode;
+  /**
+   * The page has menu-only actions (Archive, Delete): the "⋯" button shows from `sm` up in the
+   * server's HTML already, instead of appearing once the actions register.
+   */
+  menuOnly?: boolean;
+}) {
   const [entries, addEntry] = useRegistered<Entry>();
   const [notices, addNotice] = useRegistered<PageNotice>();
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const menuOpened = useRef(new Set<() => void>());
   const registry = useMemo(
-    () => ({ action: addEntry, notice: addNotice, menuTrigger, menuOpened }),
-    [addEntry, addNotice],
+    () => ({ action: addEntry, notice: addNotice, menuTrigger, menuOpened, menuOnly }),
+    [addEntry, addNotice, menuOnly],
   );
   return (
     <RegistryContext.Provider value={registry}>
@@ -110,6 +128,14 @@ export function PageActions({ children }: { children: ReactNode }) {
     </RegistryContext.Provider>
   );
 }
+
+/** Whether this is inside `PageActions` (the page has a "⋯" menu). */
+export function useInPageActions(): boolean {
+  return useContext(RegistryContext) !== null;
+}
+
+/** Below Tailwind's `sm` (40rem), where the menu stands in for every control. */
+const PHONE = "(max-width: 39.999rem)";
 
 /** Whether an element is laid out (neither it nor an ancestor is `display: none`). */
 function displayed(element: HTMLElement) {
@@ -147,6 +173,8 @@ export function usePageAction(
     disabled,
     pending,
     opensDialog,
+    menuOnly,
+    destructive,
   } = action ?? {};
   useEffect(() => {
     if (!register || !present) return;
@@ -160,6 +188,8 @@ export function usePageAction(
       disabled,
       pending,
       opensDialog,
+      menuOnly,
+      destructive,
       run: () => latest.current?.onSelect?.(),
       icon: () => latest.current?.icon,
     });
@@ -175,16 +205,22 @@ export function usePageAction(
     disabled,
     pending,
     opensDialog,
+    menuOnly,
+    destructive,
   ]);
 
+  // The menu stands in for the control on phones, and for a menu-only action at every size;
+  // from `sm` up any other control was opened from its own button, where focus goes back.
+  const fromMenu = action?.menuOnly === true;
   const onCloseAutoFocus = useCallback(
     (event: Event) => {
       const menu = registry?.menuTrigger.current;
       if (!menu || !displayed(menu)) return;
+      if (!fromMenu && !window.matchMedia(PHONE).matches) return;
       event.preventDefault();
       menu.focus();
     },
-    [registry],
+    [registry, fromMenu],
   );
 
   return { inMenu: registry !== null, onCloseAutoFocus };
@@ -243,14 +279,21 @@ export function PageNotices({ className }: { className?: string }) {
   );
 }
 
-/** The "⋯" button and its menu, for phones only (`sm:hidden`). */
+/**
+ * The "⋯" button and its menu: every action on phones; from `sm` up only the `menuOnly` ones, and
+ * no button at all when there are none (the other items and separators are hidden there by CSS,
+ * so nothing changes when the page hydrates).
+ */
 export function PageActionsMenu({ className }: { className?: string }) {
   const t = useTranslations("PageActions");
   const entries = useContext(EntriesContext);
   const registry = useContext(RegistryContext);
   const menuTrigger = registry?.menuTrigger;
   const sorted = useMemo(() => [...entries.values()].sort((a, b) => a.order - b.order), [entries]);
-  const busy = sorted.some((entry) => entry.pending);
+  const everySize = registry?.menuOnly === true || sorted.some((entry) => entry.menuOnly);
+  // From `sm` up the other actions have their own button, which shows its own progress.
+  const busyEverySize = sorted.some((entry) => entry.pending && (entry.menuOnly || !everySize));
+  const busyOnPhones = sorted.some((entry) => entry.pending);
   // A dialog item's action waits for the menu to close (see `opensDialog`).
   const deferred = useRef<(() => void) | null>(null);
 
@@ -267,11 +310,19 @@ export function PageActionsMenu({ className }: { className?: string }) {
           variant="outline"
           size="icon-lg"
           aria-label={t("more")}
-          aria-busy={busy}
-          className={cn("sm:hidden", className)}
+          aria-busy={busyEverySize}
+          className={cn(!everySize && "sm:hidden", className)}
         >
-          {busy ? (
+          {busyEverySize ? (
             <Loader2Icon aria-hidden className="animate-spin motion-reduce:animate-none" />
+          ) : busyOnPhones ? (
+            <>
+              <Loader2Icon
+                aria-hidden
+                className="animate-spin motion-reduce:animate-none sm:hidden"
+              />
+              <EllipsisIcon aria-hidden className="hidden sm:block" />
+            </>
           ) : (
             <EllipsisIcon aria-hidden />
           )}
@@ -291,14 +342,21 @@ export function PageActionsMenu({ className }: { className?: string }) {
       >
         {sorted.map((entry, index) => {
           const previous = sorted[index - 1];
-          const separated =
-            previous !== undefined &&
-            Math.floor(previous.order / 10) !== Math.floor(entry.order / 10);
+          // From `sm` up, the menu lists only the menu-only actions.
+          const previousShown = sorted.slice(0, index).findLast((other) => other.menuOnly);
+          const group = (other: Entry) => Math.floor(other.order / 10);
+          const onPhones = previous !== undefined && group(previous) !== group(entry);
+          const fromSm =
+            entry.menuOnly === true &&
+            previousShown !== undefined &&
+            group(previousShown) !== group(entry);
           return (
             <MenuEntry
               key={entry.id}
               entry={entry}
-              separated={separated}
+              separator={
+                onPhones && fromSm ? "always" : onPhones ? "phones" : fromSm ? "fromSm" : null
+              }
               onDeferred={(run) => (deferred.current = run)}
             />
           );
@@ -310,17 +368,23 @@ export function PageActionsMenu({ className }: { className?: string }) {
 
 function MenuEntry({
   entry,
-  separated,
+  separator,
   onDeferred,
 }: {
   entry: Entry;
-  separated: boolean;
+  /** Where a separator goes before the item: at every size, on phones only, or from `sm` up. */
+  separator: "always" | "phones" | "fromSm" | null;
   onDeferred: (run: () => void) => void;
 }) {
   const icon = entry.icon();
+  // Hidden from `sm` up by CSS: keyboard focus skips it (it can't take focus), though Radix's
+  // typeahead may still match its label and need one more keypress there.
+  const className = entry.menuOnly ? undefined : "sm:hidden";
+  const variant = entry.destructive ? "destructive" : "default";
   const item =
     entry.checked !== undefined ? (
       <DropdownMenuCheckboxItem
+        className={className}
         checked={entry.checked}
         disabled={entry.disabled}
         onCheckedChange={() => entry.run()}
@@ -329,14 +393,14 @@ function MenuEntry({
         {entry.label}
       </DropdownMenuCheckboxItem>
     ) : entry.href !== undefined && entry.download ? (
-      <DropdownMenuItem asChild>
+      <DropdownMenuItem asChild className={className} variant={variant}>
         <a href={entry.href} download>
           {icon}
           {entry.label}
         </a>
       </DropdownMenuItem>
     ) : entry.href !== undefined ? (
-      <DropdownMenuItem asChild>
+      <DropdownMenuItem asChild className={className} variant={variant}>
         <Link href={entry.href as Route}>
           {icon}
           {entry.label}
@@ -344,6 +408,8 @@ function MenuEntry({
       </DropdownMenuItem>
     ) : (
       <DropdownMenuItem
+        className={className}
+        variant={variant}
         disabled={entry.disabled || entry.pending}
         onSelect={() => (entry.opensDialog ? onDeferred(entry.run) : entry.run())}
       >
@@ -353,7 +419,13 @@ function MenuEntry({
     );
   return (
     <>
-      {separated ? <DropdownMenuSeparator /> : null}
+      {separator ? (
+        <DropdownMenuSeparator
+          className={
+            separator === "phones" ? "sm:hidden" : separator === "fromSm" ? "hidden sm:block" : ""
+          }
+        />
+      ) : null}
       {item}
     </>
   );

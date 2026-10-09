@@ -32,7 +32,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
       <PageHeader
         title={t("title")}
         description={t("description")}
-        actions={
+        primary={
           <Button asChild>
             <Link href="/customers/new">
               <PlusIcon aria-hidden /> {t("new")}

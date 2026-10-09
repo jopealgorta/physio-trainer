@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { SectionHeader } from "@/components/section-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { todayIn } from "@/lib/calendar-date";
 import { withPhysio } from "@/server/auth/session";
@@ -32,12 +33,11 @@ export async function CustomerActivity({
 
   return (
     <section className="grid gap-6" aria-labelledby="customer-activity-title">
-      <div className="grid gap-1">
-        <h2 id="customer-activity-title" className="text-lg font-semibold">
-          {t("title")}
-        </h2>
-        <p className="text-muted-foreground text-sm">{t("description", { name: customerName })}</p>
-      </div>
+      <SectionHeader
+        id="customer-activity-title"
+        title={t("title")}
+        description={t("description", { name: customerName })}
+      />
 
       {nothingYet ? (
         <Card>

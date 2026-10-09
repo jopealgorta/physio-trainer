@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { chooseMenuAction, InPageActions } from "@/test/page-actions";
+
 import messages from "../../../messages/en.json";
 
 const refresh = vi.fn();
@@ -13,14 +15,14 @@ vi.mock("@/server/customers/actions", () => ({
   setCustomerArchivedAction: (...args: unknown[]) => setArchived(...args),
 }));
 
-import { CustomerArchiveButton } from "./customer-archive-button";
+import { CustomerArchiveAction } from "./customer-archive-action";
 
 function setup(archived = false) {
   render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CustomerArchiveButton id="c1" name="Ana Pérez" archived={archived}>
-        <button type="button">Edit</button>
-      </CustomerArchiveButton>
+      <InPageActions>
+        <CustomerArchiveAction id="c1" name="Ana Pérez" archived={archived} />
+      </InPageActions>
     </NextIntlClientProvider>,
   );
 }
@@ -30,12 +32,18 @@ beforeEach(() => {
   setArchived.mockResolvedValue({ ok: true, data: null });
 });
 
-describe("CustomerArchiveButton", () => {
+describe("CustomerArchiveAction", () => {
+  it("lives in the More actions menu at every size", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "More actions" })).not.toHaveClass("sm:hidden");
+  });
+
   it("asks for confirmation before archiving", async () => {
     const user = userEvent.setup();
     setup();
-    await user.click(screen.getByRole("button", { name: "Archive" }));
-    const dialog = screen.getByRole("alertdialog", { name: "Archive Ana Pérez?" });
+    await chooseMenuAction(user, "Archive");
+    const dialog = await screen.findByRole("alertdialog", { name: "Archive Ana Pérez?" });
     expect(dialog).toHaveTextContent("share links will stop working");
     expect(setArchived).not.toHaveBeenCalled();
   });
@@ -43,8 +51,8 @@ describe("CustomerArchiveButton", () => {
   it("archives and refreshes once confirmed", async () => {
     const user = userEvent.setup();
     setup();
-    await user.click(screen.getByRole("button", { name: "Archive" }));
-    const dialog = screen.getByRole("alertdialog");
+    await chooseMenuAction(user, "Archive");
+    const dialog = await screen.findByRole("alertdialog");
     await user.click(within(dialog).getByRole("button", { name: "Archive" }));
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(setArchived).toHaveBeenCalledWith("c1", true);
@@ -53,8 +61,8 @@ describe("CustomerArchiveButton", () => {
   it("cancelling the confirmation does nothing", async () => {
     const user = userEvent.setup();
     setup();
-    await user.click(screen.getByRole("button", { name: "Archive" }));
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await chooseMenuAction(user, "Archive");
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(setArchived).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -62,7 +70,7 @@ describe("CustomerArchiveButton", () => {
   it("restores immediately, without a confirmation", async () => {
     const user = userEvent.setup();
     setup(true);
-    await user.click(screen.getByRole("button", { name: "Restore" }));
+    await chooseMenuAction(user, "Restore");
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(setArchived).toHaveBeenCalledWith("c1", false);
@@ -72,28 +80,16 @@ describe("CustomerArchiveButton", () => {
     const user = userEvent.setup();
     setArchived.mockResolvedValue({ ok: false, error: "notFound" });
     setup(true);
-    await user.click(screen.getByRole("button", { name: "Restore" }));
-    expect(await screen.findByText("This customer no longer exists.")).toBeInTheDocument();
+    await chooseMenuAction(user, "Restore");
+    expect(await screen.findByRole("alert")).toHaveTextContent("This customer no longer exists.");
     expect(refresh).not.toHaveBeenCalled();
-  });
-
-  it("renders the error outside the button group, at full width", async () => {
-    const user = userEvent.setup();
-    setArchived.mockResolvedValue({ ok: false, error: "notFound" });
-    setup(true);
-    await user.click(screen.getByRole("button", { name: "Restore" }));
-    const alert = await screen.findByRole("alert");
-    const group = screen.getByRole("button", { name: "Restore" }).parentElement;
-    expect(group).toContainElement(screen.getByRole("button", { name: "Edit" }));
-    expect(group).not.toContainElement(alert);
-    expect(alert).toHaveClass("basis-full");
   });
 
   it("shows a generic error when the action throws", async () => {
     const user = userEvent.setup();
     setArchived.mockRejectedValue(new Error("network"));
     setup(true);
-    await user.click(screen.getByRole("button", { name: "Restore" }));
+    await chooseMenuAction(user, "Restore");
     expect(await screen.findByText("Something went wrong. Try again.")).toBeInTheDocument();
   });
 });

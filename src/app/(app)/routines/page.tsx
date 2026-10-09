@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { NewForCustomerPicker } from "@/components/new-for-customer-picker";
 import { PendingContent, PendingScope } from "@/components/navigation-pending";
 import { PageHeader } from "@/components/page-header";
-import { NewRoutinePicker } from "@/components/routines/new-routine-picker";
 import { EmptyRoutines, NoRoutineResults, RoutineList } from "@/components/routines/routine-list";
 import { RoutinesToolbar } from "@/components/routines/routines-toolbar";
 import { ListTabs } from "@/components/templates/list-tabs";
@@ -59,12 +59,12 @@ export default async function RoutinesPage({ searchParams }: PageProps<"/routine
   const newButton = nothingYet ? undefined : isTemplates ? (
     <NewTemplateButton kind="routine" />
   ) : assignable.length > 0 ? (
-    <NewRoutinePicker customers={assignable} />
+    <NewForCustomerPicker kind="routine" customers={assignable} />
   ) : undefined;
 
   return (
     <div className="grid gap-6">
-      <PageHeader title={t("title")} actions={newButton} />
+      <PageHeader title={t("title")} description={t("description")} primary={newButton} />
       <PendingScope>
         <ListTabs kind="routine" active={filters.tab} />
         {nothingYet ? (

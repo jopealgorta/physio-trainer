@@ -45,9 +45,9 @@ export function HeaderSkeleton({
   actions?: number;
 }) {
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       {back ? <Skeleton className="h-4 w-28" /> : null}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid gap-2">
           <Skeleton className="h-8 w-56 max-w-full" />
           {description ? <Skeleton className="h-4 w-80 max-w-full" /> : null}

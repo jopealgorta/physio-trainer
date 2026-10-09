@@ -1,11 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { PlanSummary } from "@/server/plans/queries";
 
 import messages from "../../../messages/en.json";
 import { EmptyPlans, NoPlanResults, PlanList } from "./plan-list";
+
+vi.mock("@/server/routines/actions", () => ({ createRoutineAction: vi.fn() }));
+vi.mock("@/server/plans/actions", () => ({ createPlanAction: vi.fn() }));
 
 const base: PlanSummary = {
   id: "p1",
@@ -90,8 +93,17 @@ describe("PlanList", () => {
 });
 
 describe("empty states", () => {
-  it("EmptyPlans points to customers", () => {
-    wrap(<EmptyPlans />);
+  it("EmptyPlans offers to create the first plan when there are customers", () => {
+    wrap(<EmptyPlans customers={[{ id: "c1", name: "Ana Pérez" }]} />);
+    expect(
+      screen.getByText("Pick a customer to create their first weekly plan."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New plan" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Go to customers" })).not.toBeInTheDocument();
+  });
+
+  it("EmptyPlans points to customers when there are none", () => {
+    wrap(<EmptyPlans customers={[]} />);
     expect(screen.getByRole("link", { name: "Go to customers" })).toHaveAttribute(
       "href",
       "/customers",

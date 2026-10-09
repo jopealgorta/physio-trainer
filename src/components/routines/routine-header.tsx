@@ -5,7 +5,8 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
 import { EditableTitle } from "@/components/editable-title";
-import { PageActions, PageActionsMenu, PageNotices } from "@/components/page-actions";
+import { PageActions } from "@/components/page-actions";
+import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -43,22 +44,25 @@ const RANGES = { sessionsPerWeek: SESSIONS_PER_WEEK, sessionsPerDay: SESSIONS_PE
 
 /** The routine page's controls around the header (rendered by the page, placed here). */
 export type HeaderSlots = {
-  /** The way back (a link). */
-  back?: ReactNode;
-  /** Export and Share, at the end of the back link's row. */
+  /** The way back. */
+  back?: { href: string; label: string };
+  /** Under the title: "From template". */
+  meta?: ReactNode;
+  /** Before History: Save as template, or a template's own actions. */
+  templates?: ReactNode;
+  /** After History: Export (and Share when it is not the main action). */
   actions?: ReactNode;
-  /** The template row: "From template" and Save as template, or a template's own actions. */
-  secondary?: ReactNode;
-  /** The phase bar. */
+  /** The page's one filled button (Share); Save is in the editor's pinned footer. */
+  primary?: ReactNode;
+  /** The phase bar, under the header. */
   phase?: ReactNode;
 };
 
 /**
- * Name, status, case, frequency and notes, and the page's controls around them (Save is in the
- * editor's pinned footer). From `sm` up: back and Export/Share; the template row; the phase; the
- * title with History. On a phone the controls give way to a "⋯" menu (see `PageActions`) in one
- * compact row: back and the menu; then the title and the phase. One flex container with `order`
- * does both.
+ * Name, status, case, frequency and notes, and the page's controls around them, in the page
+ * header every detail page has (`PageHeader`): the way back; the title; templates, History and
+ * Export (the "⋯" menu on phones); Share, the main action, at every size. Then the phase and the
+ * fields. Save and its saved/unsaved state are in the editor's pinned footer, like every form's.
  */
 export function RoutineHeader({
   values,
@@ -82,7 +86,7 @@ export function RoutineHeader({
   cases: { id: string; title: string }[];
   /** Bumped by the editor when a save is refused, to move focus to the first invalid field. */
   focusToken: number;
-  /** More controls (the History button), beside the title from `sm` up. */
+  /** The History button, between the template actions and Export. */
   actions?: ReactNode;
   top?: HeaderSlots;
 }) {
@@ -121,22 +125,9 @@ export function RoutineHeader({
   return (
     <PageActions>
       <div ref={root} className="grid gap-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-6">
-          {top.back ? <div className="order-1 min-w-0 flex-1">{top.back}</div> : null}
-          {top.actions ? (
-            <div className="hidden flex-wrap items-center gap-2 sm:order-2 sm:flex">
-              {top.actions}
-            </div>
-          ) : null}
-          <PageActionsMenu className="order-3" />
-          <PageNotices className="order-4 basis-full" />
-          {top.secondary ? (
-            <div className="hidden basis-full flex-wrap items-center gap-3 sm:order-3 sm:flex">
-              {top.secondary}
-            </div>
-          ) : null}
-          {top.phase ? <div className="order-7 basis-full sm:order-4">{top.phase}</div> : null}
-          <div className="order-5 grid min-w-0 basis-full gap-1 sm:order-5 sm:grow sm:basis-64 sm:self-start">
+        <PageHeader
+          back={top.back}
+          title={
             <EditableTitle
               value={values.name}
               label={t("name")}
@@ -153,27 +144,37 @@ export function RoutineHeader({
               hint={isTemplate ? undefined : t("nameHint")}
               // Typing is already an edit: Save saves it even while the input is still open.
               onDraftChange={(name) => onChange({ name })}
+              after={isTemplate ? <TemplateBadge /> : undefined}
             />
-            {isTemplate ? (
-              <div>
-                <TemplateBadge />
-              </div>
-            ) : customerId !== null && customerName !== null ? (
-              <p className="text-muted-foreground text-sm">
-                {t("customer")}:{" "}
-                <Link
-                  href={`/customers/${customerId}`}
-                  className="text-foreground rounded-sm hover:underline focus-visible:underline"
-                >
-                  {customerName}
-                </Link>
-              </p>
-            ) : null}
-          </div>
-          {actions ? (
-            <div className="hidden sm:order-6 sm:block sm:self-start">{actions}</div>
-          ) : null}
-        </div>
+          }
+          meta={
+            !isTemplate && customerId !== null && customerName !== null ? (
+              <>
+                <p>
+                  {t("customer")}:{" "}
+                  <Link
+                    href={`/customers/${customerId}`}
+                    className="text-foreground rounded-sm hover:underline focus-visible:underline"
+                  >
+                    {customerName}
+                  </Link>
+                </p>
+                {top.meta}
+              </>
+            ) : (
+              top.meta
+            )
+          }
+          actions={
+            <>
+              {top.templates}
+              {actions}
+              {top.actions}
+            </>
+          }
+          primary={top.primary}
+        />
+        {top.phase}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="grid content-start gap-1.5">

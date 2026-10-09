@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { useState } from "react";
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { describe, expect, it, vi } from "vitest";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import messages from "../../messages/en.json";
 import {
@@ -32,6 +32,44 @@ function renderWith(node: React.ReactNode) {
 }
 
 const more = () => screen.getByRole("button", { name: "More actions" });
+
+const realMatchMedia = window.matchMedia;
+/** Pretends the screen is a phone (below `sm`). */
+function onPhone() {
+  window.matchMedia = ((query: string) => ({
+    matches: query.includes("max-width"),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  })) as unknown as typeof window.matchMedia;
+}
+afterEach(() => {
+  window.matchMedia = realMatchMedia;
+});
+
+/** A control with its own button that opens a dialog, also reachable from the menu. */
+function DialogControl({ menuOnly = false }: { menuOnly?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const { onCloseAutoFocus } = usePageAction("history", {
+    label: "History",
+    order: menuOnly ? 90 : 20,
+    menuOnly,
+    opensDialog: true,
+    onSelect: () => setOpen(true),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {menuOnly ? null : (
+        <DialogTrigger asChild>
+          <button type="button">Open history</button>
+        </DialogTrigger>
+      )}
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
+        <DialogTitle>Version history</DialogTitle>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 describe("PageActions", () => {
   it("leaves controls outside a page's actions as they are", () => {
@@ -61,6 +99,65 @@ describe("PageActions", () => {
     ).toEqual(["Share routine", "Download PDF", "Download Excel", "History"]);
     // A separator between the share, export and history groups.
     expect(within(menu).getAllByRole("separator")).toHaveLength(2);
+  });
+
+  it("is for phones only while every action also has its own control", () => {
+    renderWith(
+      <PageActions>
+        <Control id="share" action={{ label: "Share", order: 10 }} />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    expect(more()).toHaveClass("sm:hidden");
+  });
+
+  it("shows menu-only actions at every size, red when destructive, the rest on phones only", async () => {
+    const user = userEvent.setup();
+    renderWith(
+      <PageActions>
+        <Control id="share" action={{ label: "Share", order: 10 }} />
+        <Control id="history" action={{ label: "History", order: 30 }} />
+        <Control id="archive" action={{ label: "Archive", order: 90, menuOnly: true }} />
+        <Control
+          id="delete"
+          action={{ label: "Delete", order: 91, menuOnly: true, destructive: true }}
+        />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    // From `sm` up the menu stays for the actions that have no button of their own.
+    expect(more()).not.toHaveClass("sm:hidden");
+    await user.click(more());
+    const menu = await screen.findByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "Share" })).toHaveClass("sm:hidden");
+    expect(within(menu).getByRole("menuitem", { name: "History" })).toHaveClass("sm:hidden");
+    expect(within(menu).getByRole("menuitem", { name: "Archive" })).not.toHaveClass("sm:hidden");
+    expect(within(menu).getByRole("menuitem", { name: "Delete" })).toHaveAttribute(
+      "data-variant",
+      "destructive",
+    );
+    // On phones: share | history | archive, delete. From `sm` up only archive and delete, so the
+    // separators before them that only phones need are hidden there.
+    const separators = within(menu).getAllByRole("separator", { hidden: true });
+    expect(separators.map((separator) => separator.getAttribute("class"))).toEqual([
+      expect.stringContaining("sm:hidden"),
+      expect.stringContaining("sm:hidden"),
+    ]);
+  });
+
+  it("separates menu-only groups from each other at every size", async () => {
+    const user = userEvent.setup();
+    renderWith(
+      <PageActions>
+        <Control id="edit" action={{ label: "Edit", order: 80, menuOnly: true }} />
+        <Control id="archive" action={{ label: "Archive", order: 90, menuOnly: true }} />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    await user.click(more());
+    const menu = await screen.findByRole("menu");
+    const [separator] = within(menu).getAllByRole("separator");
+    expect(separator).not.toHaveClass("sm:hidden");
   });
 
   it("runs a dialog action once the menu has closed", async () => {
@@ -218,27 +315,12 @@ describe("PageActions", () => {
     expect(screen.getByTestId("page-notices")).toBeEmptyDOMElement();
   });
 
-  it("hands focus back to More actions when a dialog opened from it closes", async () => {
-    function WithDialog() {
-      const [open, setOpen] = useState(false);
-      const { onCloseAutoFocus } = usePageAction("history", {
-        label: "History",
-        order: 30,
-        opensDialog: true,
-        onSelect: () => setOpen(true),
-      });
-      return (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
-            <DialogTitle>Version history</DialogTitle>
-          </DialogContent>
-        </Dialog>
-      );
-    }
+  it("on phones, hands focus back to More actions when a dialog opened from it closes", async () => {
+    onPhone();
     const user = userEvent.setup();
     renderWith(
       <PageActions>
-        <WithDialog />
+        <DialogControl />
         <PageActionsMenu />
       </PageActions>,
     );
@@ -248,5 +330,70 @@ describe("PageActions", () => {
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(more()).toHaveFocus();
+  });
+
+  it("from sm up, leaves focus on a control's own button even when the menu is showing", async () => {
+    const user = userEvent.setup();
+    renderWith(
+      <PageActions>
+        <DialogControl />
+        <Control id="archive" action={{ label: "Archive", order: 90, menuOnly: true }} />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    await user.click(screen.getByRole("button", { name: "Open history" }));
+    expect(await screen.findByRole("dialog", { name: "Version history" })).toBeVisible();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Open history" })).toHaveFocus();
+  });
+
+  it("from sm up, hands focus back to More actions after a menu-only dialog", async () => {
+    const user = userEvent.setup();
+    renderWith(
+      <PageActions>
+        <DialogControl menuOnly />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    await user.click(more());
+    await user.click(await screen.findByRole("menuitem", { name: "History" }));
+    expect(await screen.findByRole("dialog", { name: "Version history" })).toBeVisible();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(more()).toHaveFocus();
+  });
+
+  it("shows the menu from sm up from the first render when the page says it has menu-only actions", () => {
+    renderWith(
+      <PageActions menuOnly>
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    expect(more()).not.toHaveClass("sm:hidden");
+  });
+
+  it("from sm up, is busy only for a menu-only action (the others have their own button)", async () => {
+    const { rerender } = renderWith(
+      <PageActions>
+        <Control id="pdf" action={{ label: "Export PDF", order: 30, pending: true }} />
+        <Control id="archive" action={{ label: "Archive", order: 90, menuOnly: true }} />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    await waitFor(() => expect(more()).toHaveAttribute("aria-busy", "false"));
+    rerender(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <PageActions>
+          <Control id="pdf" action={{ label: "Export PDF", order: 30 }} />
+          <Control
+            id="archive"
+            action={{ label: "Archive", order: 90, menuOnly: true, pending: true }}
+          />
+          <PageActionsMenu />
+        </PageActions>
+      </NextIntlClientProvider>,
+    );
+    await waitFor(() => expect(more()).toHaveAttribute("aria-busy", "true"));
   });
 });

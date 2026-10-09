@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { chooseMenuAction, InPageActions, menuActions } from "@/test/page-actions";
+
 import messages from "../../../messages/en.json";
 
 const refresh = vi.fn();
@@ -20,7 +22,9 @@ import { ExerciseActions } from "./exercise-actions";
 function setup(archived = false) {
   render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <ExerciseActions id="ex1" name="Bridge" archived={archived} />
+      <InPageActions>
+        <ExerciseActions id="ex1" name="Bridge" archived={archived} />
+      </InPageActions>
     </NextIntlClientProvider>,
   );
 }
@@ -31,10 +35,23 @@ beforeEach(() => {
 });
 
 describe("ExerciseActions", () => {
+  it("lives in the More actions menu at every size, Delete in red", async () => {
+    const user = userEvent.setup();
+    setup();
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "More actions" })).not.toHaveClass("sm:hidden");
+    expect(await menuActions(user)).toEqual(["Archive", "Delete"]);
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Delete" })).toHaveAttribute(
+      "data-variant",
+      "destructive",
+    );
+  });
+
   it("archives and refreshes", async () => {
     const user = userEvent.setup();
     setup();
-    await user.click(screen.getByRole("button", { name: "Archive" }));
+    await chooseMenuAction(user, "Archive");
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(setArchived).toHaveBeenCalledWith("ex1", true);
   });
@@ -42,7 +59,7 @@ describe("ExerciseActions", () => {
   it("restores an archived exercise", async () => {
     const user = userEvent.setup();
     setup(true);
-    await user.click(screen.getByRole("button", { name: "Restore" }));
+    await chooseMenuAction(user, "Restore");
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(setArchived).toHaveBeenCalledWith("ex1", false);
   });
@@ -51,12 +68,12 @@ describe("ExerciseActions", () => {
     const user = userEvent.setup();
     remove.mockResolvedValue({ ok: true, data: null });
     setup();
-    await user.click(screen.getByRole("button", { name: "Delete" }));
-    expect(screen.getByRole("alertdialog", { name: "Delete this exercise?" })).toHaveTextContent(
-      "“Bridge”",
-    );
+    await chooseMenuAction(user, "Delete");
+    expect(
+      await screen.findByRole("alertdialog", { name: "Delete this exercise?" }),
+    ).toHaveTextContent("“Bridge”");
     expect(remove).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Delete exercise" }));
+    await user.click(await screen.findByRole("button", { name: "Delete exercise" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith("ex1"));
   });
 
@@ -64,8 +81,8 @@ describe("ExerciseActions", () => {
     const user = userEvent.setup();
     remove.mockResolvedValue({ ok: false, error: "notFound" });
     setup();
-    await user.click(screen.getByRole("button", { name: "Delete" }));
-    await user.click(screen.getByRole("button", { name: "Delete exercise" }));
+    await chooseMenuAction(user, "Delete");
+    await user.click(await screen.findByRole("button", { name: "Delete exercise" }));
     expect(await screen.findByText("This exercise no longer exists.")).toBeInTheDocument();
   });
 
@@ -73,21 +90,21 @@ describe("ExerciseActions", () => {
     const user = userEvent.setup();
     remove.mockResolvedValue({ ok: false, error: "inUse" });
     setup();
-    await user.click(screen.getByRole("button", { name: "Delete" }));
-    await user.click(screen.getByRole("button", { name: "Delete exercise" }));
+    await chooseMenuAction(user, "Delete");
+    await user.click(await screen.findByRole("button", { name: "Delete exercise" }));
     expect(
       await screen.findByText(
         "This exercise is used in a routine, so it can't be deleted. Archive it instead.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
+    expect(await menuActions(user)).toContain("Archive");
   });
 
   it("shows an error when archiving fails", async () => {
     const user = userEvent.setup();
     setArchived.mockResolvedValue({ ok: false, error: "notFound" });
     setup();
-    await user.click(screen.getByRole("button", { name: "Archive" }));
+    await chooseMenuAction(user, "Archive");
     expect(await screen.findByText("This exercise no longer exists.")).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
   });

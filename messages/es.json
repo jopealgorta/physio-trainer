@@ -787,7 +787,8 @@
       "createTitle": "Nuevo ejercicio",
       "createDescription": "Se guarda en tu biblioteca y se agrega a esta rutina.",
       "createSubmit": "Crear y agregar"
-    }
+    },
+    "description": "Las rutinas de ejercicios que les indicás a tus pacientes."
   },
   "Plans": {
     "title": "Planes semanales",
@@ -803,7 +804,8 @@
       "empty": {
         "title": "Todavía no hay planes semanales",
         "body": "Abrí un cliente para armar su primer plan semanal.",
-        "cta": "Ir a clientes"
+        "cta": "Ir a clientes",
+        "bodyPick": "Elegí un cliente para crear su primer plan semanal."
       },
       "noResults": "Ningún plan coincide con estos filtros.",
       "clearFilters": "Borrar filtros",
@@ -829,6 +831,13 @@
       "errors": {
         "customerNotFound": "Este cliente ya no existe.",
         "invalid": "Revisá el formulario y probá de nuevo."
+      },
+      "pick": {
+        "title": "Nuevo plan",
+        "customer": "Cliente",
+        "noCustomer": "Elegí un cliente",
+        "create": "Crear plan",
+        "cancel": "Cancelar"
       }
     },
     "board": {
@@ -944,7 +953,8 @@
       "placeholder": "Algo para el paciente ese día, por ejemplo \"Día suave, frená si duele\"",
       "save": "Guardar",
       "remove": "Quitar"
-    }
+    },
+    "description": "Planes semanales que ordenan las rutinas de tus pacientes día por día."
   },
   "Templates": {
     "copySuffix": " (copia)",
@@ -1058,8 +1068,7 @@
         "plan": "{count, plural, one {# rutina} other {# rutinas}}"
       },
       "back": "Volver a las plantillas"
-    },
-    "fromMenu": "Desde la plantilla: {name}"
+    }
   },
   "VisitNotes": {
     "title": "Notas de visita",

@@ -128,8 +128,8 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
       ? { label: t(format), order, pending, onSelect: () => exportAs(format) }
       : { label: t(format), order, href: hrefs[format], download: true };
 
-  const { onCloseAutoFocus } = usePageAction("exportPdf", menuItem("pdf", 20));
-  usePageAction("exportXlsx", menuItem("xlsx", 21));
+  const { onCloseAutoFocus } = usePageAction("exportPdf", menuItem("pdf", 30));
+  usePageAction("exportXlsx", menuItem("xlsx", 31));
   usePageNotice(
     "export",
     exporter.failed

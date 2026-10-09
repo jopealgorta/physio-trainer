@@ -1,6 +1,4 @@
-import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata, Route } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -49,26 +47,14 @@ export default async function RoutinePage({
         label: t("back"),
       };
 
-  // Laid out by the editor's header, around the title and Save (on phones the controls move
-  // into its "More actions" menu).
+  // Laid out by the editor's header (`PageHeader`), around the title and Save; on phones the
+  // controls move into its "More actions" menu.
   const top = {
-    back: (
-      <Link
-        href={back.href}
-        className="text-muted-foreground hover:text-foreground inline-flex max-w-full items-center gap-1 text-sm"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4 shrink-0" />
-        <span className="truncate">{back.label}</span>
-      </Link>
-    ),
-    // A template has no customer to share with.
-    actions: routine.isTemplate ? null : (
-      <>
-        <ExportMenu target={{ kind: "routines", id: routine.id }} />
-        <ShareButton target={{ target: "routine", routineId: routine.id }} />
-      </>
-    ),
-    secondary: routine.isTemplate ? (
+    back,
+    meta: routine.sourceTemplate ? (
+      <FromTemplate kind="routine" template={routine.sourceTemplate} />
+    ) : undefined,
+    templates: routine.isTemplate ? (
       // A template plan's own routine is edited through the plan: only standalone ones are
       // assigned or duplicated from here.
       routine.isStandalone ? (
@@ -79,12 +65,15 @@ export default async function RoutinePage({
         />
       ) : null
     ) : (
-      <>
-        {routine.sourceTemplate ? (
-          <FromTemplate kind="routine" template={routine.sourceTemplate} />
-        ) : null}
-        <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
-      </>
+      <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
+    ),
+    // A template has no customer to share with or export for.
+    actions: routine.isTemplate ? null : (
+      <ExportMenu target={{ kind: "routines", id: routine.id }} />
+    ),
+    // Share is the main action, as on the plan page (Save is in the editor's footer).
+    primary: routine.isTemplate ? null : (
+      <ShareButton primary target={{ target: "routine", routineId: routine.id }} />
     ),
     // Phases belong to a customer's routine, not to a template.
     phase:

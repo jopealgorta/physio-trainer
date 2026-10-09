@@ -7,7 +7,7 @@ import type { ShareLinkView, ShareState } from "@/server/sharing/schemas";
 
 import messages from "../../../messages/en.json";
 import { ShareButton } from "./share-button";
-import { chooseMenuAction, InPageActions } from "@/test/page-actions";
+import { chooseMenuAction, InPageActions, menuActions } from "@/test/page-actions";
 
 const m = vi.hoisted(() => ({
   load: vi.fn(),
@@ -309,5 +309,21 @@ describe("ShareButton in a page's More actions menu", () => {
     const dialog = await screen.findByRole("dialog", { name: "Share this routine" });
     expect(m.load).toHaveBeenCalledWith({ target: "routine", routineId: "r1" });
     expect(await within(dialog).findByLabelText("Link")).toHaveValue(URL_);
+  });
+
+  it("as the page's main action, is a filled button that stays out of the menu", async () => {
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <InPageActions>
+          <ShareButton primary target={{ target: "weekly_plan", weeklyPlanId: "p1" }} />
+        </InPageActions>
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole("button", { name: "Share plan" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    );
+    expect(await menuActions(user)).toEqual([]);
   });
 });
