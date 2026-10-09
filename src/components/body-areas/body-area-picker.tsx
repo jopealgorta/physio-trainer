@@ -1,32 +1,41 @@
 "use client";
 
+import { ChevronDownIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  BODY_AREA_GROUPS,
   BODY_AREAS,
-  BODY_SIDES,
   type BodyArea,
   type BodyAreaSelection,
+  type BodySide,
+  bodyAreaSchema,
   bodySideSchema,
-  CASE_BODY_AREAS,
   caseBodyAreaSchema,
   coversRegion,
   isPairedArea,
   selectArea,
-  setArea,
   toggleArea,
 } from "@/lib/body-areas";
 import { cn } from "@/lib/utils";
 
+import { BodyAreaBadge } from "./body-area-badge";
 import { BodyMap } from "./body-map";
-import { BODY_VIEWS, type BodyView } from "./body-map-regions";
+import { BODY_VIEWS, type BodyView, type MapRegion } from "./body-map-regions";
 
-type CommonProps = { name?: string; label?: string; className?: string };
+type CommonProps = {
+  name?: string;
+  label?: string;
+  className?: string;
+  /** Marks the field invalid (its error message is passed as `describedBy`). */
+  invalid?: boolean;
+  describedBy?: string;
+};
 
 export type MultiBodyAreaPickerProps = CommonProps & {
   mode: "multi";
@@ -49,137 +58,219 @@ export type SingleBodyAreaPickerProps = CommonProps & {
 export type BodyAreaPickerProps = MultiBodyAreaPickerProps | SingleBodyAreaPickerProps;
 
 /**
- * Body-area picker (spec 02): a clickable front/back body map plus an always-rendered list.
- * Multi mode tags exercises; single mode records an injury's area (and side with `withSide`).
- * Renders hidden inputs when `name` is set, so it works inside a native <form>.
+ * Body-area picker (spec 02): a compact field that opens a popover (a bottom sheet on phones)
+ * with a clickable front/back body map beside chips grouped by region. Multi mode tags
+ * exercises; single mode records an injury's area (and side with `withSide`).
+ * Renders hidden inputs next to the field when `name` is set, so it works inside a native
+ * <form> even though the popover itself is portalled out of it.
  */
 export function BodyAreaPicker(props: BodyAreaPickerProps) {
   return props.mode === "multi" ? <MultiPicker {...props} /> : <SinglePicker {...props} />;
 }
 
-/**
- * Whether the form around `fieldsetRef` is in the middle of dispatching `reset`.
- *
- * React 19 calls `form.reset()` after every `<form action={fn}>` action, and Radix's Checkbox
- * and RadioGroup answer a reset by calling onCheckedChange/onValueChange with the value they
- * mounted with. The picker keeps its value across a reset, so changes reported during one are
- * ignored. `reset` is dispatched synchronously and bubbles, and the listeners sit on the
- * document: its capture listener runs before every listener on the form and its bubble listener
- * after all of them, whatever order they were added in (Radix adds its own on a later render).
- */
-function useFormResetGuard(fieldsetRef: RefObject<HTMLFieldSetElement | null>): () => boolean {
-  const resetting = useRef(false);
-  useEffect(() => {
-    const doc = fieldsetRef.current?.ownerDocument;
-    if (!doc) return;
-    // Resolved per event, so it follows the fieldset if its form owner changes.
-    const isOwnForm = (event: Event) =>
-      event.target !== null && event.target === fieldsetRef.current?.form;
-    let fallback: ReturnType<typeof setTimeout> | undefined;
-    const end = () => {
-      clearTimeout(fallback);
-      resetting.current = false;
-    };
-    const start = (event: Event) => {
-      if (!isOwnForm(event)) return;
-      resetting.current = true;
-      // Backstop for a reset listener that stops propagation before the bubble listener runs.
-      fallback = setTimeout(end, 0);
-    };
-    const finish = (event: Event) => {
-      if (isOwnForm(event)) end();
-    };
-    doc.addEventListener("reset", start, true);
-    doc.addEventListener("reset", finish);
-    return () => {
-      doc.removeEventListener("reset", start, true);
-      doc.removeEventListener("reset", finish);
-      end();
-    };
-  }, [fieldsetRef]);
-  return () => resetting.current;
-}
-
-/** Value state that is controlled when `value` is set, and ignores changes during a form reset. */
+/** Value state that is controlled when `value` is set. */
 function usePickerValue<T>(
   value: T | undefined,
   defaultValue: T,
   onChange?: (value: T) => void,
-): [T, (next: T) => void, RefObject<HTMLFieldSetElement | null>] {
+): [T, (next: T) => void] {
   const [inner, setInner] = useState(defaultValue);
-  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
-  const isResetting = useFormResetGuard(fieldsetRef);
   const controlled = value !== undefined;
-  const current = controlled ? value : inner;
   const set = (next: T) => {
-    if (isResetting()) return;
     if (!controlled) setInner(next);
     onChange?.(next);
   };
-  return [current, set, fieldsetRef];
+  return [controlled ? value : inner, set];
 }
 
-function PickerLayout({
-  fieldsetRef,
-  legend,
-  className,
-  renderMap,
-  children,
-}: {
-  fieldsetRef: RefObject<HTMLFieldSetElement | null>;
-  legend: string;
-  className?: string;
-  renderMap: (view: BodyView) => ReactNode;
-  children: ReactNode;
-}) {
-  const t = useTranslations("BodyAreas.picker");
-  const [view, setView] = useState<BodyView>("front");
+// Chips: pills that fill with the accent colour when chosen. Radix marks a chosen chip with
+// data-state="on"; `aria-pressed:bg-primary` overrides the toggle's own `aria-pressed:bg-muted`.
+const CHIP_CLASS =
+  "h-7 rounded-full border border-border px-3 text-xs font-normal hover:bg-muted data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground aria-pressed:bg-primary data-[state=on]:hover:bg-primary/90";
 
-  // Breakpoints follow the picker's own width (container queries), not the viewport, so it lays
-  // out the same on a page and inside a narrow sheet or dialog. The container is a plain div:
-  // fieldset layout is special-cased in browsers, so it is kept out of the containment.
+const SEGMENT_CLASS =
+  "h-7 px-3 text-xs font-normal data-[state=on]:bg-muted data-[state=on]:text-foreground";
+
+// The side is part of the value, so a chosen side fills like a chosen chip; the view toggle above
+// the map only changes what is shown, so it stays muted.
+const SIDE_CLASS = cn(
+  SEGMENT_CLASS,
+  "data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90",
+);
+
+function PickerShell({
+  label,
+  placeholder,
+  summary,
+  summaryText,
+  className,
+  invalid,
+  describedBy,
+  hiddenInputs,
+  isSelected,
+  onRegionClick,
+  chips,
+  extra,
+  onClear,
+}: {
+  label: string;
+  placeholder: string;
+  /** What the closed field shows; null when nothing is chosen. */
+  summary: ReactNode;
+  /** The same as text, for the field's accessible name. */
+  summaryText: string;
+  className?: string;
+  invalid?: boolean;
+  describedBy?: string;
+  hiddenInputs: ReactNode;
+  isSelected: (region: MapRegion) => boolean;
+  onRegionClick: (region: MapRegion) => void;
+  chips: ReactNode;
+  extra?: ReactNode;
+  /** Shown as "Clear" while something is chosen. */
+  onClear?: () => void;
+}) {
+  const t = useTranslations("BodyAreas");
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState<BodyView>("front");
+  const [hovered, setHovered] = useState<MapRegion | null>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const labelId = `${id}-label`;
+  const valueId = `${id}-value`;
+  const regionLabel = (region: MapRegion) => {
+    const area = t(`areas.${region.area}`);
+    return region.side ? t("withSide", { area, side: region.side }) : area;
+  };
+
   return (
-    <fieldset ref={fieldsetRef} className={cn("min-w-0", className)}>
-      <legend className="mb-2 text-sm font-medium">{legend}</legend>
-      <div className="@container flex flex-col gap-4">
-        <div role="group" aria-label={t("map")} className="flex gap-1 @md:hidden">
-          {BODY_VIEWS.map((option) => (
-            <Button
-              key={option}
-              type="button"
-              size="sm"
-              variant={view === option ? "secondary" : "ghost"}
-              aria-pressed={view === option}
-              onClick={() => setView(option)}
-            >
-              {t(option)}
+    <div className={cn("grid min-w-0 gap-2", className)}>
+      <Label id={labelId} htmlFor={`${id}-trigger`}>
+        {label}
+      </Label>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          setHovered(null);
+        }}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            id={`${id}-trigger`}
+            type="button"
+            variant="outline"
+            aria-labelledby={`${labelId} ${valueId}`}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            className="h-auto min-h-9 w-full justify-between gap-2 py-1.5 font-normal"
+          >
+            <span id={valueId} className="sr-only">
+              {summaryText || placeholder}
+            </span>
+            <span aria-hidden className="flex min-w-0 flex-1 flex-wrap gap-1">
+              {summary ?? <span className="text-muted-foreground">{placeholder}</span>}
+            </span>
+            <ChevronDownIcon aria-hidden className="text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          // Start on the chips (the keyboard path), not on Clear: the chosen chip, else the first.
+          onOpenAutoFocus={(event) => {
+            const items = chipsRef.current?.querySelectorAll<HTMLElement>(
+              '[data-slot="toggle-group-item"]',
+            );
+            const target = [...(items ?? [])].find((item) => item.dataset.state === "on");
+            const first = target ?? items?.[0];
+            if (!first) return;
+            event.preventDefault();
+            first.focus({ preventScroll: true });
+          }}
+          className="sm:max-h-(--radix-popover-content-available-height) sm:w-[38rem] sm:overflow-y-auto sm:p-4"
+        >
+          {/* Title and actions share one row: the panel must fit below a field mid-form. */}
+          <div className="flex items-center gap-2">
+            <PopoverTitle className="mr-auto text-sm">{label}</PopoverTitle>
+            {onClear && (
+              <Button type="button" variant="ghost" size="sm" onClick={onClear}>
+                {t("picker.clear")}
+              </Button>
+            )}
+            <Button type="button" size="sm" onClick={() => setOpen(false)}>
+              {t("picker.done")}
             </Button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 justify-items-center gap-6 @md:grid-cols-2">
-          {BODY_VIEWS.map((option) => (
-            <div
-              key={option}
-              className={cn(
-                // One view at a time gets more room, for bigger touch targets.
-                "w-full max-w-60 flex-col items-center gap-2 @md:max-w-44",
-                option === view ? "flex" : "hidden @md:flex",
-              )}
-            >
-              {renderMap(option)}
-              <span aria-hidden className="text-muted-foreground text-xs">
-                {t(option)}
-              </span>
+          </div>
+          <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-6">
+            <div className="flex flex-col items-center gap-3">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                spacing={0}
+                aria-label={t("picker.map")}
+                value={view}
+                onValueChange={(raw) => {
+                  const next = BODY_VIEWS.find((option) => option === raw);
+                  if (next) setView(next);
+                }}
+              >
+                {BODY_VIEWS.map((option) => (
+                  <ToggleGroupItem key={option} value={option} className={SEGMENT_CLASS}>
+                    {t(`picker.${option}`)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <BodyMap
+                view={view}
+                isSelected={isSelected}
+                onRegionClick={onRegionClick}
+                onRegionHover={setHovered}
+              />
+              <p aria-hidden className="text-muted-foreground min-h-8 text-center text-xs/4">
+                {hovered ? regionLabel(hovered) : t("picker.hint")}
+              </p>
             </div>
-          ))}
-        </div>
-        {children}
-      </div>
-    </fieldset>
+            <div className="flex min-w-0 flex-col gap-4">
+              <div ref={chipsRef}>{chips}</div>
+              {extra}
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      {hiddenInputs}
+    </div>
   );
 }
 
-const LIST_CLASS = "grid grid-cols-1 gap-x-4 gap-y-2 @sm:grid-cols-2 @3xl:grid-cols-3";
+/** The chip groups (Upper body, Trunk, …), each a labelled group of `ToggleGroupItem`s. */
+function ChipGroups({ areas }: { areas: readonly BodyArea[] }) {
+  const t = useTranslations("BodyAreas");
+  return BODY_AREA_GROUPS.map((group) => {
+    const shown = group.areas.filter((area: BodyArea) => areas.includes(area));
+    if (shown.length === 0) return null;
+    return (
+      <div
+        key={group.id}
+        role="group"
+        aria-label={t(`groups.${group.id}`)}
+        className="grid gap-1.5"
+      >
+        <span aria-hidden className="text-muted-foreground text-[0.6875rem] font-medium">
+          {t(`groups.${group.id}`)}
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {shown.map((area) => (
+            <ToggleGroupItem key={area} value={area} className={CHIP_CLASS}>
+              {t(`areas.${area}`)}
+            </ToggleGroupItem>
+          ))}
+        </div>
+      </div>
+    );
+  });
+}
+
+// One ToggleGroup holds every chip, so arrow keys move across the groups.
+const CHIPS_ROOT_CLASS = "w-full flex-col items-stretch gap-3";
 
 function MultiPicker({
   value,
@@ -188,44 +279,50 @@ function MultiPicker({
   name,
   label,
   className,
+  invalid,
+  describedBy,
 }: MultiBodyAreaPickerProps) {
   const t = useTranslations("BodyAreas");
-  const id = useId();
-  const [areas, setAreas, fieldsetRef] = usePickerValue(value, defaultValue, onChange);
+  const [areas, setAreas] = usePickerValue(value, defaultValue, onChange);
+  const chosen = BODY_AREAS.filter((area) => areas.includes(area));
 
   return (
-    <PickerLayout
-      fieldsetRef={fieldsetRef}
-      legend={label ?? t("picker.areasLabel")}
+    <PickerShell
+      label={label ?? t("picker.areasLabel")}
+      placeholder={t("picker.placeholderMulti")}
+      summary={
+        chosen.length > 0 ? chosen.map((area) => <BodyAreaBadge key={area} area={area} />) : null
+      }
+      summaryText={chosen.map((area) => t(`areas.${area}`)).join(", ")}
       className={className}
-      renderMap={(view) => (
-        <BodyMap
-          view={view}
-          isSelected={(region) => areas.includes(region.area)}
-          onRegionClick={(region) => setAreas(toggleArea(areas, region.area))}
-        />
-      )}
-    >
-      <ul className={LIST_CLASS}>
-        {BODY_AREAS.map((area) => (
-          <li key={area} className="flex items-center gap-2">
-            <Checkbox
-              id={`${id}-${area}`}
-              checked={areas.includes(area)}
-              // Set, don't toggle: the reported state is the source of truth.
-              onCheckedChange={(checked) => setAreas(setArea(areas, area, checked === true))}
-            />
-            <Label htmlFor={`${id}-${area}`}>{t(`areas.${area}`)}</Label>
-          </li>
-        ))}
-      </ul>
-      {name &&
-        BODY_AREAS.filter((area) => areas.includes(area)).map((area) => (
-          <input key={area} type="hidden" name={name} value={area} />
-        ))}
-    </PickerLayout>
+      invalid={invalid}
+      describedBy={describedBy}
+      hiddenInputs={
+        name && chosen.map((area) => <input key={area} type="hidden" name={name} value={area} />)
+      }
+      isSelected={(region) => areas.includes(region.area)}
+      onRegionClick={(region) => setAreas(toggleArea(areas, region.area))}
+      onClear={chosen.length > 0 ? () => setAreas([]) : undefined}
+      chips={
+        <ToggleGroup
+          type="multiple"
+          aria-label={label ?? t("picker.areasLabel")}
+          value={chosen}
+          onValueChange={(raw) => {
+            const next = new Set(raw.flatMap((item) => bodyAreaSchema.safeParse(item).data ?? []));
+            setAreas(BODY_AREAS.filter((area) => next.has(area)));
+          }}
+          className={CHIPS_ROOT_CLASS}
+        >
+          <ChipGroups areas={BODY_AREAS} />
+        </ToggleGroup>
+      }
+    />
   );
 }
+
+// Left, both, right: the order a physio says it in, independent of which way the map faces.
+const SIDE_ORDER: readonly BodySide[] = ["left", "both", "right"];
 
 function SinglePicker({
   value,
@@ -236,81 +333,86 @@ function SinglePicker({
   sideName = name ? `${name}Side` : undefined,
   label,
   className,
+  invalid,
+  describedBy,
 }: SingleBodyAreaPickerProps) {
   const t = useTranslations("BodyAreas");
-  const id = useId();
-  const [selection, setSelection, fieldsetRef] = usePickerValue(value, defaultValue, onChange);
+  const [selection, setSelection] = usePickerValue(value, defaultValue, onChange);
   const showSide = withSide && selection !== null && isPairedArea(selection.area);
+  const summaryText = selection
+    ? selection.side && withSide
+      ? t("withSide", { area: t(`areas.${selection.area}`), side: selection.side })
+      : t(`areas.${selection.area}`)
+    : "";
 
   return (
-    <PickerLayout
-      fieldsetRef={fieldsetRef}
-      legend={label ?? t("picker.areaLabel")}
+    <PickerShell
+      label={label ?? t("picker.areaLabel")}
+      placeholder={t("picker.placeholderSingle")}
+      summary={
+        selection ? (
+          <BodyAreaBadge area={selection.area} side={withSide ? selection.side : null} />
+        ) : null
+      }
+      summaryText={summaryText}
       className={className}
-      renderMap={(view) => (
-        <BodyMap
-          view={view}
-          isSelected={(region) => coversRegion(selection, region.area, region.side)}
-          onRegionClick={(region) =>
-            setSelection(selectArea(selection, region.area, region.side, withSide))
-          }
-        />
-      )}
-    >
-      {/* Named by the fieldset's legend. */}
-      <RadioGroup
-        value={selection?.area ?? ""}
-        onValueChange={(raw) => {
-          const area = caseBodyAreaSchema.safeParse(raw);
-          if (area.success) setSelection(selectArea(selection, area.data, null, withSide));
-        }}
-        className={LIST_CLASS}
-      >
-        {CASE_BODY_AREAS.map((area) => (
-          <div key={area} className="flex items-center gap-2">
-            <RadioGroupItem id={`${id}-${area}`} value={area} />
-            <Label htmlFor={`${id}-${area}`}>{t(`areas.${area}`)}</Label>
-          </div>
-        ))}
-      </RadioGroup>
-      {showSide && (
-        <div className="flex flex-col gap-2">
-          <span id={`${id}-side`} className="text-sm font-medium">
-            {t("picker.sideLabel")}
-          </span>
-          <RadioGroup
-            aria-labelledby={`${id}-side`}
-            value={selection.side ?? ""}
-            onValueChange={(raw) => {
-              const side = bodySideSchema.safeParse(raw);
-              if (side.success) setSelection({ area: selection.area, side: side.data });
-            }}
-            className="flex gap-4"
-          >
-            {BODY_SIDES.map((side) => (
-              <div key={side} className="flex items-center gap-2">
-                <RadioGroupItem id={`${id}-side-${side}`} value={side} />
-                <Label htmlFor={`${id}-side-${side}`}>{t(`sides.${side}`)}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
-      )}
-      {selection && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="self-start"
-          onClick={() => setSelection(null)}
+      invalid={invalid}
+      describedBy={describedBy}
+      hiddenInputs={
+        <>
+          {name && <input type="hidden" name={name} value={selection?.area ?? ""} />}
+          {withSide && sideName && (
+            <input type="hidden" name={sideName} value={selection?.side ?? ""} />
+          )}
+        </>
+      }
+      isSelected={(region) => coversRegion(selection, region.area, region.side)}
+      onRegionClick={(region) =>
+        setSelection(selectArea(selection, region.area, region.side, withSide))
+      }
+      onClear={selection ? () => setSelection(null) : undefined}
+      chips={
+        <ToggleGroup
+          type="single"
+          aria-label={label ?? t("picker.areaLabel")}
+          value={selection?.area ?? ""}
+          onValueChange={(raw) => {
+            // Choosing the selected chip again reports "": that clears the selection.
+            if (raw === "") return setSelection(null);
+            const area = caseBodyAreaSchema.safeParse(raw);
+            if (area.success) setSelection(selectArea(selection, area.data, null, withSide));
+          }}
+          className={CHIPS_ROOT_CLASS}
         >
-          {t("picker.clear")}
-        </Button>
-      )}
-      {name && <input type="hidden" name={name} value={selection?.area ?? ""} />}
-      {withSide && sideName && (
-        <input type="hidden" name={sideName} value={selection?.side ?? ""} />
-      )}
-    </PickerLayout>
+          <ChipGroups areas={BODY_AREAS.filter((area) => area !== "full_body")} />
+        </ToggleGroup>
+      }
+      extra={
+        showSide && (
+          <div className="grid gap-1.5">
+            <span aria-hidden className="text-muted-foreground text-[0.6875rem] font-medium">
+              {t("picker.sideLabel")}
+            </span>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              spacing={0}
+              aria-label={t("picker.sideLabel")}
+              value={selection.side ?? ""}
+              onValueChange={(raw) => {
+                const side = bodySideSchema.safeParse(raw);
+                setSelection({ area: selection.area, side: side.success ? side.data : null });
+              }}
+            >
+              {SIDE_ORDER.map((side) => (
+                <ToggleGroupItem key={side} value={side} className={SIDE_CLASS}>
+                  {t(`sides.${side}`)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+        )
+      }
+    />
   );
 }

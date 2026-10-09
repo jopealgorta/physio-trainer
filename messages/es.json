@@ -212,6 +212,12 @@
       "right": "Derecho",
       "both": "Ambos"
     },
+    "groups": {
+      "upper": "Tren superior",
+      "trunk": "Tronco",
+      "lower": "Tren inferior",
+      "other": "Otras"
+    },
     "withSide": "{area} · {side, select, left {lado izquierdo} right {lado derecho} other {ambos lados}}",
     "picker": {
       "areaLabel": "Zona del cuerpo",
@@ -220,7 +226,11 @@
       "front": "Frente",
       "back": "Dorso",
       "map": "Vista del mapa del cuerpo",
-      "clear": "Limpiar"
+      "clear": "Limpiar",
+      "placeholderMulti": "Elegí zonas del cuerpo",
+      "placeholderSingle": "Elegí una zona del cuerpo",
+      "hint": "Marcá en el cuerpo o elegí una zona",
+      "done": "Listo"
     }
   },
   "DevPreview": {

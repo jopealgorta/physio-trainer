@@ -14,14 +14,23 @@ type BodyMapProps = {
   view: BodyView;
   isSelected: (region: MapRegion) => boolean;
   onRegionClick: (region: MapRegion) => void;
+  /** The region under the pointer, or null when it leaves (for a caption beside the map). */
+  onRegionHover?: (region: MapRegion | null) => void;
   className?: string;
 };
 
 /**
  * One view of the body map. Regions are announced to screen readers but are not tab stops:
- * the picker's list is the keyboard path (spec 02, behaviour rule 3).
+ * the picker's chips are the keyboard path (spec 02, behaviour rule 3).
+ * Regions are stroked in the popover colour, so neighbours read as one figure with thin seams.
  */
-export function BodyMap({ view, isSelected, onRegionClick, className }: BodyMapProps) {
+export function BodyMap({
+  view,
+  isSelected,
+  onRegionClick,
+  onRegionHover,
+  className,
+}: BodyMapProps) {
   const t = useTranslations("BodyAreas");
 
   return (
@@ -37,38 +46,21 @@ export function BodyMap({ view, isSelected, onRegionClick, className }: BodyMapP
         const label = region.side
           ? t("withSide", { area: areaLabel, side: region.side })
           : areaLabel;
-        const props = {
-          role: "checkbox" as const,
-          "aria-checked": selected,
-          "aria-label": label,
-          "data-region": region.id,
-          onClick: () => onRegionClick(region),
-          className: cn(
-            "cursor-pointer stroke-1 transition-colors motion-reduce:transition-none",
-            selected
-              ? "fill-primary stroke-primary"
-              : "fill-muted-foreground/15 stroke-muted-foreground/35 hover:fill-primary/30",
-          ),
-        };
-        const { shape } = region;
-        return shape.kind === "rect" ? (
-          <rect
+        return (
+          <path
             key={region.id}
-            {...props}
-            x={shape.x}
-            y={shape.y}
-            width={shape.width}
-            height={shape.height}
-            rx={shape.radius}
-          />
-        ) : (
-          <ellipse
-            key={region.id}
-            {...props}
-            cx={shape.cx}
-            cy={shape.cy}
-            rx={shape.rx}
-            ry={shape.ry}
+            d={region.shape.d}
+            role="checkbox"
+            aria-checked={selected}
+            aria-label={label}
+            data-region={region.id}
+            onClick={() => onRegionClick(region)}
+            onPointerEnter={() => onRegionHover?.(region)}
+            onPointerLeave={() => onRegionHover?.(null)}
+            className={cn(
+              "stroke-popover cursor-pointer stroke-2 transition-colors duration-150 [stroke-linejoin:round] motion-reduce:transition-none",
+              selected ? "fill-primary" : "fill-muted-foreground/20 hover:fill-primary/40",
+            )}
           />
         );
       })}

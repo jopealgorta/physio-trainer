@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
@@ -69,11 +69,13 @@ describe("CaseForm", () => {
     expect(screen.getByRole("button", { name: "Create case" })).toBeInTheDocument();
   });
 
-  it("uses a single-select body area picker without full body", () => {
+  it("uses a single-select body area picker without full body", async () => {
+    const user = userEvent.setup();
     setup(idleAction());
-    expect(screen.getByRole("group", { name: "Body area" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Knee" })).toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "Full body" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Body area Choose a body area" }));
+    const picker = screen.getByRole("dialog", { name: "Body area" });
+    expect(within(picker).getByRole("radio", { name: "Knee" })).toBeInTheDocument();
+    expect(within(picker).queryByRole("radio", { name: "Full body" })).not.toBeInTheDocument();
   });
 
   it("creates with a hidden customerId, an empty opened-on field and its hint", () => {
@@ -115,8 +117,7 @@ describe("CaseForm", () => {
     expect(screen.getByLabelText("Initial pain (0–10)")).toHaveValue("0");
     expect(screen.getByLabelText("Notes")).toHaveValue("Slow");
     expect(screen.getByLabelText("Opened on")).toHaveValue("2026-03-01");
-    expect(screen.getByRole("radio", { name: "Knee" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Left" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Body area Knee · Left" })).toBeInTheDocument();
     expect(screen.queryByText("Leave empty to use today.")).not.toBeInTheDocument();
   });
 
@@ -126,8 +127,10 @@ describe("CaseForm", () => {
     setup(action);
     await user.type(screen.getByLabelText("Title"), "Shoulder");
     await user.type(screen.getByLabelText("Initial pain (0–10)"), "4");
+    await user.click(screen.getByRole("button", { name: "Body area Choose a body area" }));
     await user.click(screen.getByRole("radio", { name: "Knee" }));
     await user.click(screen.getByRole("radio", { name: "Right" }));
+    await user.click(screen.getByRole("button", { name: "Done" }));
     await user.click(screen.getByRole("button", { name: "Create case" }));
     await waitFor(() => expect(action).toHaveBeenCalled());
     const data = submittedData(action);
@@ -162,6 +165,9 @@ describe("CaseForm", () => {
     await user.click(screen.getByRole("button", { name: "Create case" }));
     expect(await screen.findByText("Enter a whole number from 0 to 10.")).toBeInTheDocument();
     expect(screen.getByText("Choose a body area to set a side.")).toBeInTheDocument();
+    const area = screen.getByRole("button", { name: /^Body area/ });
+    expect(area).toHaveAttribute("aria-invalid", "true");
+    expect(area).toHaveAccessibleDescription("Choose a body area to set a side.");
     expect(
       screen.getByText("The opening date can't be after the closing date."),
     ).toBeInTheDocument();

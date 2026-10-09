@@ -54,8 +54,12 @@ test("a physio creates a customer and a case, and sees the precautions first", a
   const sheet = page.getByRole("dialog", { name: "New case" });
   await sheet.getByLabel("Title").fill("Right ACL reconstruction");
   await sheet.getByLabel("Precautions").fill("No deep flexion past 90°");
-  await sheet.getByRole("radio", { name: "Knee", exact: true }).click();
-  await sheet.getByRole("radio", { name: "Right" }).click();
+  await sheet.getByRole("button", { name: "Body area Choose a body area" }).click();
+  const picker = page.getByRole("dialog", { name: "Body area" });
+  await picker.getByRole("radio", { name: "Knee", exact: true }).click();
+  await picker.getByRole("radio", { name: "Right" }).click();
+  await picker.getByRole("button", { name: "Done" }).click();
+  await expect(sheet.getByRole("button", { name: "Body area Knee · Right" })).toBeVisible();
   await sheet.getByRole("button", { name: "Create case" }).click();
   await expect(sheet).toBeHidden();
 

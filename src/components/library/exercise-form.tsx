@@ -71,7 +71,7 @@ export function ExerciseForm({
   categories: CategoryNode[];
   /** Replaces "Create exercise" / "Save changes". */
   submitLabel?: string;
-  /** One column at every width, for a dialog (the page puts body areas beside the fields). */
+  /** In a dialog: keeps the submit button in reach below the long form. */
   compact?: boolean;
 }) {
   const t = useTranslations("Library.form");
@@ -108,85 +108,84 @@ export function ExerciseForm({
   return (
     <form action={formAction} onSubmit={onSubmit} noValidate className="grid gap-8">
       {editing ? <input type="hidden" name="id" value={defaults.id} /> : null}
-      <div className={cn("grid gap-8", !compact && "lg:grid-cols-[minmax(0,1fr)_20rem]")}>
-        <div className="grid content-start gap-6">
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-name`}>{t("name")}</Label>
-            <Input
-              id={`${id}-name`}
-              name="name"
-              defaultValue={defaults.name}
-              maxLength={EXERCISE_NAME_MAX_LENGTH}
-              required
-              aria-invalid={errors.name !== undefined}
-              aria-describedby={errors.name ? errorId("name") : undefined}
-            />
-            {errorText("name")}
-          </div>
-
-          <div className="grid gap-2">
-            <Label id={`${id}-kind`}>{t("kind.label")}</Label>
-            <RadioGroup
-              name="kind"
-              defaultValue={defaults.kind}
-              aria-labelledby={`${id}-kind`}
-              className="flex w-auto flex-wrap gap-4"
-            >
-              {EXERCISE_KINDS.map((kind) => (
-                <div key={kind} className="flex items-center gap-2">
-                  <RadioGroupItem id={`${id}-kind-${kind}`} value={kind} />
-                  <Label htmlFor={`${id}-kind-${kind}`} className="font-normal">
-                    {t(`kind.${kind}`)}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-
-          <div className="grid gap-2">
-            <Label id={`${id}-category-label`} htmlFor={`${id}-category`}>
-              {t("categories")}
-            </Label>
-            <CategoryMultiSelect
-              id={`${id}-category`}
-              labelId={`${id}-category-label`}
-              name="categoryIds"
-              categories={categories}
-              defaultValue={defaults.categoryIds}
-              invalid={errors.categoryIds !== undefined}
-              describedBy={errors.categoryIds ? errorId("categoryIds") : undefined}
-            />
-            {errorText("categoryIds")}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-instructions`}>{t("instructions")}</Label>
-            <Textarea
-              id={`${id}-instructions`}
-              name="instructions"
-              rows={6}
-              defaultValue={defaults.instructions ?? ""}
-              maxLength={INSTRUCTIONS_MAX_LENGTH}
-              aria-invalid={errors.instructions !== undefined}
-              aria-describedby={`${id}-instructions-hint${errors.instructions ? ` ${errorId("instructions")}` : ""}`}
-            />
-            <p id={`${id}-instructions-hint`} className="text-muted-foreground text-sm">
-              {t("instructionsHint")}
-            </p>
-            {errorText("instructions")}
-          </div>
+      {/* A readable measure on wide screens; a dialog is already narrow. */}
+      <div className={cn("grid content-start gap-6", !compact && "max-w-3xl")}>
+        <div className="grid gap-2">
+          <Label htmlFor={`${id}-name`}>{t("name")}</Label>
+          <Input
+            id={`${id}-name`}
+            name="name"
+            defaultValue={defaults.name}
+            maxLength={EXERCISE_NAME_MAX_LENGTH}
+            required
+            aria-invalid={errors.name !== undefined}
+            aria-describedby={errors.name ? errorId("name") : undefined}
+          />
+          {errorText("name")}
         </div>
 
-        <div className="grid content-start gap-2">
-          <div className="w-full max-w-80">
-            <BodyAreaPicker
-              mode="multi"
-              name="bodyAreas"
-              label={t("bodyAreas")}
-              defaultValue={defaults.bodyAreas}
-            />
-          </div>
+        <div className="grid gap-2">
+          <Label id={`${id}-kind`}>{t("kind.label")}</Label>
+          <RadioGroup
+            name="kind"
+            defaultValue={defaults.kind}
+            aria-labelledby={`${id}-kind`}
+            className="flex w-auto flex-wrap gap-4"
+          >
+            {EXERCISE_KINDS.map((kind) => (
+              <div key={kind} className="flex items-center gap-2">
+                <RadioGroupItem id={`${id}-kind-${kind}`} value={kind} />
+                <Label htmlFor={`${id}-kind-${kind}`} className="font-normal">
+                  {t(`kind.${kind}`)}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+
+        <div className="grid gap-2">
+          <Label id={`${id}-category-label`} htmlFor={`${id}-category`}>
+            {t("categories")}
+          </Label>
+          <CategoryMultiSelect
+            id={`${id}-category`}
+            labelId={`${id}-category-label`}
+            name="categoryIds"
+            categories={categories}
+            defaultValue={defaults.categoryIds}
+            invalid={errors.categoryIds !== undefined}
+            describedBy={errors.categoryIds ? errorId("categoryIds") : undefined}
+          />
+          {errorText("categoryIds")}
+        </div>
+
+        <div className="grid gap-2">
+          <BodyAreaPicker
+            mode="multi"
+            name="bodyAreas"
+            label={t("bodyAreas")}
+            defaultValue={defaults.bodyAreas}
+            invalid={errors.bodyAreas !== undefined}
+            describedBy={errors.bodyAreas ? errorId("bodyAreas") : undefined}
+          />
           {errorText("bodyAreas")}
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor={`${id}-instructions`}>{t("instructions")}</Label>
+          <Textarea
+            id={`${id}-instructions`}
+            name="instructions"
+            rows={6}
+            defaultValue={defaults.instructions ?? ""}
+            maxLength={INSTRUCTIONS_MAX_LENGTH}
+            aria-invalid={errors.instructions !== undefined}
+            aria-describedby={`${id}-instructions-hint${errors.instructions ? ` ${errorId("instructions")}` : ""}`}
+          />
+          <p id={`${id}-instructions-hint`} className="text-muted-foreground text-sm">
+            {t("instructionsHint")}
+          </p>
+          {errorText("instructions")}
         </div>
       </div>
 

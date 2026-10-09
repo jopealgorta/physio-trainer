@@ -186,6 +186,19 @@ describe("ExerciseForm", () => {
     expect(screen.getByLabelText("Categories")).toHaveAttribute("aria-invalid", "true");
   });
 
+  it("ties a body-area error to the body areas field", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn(async (): Promise<ExerciseFormState> => ({
+      status: "error",
+      fieldErrors: { bodyAreas: "bodyAreasInvalid" },
+    }));
+    setup(action, { name: "Bridge" });
+    await user.click(screen.getByRole("button", { name: "Create exercise" }));
+    const field = await screen.findByRole("button", { name: /^Body areas/ });
+    await waitFor(() => expect(field).toHaveAttribute("aria-invalid", "true"));
+    expect(field).toHaveAccessibleDescription(messages.Library.form.errors.bodyAreasInvalid);
+  });
+
   it("shows field errors and keeps what was typed", async () => {
     const user = userEvent.setup();
     const action = vi.fn(async (): Promise<ExerciseFormState> => ({

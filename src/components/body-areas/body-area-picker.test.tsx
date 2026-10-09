@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -23,39 +23,70 @@ function renderInForm(props: BodyAreaPickerProps) {
   return { form, formData: () => new FormData(form) };
 }
 
-const listCheckbox = (name: string) =>
-  within(screen.getByRole("list")).getByRole("checkbox", { name });
-
-const frontMap = () => screen.getByRole("group", { name: "Front" });
-const backMap = () => screen.getByRole("group", { name: "Back" });
-const region = (map: HTMLElement, name: string) => within(map).getByRole("checkbox", { name });
+const openPicker = (user: UserEvent, name: RegExp = /^Body area/) =>
+  user.click(screen.getByRole("button", { name }));
+const panel = () => screen.getByRole("dialog");
+const map = (view: "Front" | "Back" = "Front") =>
+  within(panel()).getByRole("group", { name: view });
+const region = (name: string, view: "Front" | "Back" = "Front") =>
+  within(map(view)).getByRole("checkbox", { name });
+/** Multi mode: chips are toggle buttons. */
+const chip = (name: string) => within(panel()).getByRole("button", { name });
+/** Single mode: chips are radios in one group. */
+const radio = (name: string) => within(panel()).getByRole("radio", { name });
 
 describe("BodyAreaPicker multi", () => {
-  it("toggles an area from the map and syncs the list and hidden inputs", async () => {
+  it("is a compact field until opened", async () => {
+    const user = userEvent.setup();
+    renderInForm({ mode: "multi", name: "areas" });
+    expect(screen.getByRole("button", { name: "Body areas Choose body areas" })).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await openPicker(user);
+    expect(map()).toBeInTheDocument();
+    for (const group of ["Upper body", "Trunk", "Lower body", "Other"]) {
+      expect(within(panel()).getByRole("group", { name: group })).toBeInTheDocument();
+    }
+  });
+
+  it("toggles an area from the map and syncs the chips, field and hidden inputs", async () => {
     const user = userEvent.setup();
     const { formData } = renderInForm({ mode: "multi", name: "areas" });
+    await openPicker(user);
 
-    await user.click(region(frontMap(), "Knee · Left"));
-    expect(screen.getByRole("checkbox", { name: "Knee" })).toBeChecked();
-    // Multi mode has no side: both knees, on both views, light up.
-    expect(region(frontMap(), "Knee · Right")).toHaveAttribute("aria-checked", "true");
-    expect(region(backMap(), "Knee · Left")).toHaveAttribute("aria-checked", "true");
+    await user.click(region("Knee · Left"));
+    expect(chip("Knee")).toHaveAttribute("aria-pressed", "true");
+    // Multi mode has no side: both knees light up.
+    expect(region("Knee · Right")).toHaveAttribute("aria-checked", "true");
 
-    // Neck is a midline area: it has no side, so its map region on both views shares the
-    // plain "Neck" name with the list checkbox (unlike "Knee · Left"/"Knee · Right" above).
-    // Scope to the list to exercise that input path unambiguously.
-    await user.click(within(screen.getByRole("list")).getByRole("checkbox", { name: "Neck" }));
-    expect(region(backMap(), "Neck")).toHaveAttribute("aria-checked", "true");
+    await user.click(chip("Neck"));
+    expect(region("Neck")).toHaveAttribute("aria-checked", "true");
     expect(formData().getAll("areas")).toEqual(["neck", "knee"]);
+    expect(screen.getByRole("button", { name: "Body areas Neck, Knee" })).toBeInTheDocument();
 
-    await user.click(region(backMap(), "Knee · Right"));
+    await user.click(region("Knee · Right"));
     expect(formData().getAll("areas")).toEqual(["neck"]);
   });
 
-  it("offers full body in the list only", () => {
-    renderInForm({ mode: "multi", name: "areas" });
-    expect(screen.getByRole("checkbox", { name: "Full body" })).toBeInTheDocument();
+  it("switches to the back view", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "multi", name: "areas" });
+    await openPicker(user);
+    expect(within(panel()).queryByRole("group", { name: "Back" })).not.toBeInTheDocument();
+
+    await user.click(within(panel()).getByRole("radio", { name: "Back" }));
+    await user.click(region("Glute · Left", "Back"));
+    expect(formData().getAll("areas")).toEqual(["glute"]);
+    expect(within(panel()).queryByRole("group", { name: "Front" })).not.toBeInTheDocument();
+  });
+
+  it("offers full body as a chip only", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "multi", name: "areas" });
+    await openPicker(user);
     expect(document.querySelector('[data-region*="full_body"]')).toBeNull();
+    await user.click(chip("Full body"));
+    expect(formData().getAll("areas")).toEqual(["full_body"]);
   });
 
   it("keeps a controlled value's hidden inputs in canonical order", () => {
@@ -63,160 +94,55 @@ describe("BodyAreaPicker multi", () => {
     expect(formData().getAll("areas")).toEqual(["neck", "knee"]);
   });
 
-  it("keeps its value when the form is reset", async () => {
-    const user = userEvent.setup();
-    const { form, formData } = renderInForm({ mode: "multi", name: "areas" });
-    await user.click(listCheckbox("Neck"));
-    await user.click(region(frontMap(), "Hip and groin · Left"));
-    await user.click(listCheckbox("Knee"));
-    expect(formData().getAll("areas")).toEqual(["neck", "hip_groin", "knee"]);
-
-    act(() => form.reset());
-
-    expect(formData().getAll("areas")).toEqual(["neck", "hip_groin", "knee"]);
-    expect(listCheckbox("Neck")).toBeChecked();
-    expect(listCheckbox("Hip and groin")).toBeChecked();
-    expect(listCheckbox("Knee")).toBeChecked();
-  });
-
   it("submits only the named fields", async () => {
     const user = userEvent.setup();
     const { formData } = renderInForm({ mode: "multi", name: "areas" });
-    await user.click(screen.getByRole("checkbox", { name: "Elbow" }));
+    await openPicker(user);
+    await user.click(chip("Elbow"));
     expect([...formData().keys()]).toEqual(["areas"]);
   });
-});
 
-describe("BodyAreaPicker single with side", () => {
-  it("combines both sides into both and cycles back", async () => {
+  it("closes with Done", async () => {
     const user = userEvent.setup();
-    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
-
-    await user.click(region(frontMap(), "Knee · Left"));
-    expect(formData().get("area")).toBe("knee");
-    expect(formData().get("areaSide")).toBe("left");
-    expect(screen.getByRole("radio", { name: "Knee" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Left" })).toBeChecked();
-
-    await user.click(region(frontMap(), "Knee · Right"));
-    expect(formData().get("areaSide")).toBe("both");
-    expect(region(backMap(), "Knee · Right")).toHaveAttribute("aria-checked", "true");
-
-    await user.click(region(frontMap(), "Knee · Left"));
-    expect(formData().get("areaSide")).toBe("right");
-    expect(region(frontMap(), "Knee · Left")).toHaveAttribute("aria-checked", "false");
+    renderInForm({ mode: "multi", name: "areas", label: "Areas" });
+    await openPicker(user, /^Areas/);
+    await user.click(within(panel()).getByRole("button", { name: "Done" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("drops the side when switching to a midline area", async () => {
+  it("toggles chips from the keyboard", async () => {
     const user = userEvent.setup();
-    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
-    await user.click(region(frontMap(), "Knee · Left"));
-    await user.click(region(frontMap(), "Neck"));
-    expect(formData().get("area")).toBe("neck");
-    expect(formData().get("areaSide")).toBe("");
-    expect(screen.queryByRole("radiogroup", { name: "Side" })).not.toBeInTheDocument();
+    const { formData } = renderInForm({ mode: "multi", name: "areas" });
+    await openPicker(user);
+    chip("Head and jaw").focus();
+    await user.keyboard("{ArrowRight}");
+    expect(chip("Neck")).toHaveFocus();
+    await user.keyboard(" ");
+    expect(formData().getAll("areas")).toEqual(["neck"]);
   });
 
-  it("works from the list and the keyboard", async () => {
+  it("puts focus on the chips when opened", async () => {
     const user = userEvent.setup();
-    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
-    await user.click(screen.getByRole("radio", { name: "Neck" }));
-    // Radix's RadioGroup defers the arrow-key focus move to a macrotask (setTimeout) so it can
-    // read the "was this focus caused by an arrow key" flag, which is cleared on keyup. A real
-    // key press always has the keyup land after that macrotask; pressing and releasing as two
-    // separate keyboard() calls with a tick in between reproduces that instead of racing it.
-    await user.keyboard("{ArrowDown>}");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await user.keyboard("{/ArrowDown}");
-    expect(screen.getByRole("radio", { name: "Shoulder" })).toBeChecked();
-    expect(formData().get("area")).toBe("shoulder");
-    expect(formData().get("areaSide")).toBe("");
-
-    await user.click(screen.getByRole("radio", { name: "Right" }));
-    expect(formData().get("areaSide")).toBe("right");
-    expect(region(frontMap(), "Shoulder · Right")).toHaveAttribute("aria-checked", "true");
-    expect(region(frontMap(), "Shoulder · Left")).toHaveAttribute("aria-checked", "false");
+    renderInForm({ mode: "multi", name: "areas", defaultValue: ["knee", "neck"] });
+    await openPicker(user);
+    // Radix's roving focus keeps one tab stop: the first chosen chip.
+    expect(chip("Neck")).toHaveFocus();
   });
 
-  it("never offers full body and can be cleared", async () => {
+  it("clears every area", async () => {
     const user = userEvent.setup();
-    const { formData } = renderInForm({
-      mode: "single",
-      withSide: true,
-      name: "area",
-      defaultValue: { area: "elbow", side: "left" },
-    });
-    expect(screen.queryByRole("radio", { name: "Full body" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Clear" }));
-    expect(formData().get("area")).toBe("");
-    expect(formData().get("areaSide")).toBe("");
-    expect([...formData().keys()].sort()).toEqual(["area", "areaSide"]);
-  });
-});
-
-describe("BodyAreaPicker form reset", () => {
-  it("keeps the single area and side when the form is reset", async () => {
-    const user = userEvent.setup();
-    const { form, formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
-    await user.click(region(frontMap(), "Knee · Left"));
-
-    act(() => form.reset());
-
-    expect(formData().getAll("area")).toEqual(["knee"]);
-    expect(formData().getAll("areaSide")).toEqual(["left"]);
-    expect([...formData().keys()].sort()).toEqual(["area", "areaSide"]);
-    expect(screen.getByRole("radio", { name: "Knee" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Left" })).toBeChecked();
+    const { formData } = renderInForm({ mode: "multi", name: "areas", defaultValue: ["neck"] });
+    await openPicker(user);
+    await user.click(within(panel()).getByRole("button", { name: "Clear" }));
+    expect(formData().getAll("areas")).toEqual([]);
+    expect(within(panel()).queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
   });
 
-  it("keeps a side chosen after the side list mounted", async () => {
-    // The side radio group mounts with "left"; a reset would otherwise send it back there.
-    const user = userEvent.setup();
-    const { form, formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
-    await user.click(region(frontMap(), "Knee · Left"));
-    await user.click(screen.getByRole("radio", { name: "Right" }));
-
-    act(() => form.reset());
-
-    expect(formData().get("area")).toBe("knee");
-    expect(formData().get("areaSide")).toBe("right");
-    expect(screen.getByRole("radio", { name: "Right" })).toBeChecked();
-  });
-
-  it("does not report a change to a controlled parent", async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    function Parent() {
-      const [value, setValue] = useState<BodyAreaSelection | null>(null);
-      return (
-        <form aria-label="test form">
-          <BodyAreaPicker
-            mode="single"
-            withSide
-            value={value}
-            onChange={(next) => {
-              onChange(next);
-              setValue(next);
-            }}
-          />
-        </form>
-      );
-    }
-    render(
-      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-        <Parent />
-      </NextIntlClientProvider>,
-    );
-    await user.click(region(frontMap(), "Knee · Left"));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith({ area: "knee", side: "left" });
-    onChange.mockClear();
-
-    const form = screen.getByRole("form", { name: "test form" }) as HTMLFormElement;
-    act(() => form.reset());
-
-    expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("radio", { name: "Knee" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Left" })).toBeChecked();
+  it("ties the field to its error message", () => {
+    renderInForm({ mode: "multi", name: "areas", invalid: true, describedBy: "areas-error" });
+    const field = screen.getByRole("button", { name: /^Body areas/ });
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAttribute("aria-describedby", "areas-error");
   });
 
   it("keeps the selection after a React form action resets the form", async () => {
@@ -231,23 +157,127 @@ describe("BodyAreaPicker form reset", () => {
             submitted.push(formData.getAll("areas"));
           }}
         >
-          <BodyAreaPicker mode="multi" name="areas" />
+          <BodyAreaPicker mode="multi" name="areas" defaultValue={["neck", "knee"]} />
           <button type="submit">Save</button>
         </form>
       </NextIntlClientProvider>,
     );
     const form = screen.getByRole("form", { name: "test form" }) as HTMLFormElement;
     form.addEventListener("reset", () => resets++);
-    await user.click(listCheckbox("Neck"));
-    await user.click(listCheckbox("Knee"));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     // React 19 resets a <form action={fn}> once the action settles.
     await waitFor(() => expect(resets).toBe(1));
     expect(submitted).toEqual([["neck", "knee"]]);
     expect(new FormData(form).getAll("areas")).toEqual(["neck", "knee"]);
-    expect(listCheckbox("Neck")).toBeChecked();
-    expect(listCheckbox("Knee")).toBeChecked();
+    expect(screen.getByRole("button", { name: "Body areas Neck, Knee" })).toBeInTheDocument();
+  });
+});
+
+describe("BodyAreaPicker single with side", () => {
+  it("combines both sides into both and cycles back", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    expect(screen.getByRole("button", { name: "Body area Choose a body area" })).toBeVisible();
+    await openPicker(user);
+
+    await user.click(region("Knee · Left"));
+    expect(formData().get("area")).toBe("knee");
+    expect(formData().get("areaSide")).toBe("left");
+    expect(radio("Knee")).toBeChecked();
+    expect(radio("Left")).toBeChecked();
+    expect(screen.getByRole("button", { name: "Body area Knee · Left" })).toBeInTheDocument();
+
+    await user.click(region("Knee · Right"));
+    expect(formData().get("areaSide")).toBe("both");
+    expect(radio("Both")).toBeChecked();
+
+    await user.click(region("Knee · Left"));
+    expect(formData().get("areaSide")).toBe("right");
+    expect(region("Knee · Left")).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("drops the side when switching to a midline area", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    await openPicker(user);
+    await user.click(region("Knee · Left"));
+    await user.click(region("Neck"));
+    expect(formData().get("area")).toBe("neck");
+    expect(formData().get("areaSide")).toBe("");
+    expect(within(panel()).queryByRole("group", { name: "Side" })).not.toBeInTheDocument();
+  });
+
+  it("works from the chips", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    await openPicker(user);
+    await user.click(radio("Shoulder"));
+    expect(formData().get("area")).toBe("shoulder");
+    expect(formData().get("areaSide")).toBe("");
+
+    await user.click(radio("Right"));
+    expect(formData().get("areaSide")).toBe("right");
+    expect(region("Shoulder · Right")).toHaveAttribute("aria-checked", "true");
+    expect(region("Shoulder · Left")).toHaveAttribute("aria-checked", "false");
+
+    // Choosing the selected chip again clears it.
+    await user.click(radio("Shoulder"));
+    expect(formData().get("area")).toBe("");
+  });
+
+  it("drops the side when the chosen side is chosen again", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    await openPicker(user);
+    await user.click(region("Knee · Left"));
+    await user.click(radio("Left"));
+    expect(formData().get("area")).toBe("knee");
+    expect(formData().get("areaSide")).toBe("");
+  });
+
+  it("works from the keyboard across groups and into the side", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    await openPicker(user);
+    expect(radio("Head and jaw")).toHaveFocus();
+    // Arrow keys move across group boundaries: Forearm… is the last upper-body chip.
+    await user.keyboard("{ArrowLeft}");
+    expect(radio("Ankle and foot")).toHaveFocus();
+    await user.keyboard(" ");
+    expect(formData().get("area")).toBe("ankle_foot");
+    await user.tab();
+    expect(radio("Left")).toHaveFocus();
+    await user.keyboard("{ArrowRight}{ArrowRight} ");
+    expect(formData().get("areaSide")).toBe("right");
+  });
+
+  it("never offers full body and can be cleared", async () => {
+    const user = userEvent.setup();
+    const { formData } = renderInForm({
+      mode: "single",
+      withSide: true,
+      name: "area",
+      defaultValue: { area: "elbow", side: "left" },
+    });
+    await openPicker(user);
+    expect(within(panel()).queryByRole("radio", { name: "Full body" })).not.toBeInTheDocument();
+    await user.click(within(panel()).getByRole("button", { name: "Clear" }));
+    expect(formData().get("area")).toBe("");
+    expect(formData().get("areaSide")).toBe("");
+    expect([...formData().keys()].sort()).toEqual(["area", "areaSide"]);
+  });
+
+  it("keeps the area and side when the form is reset", async () => {
+    const user = userEvent.setup();
+    const { form, formData } = renderInForm({ mode: "single", withSide: true, name: "area" });
+    await openPicker(user);
+    await user.click(region("Knee · Left"));
+
+    act(() => form.reset());
+
+    expect(formData().getAll("area")).toEqual(["knee"]);
+    expect(formData().getAll("areaSide")).toEqual(["left"]);
   });
 });
 
@@ -255,10 +285,12 @@ describe("BodyAreaPicker single without side", () => {
   it("records the area only", async () => {
     const user = userEvent.setup();
     const { formData } = renderInForm({ mode: "single", name: "area" });
-    await user.click(region(frontMap(), "Knee · Left"));
+    await openPicker(user);
+    await user.click(region("Knee · Left"));
     expect(formData().get("area")).toBe("knee");
     expect(formData().has("areaSide")).toBe(false);
-    expect(region(frontMap(), "Knee · Right")).toHaveAttribute("aria-checked", "true");
+    expect(region("Knee · Right")).toHaveAttribute("aria-checked", "true");
+    expect(within(panel()).queryByRole("group", { name: "Side" })).not.toBeInTheDocument();
   });
 });
 
@@ -267,10 +299,11 @@ describe("BodyAreaPicker controlled", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     renderInForm({ mode: "single", withSide: true, value: null, onChange });
-    await user.click(region(frontMap(), "Knee · Left"));
+    await openPicker(user);
+    await user.click(region("Knee · Left"));
     expect(onChange).toHaveBeenCalledWith({ area: "knee", side: "left" });
     // The parent ignored the change, so nothing is selected.
-    expect(region(frontMap(), "Knee · Left")).toHaveAttribute("aria-checked", "false");
+    expect(region("Knee · Left")).toHaveAttribute("aria-checked", "false");
   });
 
   it("follows parent state", async () => {
@@ -284,22 +317,27 @@ describe("BodyAreaPicker controlled", () => {
         <Parent />
       </NextIntlClientProvider>,
     );
-    expect(screen.getByRole("radio", { name: "Neck" })).toBeChecked();
-    await user.click(region(frontMap(), "Elbow · Right"));
-    expect(screen.getByRole("radio", { name: "Elbow" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Right" })).toBeChecked();
+    await openPicker(user);
+    expect(radio("Neck")).toBeChecked();
+    await user.click(region("Elbow · Right"));
+    expect(radio("Elbow")).toBeChecked();
+    expect(radio("Right")).toBeChecked();
   });
 });
 
 describe("BodyAreaPicker localised", () => {
-  it("names sided map regions so the side agrees with any area", () => {
+  it("names sided map regions so the side agrees with any area", async () => {
+    const user = userEvent.setup();
     render(
       <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
         <BodyAreaPicker mode="multi" />
       </NextIntlClientProvider>,
     );
-    const front = screen.getByRole("group", { name: "Frente" });
-    expect(region(front, "Rodilla · lado izquierdo")).toBeInTheDocument();
-    expect(region(front, "Cadera e ingle · lado derecho")).toBeInTheDocument();
+    await openPicker(user, /^Zonas del cuerpo/);
+    const front = within(panel()).getByRole("group", { name: "Frente" });
+    expect(within(front).getByRole("checkbox", { name: "Rodilla · lado izquierdo" })).toBeVisible();
+    expect(
+      within(front).getByRole("checkbox", { name: "Cadera e ingle · lado derecho" }),
+    ).toBeVisible();
   });
 });

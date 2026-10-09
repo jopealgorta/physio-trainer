@@ -52,6 +52,26 @@ describe("BodyMap", () => {
     );
   });
 
+  it("reports the hovered region and clears it on leave", async () => {
+    const user = userEvent.setup();
+    const onRegionHover = vi.fn();
+    renderMap({ onRegionHover });
+    const knee = screen.getByRole("checkbox", { name: "Knee · Left" });
+    await user.hover(knee);
+    expect(onRegionHover).toHaveBeenLastCalledWith(
+      expect.objectContaining({ area: "knee", side: "left" }),
+    );
+    await user.unhover(knee);
+    expect(onRegionHover).toHaveBeenLastCalledWith(null);
+  });
+
+  it("draws regions as paths", () => {
+    renderMap();
+    const knee = screen.getByRole("checkbox", { name: "Knee · Left" });
+    expect(knee.tagName).toBe("path");
+    expect(knee.getAttribute("d")).toMatch(/^M/);
+  });
+
   it("keeps regions out of the tab order", () => {
     renderMap();
     for (const region of screen.getAllByRole("checkbox")) {
