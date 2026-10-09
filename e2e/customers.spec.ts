@@ -175,6 +175,25 @@ test("searching customers ignores case and accents", async ({ physioPage: page }
   await expect(ana).toHaveCount(1);
 });
 
+test("saving an edit returns to the customer; Cancel leaves it unchanged", async ({
+  physioPage: page,
+}) => {
+  const path = await createCustomer(page, "Ana", "Ruiz");
+
+  await page.goto(`${path}/edit`);
+  await page.getByLabel("Last name").fill("Ruiz Pérez");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(CUSTOMER_URL);
+  expect(new URL(page.url()).pathname).toBe(path);
+  await expect(page.getByRole("heading", { level: 1, name: "Ana Ruiz Pérez" })).toBeVisible();
+
+  await page.goto(`${path}/edit`);
+  await page.getByLabel("Last name").fill("Discarded");
+  await page.getByRole("link", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(CUSTOMER_URL);
+  await expect(page.getByRole("heading", { level: 1, name: "Ana Ruiz Pérez" })).toBeVisible();
+});
+
 test("archiving a customer hides them until restored", async ({ physioPage: page }) => {
   await createCustomer(page, "José", "García");
   const other = await createCustomer(page, "Ana");

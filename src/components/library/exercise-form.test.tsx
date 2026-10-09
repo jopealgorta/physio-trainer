@@ -38,7 +38,11 @@ const defaults: ExerciseFormValues = {
 function setup(
   action: (state: ExerciseFormState, formData: FormData) => Promise<ExerciseFormState>,
   values: Partial<ExerciseFormValues> = {},
-  props: { submitLabel?: string } = {},
+  props: {
+    submitLabel?: string;
+    cancel?: { href: string } | { onClick: () => void };
+    returnTo?: string;
+  } = {},
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
@@ -46,6 +50,7 @@ function setup(
         action={action}
         defaults={{ ...defaults, ...values }}
         categories={categories}
+        cancel={{ href: "/library" }}
         {...props}
       />
     </NextIntlClientProvider>,
@@ -228,13 +233,27 @@ describe("ExerciseForm", () => {
     expect(screen.getByLabelText("Categories")).toHaveTextContent("Upper limb");
   });
 
-  it("announces a successful save", async () => {
+  it("offers Cancel back to the library", () => {
+    setup(idleAction(), { id: "abc", name: "Bridge" });
+    expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/library");
+  });
+
+  it("posts where to return after saving", async () => {
     const user = userEvent.setup();
-    const action = vi.fn(async (): Promise<ExerciseFormState> => ({ status: "saved" }));
-    setup(action, { id: "abc", name: "Bridge" });
+    const action = idleAction();
+    setup(action, { id: "abc", name: "Bridge" }, { returnTo: "/routines/r-1" });
     await user.click(screen.getByRole("button", { name: "Save changes" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
-    expect(screen.getByLabelText("Name")).toHaveValue("Bridge");
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    const formData = (action.mock.calls[0] as unknown[])[1] as FormData;
+    expect(formData.get("returnTo")).toBe("/routines/r-1");
+  });
+
+  it("closes instead of navigating in a dialog", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    setup(idleAction(), {}, { cancel: { onClick } });
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onClick).toHaveBeenCalledOnce();
   });
 
   it("shows the not-found alert", async () => {
@@ -247,24 +266,5 @@ describe("ExerciseForm", () => {
     setup(action, { id: "abc", name: "Bridge" });
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("This exercise no longer exists.");
-  });
-
-  it("keeps the saved state when refreshed defaults arrive", async () => {
-    const user = userEvent.setup();
-    const action = vi.fn(async (): Promise<ExerciseFormState> => ({ status: "saved" }));
-    const ui = (name: string) => (
-      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-        <ExerciseForm
-          action={action}
-          defaults={{ ...defaults, id: "abc", name }}
-          categories={categories}
-        />
-      </NextIntlClientProvider>
-    );
-    const { rerender } = render(ui("Bridge"));
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
-    rerender(ui("Bridge"));
-    expect(screen.getByRole("status")).toHaveTextContent("Saved");
   });
 });

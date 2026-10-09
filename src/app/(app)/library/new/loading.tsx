@@ -2,7 +2,7 @@ import { FormSkeleton, HeaderSkeleton, LoadingPage } from "@/components/skeleton
 
 export default function Loading() {
   return (
-    <LoadingPage className="gap-6">
+    <LoadingPage>
       <HeaderSkeleton back />
       <FormSkeleton fields={5} />
     </LoadingPage>

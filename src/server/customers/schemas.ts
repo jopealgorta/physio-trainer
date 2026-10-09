@@ -158,7 +158,6 @@ export type CaseFieldErrors = Partial<Record<CaseField | "closedOn", string>>;
 
 export type CustomerFormState =
   | { status: "idle" }
-  | { status: "saved" }
   | { status: "error"; fieldErrors: CustomerFieldErrors; formError?: "notFound" | "unknown" };
 export type CaseFormState =
   | { status: "idle" }

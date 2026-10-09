@@ -67,12 +67,13 @@ export default async function RoutinePage({
     ) : (
       <SaveAsTemplateDialog kind="routine" sourceId={routine.id} defaultName={routine.name} />
     ),
-    // A template has no customer to share with.
+    // A template has no customer to share with or export for.
     actions: routine.isTemplate ? null : (
-      <>
-        <ExportMenu target={{ kind: "routines", id: routine.id }} />
-        <ShareButton target={{ target: "routine", routineId: routine.id }} />
-      </>
+      <ExportMenu target={{ kind: "routines", id: routine.id }} />
+    ),
+    // Share is the main action, as on the plan page (Save is in the editor's footer).
+    primary: routine.isTemplate ? null : (
+      <ShareButton primary target={{ target: "routine", routineId: routine.id }} />
     ),
     // Phases belong to a customer's routine, not to a template.
     phase:

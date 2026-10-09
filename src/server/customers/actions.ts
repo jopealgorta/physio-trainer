@@ -47,18 +47,17 @@ export async function saveCustomerAction(
   if (!parsed.success) return { status: "error", fieldErrors: customerFieldErrors(parsed.error) };
 
   const result = await withPhysio(
-    async (tx, physioId): Promise<Result<{ id: string | null }, "notFound">> => {
+    async (tx, physioId): Promise<Result<{ id: string }, "notFound">> => {
       if (id) {
         const updated = await updateCustomer(tx, physioId, id.data, parsed.data);
-        return updated.ok ? { ok: true, data: { id: null } } : updated;
+        return updated.ok ? { ok: true, data: { id: id.data } } : updated;
       }
       return createCustomer(tx, physioId, parsed.data);
     },
   );
   if (!result.ok) return { status: "error", fieldErrors: {}, formError: "notFound" };
   revalidateCustomers();
-  if (result.data.id) redirect(`/customers/${result.data.id}`);
-  return { status: "saved" };
+  redirect(`/customers/${result.data.id}`);
 }
 
 export async function setCustomerArchivedAction(

@@ -30,7 +30,7 @@ export type NewExerciseStart = { name: string; categoryIds: string[]; bodyAreas:
  * the library like any other and handed to `onCreated`, which adds it to the routine. Inside the
  * picker's bottom sheet it is a nested sheet; beside the editor it is a dialog. Closing unmounts
  * the form, so each opening starts fresh. Neither scroller pads its bottom: the form's pinned
- * submit row does, and it would otherwise stop short of the edge.
+ * footer does, and it would otherwise stop short of the edge.
  */
 export function CreateExerciseDialog({
   open,
@@ -66,6 +66,7 @@ export function CreateExerciseDialog({
   const form = (
     <ExerciseForm
       compact
+      cancel={{ onClick: () => onOpenChange(false) }}
       action={action}
       categories={categories}
       submitLabel={t("createSubmit")}
@@ -81,7 +82,12 @@ export function CreateExerciseDialog({
             <DrawerTitle>{t("createTitle")}</DrawerTitle>
             <DrawerDescription>{t("createDescription")}</DrawerDescription>
           </DrawerHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6">{form}</div>
+          <div
+            data-slot="form-scroll"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6"
+          >
+            {form}
+          </div>
         </DrawerContent>
       </DrawerNested>
     );
@@ -95,7 +101,9 @@ export function CreateExerciseDialog({
           <DialogTitle>{t("createTitle")}</DialogTitle>
           <DialogDescription>{t("createDescription")}</DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-6">{form}</div>
+        <div data-slot="form-scroll" className="min-h-0 overflow-y-auto overscroll-contain px-6">
+          {form}
+        </div>
       </DialogContent>
     </Dialog>
   );

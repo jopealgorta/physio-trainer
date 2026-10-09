@@ -119,17 +119,31 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
-/** A bordered block of labelled fields. */
-export function FormSkeleton({ fields = 4, className }: { fields?: number; className?: string }) {
+/** Labelled fields at form width, and (unless `footer={false}`) the Cancel/Save row. */
+export function FormSkeleton({
+  fields = 4,
+  footer = true,
+  className,
+}: {
+  fields?: number;
+  /** The Cancel/Save row; an editor's footer is pinned below its other content instead. */
+  footer?: boolean;
+  className?: string;
+}) {
   return (
-    <div className={cn("grid gap-5 rounded-lg border p-6", className)}>
+    <div className={cn("grid max-w-2xl gap-4", className)}>
       {times(fields).map((index) => (
-        <div key={index} className="grid gap-2">
+        <div key={index} className="grid gap-1.5">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-9 w-full" />
         </div>
       ))}
-      <Skeleton className="h-9 w-28" />
+      {footer ? (
+        <div className="flex justify-end gap-2 border-t pt-3">
+          <Skeleton className="h-9 w-20" />
+          <Skeleton className="h-9 w-28" />
+        </div>
+      ) : null}
     </div>
   );
 }

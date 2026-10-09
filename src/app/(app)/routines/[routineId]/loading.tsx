@@ -14,7 +14,7 @@ export default function Loading() {
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="grid min-w-0 gap-4">
-          <FormSkeleton fields={3} />
+          <FormSkeleton fields={3} footer={false} className="max-w-none" />
           <ListSkeleton rows={4} />
         </div>
         <div className="hidden gap-3 rounded-lg border p-4 lg:grid">

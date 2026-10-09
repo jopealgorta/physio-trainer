@@ -21,6 +21,7 @@ export default async function NewCustomerPage() {
       <PageHeader back={{ href: "/customers", label: t("back") }} title={t("newTitle")} />
       <CustomerForm
         action={saveCustomerAction}
+        cancelHref="/customers"
         defaults={{
           firstName: "",
           lastName: null,

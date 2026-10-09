@@ -2,8 +2,8 @@ import { FormSkeleton, HeaderSkeleton, LoadingPage, TabsSkeleton } from "@/compo
 
 export default function Loading() {
   return (
-    <LoadingPage className="gap-6">
-      <div className="grid gap-4">
+    <LoadingPage>
+      <div className="grid gap-3">
         <HeaderSkeleton />
         <TabsSkeleton count={3} />
       </div>

@@ -219,6 +219,12 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* A form's pinned footer (form-layout.tsx) must not hide what focus or a scroll brings into
+     view: whatever scrolls the form keeps that much room at its bottom edge. */
+  html:has([data-slot="form-footer"]),
+  [data-slot="form-scroll"]:has([data-slot="form-footer"]) {
+    scroll-padding-bottom: 5rem;
+  }
   html {
     @apply font-sans;
   }

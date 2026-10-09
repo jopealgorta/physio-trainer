@@ -70,13 +70,7 @@
   },
   "Settings": {
     "title": "Settings",
-    "profile": {
-      "title": "Profile",
-      "description": "Your name, handle, language and timezone."
-    },
     "account": {
-      "title": "Account",
-      "description": "You sign in with this email.",
       "email": "Email",
       "signOut": "Sign out"
     },
@@ -87,8 +81,6 @@
       "account": "Account"
     },
     "branding": {
-      "title": "Branding",
-      "description": "How your clinic looks to patients: on their page, in shared links and in PDFs.",
       "clinicName": "Clinic or practice name",
       "clinicNameHint": "Shown to patients. Leave empty to use your name ({name}).",
       "logo": "Logo",
@@ -305,7 +297,6 @@
       "create": "Create exercise",
       "save": "Save changes",
       "saving": "Saving…",
-      "saved": "Saved",
       "back": "Back to library",
       "errors": {
         "nameRequired": "Enter a name.",
@@ -483,7 +474,6 @@
       "create": "Create customer",
       "save": "Save changes",
       "saving": "Saving…",
-      "saved": "Saved",
       "back": "Back to customers",
       "sexes": {
         "female": "Female",
@@ -590,7 +580,6 @@
     "create": "Create case",
     "save": "Save case",
     "saving": "Saving…",
-    "saved": "Saved",
     "cancel": "Cancel",
     "errors": {
       "nameRequired": "Enter a title.",
@@ -860,7 +849,6 @@
         "days": "{count, plural, one {# training day} other {# training days}}"
       },
       "details": {
-        "title": "Plan details",
         "nameHint": "Shown as the title in the link preview when you share it.",
         "status": "Status",
         "case": "Case",
@@ -1777,5 +1765,9 @@
   },
   "Loading": {
     "label": "Loading…"
+  },
+  "Form": {
+    "cancel": "Cancel",
+    "notSaved": "Not saved. See the message above."
   }
 }

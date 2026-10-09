@@ -20,7 +20,11 @@ vi.mock("@/server/routines/actions", () => ({
   saveRoutineAction,
   searchExercisesAction: vi.fn(),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+  usePathname: () => "/routines/r-1",
+  useSearchParams: () => new URLSearchParams(),
+}));
 const { createExerciseForRoutineAction } = vi.hoisted(() => ({
   createExerciseForRoutineAction: vi.fn(),
 }));
@@ -160,6 +164,16 @@ beforeEach(() => {
 });
 
 describe("RoutineEditor", () => {
+  it("keeps Save and the save state in the pinned footer, after the blocks", () => {
+    setup();
+    const footer = save().closest('[data-slot="form-footer"]');
+    expect(footer).not.toBeNull();
+    expect(footer).toContainElement(saveStatus());
+    expect(screen.getByText("Squat").compareDocumentPosition(footer!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it("shows the customer as a link, the block list and the picker", () => {
     setup();
     expect(screen.getByRole("link", { name: "Ana Pérez" })).toHaveAttribute(
@@ -466,6 +480,8 @@ describe("RoutineEditor", () => {
     await user.click(save());
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("This routine changed in another tab. Reload?");
+    // Save is in the footer, far from the alert: the footer says where to look.
+    expect(saveStatus()).toHaveTextContent("Not saved. See the message above.");
     await user.click(screen.getByRole("button", { name: "Reload" }));
     expect(refresh).toHaveBeenCalledTimes(1);
   });

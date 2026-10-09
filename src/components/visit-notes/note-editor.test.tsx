@@ -29,7 +29,7 @@ type Action = (state: VisitNoteFormState, formData: FormData) => Promise<VisitNo
 
 function setup(
   action: Action,
-  props: { values?: Partial<NoteFormValues>; onSaved?: () => void } = {},
+  props: { values?: Partial<NoteFormValues>; onSaved?: () => void; onCancel?: () => void } = {},
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
@@ -39,6 +39,7 @@ function setup(
         cases={cases}
         defaults={{ ...defaults, ...props.values }}
         onSaved={props.onSaved}
+        onCancel={props.onCancel ?? (() => {})}
       />
     </NextIntlClientProvider>,
   );
@@ -208,6 +209,16 @@ describe("NoteEditor", () => {
       await user.click(screen.getByRole("button", { name: "Save note" }));
       await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
       expect(localStorage.getItem(NEW_KEY)).toBeNull();
+    });
+
+    it("keeps the draft when cancelled", async () => {
+      const user = userEvent.setup();
+      const onCancel = vi.fn();
+      setup(idleAction(), { onCancel });
+      await user.type(screen.getByLabelText("S · Subjective"), "Knee pain");
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(onCancel).toHaveBeenCalledOnce();
+      expect(localStorage.getItem(NEW_KEY)).not.toBeNull();
     });
 
     it("keeps the draft when the save fails", async () => {

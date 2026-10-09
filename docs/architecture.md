@@ -233,7 +233,34 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   return a typed result (`{ ok: true, data } | { ok: false, error }`). No business logic in
   components or actions.
 - **Forms**: native `<form action>` + `useActionState`; the same zod schema validates client
-  hints and the server.
+  hints and the server. Every form uses the shell in `src/components/form-layout.tsx`:
+  - Fields go in `FormBody`, which sets one width (`max-w-2xl`) and `gap-4`. Each label,
+    control and hint sits in a `Field`, and short fields are paired in a `FieldRow` (two
+    columns from `sm`).
+  - Actions go in a sticky `FormFooter`: a status on the left ("Saved", "Unsaved changes", a
+    shortcut hint; an `aria-live` region, see `formStatus()` in `src/test/form.ts`) and
+    `[Cancel] [Save]` on the right.
+  - Use `variant="page"` in `<main>` and `"panel"` in a sheet or dialog. A sheet or dialog's
+    scroll box is `min-h-0 overflow-y-auto px-6` with no bottom padding, and carries
+    `data-slot="form-scroll"`. `globals.css` gives it, and the page, a `scroll-padding-bottom`
+    so focused fields stay clear of the footer.
+  - `FieldRow` pairs on a container query (`@lg`), so it stays one column in a narrow card
+    such as onboarding.
+  - Where Save takes you:
+    - A customer's form lands on that customer's page (a new one too). Cancel goes back to
+      where the form came from: the customer, or the list for a new one.
+    - The exercise form returns to the page it was opened from, both after Save and on
+      Cancel. That page is passed as `?from=`: `exerciseHref`/`exerciseReturnPath` in
+      `src/lib/exercise-return.ts`, validated with `safeNextPath`, defaulting to `/library`.
+      Library result links carry their filters this way, and so does "Open exercise" in a
+      routine.
+    - Sheets and dialogs close.
+    - Settings and the routine/plan editors stay on the page and say "Saved". Settings forms
+      have Save only (there is nowhere to cancel to). Editors use `wide`, Save only.
+    - When a save is refused, the footer says "Not saved. See the message above." (the
+      editors show their errors at the top).
+  - Login and onboarding are short centred cards with one full-width button. Dialogs use
+    `DialogFooter` with `[Cancel] [Primary]`.
 - **Strings**: every user-visible string goes in **every** `messages/<locale>.json` under a
   namespace per feature, in the same change (`src/i18n/messages.test.ts` enforces same keys,
   ICU arguments and tags). No hard-coded copy in components. Dates, numbers and lists use
@@ -259,10 +286,11 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   (`src/components/page-header.tsx`): the way back (`back`, a `BackLink`), the title (a string
   becomes the `h1`; a detail page passes its `EditableTitle`), `meta` under it (badges, age,
   "From template") and `description` on list pages. On the right, `primary` is the page's one
-  filled button (New…, Share, Save), shown at every size; `actions` are the rest, `outline`
-  buttons with an icon, in the order Edit, templates, History, Export, Share. Sections inside a
-  page use `SectionHeader` (h2, description, actions); forms end with `FormActions` (submit and
-  an always-mounted status). Don't hand-roll a back link, header row or form footer.
+  filled button (New…, Share), shown at every size; `actions` are the rest, `outline` buttons
+  with an icon, in the order Edit, templates, History, Export, Share. Save is never in the
+  header: every form, the routine and plan editors included, ends with the pinned `FormFooter`
+  (see **Forms**). Sections inside a page use `SectionHeader` (h2, description, actions). Don't
+  hand-roll a back link, header row or form footer.
 - **Page actions (the "⋯" menu)**: a detail page wraps its header in `PageActions`
   (`src/components/page-actions.tsx`). Each control calls `usePageAction` to appear in the "⋯"
   `PageActionsMenu`, and `usePageNotice` for what it says inline (errors, "Version restored.").

@@ -7,7 +7,6 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { EditableTitle } from "@/components/editable-title";
 import { PageActions } from "@/components/page-actions";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -51,17 +50,19 @@ export type HeaderSlots = {
   meta?: ReactNode;
   /** Before History: Save as template, or a template's own actions. */
   templates?: ReactNode;
-  /** After History: Export and Share. */
+  /** After History: Export (and Share when it is not the main action). */
   actions?: ReactNode;
+  /** The page's one filled button (Share); Save is in the editor's pinned footer. */
+  primary?: ReactNode;
   /** The phase bar, under the header. */
   phase?: ReactNode;
 };
 
 /**
- * Name, status, case, frequency and notes, plus the Save button and its saved/unsaved state, and
- * the page's controls around them, in the page header every detail page has (`PageHeader`): the
- * way back; the title; templates, History, Export and Share (the "⋯" menu on phones); the save
- * state and Save, the main action, at every size. Then the phase and the fields.
+ * Name, status, case, frequency and notes, and the page's controls around them, in the page
+ * header every detail page has (`PageHeader`): the way back; the title; templates, History and
+ * Export (the "⋯" menu on phones); Share, the main action, at every size. Then the phase and the
+ * fields. Save and its saved/unsaved state are in the editor's pinned footer, like every form's.
  */
 export function RoutineHeader({
   values,
@@ -71,10 +72,6 @@ export function RoutineHeader({
   customerId,
   customerName,
   cases,
-  dirty,
-  saving,
-  saved,
-  onSave,
   focusToken,
   actions,
   top = {},
@@ -87,11 +84,6 @@ export function RoutineHeader({
   customerId: string | null;
   customerName: string | null;
   cases: { id: string; title: string }[];
-  dirty: boolean;
-  saving: boolean;
-  /** The last save succeeded and nothing changed since. */
-  saved: boolean;
-  onSave: () => void;
   /** Bumped by the editor when a save is refused, to move focus to the first invalid field. */
   focusToken: number;
   /** The History button, between the template actions and Export. */
@@ -129,7 +121,6 @@ export function RoutineHeader({
 
   const statuses = isTemplate ? TEMPLATE_STATUSES : ROUTINE_STATUSES;
   const caseTitles = new Map(cases.map((item) => [item.id, item.title]));
-  const indicator = saving ? "" : dirty ? t("unsaved") : saved ? t("saved") : "";
 
   return (
     <PageActions>
@@ -181,25 +172,12 @@ export function RoutineHeader({
               {top.actions}
             </>
           }
-          primary={
-            <div className="flex items-center gap-3">
-              <p
-                role="status"
-                data-testid="save-status"
-                className="text-muted-foreground text-xs sm:text-sm"
-              >
-                {indicator}
-              </p>
-              <Button type="button" onClick={onSave} disabled={!dirty || saving}>
-                {saving ? t("saving") : t("save")}
-              </Button>
-            </div>
-          }
+          primary={top.primary}
         />
         {top.phase}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="grid content-start gap-2">
+          <div className="grid content-start gap-1.5">
             <Label htmlFor={`${id}-status`}>{t("status")}</Label>
             <Select
               value={values.status}
@@ -223,7 +201,7 @@ export function RoutineHeader({
           </div>
 
           {!isTemplate && cases.length > 0 ? (
-            <div className="grid content-start gap-2">
+            <div className="grid content-start gap-1.5">
               <Label htmlFor={`${id}-case`}>{t("case")}</Label>
               <Select
                 value={toSelectValue(values.caseId ?? "")}
@@ -249,7 +227,7 @@ export function RoutineHeader({
             </div>
           ) : null}
 
-          <div className="grid content-start gap-2">
+          <div className="grid content-start gap-1.5">
             <Label htmlFor={`${id}-sessionsPerWeek`}>{t("sessionsPerWeek")}</Label>
             <Input
               id={`${id}-sessionsPerWeek`}
@@ -263,7 +241,7 @@ export function RoutineHeader({
             {errorText("sessionsPerWeek")}
           </div>
 
-          <div className="grid content-start gap-2">
+          <div className="grid content-start gap-1.5">
             <Label htmlFor={`${id}-sessionsPerDay`}>{t("sessionsPerDay")}</Label>
             <Input
               id={`${id}-sessionsPerDay`}
@@ -278,11 +256,11 @@ export function RoutineHeader({
           </div>
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid gap-1.5">
           <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
           <Textarea
             id={`${id}-notes`}
-            rows={3}
+            rows={2}
             value={values.notes}
             onChange={(event) => onChange({ notes: event.target.value })}
             aria-invalid={invalid("notes")}

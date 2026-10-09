@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { cache } from "react";
 
+import { exerciseReturnPath } from "@/lib/exercise-return";
+import { firstParam } from "@/lib/search-params";
 import { ExerciseActions } from "@/components/library/exercise-actions";
 import { ExerciseForm } from "@/components/library/exercise-form";
 import { PageActions } from "@/components/page-actions";
@@ -31,7 +33,11 @@ export async function generateMetadata({
   return { title: loaded?.exercise.name };
 }
 
-export default async function ExerciseDetailPage({ params }: PageProps<"/library/[exerciseId]">) {
+export default async function ExerciseDetailPage({
+  params,
+  searchParams,
+}: PageProps<"/library/[exerciseId]">) {
+  const back = exerciseReturnPath(firstParam((await searchParams).from));
   const { exerciseId } = await params;
   const loaded = await loadExercise(exerciseId);
   if (!loaded) notFound();
@@ -41,7 +47,10 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
   return (
     <PageActions menuOnly>
       <div className="grid gap-6">
-        <PageHeader back={{ href: "/library", label: t("form.back") }} title={exercise.name} />
+        <PageHeader
+          back={{ href: back.startsWith("/library") ? back : "/library", label: t("form.back") }}
+          title={exercise.name}
+        />
         {/* Archive and Delete: in the header's "⋯" menu; their dialog and errors show here. */}
         <ExerciseActions
           id={exercise.id}
@@ -56,6 +65,8 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
         <ExerciseForm
           action={saveExerciseAction}
           categories={categories}
+          cancel={{ href: back }}
+          returnTo={back}
           defaults={{
             id: exercise.id,
             name: exercise.name,

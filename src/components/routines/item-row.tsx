@@ -1,7 +1,9 @@
 "use client";
 
 import { ChevronDownIcon, DumbbellIcon, EllipsisVerticalIcon } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { YouTubeThumbnail } from "@/components/library/youtube-thumbnail";
@@ -28,6 +30,7 @@ import {
   type EditorItem,
   type NewKey,
 } from "@/lib/routine-editor";
+import { exerciseHref } from "@/lib/exercise-return";
 import { cn } from "@/lib/utils";
 
 import type { SectionTarget } from "./block-list";
@@ -74,6 +77,10 @@ export function ItemRow({
   onMoveTo?: (sectionKey: string) => void;
 }) {
   const t = useTranslations("Routines.items");
+  // The exercise page returns here after saving (or cancelling).
+  const pathname = usePathname();
+  const query = useSearchParams()?.toString();
+  const here = pathname ? `${pathname}${query ? `?${query}` : ""}` : undefined;
   const tSections = useTranslations("Routines.sections");
   const tLibrary = useTranslations("Library");
   const summarize = useSummaryTranslator();
@@ -158,7 +165,7 @@ export function ItemRow({
               </DropdownMenuSub>
             ) : null}
             <DropdownMenuItem asChild>
-              <Link href={`/library/${item.exerciseId}`}>{t("openExercise")}</Link>
+              <Link href={exerciseHref(item.exerciseId, here) as Route}>{t("openExercise")}</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

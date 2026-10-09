@@ -70,13 +70,7 @@
   },
   "Settings": {
     "title": "Configuración",
-    "profile": {
-      "title": "Perfil",
-      "description": "Tu nombre, usuario, idioma y zona horaria."
-    },
     "account": {
-      "title": "Cuenta",
-      "description": "Ingresás con este email.",
       "email": "Email",
       "signOut": "Cerrar sesión"
     },
@@ -87,8 +81,6 @@
       "account": "Cuenta"
     },
     "branding": {
-      "title": "Marca",
-      "description": "Cómo ven tu consultorio tus pacientes: en su página, en los links compartidos y en los PDF.",
       "clinicName": "Nombre del consultorio o centro",
       "clinicNameHint": "Se muestra a tus pacientes. Dejalo vacío para usar tu nombre ({name}).",
       "logo": "Logo",
@@ -305,7 +297,6 @@
       "create": "Crear ejercicio",
       "save": "Guardar cambios",
       "saving": "Guardando…",
-      "saved": "Guardado",
       "back": "Volver a la biblioteca",
       "errors": {
         "nameRequired": "Ingresá un nombre.",
@@ -483,7 +474,6 @@
       "create": "Crear cliente",
       "save": "Guardar cambios",
       "saving": "Guardando…",
-      "saved": "Guardado",
       "back": "Volver a clientes",
       "sexes": {
         "female": "Femenino",
@@ -590,7 +580,6 @@
     "create": "Crear caso",
     "save": "Guardar caso",
     "saving": "Guardando…",
-    "saved": "Guardado",
     "cancel": "Cancelar",
     "errors": {
       "nameRequired": "Ingresá un título.",
@@ -860,7 +849,6 @@
         "days": "{count, plural, one {# día de entrenamiento} other {# días de entrenamiento}}"
       },
       "details": {
-        "title": "Detalles del plan",
         "nameHint": "Se muestra como título en la vista previa del enlace cuando lo compartís.",
         "status": "Estado",
         "case": "Caso",
@@ -1777,5 +1765,9 @@
   },
   "Loading": {
     "label": "Cargando…"
+  },
+  "Form": {
+    "cancel": "Cancelar",
+    "notSaved": "No se guardó. Mirá el mensaje de arriba."
   }
 }

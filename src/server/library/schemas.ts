@@ -142,7 +142,6 @@ export function exerciseFieldErrors(error: z.ZodError): ExerciseFieldErrors {
 
 export type ExerciseFormState =
   | { status: "idle" }
-  | { status: "saved" }
   /** Created from the routine editor, which adds it to the routine. */
   | { status: "created"; exercise: ExerciseRef }
   | { status: "error"; fieldErrors: ExerciseFieldErrors; formError?: "notFound" | "unknown" };

@@ -3,8 +3,9 @@
 import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useId, useState, type FormEvent } from "react";
 
-import { FormActions } from "@/components/form-actions";
+import { Field, FieldRow, FormBody, FormCancel, FormFooter } from "@/components/form-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -91,9 +92,12 @@ const DETAIL_FIELDS = [
 export function CustomerForm({
   action,
   defaults,
+  cancelHref,
 }: {
   action: (state: CustomerFormState, formData: FormData) => Promise<CustomerFormState>;
   defaults: CustomerFormValues;
+  /** Where Cancel goes: where the form was opened from (saving lands there too). */
+  cancelHref: string;
 }) {
   const t = useTranslations("Customers.form");
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -140,208 +144,221 @@ export function CustomerForm({
   }
 
   return (
-    <form action={formAction} onSubmit={onSubmit} noValidate className="grid max-w-2xl gap-6">
+    <form action={formAction} onSubmit={onSubmit} noValidate className="grid gap-6">
       {editing ? <input type="hidden" name="id" value={defaults.id} /> : null}
 
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-firstName`}>{t("firstName")}</Label>
-        <Input
-          id={`${id}-firstName`}
-          name="firstName"
-          defaultValue={defaults.firstName}
-          maxLength={FIRST_NAME_MAX}
-          autoComplete="off"
-          required
-          aria-invalid={invalid("firstName")}
-          aria-describedby={describedBy("firstName")}
-        />
-        {errorText("firstName")}
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-lastName`}>{t("lastName")}</Label>
-        <Input
-          id={`${id}-lastName`}
-          name="lastName"
-          defaultValue={defaults.lastName ?? ""}
-          maxLength={LAST_NAME_MAX}
-          autoComplete="off"
-          aria-invalid={invalid("lastName")}
-          aria-describedby={describedBy("lastName")}
-        />
-        {errorText("lastName")}
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-email`}>{t("email")}</Label>
-        <Input
-          id={`${id}-email`}
-          name="email"
-          type="email"
-          defaultValue={defaults.email ?? ""}
-          maxLength={EMAIL_MAX}
-          autoComplete="off"
-          aria-invalid={invalid("email")}
-          aria-describedby={describedBy("email")}
-        />
-        {errorText("email")}
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-phone`}>{t("phone")}</Label>
-        <Input
-          id={`${id}-phone`}
-          name="phone"
-          type="tel"
-          defaultValue={defaults.phone ?? ""}
-          maxLength={PHONE_MAX}
-          autoComplete="off"
-          aria-invalid={invalid("phone")}
-          aria-describedby={describedBy("phone", `${id}-phone-hint`)}
-        />
-        <p id={`${id}-phone-hint`} className="text-muted-foreground text-sm">
-          {t("phoneHint")}
-        </p>
-        {errorText("phone")}
-      </div>
-
-      <details open={detailsOpen} className="grid">
-        <summary className="cursor-pointer text-sm font-medium select-none">
-          {t("moreDetails")}
-        </summary>
-        <div className="mt-6 grid gap-6">
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-dateOfBirth`}>{t("dateOfBirth")}</Label>
+      <FormBody>
+        <FieldRow>
+          <Field>
+            <Label htmlFor={`${id}-firstName`}>{t("firstName")}</Label>
             <Input
-              id={`${id}-dateOfBirth`}
-              name="dateOfBirth"
-              type="date"
-              defaultValue={defaults.dateOfBirth ?? ""}
-              aria-invalid={invalid("dateOfBirth")}
-              aria-describedby={describedBy("dateOfBirth")}
+              id={`${id}-firstName`}
+              name="firstName"
+              defaultValue={defaults.firstName}
+              maxLength={FIRST_NAME_MAX}
+              autoComplete="off"
+              required
+              aria-invalid={invalid("firstName")}
+              aria-describedby={describedBy("firstName")}
             />
-            {errorText("dateOfBirth")}
-          </div>
+            {errorText("firstName")}
+          </Field>
 
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-sex`}>{t("sex")}</Label>
-            <input type="hidden" name="sex" value={sex} />
-            <Select
-              value={toSelectValue(sex)}
-              onValueChange={(next) => {
-                // "" only comes from Radix's internal <select>, never from a choice.
-                if (next === "") return;
-                const value = fromSelectValue(next);
-                setSex(CUSTOMER_SEXES.find((candidate) => candidate === value) ?? "");
-              }}
-            >
-              <SelectTrigger
-                id={`${id}-sex`}
-                aria-invalid={invalid("sex")}
-                aria-describedby={describedBy("sex")}
-                className="w-full"
-              >
-                <SelectValue>{sex ? t(`sexes.${sex}`) : t("sexNone")}</SelectValue>
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem value={toSelectValue("")}>{t("sexNone")}</SelectItem>
-                {CUSTOMER_SEXES.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {t(`sexes.${option}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errorText("sex")}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-occupation`}>{t("occupation")}</Label>
+          <Field>
+            <Label htmlFor={`${id}-lastName`}>{t("lastName")}</Label>
             <Input
-              id={`${id}-occupation`}
-              name="occupation"
-              defaultValue={defaults.occupation ?? ""}
-              maxLength={OCCUPATION_MAX}
-              aria-invalid={invalid("occupation")}
-              aria-describedby={describedBy("occupation")}
+              id={`${id}-lastName`}
+              name="lastName"
+              defaultValue={defaults.lastName ?? ""}
+              maxLength={LAST_NAME_MAX}
+              autoComplete="off"
+              aria-invalid={invalid("lastName")}
+              aria-describedby={describedBy("lastName")}
             />
-            {errorText("occupation")}
-          </div>
+            {errorText("lastName")}
+          </Field>
+        </FieldRow>
 
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-activity`}>{t("activity")}</Label>
+        <FieldRow>
+          <Field>
+            <Label htmlFor={`${id}-email`}>{t("email")}</Label>
             <Input
-              id={`${id}-activity`}
-              name="activity"
-              defaultValue={defaults.activity ?? ""}
-              maxLength={ACTIVITY_MAX}
-              aria-invalid={invalid("activity")}
-              aria-describedby={describedBy("activity")}
+              id={`${id}-email`}
+              name="email"
+              type="email"
+              defaultValue={defaults.email ?? ""}
+              maxLength={EMAIL_MAX}
+              autoComplete="off"
+              aria-invalid={invalid("email")}
+              aria-describedby={describedBy("email")}
             />
-            {errorText("activity")}
-          </div>
+            {errorText("email")}
+          </Field>
 
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-medicalHistory`}>{t("medicalHistory")}</Label>
-            <Textarea
-              id={`${id}-medicalHistory`}
-              name="medicalHistory"
-              rows={5}
-              defaultValue={defaults.medicalHistory ?? ""}
-              maxLength={MEDICAL_HISTORY_MAX}
-              aria-invalid={invalid("medicalHistory")}
-              aria-describedby={describedBy("medicalHistory", `${id}-medicalHistory-hint`)}
+          <Field>
+            <Label htmlFor={`${id}-phone`}>{t("phone")}</Label>
+            <Input
+              id={`${id}-phone`}
+              name="phone"
+              type="tel"
+              defaultValue={defaults.phone ?? ""}
+              maxLength={PHONE_MAX}
+              autoComplete="off"
+              aria-invalid={invalid("phone")}
+              aria-describedby={describedBy("phone", `${id}-phone-hint`)}
             />
-            <p id={`${id}-medicalHistory-hint`} className="text-muted-foreground text-sm">
-              {t("medicalHistoryHint")}
+            <p id={`${id}-phone-hint`} className="text-muted-foreground text-sm">
+              {t("phoneHint")}
             </p>
-            {errorText("medicalHistory")}
+            {errorText("phone")}
+          </Field>
+        </FieldRow>
+
+        <details open={detailsOpen} className="grid">
+          <summary className="cursor-pointer text-sm font-medium select-none">
+            {t("moreDetails")}
+          </summary>
+          <div className="mt-4 grid gap-4">
+            <FieldRow>
+              <Field>
+                <Label htmlFor={`${id}-dateOfBirth`}>{t("dateOfBirth")}</Label>
+                <Input
+                  id={`${id}-dateOfBirth`}
+                  name="dateOfBirth"
+                  type="date"
+                  defaultValue={defaults.dateOfBirth ?? ""}
+                  aria-invalid={invalid("dateOfBirth")}
+                  aria-describedby={describedBy("dateOfBirth")}
+                />
+                {errorText("dateOfBirth")}
+              </Field>
+
+              <Field>
+                <Label htmlFor={`${id}-sex`}>{t("sex")}</Label>
+                <input type="hidden" name="sex" value={sex} />
+                <Select
+                  value={toSelectValue(sex)}
+                  onValueChange={(next) => {
+                    // "" only comes from Radix's internal <select>, never from a choice.
+                    if (next === "") return;
+                    const value = fromSelectValue(next);
+                    setSex(CUSTOMER_SEXES.find((candidate) => candidate === value) ?? "");
+                  }}
+                >
+                  <SelectTrigger
+                    id={`${id}-sex`}
+                    aria-invalid={invalid("sex")}
+                    aria-describedby={describedBy("sex")}
+                    className="w-full"
+                  >
+                    <SelectValue>{sex ? t(`sexes.${sex}`) : t("sexNone")}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value={toSelectValue("")}>{t("sexNone")}</SelectItem>
+                    {CUSTOMER_SEXES.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {t(`sexes.${option}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errorText("sex")}
+              </Field>
+            </FieldRow>
+
+            <FieldRow>
+              <Field>
+                <Label htmlFor={`${id}-occupation`}>{t("occupation")}</Label>
+                <Input
+                  id={`${id}-occupation`}
+                  name="occupation"
+                  defaultValue={defaults.occupation ?? ""}
+                  maxLength={OCCUPATION_MAX}
+                  aria-invalid={invalid("occupation")}
+                  aria-describedby={describedBy("occupation")}
+                />
+                {errorText("occupation")}
+              </Field>
+
+              <Field>
+                <Label htmlFor={`${id}-activity`}>{t("activity")}</Label>
+                <Input
+                  id={`${id}-activity`}
+                  name="activity"
+                  defaultValue={defaults.activity ?? ""}
+                  maxLength={ACTIVITY_MAX}
+                  aria-invalid={invalid("activity")}
+                  aria-describedby={describedBy("activity")}
+                />
+                {errorText("activity")}
+              </Field>
+            </FieldRow>
+
+            <Field>
+              <Label htmlFor={`${id}-medicalHistory`}>{t("medicalHistory")}</Label>
+              <Textarea
+                id={`${id}-medicalHistory`}
+                name="medicalHistory"
+                rows={4}
+                defaultValue={defaults.medicalHistory ?? ""}
+                maxLength={MEDICAL_HISTORY_MAX}
+                aria-invalid={invalid("medicalHistory")}
+                aria-describedby={describedBy("medicalHistory", `${id}-medicalHistory-hint`)}
+              />
+              <p id={`${id}-medicalHistory-hint`} className="text-muted-foreground text-sm">
+                {t("medicalHistoryHint")}
+              </p>
+              {errorText("medicalHistory")}
+            </Field>
+
+            <FieldRow>
+              <Field>
+                <Label htmlFor={`${id}-locale`}>{t("locale")}</Label>
+                <input type="hidden" name="locale" value={locale} />
+                <Select
+                  value={locale}
+                  onValueChange={(next) => {
+                    const option = languages.find((language) => language.value === next);
+                    if (option) setLocale(option.value);
+                  }}
+                >
+                  <SelectTrigger
+                    id={`${id}-locale`}
+                    aria-invalid={invalid("locale")}
+                    aria-describedby={describedBy("locale")}
+                    className="w-full"
+                  >
+                    <SelectValue>
+                      {languages.find((language) => language.value === locale)?.label}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {languages.map((language) => (
+                      <SelectItem key={language.value} value={language.value}>
+                        {language.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errorText("locale")}
+              </Field>
+            </FieldRow>
           </div>
+        </details>
 
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-locale`}>{t("locale")}</Label>
-            <input type="hidden" name="locale" value={locale} />
-            <Select
-              value={locale}
-              onValueChange={(next) => {
-                const option = languages.find((language) => language.value === next);
-                if (option) setLocale(option.value);
-              }}
-            >
-              <SelectTrigger
-                id={`${id}-locale`}
-                aria-invalid={invalid("locale")}
-                aria-describedby={describedBy("locale")}
-                className="w-full"
-              >
-                <SelectValue>
-                  {languages.find((language) => language.value === locale)?.label}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent position="popper">
-                {languages.map((language) => (
-                  <SelectItem key={language.value} value={language.value}>
-                    {language.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errorText("locale")}
-          </div>
-        </div>
-      </details>
+        {state.status === "error" && state.formError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{t(`errors.${state.formError}`)}</AlertDescription>
+          </Alert>
+        ) : null}
+      </FormBody>
 
-      {state.status === "error" && state.formError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{t(`errors.${state.formError}`)}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <FormActions
-        label={pending ? t("saving") : t(editing ? "save" : "create")}
-        pending={pending}
-        status={state.status === "saved" && !pending ? t("saved") : null}
-      />
+      <FormFooter>
+        <FormCancel href={cancelHref} />
+        <Button type="submit" disabled={pending}>
+          {pending ? t("saving") : t(editing ? "save" : "create")}
+        </Button>
+      </FormFooter>
     </form>
   );
 }

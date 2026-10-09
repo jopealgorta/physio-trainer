@@ -5,6 +5,7 @@ import { CheckIcon, PlusIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
+import { FormFooter } from "@/components/form-layout";
 import { HistorySheet } from "@/components/history/history-sheet";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,18 @@ export function RoutineEditor({
   const current = useMemo(() => snapshotOf(header, sections), [header, sections]);
   const dirty = current !== snapshot;
   useUnsavedGuard(dirty, t("leaveConfirm"));
+  const tForm = useTranslations("Form");
+  // Save sits in the footer, below the fold of a long routine; its errors show at the top.
+  const refused = error !== null || invalidItems.size > 0;
+  const indicator = saving
+    ? ""
+    : refused && dirty
+      ? tForm("notSaved")
+      : dirty
+        ? t("unsaved")
+        : savedAt !== null
+          ? t("saved")
+          : "";
 
   function changeHeader(patch: Partial<HeaderValues>) {
     setHeader((previous) => ({ ...previous, ...patch }));
@@ -261,10 +274,6 @@ export function RoutineEditor({
         customerId={routine.customerId}
         customerName={routine.customerName}
         cases={routine.cases}
-        dirty={dirty}
-        saving={saving}
-        saved={savedAt !== null}
-        onSave={save}
         focusToken={focusToken}
         actions={<HistorySheet kind="routine" id={routine.id} dirty={dirty} onRestored={reload} />}
         top={top}
@@ -351,7 +360,8 @@ export function RoutineEditor({
         </div>
         <aside
           aria-labelledby="picker-title"
-          className="bg-card sticky top-6 hidden max-h-[calc(100dvh-3rem)] min-w-0 overflow-y-auto rounded-lg border p-4 lg:grid lg:gap-3"
+          // Clear of the pinned footer below it.
+          className="bg-card sticky top-6 hidden max-h-[calc(100dvh-8rem)] min-w-0 overflow-y-auto rounded-lg border p-4 lg:grid lg:gap-3"
         >
           <h2 id="picker-title" className="text-sm font-semibold">
             {tPicker("title")}
@@ -359,6 +369,12 @@ export function RoutineEditor({
           {picker(false)}
         </aside>
       </div>
+
+      <FormFooter wide status={<span data-testid="save-status">{indicator}</span>}>
+        <Button type="button" onClick={save} disabled={!dirty || saving}>
+          {saving ? t("saving") : t("save")}
+        </Button>
+      </FormFooter>
     </div>
   );
 }

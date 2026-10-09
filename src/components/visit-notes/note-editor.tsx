@@ -12,6 +12,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import { Field, FieldRow, FormBody, FormCancel, FormFooter } from "@/components/form-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,9 +53,11 @@ type Props = {
   defaults: NoteFormValues;
   /** Called once after each successful save (the sheet closes itself here). */
   onSaved?: () => void;
+  /** Cancel: the sheet closes; the draft is kept for next time. */
+  onCancel: () => void;
 };
 
-export function NoteEditor({ action, customerId, cases, defaults, onSaved }: Props) {
+export function NoteEditor({ action, customerId, cases, defaults, onSaved, onCancel }: Props) {
   const t = useTranslations("VisitNotes");
   const [state, formAction, pending] = useActionState(action, initialState);
   const id = useId();
@@ -159,115 +162,122 @@ export function NoteEditor({ action, customerId, cases, defaults, onSaved }: Pro
         <input type="hidden" name="customerId" value={customerId} />
       )}
 
-      {restored ? (
-        <Alert role="status">
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            <span>{t("draftRestored")}</span>
-            <Button type="button" variant="outline" size="sm" onClick={discardDraft}>
-              {t("discardDraft")}
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
+      <FormBody>
+        {restored ? (
+          <Alert role="status">
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+              <span>{t("draftRestored")}</span>
+              <Button type="button" variant="outline" size="sm" onClick={discardDraft}>
+                {t("discardDraft")}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-visitedOn`}>{t("visitedOn")}</Label>
-          <Input
-            id={`${id}-visitedOn`}
-            name="visitedOn"
-            type="date"
-            value={fields.visitedOn}
-            onChange={(event) => setField("visitedOn", event.target.value)}
-            aria-invalid={invalid("visitedOn")}
-            aria-describedby={describedBy(invalid("visitedOn") ? errorId("visitedOn") : undefined)}
-          />
-          {errorText("visitedOn")}
-        </div>
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-pain`}>{t("pain")}</Label>
-          <Input
-            id={`${id}-pain`}
-            name="pain"
-            inputMode="numeric"
-            autoComplete="off"
-            value={fields.pain}
-            onChange={(event) => setField("pain", event.target.value)}
-            aria-invalid={invalid("pain")}
-            aria-describedby={describedBy(
-              `${id}-pain-hint`,
-              invalid("pain") ? errorId("pain") : undefined,
-            )}
-          />
-          <p id={`${id}-pain-hint`} className="text-muted-foreground text-sm">
-            {t("painHint")}
-          </p>
-          {errorText("pain")}
-        </div>
-      </div>
+        <FieldRow>
+          <Field>
+            <Label htmlFor={`${id}-visitedOn`}>{t("visitedOn")}</Label>
+            <Input
+              id={`${id}-visitedOn`}
+              name="visitedOn"
+              type="date"
+              value={fields.visitedOn}
+              onChange={(event) => setField("visitedOn", event.target.value)}
+              aria-invalid={invalid("visitedOn")}
+              aria-describedby={describedBy(
+                invalid("visitedOn") ? errorId("visitedOn") : undefined,
+              )}
+            />
+            {errorText("visitedOn")}
+          </Field>
+          <Field>
+            <Label htmlFor={`${id}-pain`}>{t("pain")}</Label>
+            <Input
+              id={`${id}-pain`}
+              name="pain"
+              inputMode="numeric"
+              autoComplete="off"
+              value={fields.pain}
+              onChange={(event) => setField("pain", event.target.value)}
+              aria-invalid={invalid("pain")}
+              aria-describedby={describedBy(
+                `${id}-pain-hint`,
+                invalid("pain") ? errorId("pain") : undefined,
+              )}
+            />
+            <p id={`${id}-pain-hint`} className="text-muted-foreground text-sm">
+              {t("painHint")}
+            </p>
+            {errorText("pain")}
+          </Field>
+        </FieldRow>
 
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-case`}>{t("case")}</Label>
-        <input type="hidden" name="caseId" value={fields.caseId} />
-        <Select
-          value={toSelectValue(fields.caseId)}
-          onValueChange={(next) => {
-            // "" only comes from Radix's internal <select>, never from a choice.
-            if (next === "") return;
-            setField("caseId", fromSelectValue(next));
-          }}
-        >
-          <SelectTrigger
-            id={`${id}-case`}
-            className="w-full"
-            aria-invalid={invalid("caseId")}
-            aria-describedby={describedBy(invalid("caseId") ? errorId("caseId") : undefined)}
+        <Field>
+          <Label htmlFor={`${id}-case`}>{t("case")}</Label>
+          <input type="hidden" name="caseId" value={fields.caseId} />
+          <Select
+            value={toSelectValue(fields.caseId)}
+            onValueChange={(next) => {
+              // "" only comes from Radix's internal <select>, never from a choice.
+              if (next === "") return;
+              setField("caseId", fromSelectValue(next));
+            }}
           >
-            <SelectValue>{selectedCase ? selectedCase.title : t("caseNone")}</SelectValue>
-          </SelectTrigger>
-          <SelectContent position="popper">
-            <SelectItem value={toSelectValue("")}>{t("caseNone")}</SelectItem>
-            {cases.map((item) => (
-              <SelectItem key={item.id} value={item.id}>
-                {item.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errorText("caseId")}
-      </div>
+            <SelectTrigger
+              id={`${id}-case`}
+              className="w-full"
+              aria-invalid={invalid("caseId")}
+              aria-describedby={describedBy(invalid("caseId") ? errorId("caseId") : undefined)}
+            >
+              <SelectValue>{selectedCase ? selectedCase.title : t("caseNone")}</SelectValue>
+            </SelectTrigger>
+            <SelectContent position="popper">
+              <SelectItem value={toSelectValue("")}>{t("caseNone")}</SelectItem>
+              {cases.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errorText("caseId")}
+        </Field>
 
-      {SOAP_FIELDS.map((field) => (
-        <div key={field} className="grid gap-2">
-          <Label htmlFor={`${id}-${field}`}>{t(`soap.${field}.label`)}</Label>
-          <Textarea
-            id={`${id}-${field}`}
-            name={field}
-            rows={3}
-            value={fields[field]}
-            onChange={(event) => setField(field, event.target.value)}
-            placeholder={t(`soap.${field}.hint`)}
-            // No maxLength: a browser would silently cut a long paste. The server reports it.
-            aria-invalid={invalid(field) || invalid("soap")}
-            aria-describedby={describedBy(invalid(field) ? errorId(field) : undefined, soapError)}
-          />
-          {errorText(field)}
-        </div>
-      ))}
-      {errorText("soap")}
+        {SOAP_FIELDS.map((field) => (
+          <Field key={field}>
+            <Label htmlFor={`${id}-${field}`}>{t(`soap.${field}.label`)}</Label>
+            <Textarea
+              id={`${id}-${field}`}
+              name={field}
+              rows={3}
+              value={fields[field]}
+              onChange={(event) => setField(field, event.target.value)}
+              placeholder={t(`soap.${field}.hint`)}
+              // No maxLength: a browser would silently cut a long paste. The server reports it.
+              aria-invalid={invalid(field) || invalid("soap")}
+              aria-describedby={describedBy(invalid(field) ? errorId(field) : undefined, soapError)}
+            />
+            {errorText(field)}
+          </Field>
+        ))}
+        {errorText("soap")}
 
-      {state.status === "error" && state.formError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{t(`errors.${state.formError}`)}</AlertDescription>
-        </Alert>
-      ) : null}
+        {state.status === "error" && state.formError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{t(`errors.${state.formError}`)}</AlertDescription>
+          </Alert>
+        ) : null}
+      </FormBody>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <FormFooter
+        variant="panel"
+        status={<span className="hidden sm:inline">{t("saveHint")}</span>}
+      >
+        <FormCancel onClick={onCancel} />
         <Button type="submit" disabled={pending}>
           {pending ? t("saving") : t(editing ? "save" : "create")}
         </Button>
-        <p className="text-muted-foreground text-sm">{t("saveHint")}</p>
-      </div>
+      </FormFooter>
     </form>
   );
 }

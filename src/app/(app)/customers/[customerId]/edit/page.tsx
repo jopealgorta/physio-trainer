@@ -39,6 +39,7 @@ export default async function EditCustomerPage({
       />
       <CustomerForm
         action={saveCustomerAction}
+        cancelHref={`/customers/${customer.id}`}
         defaults={{
           id: customer.id,
           firstName: customer.firstName,

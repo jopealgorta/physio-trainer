@@ -8,6 +8,13 @@ export async function createExercise(page: Page, name: string) {
   await page.goto("/library/new");
   await page.getByLabel("Name").fill(name);
   await page.getByRole("button", { name: "Create exercise" }).click();
+  await expect(page).toHaveURL(/\/library$/);
+}
+
+/** Opens an exercise from the library (saving the form lands there). */
+export async function openExercise(page: Page, name: string) {
+  await expect(page).toHaveURL(/\/library$/);
+  await page.getByRole("link", { name: new RegExp(name) }).click();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
 }
 

@@ -1,6 +1,7 @@
 import { deflateSync } from "node:zlib";
 
 import { expect, test } from "./helpers/auth";
+import { formStatus } from "./helpers/form";
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
   let c = n;
@@ -43,7 +44,7 @@ function solidPng(width: number, height: number): Buffer {
 const LOGO_PNG = solidPng(1200, 600);
 
 const saved = (page: import("@playwright/test").Page) =>
-  page.getByRole("status").filter({ hasText: /^Saved$/ });
+  formStatus(page).filter({ hasText: /^Saved$/ });
 
 test("picking an accent colour updates the preview and persists", async ({ physioPage: page }) => {
   await page.goto("/settings?section=branding");

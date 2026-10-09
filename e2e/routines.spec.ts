@@ -279,7 +279,7 @@ test("the editor fits a phone and the picker opens as a sheet", async ({
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
 });
 
-test("on a phone the routine page opens with one compact row: back, Save, More actions", async ({
+test("on a phone the routine page opens with one compact row and Save pinned below", async ({
   physioPage: page,
   isMobile,
 }) => {
@@ -295,7 +295,12 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   };
   const row = await middle(more);
   expect(Math.abs((await middle(back)) - row)).toBeLessThan(4);
-  expect(Math.abs((await middle(save)) - row)).toBeLessThan(4);
+  // Save is in the footer pinned to the bottom of the screen, like every form's.
+  const viewport = page.viewportSize()!;
+  expect((await save.boundingBox())!.y + (await save.boundingBox())!.height).toBeLessThanOrEqual(
+    viewport.height,
+  );
+  expect(await middle(save)).toBeGreaterThan(viewport.height - 80);
   // The title comes right under it, as a heading rather than an input.
   const title = routineTitle(page, "Compact header");
   expect((await title.boundingBox())!.y).toBeGreaterThan(row);
@@ -307,8 +312,10 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   await expect(page.getByTestId("save-status")).toHaveText("Unsaved changes");
   expect((await save.boundingBox())!).toEqual(saveBox);
 
-  // The labelled buttons give way to the menu.
-  for (const name of ["Export", "Share routine", "History", "Save as template…"]) {
+  // Share is the main action, shown at every size; the other labelled buttons give way to the
+  // menu.
+  await expect(page.getByRole("button", { name: "Share routine", exact: true })).toBeVisible();
+  for (const name of ["Export", "History", "Save as template…"]) {
     await expect(page.getByRole("button", { name, exact: true })).toBeHidden();
   }
   await more.click();
@@ -318,7 +325,6 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
     "History",
     "Export PDF",
     "Export Excel",
-    "Share routine",
   ]);
   await expect(menu.getByRole("menuitemcheckbox")).toHaveCount(0);
   await menu.getByRole("menuitem", { name: "History" }).click();
@@ -327,14 +333,14 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   // History's own button is hidden here: focus comes back to the menu's.
   await expect(more).toBeFocused();
 
-  await more.click();
-  await page.getByRole("menuitem", { name: "Share routine" }).click();
+  const shareButton = page.getByRole("button", { name: "Share routine", exact: true });
+  await shareButton.click();
   const share = page.getByRole("dialog", { name: "Share this routine" });
   await expect(share).toBeVisible();
   await expect(share).toHaveAttribute("data-presentation", "sheet");
   await page.keyboard.press("Escape");
   await expect(share).toBeHidden();
-  await expect(more).toBeFocused();
+  await expect(shareButton).toBeFocused();
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
 });
 
