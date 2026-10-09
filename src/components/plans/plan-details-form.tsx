@@ -67,6 +67,7 @@ export function PlanDetailsForm({
   const t = useTranslations("Plans.board.details");
   const tErrors = useTranslations("Plans.board.errors");
   const tStatus = useTranslations("Routines.status");
+  const tForm = useTranslations("Form");
   const id = useId();
   const [values, setValues] = useState<PlanDetails>(initial);
   const [saved, setSaved] = useState<PlanDetails>(initial);
@@ -199,7 +200,13 @@ export function PlanDetailsForm({
 
       {children}
 
-      <FormFooter wide status={dirty ? t("unsaved") : justSaved ? t("saved") : null}>
+      <FormFooter
+        wide
+        status={
+          // The error shows with the fields, above the board: say so beside Save.
+          error ? tForm("notSaved") : dirty ? t("unsaved") : justSaved ? t("saved") : null
+        }
+      >
         {/* Outside the form, so the board between them can hold forms of its own. */}
         <Button type="submit" form={formId} disabled={pending || !dirty}>
           {pending ? t("saving") : t("save")}

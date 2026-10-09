@@ -259,3 +259,26 @@ test("an exercise gets a brand new category without leaving the form", async ({
   await openExercise(page, "Dead bug");
   await expect(page.getByLabel("Categories")).toHaveText("Core, Core › Anti-extension");
 });
+
+test("saving or cancelling an exercise returns to the list it was opened from", async ({
+  physioPage: page,
+}) => {
+  for (const name of ["Wall sit", "Wall angel"]) {
+    await page.goto("/library/new");
+    await page.getByLabel("Name").fill(name);
+    await page.getByRole("button", { name: "Create exercise" }).click();
+    await expect(page).toHaveURL(/\/library$/);
+  }
+
+  await page.goto("/library?q=angel");
+  await page.getByRole("link", { name: /Wall angel/ }).click();
+  await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}\?from=/);
+  await page.getByLabel("Instructions").fill("Arms along the wall.");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(/\/library\?q=angel$/);
+  await expect(page.getByRole("link", { name: /Wall sit/ })).toHaveCount(0);
+
+  await page.getByRole("link", { name: /Wall angel/ }).click();
+  await page.getByRole("link", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/library\?q=angel$/);
+});

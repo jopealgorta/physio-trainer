@@ -15,12 +15,18 @@ import { cn } from "@/lib/utils";
  * Conventions.
  */
 export function FormBody({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("grid max-w-2xl content-start gap-4", className)} {...props} />;
+  return (
+    <div className={cn("@container grid max-w-2xl content-start gap-4", className)} {...props} />
+  );
 }
 
-/** Two short fields side by side from `sm` up (first/last name, two dates...). */
+/**
+ * Two short fields side by side (first/last name, two dates...) once the `FormBody` around it
+ * is wide enough: a container query, so a narrow card (onboarding) keeps one column on any
+ * screen.
+ */
 export function FieldRow({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("grid gap-4 sm:grid-cols-2", className)} {...props} />;
+  return <div className={cn("grid gap-4 @lg:grid-cols-2", className)} {...props} />;
 }
 
 /** A label, its control, and its hint or error. */

@@ -1,8 +1,10 @@
 "use server";
 
+import type { Route } from "next";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { exerciseReturnPath } from "@/lib/exercise-return";
 import { withPhysio } from "@/server/auth/session";
 
 import {
@@ -56,7 +58,9 @@ export async function saveExerciseAction(
   const id = rawId === null || rawId === "" ? null : idSchema.safeParse(rawId);
   if (id && !id.success) return { status: "error", fieldErrors: {}, formError: "notFound" };
 
+  const returnTo = exerciseReturnPath(formData.get("returnTo")?.toString());
   formData.delete("id");
+  formData.delete("returnTo");
   const fields = parseExerciseFields(formData);
   if (!fields.ok) return fields.state;
 
@@ -67,7 +71,7 @@ export async function saveExerciseAction(
   );
   if (!result.ok) return mutationErrorState(result.error);
   revalidateLibrary();
-  redirect("/library");
+  redirect(returnTo as Route);
 }
 
 /**

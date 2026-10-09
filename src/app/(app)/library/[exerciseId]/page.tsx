@@ -1,10 +1,12 @@
 import { ArrowLeftIcon } from "lucide-react";
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { cache } from "react";
 
+import { exerciseReturnPath } from "@/lib/exercise-return";
+import { firstParam } from "@/lib/search-params";
 import { ExerciseActions } from "@/components/library/exercise-actions";
 import { ExerciseForm } from "@/components/library/exercise-form";
 import { PageHeader } from "@/components/page-header";
@@ -32,7 +34,11 @@ export async function generateMetadata({
   return { title: loaded?.exercise.name };
 }
 
-export default async function ExerciseDetailPage({ params }: PageProps<"/library/[exerciseId]">) {
+export default async function ExerciseDetailPage({
+  params,
+  searchParams,
+}: PageProps<"/library/[exerciseId]">) {
+  const back = exerciseReturnPath(firstParam((await searchParams).from));
   const { exerciseId } = await params;
   const loaded = await loadExercise(exerciseId);
   if (!loaded) notFound();
@@ -43,7 +49,7 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
     <div className="grid gap-6">
       <div className="grid gap-2">
         <Link
-          href="/library"
+          href={(back.startsWith("/library") ? back : "/library") as Route}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeftIcon aria-hidden className="size-4" />
@@ -68,7 +74,8 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
       <ExerciseForm
         action={saveExerciseAction}
         categories={categories}
-        cancel={{ href: "/library" }}
+        cancel={{ href: back }}
+        returnTo={back}
         defaults={{
           id: exercise.id,
           name: exercise.name,

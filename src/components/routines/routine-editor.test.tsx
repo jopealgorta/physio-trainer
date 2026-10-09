@@ -20,7 +20,11 @@ vi.mock("@/server/routines/actions", () => ({
   saveRoutineAction,
   searchExercisesAction: vi.fn(),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+  usePathname: () => "/routines/r-1",
+  useSearchParams: () => new URLSearchParams(),
+}));
 const { createExerciseForRoutineAction } = vi.hoisted(() => ({
   createExerciseForRoutineAction: vi.fn(),
 }));
@@ -468,6 +472,8 @@ describe("RoutineEditor", () => {
     await user.click(save());
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("This routine changed in another tab. Reload?");
+    // Save is in the footer, far from the alert: the footer says where to look.
+    expect(saveStatus()).toHaveTextContent("Not saved. See the message above.");
     await user.click(screen.getByRole("button", { name: "Reload" }));
     expect(refresh).toHaveBeenCalledTimes(1);
   });

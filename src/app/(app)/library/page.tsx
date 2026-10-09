@@ -1,5 +1,5 @@
 import { PlusIcon } from "lucide-react";
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
@@ -12,7 +12,8 @@ import { PendingContent, PendingScope } from "@/components/navigation-pending";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { libraryLayoutState } from "@/lib/library-layout";
-import { hasActiveFilters, parseLibraryParams } from "@/lib/library-params";
+import { exerciseHref } from "@/lib/exercise-return";
+import { hasActiveFilters, libraryHref, parseLibraryParams } from "@/lib/library-params";
 import { withPhysio } from "@/server/auth/session";
 import { hasAnyExercises, listCategoryTree, listExercises } from "@/server/library/queries";
 
@@ -39,6 +40,8 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
     filtersActive: hasActiveFilters(filters),
   });
   const categoryTree = <CategoryTree tree={tree} filters={filters} />;
+  // An exercise opened (or created) from this list comes back to it, filters and all.
+  const here = libraryHref(filters);
 
   return (
     <div className="grid gap-6">
@@ -49,7 +52,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
           <>
             <CategoryManager tree={tree} />
             <Button asChild>
-              <Link href="/library/new">
+              <Link href={exerciseHref("new", here) as Route}>
                 <PlusIcon aria-hidden /> {t("newExercise")}
               </Link>
             </Button>
@@ -72,6 +75,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
                     truncated={truncated}
                     view={filters.view}
                     archived={filters.category.kind === "archived"}
+                    from={here}
                   />
                 ) : layout === "no-results" ? (
                   <NoResults view={filters.view} />

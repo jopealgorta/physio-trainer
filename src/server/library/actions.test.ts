@@ -76,6 +76,16 @@ describe("saveExerciseAction", () => {
     );
   });
 
+  it("returns to where the form was opened from, if that is a safe path", async () => {
+    m.updateExercise.mockResolvedValue({ ok: true, data: { id: UUID } });
+    await expect(
+      saveExerciseAction(idle, form({ id: UUID, name: "Plank", returnTo: "/routines/r-1?plan=p" })),
+    ).rejects.toThrow(/^REDIRECT \/routines\/r-1\?plan=p$/);
+    await expect(
+      saveExerciseAction(idle, form({ id: UUID, name: "Plank", returnTo: "//evil.example" })),
+    ).rejects.toThrow(/^REDIRECT \/library$/);
+  });
+
   it("maps mutation errors", async () => {
     m.updateExercise.mockResolvedValueOnce({ ok: false, error: "categoryNotFound" });
     await expect(saveExerciseAction(idle, form({ id: UUID, name: "a" }))).resolves.toEqual({

@@ -90,6 +90,7 @@ describe("PlanDetailsForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Templates are either active or archived.",
     );
+    expect(formStatus()).toHaveTextContent("Not saved. See the message above.");
   });
 
   it("takes the server's details when they change (a restore), not when its own save lands", async () => {

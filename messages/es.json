@@ -1759,8 +1759,6 @@
   },
   "Form": {
     "cancel": "Cancelar",
-    "saving": "Guardando…",
-    "saved": "Guardado",
-    "unsaved": "Cambios sin guardar"
+    "notSaved": "No se guardó. Mirá el mensaje de arriba."
   }
 }

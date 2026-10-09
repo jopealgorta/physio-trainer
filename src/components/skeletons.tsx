@@ -119,7 +119,7 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
-/** A bordered block of labelled fields. */
+/** Labelled fields at form width, and (unless `footer={false}`) the Cancel/Save row. */
 export function FormSkeleton({
   fields = 4,
   footer = true,

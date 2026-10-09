@@ -241,13 +241,24 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
     shortcut hint; an `aria-live` region, see `formStatus()` in `src/test/form.ts`) and
     `[Cancel] [Save]` on the right.
   - Use `variant="page"` in `<main>` and `"panel"` in a sheet or dialog. A sheet or dialog's
-    scroll box is `min-h-0 overflow-y-auto px-6` with no bottom padding.
+    scroll box is `min-h-0 overflow-y-auto px-6` with no bottom padding, and carries
+    `data-slot="form-scroll"`. `globals.css` gives it, and the page, a `scroll-padding-bottom`
+    so focused fields stay clear of the footer.
+  - `FieldRow` pairs on a container query (`@lg`), so it stays one column in a narrow card
+    such as onboarding.
   - Where Save takes you:
-    - Create and edit both return to where the form was opened from (customer → its page,
-      exercise → the library), and `FormCancel` goes to the same place.
+    - A customer's form lands on that customer's page (a new one too). Cancel goes back to
+      where the form came from: the customer, or the list for a new one.
+    - The exercise form returns to the page it was opened from, both after Save and on
+      Cancel. That page is passed as `?from=`: `exerciseHref`/`exerciseReturnPath` in
+      `src/lib/exercise-return.ts`, validated with `safeNextPath`, defaulting to `/library`.
+      Library result links carry their filters this way, and so does "Open exercise" in a
+      routine.
     - Sheets and dialogs close.
-    - Settings and the routine/plan editors stay on the page and say "Saved". Editors use
-      `wide`, Save only.
+    - Settings and the routine/plan editors stay on the page and say "Saved". Settings forms
+      have Save only (there is nowhere to cancel to). Editors use `wide`, Save only.
+    - When a save is refused, the footer says "Not saved. See the message above." (the
+      editors show their errors at the top).
   - Login and onboarding are short centred cards with one full-width button. Dialogs use
     `DialogFooter` with `[Cancel] [Primary]`.
 - **Strings**: every user-visible string goes in **every** `messages/<locale>.json` under a

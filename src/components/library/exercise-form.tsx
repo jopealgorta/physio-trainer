@@ -66,6 +66,7 @@ export function ExerciseForm({
   categories,
   submitLabel,
   cancel,
+  returnTo,
   compact = false,
 }: {
   action: (state: ExerciseFormState, formData: FormData) => Promise<ExerciseFormState>;
@@ -75,6 +76,8 @@ export function ExerciseForm({
   submitLabel?: string;
   /** Where Cancel goes (a page), or what it does (a dialog closes). */
   cancel: { href: string } | { onClick: () => void };
+  /** Where saving lands (the page it was opened from); the action validates it. */
+  returnTo?: string;
   /** In a dialog: the full dialog width, and the footer pinned to the dialog's scroll area. */
   compact?: boolean;
 }) {
@@ -112,6 +115,7 @@ export function ExerciseForm({
   return (
     <form action={formAction} onSubmit={onSubmit} noValidate className="grid gap-6">
       {editing ? <input type="hidden" name="id" value={defaults.id} /> : null}
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <FormBody className={cn(compact && "max-w-none")}>
         <FieldRow>
           <Field>

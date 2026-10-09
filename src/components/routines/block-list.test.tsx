@@ -17,6 +17,11 @@ import { group, item, set, single, testKey } from "@/test/routine-fixtures";
 import messages from "../../../messages/en.json";
 import { BlockList } from "./block-list";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/routines/r-1",
+  useSearchParams: () => new URLSearchParams("plan=p-1"),
+}));
+
 const onChange = vi.fn<(next: (blocks: EditorBlock[]) => EditorBlock[]) => void>();
 const onDuplicate = vi.fn<(itemKey: string) => void>();
 const onMoveTo = vi.fn<(blockKey: string, sectionKey: string) => void>();
@@ -281,13 +286,13 @@ describe("BlockList", () => {
     expect(applied(onChange.mock.calls.length - 1)).toEqual(updateGroupRest(blocks, "g", 9));
   });
 
-  it("links to the exercise", async () => {
+  it("links to the exercise, which returns to this routine after saving", async () => {
     const user = userEvent.setup();
     setup([single("a", { exerciseName: "Squat" })]);
     await openMenu(user, "Squat");
     expect(await screen.findByRole("menuitem", { name: "Open exercise" })).toHaveAttribute(
       "href",
-      "/library/ex-a",
+      "/library/ex-a?from=%2Froutines%2Fr-1%3Fplan%3Dp-1",
     );
   });
 });

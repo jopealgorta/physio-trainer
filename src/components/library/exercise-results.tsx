@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { exerciseHref } from "@/lib/exercise-return";
 import { categoriesInTreeOrder, type CategoryNode } from "@/lib/category-tree";
 import { DEFAULT_LIBRARY_FILTERS, libraryHref, type LibraryView } from "@/lib/library-params";
 import type { ExerciseSummary } from "@/server/library/queries";
@@ -71,14 +72,13 @@ function Thumb({ exercise }: { exercise: ExerciseSummary }) {
   );
 }
 
-const href = (id: string) => `/library/${id}` as Route;
-
 export async function ExerciseResults({
   exercises,
   categories,
   view,
   archived,
   truncated = false,
+  from,
 }: {
   exercises: ExerciseSummary[];
   /** The category tree, to name each exercise's categories. */
@@ -87,8 +87,11 @@ export async function ExerciseResults({
   archived: boolean;
   /** More rows matched than the list cap. */
   truncated?: boolean;
+  /** This list's URL (its filters), where an exercise opened from it returns after saving. */
+  from?: string;
 }) {
   const t = await getTranslations("Library");
+  const href = (id: string) => exerciseHref(id, from) as Route;
   return (
     <div className="grid gap-3">
       <p role="status" className="text-muted-foreground text-sm">

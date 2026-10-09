@@ -1759,8 +1759,6 @@
   },
   "Form": {
     "cancel": "Cancel",
-    "saving": "Saving…",
-    "saved": "Saved",
-    "unsaved": "Unsaved changes"
+    "notSaved": "Not saved. See the message above."
   }
 }

@@ -140,7 +140,18 @@ export function RoutineEditor({
   const current = useMemo(() => snapshotOf(header, sections), [header, sections]);
   const dirty = current !== snapshot;
   useUnsavedGuard(dirty, t("leaveConfirm"));
-  const indicator = saving ? "" : dirty ? t("unsaved") : savedAt !== null ? t("saved") : "";
+  const tForm = useTranslations("Form");
+  // Save sits in the footer, below the fold of a long routine; its errors show at the top.
+  const refused = error !== null || invalidItems.size > 0;
+  const indicator = saving
+    ? ""
+    : refused && dirty
+      ? tForm("notSaved")
+      : dirty
+        ? t("unsaved")
+        : savedAt !== null
+          ? t("saved")
+          : "";
 
   function changeHeader(patch: Partial<HeaderValues>) {
     setHeader((previous) => ({ ...previous, ...patch }));
