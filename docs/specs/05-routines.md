@@ -105,8 +105,9 @@ archive instead.
 | `/routines`                            | page | All routines across customers (filter by status, customer, search). Spec 07 adds a "Templates" tab.                |
 | `/routines/[routineId]`                | page | **Editor**.                                                                                                        |
 
-"New routine" opens a small dialog (name; case select when the customer has cases), creates a
-`draft` and opens the editor, so the editor always works on an existing routine.
+"New routine" creates a `draft` straight away, named "New routine" ("Nueva rutina") and with no
+case, and opens the editor (rename from the title, case from the header), so the editor always
+works on an existing routine. On `/routines`, "New routine" first asks for the customer.
 
 Editor layout (desktop): header (name inline-editable, customer, status select, Save), left
 column the ordered blocks (a block is one item or one superset), right side panel the exercise
@@ -284,3 +285,9 @@ Namespace `Routines`, `Prescription` (units and summary patterns, with plural ru
   `_prescription.test.ts` legacy column list. Known minor items deferred: no index on
   `routine_items (physio_id, exercise_id)` for the `inUse` check, and group members read back in
   no guaranteed order from `getRoutine` (consumers key by id/position).
+- **No name dialog (quick-create change, 2026-10).** "New routine" on a customer creates the draft
+  at once with the translated default name (`Routines.new.defaultName`) and no case, replacing
+  the name/case dialog (answer 3). `/routines` (customers tab, and its empty state when there
+  are active customers) gets a "New routine" button whose dialog only asks for the customer.
+  Shared `CreateButton` (`src/components/create-button.tsx`) backs the routine, plan and
+  template buttons.

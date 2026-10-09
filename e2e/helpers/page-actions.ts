@@ -36,6 +36,35 @@ export async function renameRoutine(page: Page, name: string) {
   await expect(routineTitle(page, name)).toBeVisible();
 }
 
+/**
+ * Names a routine (or routine template) just created with its default name: renames it through
+ * the title and saves, so the name sticks even if the test leaves the editor right away.
+ */
+export async function nameNewRoutine(page: Page, name: string) {
+  await expect(
+    page.getByRole("heading", { level: 1, name: /^New routine( template)?$/ }),
+  ).toBeVisible();
+  await renameRoutine(page, name);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByTestId("save-status")).toHaveText("Saved");
+}
+
+/**
+ * Renames a plan just created with its default name through its title (a plan rename saves at
+ * once). Reloads so the name is known to be stored and no "Saved" from it lingers on the page
+ * to be mistaken for the next save's.
+ */
+export async function renamePlan(page: Page, name: string) {
+  await expect(routineTitle(page, "New plan")).toBeVisible();
+  await page.getByRole("button", { name: "Rename plan" }).click();
+  const input = page.getByRole("textbox", { name: "Plan name" });
+  await input.fill(name);
+  await input.press("Enter");
+  await expect(routineTitle(page, name)).toBeVisible();
+  await page.reload();
+  await expect(routineTitle(page, name)).toBeVisible();
+}
+
 /** The routine or plan page's title. */
 export const routineTitle = (page: Page, name: string) =>
   page.getByRole("heading", { level: 1, name, exact: true });

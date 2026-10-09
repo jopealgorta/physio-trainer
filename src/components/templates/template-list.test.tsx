@@ -12,6 +12,7 @@ const { duplicateTemplateAction, push } = vi.hoisted(() => ({
 }));
 vi.mock("@/server/templates/actions", () => ({
   duplicateTemplateAction,
+  createTemplateAction: vi.fn(),
   assignTemplateAction: vi.fn(),
   listCasesAction: vi.fn().mockResolvedValue([]),
 }));
@@ -142,7 +143,7 @@ describe("TemplateList", () => {
 });
 
 describe("EmptyTemplates and NoTemplateResults", () => {
-  it("explains the empty state per kind and offers the new-template dialog", () => {
+  it("explains the empty state per kind and offers to create one", () => {
     wrap(<EmptyTemplates kind="plan" />);
     expect(screen.getByText("No plan templates yet")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New plan template" })).toBeInTheDocument();

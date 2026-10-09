@@ -651,6 +651,7 @@
       "empty": {
         "title": "Todavía no hay rutinas",
         "body": "Abrí un cliente para crear su primera rutina.",
+        "bodyPick": "Elegí un cliente para crear su primera rutina.",
         "cta": "Ir a clientes"
       },
       "noResults": "Ninguna rutina coincide con estos filtros.",
@@ -670,19 +671,18 @@
     },
     "new": {
       "button": "Nueva rutina",
-      "title": "Nueva rutina para {name}",
-      "name": "Nombre",
-      "case": "Caso",
-      "noCase": "Sin caso",
-      "create": "Crear rutina",
+      "defaultName": "Nueva rutina",
       "creating": "Creando…",
-      "cancel": "Cancelar",
       "errors": {
-        "nameRequired": "Ingresá un nombre.",
-        "nameTooLong": "Usá como máximo {max, number} caracteres.",
         "customerNotFound": "Este cliente ya no existe.",
-        "caseNotFound": "Ese caso no pertenece a este cliente.",
         "invalid": "Revisá el formulario y probá de nuevo."
+      },
+      "pick": {
+        "title": "Nueva rutina",
+        "customer": "Cliente",
+        "noCustomer": "Elegí un cliente",
+        "create": "Crear rutina",
+        "cancel": "Cancelar"
       }
     },
     "editor": {
@@ -752,7 +752,7 @@
         "distance": "Distancia (km)",
         "distanceHint": "5 o 2,5",
         "intensity": "Intensidad",
-        "intensityPlaceholder": "Zona 2, RPE 5, 5:30/km",
+        "intensityPlaceholder": "Zona 2, esfuerzo 5, 5:30/km",
         "durationMinutes": "Duración (min)",
         "durationHint": "30 o 1:30"
       },
@@ -825,18 +825,10 @@
     },
     "new": {
       "button": "Nuevo plan",
-      "title": "Nuevo plan semanal para {name}",
-      "name": "Nombre",
-      "case": "Caso",
-      "noCase": "Sin caso",
-      "create": "Crear plan",
+      "defaultName": "Nuevo plan",
       "creating": "Creando…",
-      "cancel": "Cancelar",
       "errors": {
-        "nameRequired": "Ingresá un nombre.",
-        "nameTooLong": "Usá como máximo {max, number} caracteres.",
         "customerNotFound": "Este cliente ya no existe.",
-        "caseNotFound": "Ese caso no pertenece a este cliente.",
         "invalid": "Revisá el formulario y probá de nuevo."
       }
     },
@@ -868,7 +860,7 @@
         "add": "Agregar rutina al {day}",
         "addShort": "Agregar",
         "addExisting": "Rutina existente…",
-        "addNew": "Nueva rutina…",
+        "addNew": "Nueva rutina",
         "full": "Este día está completo ({max, number} rutinas)."
       },
       "entry": {
@@ -909,14 +901,6 @@
         "adding": "Agregando…",
         "cancel": "Cancelar",
         "meta": "{count, plural, one {# ejercicio} other {# ejercicios}}"
-      },
-      "newRoutine": {
-        "title": "Nueva rutina para el {day}",
-        "name": "Nombre",
-        "hint": "Empieza como borrador y se abre en el editor.",
-        "create": "Crear y editar",
-        "creating": "Creando…",
-        "cancel": "Cancelar"
       },
       "remove": {
         "title": "¿Quitar “{routine}” del plan?",
@@ -1023,14 +1007,11 @@
         "routine": "Nueva plantilla de rutina",
         "plan": "Nueva plantilla de plan"
       },
-      "title": {
+      "defaultName": {
         "routine": "Nueva plantilla de rutina",
         "plan": "Nueva plantilla de plan"
       },
-      "name": "Nombre",
-      "create": "Crear plantilla",
-      "creating": "Creando…",
-      "cancel": "Cancelar"
+      "creating": "Creando…"
     },
     "badge": "Plantilla",
     "from": "Desde la plantilla: <link></link>",
@@ -1330,7 +1311,7 @@
     "summary": {
       "title": "Registrado",
       "pain": "Dolor {value, number}",
-      "rpe": "RPE {value, number}",
+      "rpe": "Esfuerzo {value, number}",
       "weights": "{value} kg"
     },
     "restDay": "No hay nada programado para {day}.",
@@ -1411,7 +1392,7 @@
         "clear": "Borrar"
       },
       "rpe": {
-        "legend": "Esfuerzo (RPE)",
+        "legend": "Esfuerzo",
         "hint": "¿Qué tan duro fue? 0 = reposo, 10 = máximo.",
         "clear": "Borrar",
         "selected": "{value, number} · {label}",
@@ -1449,6 +1430,7 @@
         "input": "Peso de la serie {number, number} en kg",
         "unit": "kg",
         "add": "Agregar serie",
+        "remove": "Quitar serie {number, number}",
         "invalid": "Ingresá un peso entre 0 y {max, number} kg."
       },
       "comment": {
@@ -1591,7 +1573,7 @@
       "done": "Hecha",
       "notDone": "Sin hacer",
       "pain": "Dolor {value, number}/10",
-      "rpe": "RPE {value, number}/10",
+      "rpe": "Esfuerzo {value, number}/10",
       "weight": "{value} kg",
       "exercises": "Ejercicios",
       "new": "Nuevo"

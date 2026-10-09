@@ -9,7 +9,7 @@ import { listPlans } from "@/server/plans/queries";
 
 import { TemplatePickerDialog } from "@/components/templates/template-picker-dialog";
 
-import { NewPlanDialog } from "./new-plan-dialog";
+import { NewPlanButton } from "./new-plan-button";
 import { PlanList } from "./plan-list";
 
 /** A customer's plans tab: their weekly plans and a way to add one (not for archived customers). */
@@ -41,7 +41,7 @@ export async function CustomerPlans({
         customer={{ id: customerId, name: customerName }}
         cases={cases}
       />
-      <NewPlanDialog customerId={customerId} customerName={customerName} cases={cases} />
+      <NewPlanButton customerId={customerId} />
     </div>
   );
 

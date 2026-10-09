@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./helpers/auth";
 import { hasNoHorizontalOverflow } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
+import { nameNewRoutine, renamePlan } from "./helpers/page-actions";
 
 /** Creates a customer and returns the path of their page. */
 async function createCustomer(page: Page, name: string) {
@@ -17,18 +18,16 @@ async function createCustomer(page: Page, name: string) {
 async function createRoutineFor(page: Page, customerPath: string, name: string) {
   await page.goto(`${customerPath}?tab=routines`);
   await page.getByRole("button", { name: "New routine" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill(name);
-  await page.getByRole("button", { name: "Create routine" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}/);
+  await nameNewRoutine(page, name);
 }
 
 /** Creates a plan from the customer's Plans tab; leaves the page on the board. */
 async function createPlanFor(page: Page, customerPath: string, name: string) {
   await page.goto(`${customerPath}?tab=plans`);
   await page.getByRole("button", { name: "New plan" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill(name);
-  await page.getByRole("button", { name: "Create plan" }).click();
   await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
+  await renamePlan(page, name);
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 }
 
@@ -96,10 +95,9 @@ test("a physio builds a weekly plan, edits it from the board, and it persists", 
 
   // A new routine on Monday opens the editor, which leads back to the plan.
   await page.getByRole("button", { name: "Add routine to Monday" }).click();
-  await page.getByRole("menuitem", { name: "New routine…" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Gym upper");
-  await page.getByRole("button", { name: "Create and edit" }).click();
+  await page.getByRole("menuitem", { name: "New routine", exact: true }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}\?plan=/);
+  await nameNewRoutine(page, "Gym upper");
   await page.getByRole("link", { name: "Back to plan" }).click();
   await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
   await expectDay(page, "Monday", ["Knee rehab A", "Gym upper"]);
@@ -161,9 +159,9 @@ test("removing the last use of a plan-only routine offers to delete it", async (
   const customer = await createCustomer(page, "Bea");
   await createPlanFor(page, customer, "Week 2");
   await page.getByRole("button", { name: "Add routine to Tuesday" }).click();
-  await page.getByRole("menuitem", { name: "New routine…" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Board only");
-  await page.getByRole("button", { name: "Create and edit" }).click();
+  await page.getByRole("menuitem", { name: "New routine", exact: true }).click();
+  await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}\?plan=/);
+  await nameNewRoutine(page, "Board only");
   await page.getByRole("link", { name: "Back to plan" }).click();
 
   await entryAction(page, "Tuesday", "Board only", "Remove from plan");

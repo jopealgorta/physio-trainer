@@ -146,3 +146,6 @@ Answered 2026-10-01:
   (`src/db/templates.int.test.ts`), the copy/assign/save-as mutations
   (`src/server/templates/templates.int.test.ts`), the template-aware queries and mutations
   (`aware.int.test.ts`) and the picker queries (`queries.int.test.ts`); e2e in `e2e/templates.spec.ts`.
+- **No name dialog (quick-create change, 2026-10).** "New routine template" / "New plan
+  template" create at once, named after the button ("Nueva plantilla de rutina/plan"), and open
+  the editor.

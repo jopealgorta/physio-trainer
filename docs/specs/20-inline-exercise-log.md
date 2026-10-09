@@ -153,6 +153,9 @@ Answered 2026-10-03 before design:
   cleared.
 - **Two rows of the same exercise share one log** (logs are keyed by exercise); each row has its
   own open state and the last save wins.
+- **Removing a set (2026-10).** A line the patient added past the prescribed sets has a remove
+  button; later weights move up and it saves at once. Prescribed lines can't be removed (left
+  empty, they read as not done). Spanish copy calls the RPE scale "Esfuerzo" (no "RPE").
 - **The workout bar keeps its "Log exercise" button**; it toggles the inline panel and scrolls it
   into view (no dialog).
 - **Drafts outlive the panel.** The list keeps each exercise and day's fields as last typed
