@@ -1,6 +1,4 @@
-import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { ExerciseForm } from "@/components/library/exercise-form";
@@ -18,17 +16,8 @@ export default async function NewExercisePage() {
   const t = await getTranslations("Library.form");
   const categories = await withPhysio((tx, physioId) => listCategoryTree(tx, physioId));
   return (
-    <div className="grid gap-8">
-      <div className="grid gap-2">
-        <Link
-          href="/library"
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeftIcon aria-hidden className="size-4" />
-          {t("back")}
-        </Link>
-        <PageHeader title={t("newTitle")} />
-      </div>
+    <div className="grid gap-6">
+      <PageHeader back={{ href: "/library", label: t("back") }} title={t("newTitle")} />
       <ExerciseForm
         action={saveExerciseAction}
         categories={categories}

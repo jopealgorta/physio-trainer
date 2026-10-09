@@ -5,21 +5,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { chooseOption } from "@/test/select";
 
-import messages from "../../../messages/en.json";
-import { NewRoutinePicker } from "./new-routine-picker";
+import messages from "../../messages/en.json";
+import { NewForCustomerPicker } from "./new-for-customer-picker";
 
-const { createRoutineAction } = vi.hoisted(() => ({ createRoutineAction: vi.fn() }));
+const { createRoutineAction, createPlanAction } = vi.hoisted(() => ({
+  createRoutineAction: vi.fn(),
+  createPlanAction: vi.fn(),
+}));
 vi.mock("@/server/routines/actions", () => ({ createRoutineAction }));
+vi.mock("@/server/plans/actions", () => ({ createPlanAction }));
 
 const CUSTOMERS = [
   { id: "cust-1", name: "Ana Pérez" },
   { id: "cust-2", name: "Rita Gómez" },
 ];
 
-function setup() {
+function setup(kind: "routine" | "plan" = "routine") {
   return render(
     <NextIntlClientProvider locale="en" messages={messages}>
-      <NewRoutinePicker customers={CUSTOMERS} />
+      <NewForCustomerPicker kind={kind} customers={CUSTOMERS} />
     </NextIntlClientProvider>,
   );
 }
@@ -29,9 +33,11 @@ const submitted = () => (createRoutineAction.mock.calls[0] as unknown as [unknow
 beforeEach(() => {
   createRoutineAction.mockReset();
   createRoutineAction.mockResolvedValue({ status: "idle" });
+  createPlanAction.mockReset();
+  createPlanAction.mockResolvedValue({ status: "idle" });
 });
 
-describe("NewRoutinePicker", () => {
+describe("NewForCustomerPicker", () => {
   it("asks only for the customer, and can't create before one is chosen", async () => {
     const user = userEvent.setup();
     setup();
@@ -78,5 +84,19 @@ describe("NewRoutinePicker", () => {
     );
     await user.click(screen.getByRole("button", { name: "Create routine" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("This customer no longer exists.");
+  });
+
+  it("creates a weekly plan the same way", async () => {
+    const user = userEvent.setup();
+    setup("plan");
+    await user.click(screen.getByRole("button", { name: "New plan" }));
+    expect(await screen.findByRole("dialog", { name: "New plan" })).toBeVisible();
+    await chooseOption(user, screen.getByRole("combobox", { name: "Customer" }), "Ana Pérez");
+    await user.click(screen.getByRole("button", { name: "Create plan" }));
+    await waitFor(() => expect(createPlanAction).toHaveBeenCalledTimes(1));
+    const data = (createPlanAction.mock.calls[0] as unknown as [unknown, FormData])[1];
+    expect(data.get("customerId")).toBe("cust-1");
+    expect(data.get("name")).toBe("New plan");
+    expect(createRoutineAction).not.toHaveBeenCalled();
   });
 });

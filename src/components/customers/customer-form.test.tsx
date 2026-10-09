@@ -233,7 +233,7 @@ describe("CustomerForm", () => {
     const action = vi.fn(async (): Promise<CustomerFormState> => ({ status: "saved" }));
     setup(action, { id: "abc", firstName: "Ana" });
     await user.click(screen.getByRole("button", { name: "Save changes" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Saved");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
     expect(screen.getByLabelText("First name")).toHaveValue("Ana");
   });
 

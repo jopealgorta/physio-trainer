@@ -1,6 +1,4 @@
-import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -34,17 +32,11 @@ export default async function EditCustomerPage({
   const t = await getTranslations("Customers");
 
   return (
-    <div className="grid gap-8">
-      <div className="grid gap-2">
-        <Link
-          href={`/customers/${customer.id}`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeftIcon aria-hidden className="size-4" />
-          {t("detail.backToCustomer")}
-        </Link>
-        <PageHeader title={t("form.editTitle")} />
-      </div>
+    <div className="grid gap-6">
+      <PageHeader
+        back={{ href: `/customers/${customer.id}`, label: t("detail.backToCustomer") }}
+        title={t("form.editTitle")}
+      />
       <CustomerForm
         action={saveCustomerAction}
         defaults={{

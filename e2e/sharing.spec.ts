@@ -1,5 +1,5 @@
 import { expect, test } from "./helpers/auth";
-import { pageAction } from "./helpers/page-actions";
+import { expectMenuAction, menuAction, pageAction } from "./helpers/page-actions";
 import {
   insertCustomer,
   insertCustomerLink,
@@ -336,9 +336,9 @@ test.describe("sharing from the physio's side", () => {
     const url = await page.getByLabel("Link", { exact: true }).inputValue();
     await page.keyboard.press("Escape");
 
-    await page.getByRole("button", { name: "Archive" }).click();
+    await menuAction(page, "Archive");
     await page.getByRole("alertdialog").getByRole("button", { name: "Archive" }).click();
-    await expect(page.getByRole("button", { name: "Restore" })).toBeVisible();
+    await expectMenuAction(page, "Restore");
     await expect(page.getByRole("button", { name: "Share all active" })).toHaveCount(0);
 
     const patient = await browser.newContext();

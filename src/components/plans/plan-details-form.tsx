@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useId, useState, useTransition, type FormEvent } from "react";
 
+import { FormActions } from "@/components/form-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -187,14 +187,12 @@ export function PlanDetailsForm({
           <AlertDescription>{tErrors(error, { max: PLAN_NOTES_MAX })}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending || !dirty}>
-          {pending ? t("saving") : t("save")}
-        </Button>
-        <p role="status" className="text-muted-foreground text-xs">
-          {dirty ? t("unsaved") : justSaved ? t("saved") : ""}
-        </p>
-      </div>
+      <FormActions
+        label={pending ? t("saving") : t("save")}
+        pending={pending}
+        disabled={!dirty}
+        status={dirty ? t("unsaved") : justSaved ? t("saved") : null}
+      />
     </form>
   );
 }

@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <LoadingPage className="gap-8">
+    <LoadingPage className="gap-6">
       <HeaderSkeleton description actions={2} />
       <div className="grid gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
         <div className="hidden content-start gap-2 md:grid">

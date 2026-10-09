@@ -233,7 +233,7 @@ describe("ExerciseForm", () => {
     const action = vi.fn(async (): Promise<ExerciseFormState> => ({ status: "saved" }));
     setup(action, { id: "abc", name: "Bridge" });
     await user.click(screen.getByRole("button", { name: "Save changes" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Saved");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
     expect(screen.getByLabelText("Name")).toHaveValue("Bridge");
   });
 
@@ -263,7 +263,7 @@ describe("ExerciseForm", () => {
     );
     const { rerender } = render(ui("Bridge"));
     await user.click(screen.getByRole("button", { name: "Save changes" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Saved");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
     rerender(ui("Bridge"));
     expect(screen.getByRole("status")).toHaveTextContent("Saved");
   });

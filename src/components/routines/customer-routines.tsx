@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { SectionHeader } from "@/components/section-header";
 import { PhaseTimeline } from "@/components/phases/phase-timeline";
 import { todayIn } from "@/lib/calendar-date";
 import { groupByChain } from "@/lib/phases";
@@ -35,24 +36,19 @@ export async function CustomerRoutines({
   const timelines = chains.filter((chain) => chain.length > 1);
   const singles = chains.filter((chain) => chain.length === 1).flat();
   const dialog = archived ? null : (
-    <div className="flex flex-wrap items-center gap-2">
+    <>
       <TemplatePickerDialog
         kind="routine"
         customer={{ id: customerId, name: customerName }}
         cases={cases}
       />
       <NewRoutineButton customerId={customerId} />
-    </div>
+    </>
   );
 
   return (
     <section className="grid gap-4" aria-labelledby="customer-routines-title">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="customer-routines-title" className="text-lg font-semibold">
-          {t("customerTab.title")}
-        </h2>
-        {dialog}
-      </div>
+      <SectionHeader id="customer-routines-title" title={t("customerTab.title")} actions={dialog} />
       {timelines.map((chain) => (
         <PhaseTimeline key={chain[0].id} kind="routine" items={chain} today={todayIn(timeZone)} />
       ))}

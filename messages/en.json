@@ -798,7 +798,8 @@
       "createTitle": "New exercise",
       "createDescription": "It's saved to your library and added to this routine.",
       "createSubmit": "Create and add"
-    }
+    },
+    "description": "Exercise routines you prescribe to your patients."
   },
   "Plans": {
     "title": "Weekly plans",
@@ -814,7 +815,8 @@
       "empty": {
         "title": "No weekly plans yet",
         "body": "Open a customer to build their first weekly plan.",
-        "cta": "Go to customers"
+        "cta": "Go to customers",
+        "bodyPick": "Pick a customer to create their first weekly plan."
       },
       "noResults": "No plans match these filters.",
       "clearFilters": "Clear filters",
@@ -840,6 +842,13 @@
       "errors": {
         "customerNotFound": "This customer no longer exists.",
         "invalid": "Check the form and try again."
+      },
+      "pick": {
+        "title": "New plan",
+        "customer": "Customer",
+        "noCustomer": "Choose a customer",
+        "create": "Create plan",
+        "cancel": "Cancel"
       }
     },
     "board": {
@@ -956,7 +965,8 @@
       "placeholder": "Something for the patient that day, e.g. \"Easy day, stop if it hurts\"",
       "save": "Save",
       "remove": "Remove"
-    }
+    },
+    "description": "Weekly plans that lay out your patients' routines day by day."
   },
   "Templates": {
     "copySuffix": " (copy)",
@@ -1070,8 +1080,7 @@
         "plan": "{count, plural, one {# routine} other {# routines}}"
       },
       "back": "Back to templates"
-    },
-    "fromMenu": "From template: {name}"
+    }
   },
   "VisitNotes": {
     "title": "Visit notes",

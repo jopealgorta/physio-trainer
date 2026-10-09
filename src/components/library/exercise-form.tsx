@@ -3,9 +3,9 @@
 import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useId, type FormEvent } from "react";
 
+import { FormActions } from "@/components/form-actions";
 import { BodyAreaPicker } from "@/components/body-areas/body-area-picker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -202,22 +202,15 @@ export function ExerciseForm({
       ) : null}
 
       {/* In a dialog the button stays in reach below the long form. */}
-      <div
+      <FormActions
+        label={pending ? t("saving") : (submitLabel ?? t(editing ? "save" : "create"))}
+        pending={pending}
+        status={state.status === "saved" && !pending ? t("saved") : null}
         className={cn(
-          "flex items-center gap-3",
           compact &&
             "bg-popover sticky bottom-0 z-10 -mx-6 border-t px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
         )}
-      >
-        <Button type="submit" disabled={pending}>
-          {pending ? t("saving") : (submitLabel ?? t(editing ? "save" : "create"))}
-        </Button>
-        {state.status === "saved" && !pending ? (
-          <p role="status" className="text-muted-foreground text-sm">
-            {t("saved")}
-          </p>
-        ) : null}
-      </div>
+      />
     </form>
   );
 }

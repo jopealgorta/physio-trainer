@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
+
+import { menuActions } from "@/test/page-actions";
 
 import messages from "../../../messages/en.json";
 
@@ -28,16 +31,20 @@ const base: HeaderCustomer = {
 function setup(customer: Partial<HeaderCustomer> = {}, age: number | null = null) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CustomerHeader customer={{ ...base, ...customer }} age={age} />
+      <CustomerHeader
+        customer={{ ...base, ...customer }}
+        age={age}
+        back={{ href: "/customers", label: "Customers" }}
+      />
     </NextIntlClientProvider>,
   );
 }
 
 describe("CustomerHeader", () => {
   it("shows the full name as the page heading with a decorative avatar", () => {
-    const { container } = setup();
+    setup();
     expect(screen.getByRole("heading", { level: 1, name: "Ana Pérez" })).toBeInTheDocument();
-    expect(container.querySelector("[aria-hidden='true']")).toHaveTextContent("AP");
+    expect(screen.getByText("AP").closest("[aria-hidden='true']")).not.toBeNull();
   });
 
   it("uses just the first name when there is no last name", () => {
@@ -88,6 +95,11 @@ describe("CustomerHeader", () => {
     expect(screen.queryByRole("link", { name: "WhatsApp" })).not.toBeInTheDocument();
   });
 
+  it("links back to the customers list", () => {
+    setup();
+    expect(screen.getByRole("link", { name: "Customers" })).toHaveAttribute("href", "/customers");
+  });
+
   it("links to the edit page", () => {
     setup();
     expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute(
@@ -96,17 +108,24 @@ describe("CustomerHeader", () => {
     );
   });
 
-  it("shows Archive for active customers and Restore for archived ones", () => {
-    const { unmount } = setup();
-    expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
-    unmount();
-    setup({ archivedAt: new Date("2026-02-01T00:00:00Z") });
-    expect(screen.getByRole("button", { name: "Restore" })).toBeInTheDocument();
+  it("puts Edit and Export in the menu on phones, then Archive; Share stays a button", async () => {
+    const user = userEvent.setup();
+    setup();
+    expect(await menuActions(user)).toEqual(["Edit", "Export PDF", "Export Excel", "Archive"]);
   });
 
-  it("offers sharing, except for an archived customer (their links are revoked)", () => {
+  it("offers Restore for an archived customer", async () => {
+    const user = userEvent.setup();
+    setup({ archivedAt: new Date("2026-02-01T00:00:00Z") });
+    expect(await menuActions(user)).toContain("Restore");
+  });
+
+  it("offers sharing as the main action, except for an archived customer (links are revoked)", () => {
     const { unmount } = setup();
-    expect(screen.getByRole("button", { name: "Share all active" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Share all active" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    );
     unmount();
     setup({ archivedAt: new Date("2026-10-01T00:00:00Z") });
     expect(screen.queryByRole("button", { name: "Share all active" })).not.toBeInTheDocument();

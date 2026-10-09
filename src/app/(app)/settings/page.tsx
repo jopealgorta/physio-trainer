@@ -30,11 +30,9 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
 
   return (
     <PendingScope>
-      <div className="grid gap-8">
-        <div className="grid gap-4">
-          <PageHeader title={t("title")} />
-          <SettingsTabs current={section} />
-        </div>
+      <div className="grid gap-6">
+        <PageHeader title={t("title")} />
+        <SettingsTabs current={section} />
         <PendingContent>
           {section === "profile" && (
             <Card>

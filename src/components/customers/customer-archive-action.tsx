@@ -1,11 +1,12 @@
 "use client";
 
-import { ArchiveIcon, ArchiveRestoreIcon, Trash2Icon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
 import { usePageAction } from "@/components/page-actions";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,14 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { deleteExerciseAction, setExerciseArchivedAction } from "@/server/library/actions";
+import { setCustomerArchivedAction } from "@/server/customers/actions";
 
 /**
- * Archive (or Restore) and Delete for an exercise: rare, so they live in the page's "⋯" menu at
- * every size (inside `PageActions`). Renders the delete confirmation and what went wrong.
+ * Archive (after a confirmation: it revokes the customer's links) or Restore, from the page's
+ * "⋯" menu at every size (inside `PageActions`). Renders the confirmation and what went wrong.
  */
-export function ExerciseActions({
+export function CustomerArchiveAction({
   id,
   name,
   archived,
@@ -32,17 +32,17 @@ export function ExerciseActions({
   name: string;
   archived: boolean;
 }) {
-  const t = useTranslations("Library.detail");
+  const t = useTranslations("Customers.detail");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState<"notFound" | "inUse" | "unknown" | null>(null);
+  const [error, setError] = useState<"notFound" | "unknown" | null>(null);
 
-  function toggleArchived() {
+  function setArchived(next: boolean) {
     setError(null);
     startTransition(async () => {
       try {
-        const result = await setExerciseArchivedAction(id, !archived);
+        const result = await setCustomerArchivedAction(id, next);
         if (result.ok) router.refresh();
         else setError(result.error);
       } catch {
@@ -51,36 +51,14 @@ export function ExerciseActions({
     });
   }
 
-  function remove() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        // Redirects to /library on success, so only a failure comes back.
-        const result = await deleteExerciseAction(id);
-        if (result && !result.ok) setError(result.error);
-      } catch {
-        setError("unknown");
-      }
-    });
-  }
-
-  usePageAction("archive", {
+  const { onCloseAutoFocus } = usePageAction("archive", {
     label: archived ? t("restore") : t("archive"),
     order: 90,
     menuOnly: true,
     icon: archived ? <ArchiveRestoreIcon aria-hidden /> : <ArchiveIcon aria-hidden />,
     pending,
-    onSelect: toggleArchived,
-  });
-  const { onCloseAutoFocus } = usePageAction("delete", {
-    label: t("delete"),
-    order: 91,
-    menuOnly: true,
-    destructive: true,
-    opensDialog: true,
-    icon: <Trash2Icon aria-hidden />,
-    disabled: pending,
-    onSelect: () => setConfirming(true),
+    opensDialog: !archived,
+    onSelect: () => (archived ? setArchived(false) : setConfirming(true)),
   });
 
   return (
@@ -88,13 +66,13 @@ export function ExerciseActions({
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus}>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("deleteBody", { name })}</AlertDialogDescription>
+            <AlertDialogTitle>{t("archiveTitle", { name })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("archiveBody")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={remove}>
-              {t("confirmDelete")}
+            <AlertDialogAction onClick={() => setArchived(true)}>
+              {t("archiveConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

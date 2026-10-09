@@ -3,6 +3,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { DumbbellIcon } from "lucide-react";
 
 import { IntentLink } from "@/components/intent-link";
+import { NewForCustomerPicker } from "@/components/new-for-customer-picker";
 import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +14,6 @@ import { DEFAULT_ROUTINE_FILTERS, routinesHref } from "@/lib/routine-params";
 import { scheduleState } from "@/lib/schedule";
 import type { RoutineSummary } from "@/server/routines/queries";
 
-import { NewRoutinePicker } from "./new-routine-picker";
 import { StatusBadge } from "./status-badge";
 
 function RoutineLink({ routine, eager }: { routine: RoutineSummary; eager: boolean }) {
@@ -153,7 +153,7 @@ export function EmptyRoutines({ customers }: { customers: { id: string; name: st
         {customers.length > 0 ? (
           <>
             <p className="text-muted-foreground text-sm">{t("bodyPick")}</p>
-            <NewRoutinePicker customers={customers} />
+            <NewForCustomerPicker kind="routine" customers={customers} />
           </>
         ) : (
           <>

@@ -120,7 +120,8 @@ describe("ProfileForm", () => {
     const handle = screen.getByLabelText("Handle");
     await user.clear(handle);
     await user.type(handle, "maria-physio");
-    expect(screen.getByRole("status")).toHaveTextContent(notice);
+    // Announced politely (the form's own save status is another live region).
+    expect(screen.getByText(notice).closest('[role="status"]')).not.toBeNull();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

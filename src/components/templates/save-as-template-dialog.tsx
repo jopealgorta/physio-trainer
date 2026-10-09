@@ -44,7 +44,7 @@ export function SaveAsTemplateDialog({
   const [open, setOpen] = useState(false);
   const { onCloseAutoFocus } = usePageAction("saveAsTemplate", {
     label: t("button"),
-    order: 40,
+    order: 10,
     icon: <LayersIcon aria-hidden />,
     opensDialog: true,
     onSelect: () => setOpen(true),
@@ -52,8 +52,7 @@ export function SaveAsTemplateDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {/* Pushed to the end of its row, with or without "From template" before it. */}
-        <Button type="button" variant="outline" className="ml-auto">
+        <Button type="button" variant="outline">
           <LayersIcon aria-hidden /> {t("button")}
         </Button>
       </DialogTrigger>
