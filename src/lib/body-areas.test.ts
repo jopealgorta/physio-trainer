@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import en from "../../messages/en.json";
 
 import {
+  BODY_AREA_GROUPS,
   BODY_AREAS,
   BODY_SIDES,
   CASE_BODY_AREAS,
@@ -21,6 +22,15 @@ describe("body area lists", () => {
   it("has a translation for every area and side, and nothing extra", () => {
     expect(Object.keys(en.BodyAreas.areas).sort()).toEqual([...BODY_AREAS].sort());
     expect(Object.keys(en.BodyAreas.sides).sort()).toEqual([...BODY_SIDES].sort());
+  });
+
+  it("groups every area exactly once, head to toe, with a translated group name", () => {
+    const grouped = BODY_AREA_GROUPS.flatMap((group) => group.areas);
+    expect([...grouped].sort()).toEqual([...BODY_AREAS].sort());
+    expect(new Set(grouped).size).toBe(grouped.length);
+    expect(Object.keys(en.BodyAreas.groups).sort()).toEqual(
+      BODY_AREA_GROUPS.map((group) => group.id).sort(),
+    );
   });
 
   it("keeps full_body out of the case list only", () => {

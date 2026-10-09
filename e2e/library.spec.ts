@@ -81,7 +81,15 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await page.getByLabel("Name").fill("Single-leg bridge");
   await tickCategories(page, ["Lower limb › Glutes", "Mobility"]);
   await page.getByLabel("Instructions").fill("Push through the heel.\nHold at the top.");
-  await page.getByRole("checkbox", { name: "Glute", exact: true }).check();
+  await page.getByRole("button", { name: "Body areas Choose body areas" }).click();
+  const areas = page.getByRole("dialog", { name: "Body areas" });
+  await areas.getByRole("radio", { name: "Back" }).click();
+  await areas.getByRole("checkbox", { name: "Glute · Left" }).click();
+  await expect(areas.getByRole("button", { name: "Glute", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await areas.getByRole("button", { name: "Done" }).click();
   await page.getByLabel("YouTube link").fill(SHORT);
   await page.getByRole("button", { name: "Add video" }).click();
   await expect(page.getByText("Cover", { exact: true })).toBeVisible();
@@ -91,6 +99,7 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await page.reload();
   await expect(page.getByLabel("Name")).toHaveValue("Single-leg bridge");
   await expect(page.getByLabel("Categories")).toHaveText("Lower limb › Glutes, Mobility");
+  await expect(page.getByRole("button", { name: "Body areas Glute" })).toBeVisible();
 
   // Edit keeps typed values after saving.
   await page.getByLabel("Instructions").fill("Push through the heel.\nSqueeze at the top.");

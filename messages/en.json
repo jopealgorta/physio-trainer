@@ -212,6 +212,12 @@
       "right": "Right",
       "both": "Both"
     },
+    "groups": {
+      "upper": "Upper body",
+      "trunk": "Trunk",
+      "lower": "Lower body",
+      "other": "Other"
+    },
     "withSide": "{area} · {side, select, left {Left} right {Right} other {Both}}",
     "picker": {
       "areaLabel": "Body area",
@@ -220,7 +226,11 @@
       "front": "Front",
       "back": "Back",
       "map": "Body map view",
-      "clear": "Clear"
+      "clear": "Clear",
+      "placeholderMulti": "Choose body areas",
+      "placeholderSingle": "Choose a body area",
+      "hint": "Tap the body or pick an area",
+      "done": "Done"
     }
   },
   "DevPreview": {

@@ -46,6 +46,17 @@ export const PAIRED_BODY_AREAS = [
   "ankle_foot",
 ] as const satisfies readonly BodyArea[];
 
+/** How the picker groups its chips (BodyAreas.groups.*). Order within a group is head to toe. */
+export const BODY_AREA_GROUPS = [
+  {
+    id: "upper",
+    areas: ["head_jaw", "neck", "shoulder", "upper_arm", "elbow", "forearm_wrist_hand"],
+  },
+  { id: "trunk", areas: ["chest", "upper_back", "abdomen_core", "lower_back"] },
+  { id: "lower", areas: ["hip_groin", "glute", "thigh", "knee", "lower_leg", "ankle_foot"] },
+  { id: "other", areas: ["full_body"] },
+] as const satisfies readonly { id: string; areas: readonly BodyArea[] }[];
+
 export const bodyAreaSchema = z.enum(BODY_AREAS);
 export const bodySideSchema = z.enum(BODY_SIDES);
 
