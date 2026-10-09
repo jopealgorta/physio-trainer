@@ -39,7 +39,7 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
   const t = await getTranslations("Library");
 
   return (
-    <PageActions>
+    <PageActions menuOnly>
       <div className="grid gap-6">
         <PageHeader back={{ href: "/library", label: t("form.back") }} title={exercise.name} />
         {/* Archive and Delete: in the header's "⋯" menu; their dialog and errors show here. */}

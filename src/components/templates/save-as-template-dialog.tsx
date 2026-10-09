@@ -44,7 +44,7 @@ export function SaveAsTemplateDialog({
   const [open, setOpen] = useState(false);
   const { onCloseAutoFocus } = usePageAction("saveAsTemplate", {
     label: t("button"),
-    order: 40,
+    order: 10,
     icon: <LayersIcon aria-hidden />,
     opensDialog: true,
     onSelect: () => setOpen(true),

@@ -81,7 +81,7 @@ export function ShareButton({
       ? null
       : {
           label: t(`trigger.${target.target}`),
-          order: 10,
+          order: 40,
           icon: <Share2Icon aria-hidden />,
           opensDialog: true,
           onSelect: () => onOpenChange(true),

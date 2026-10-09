@@ -2,7 +2,7 @@ import { FormSkeleton, HeaderSkeleton, LoadingPage, TabsSkeleton } from "@/compo
 
 export default function Loading() {
   return (
-    <LoadingPage className="gap-8">
+    <LoadingPage className="gap-6">
       <div className="grid gap-4">
         <HeaderSkeleton />
         <TabsSkeleton count={3} />

@@ -76,6 +76,8 @@ type Registry = {
   menuTrigger: RefObject<HTMLButtonElement | null>;
   /** Listeners for the menu opening (controls clear a stale message then). */
   menuOpened: RefObject<Set<() => void>>;
+  /** The page has menu-only actions: the menu shows from `sm` up from the first render. */
+  menuOnly: boolean;
 };
 
 const RegistryContext = createContext<Registry | null>(null);
@@ -99,14 +101,24 @@ function useRegistered<T>() {
   return [items, add] as const;
 }
 
-export function PageActions({ children }: { children: ReactNode }) {
+export function PageActions({
+  children,
+  menuOnly = false,
+}: {
+  children: ReactNode;
+  /**
+   * The page has menu-only actions (Archive, Delete): the "⋯" button shows from `sm` up in the
+   * server's HTML already, instead of appearing once the actions register.
+   */
+  menuOnly?: boolean;
+}) {
   const [entries, addEntry] = useRegistered<Entry>();
   const [notices, addNotice] = useRegistered<PageNotice>();
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const menuOpened = useRef(new Set<() => void>());
   const registry = useMemo(
-    () => ({ action: addEntry, notice: addNotice, menuTrigger, menuOpened }),
-    [addEntry, addNotice],
+    () => ({ action: addEntry, notice: addNotice, menuTrigger, menuOpened, menuOnly }),
+    [addEntry, addNotice, menuOnly],
   );
   return (
     <RegistryContext.Provider value={registry}>
@@ -121,6 +133,9 @@ export function PageActions({ children }: { children: ReactNode }) {
 export function useInPageActions(): boolean {
   return useContext(RegistryContext) !== null;
 }
+
+/** Below Tailwind's `sm` (40rem), where the menu stands in for every control. */
+const PHONE = "(max-width: 39.999rem)";
 
 /** Whether an element is laid out (neither it nor an ancestor is `display: none`). */
 function displayed(element: HTMLElement) {
@@ -194,14 +209,18 @@ export function usePageAction(
     destructive,
   ]);
 
+  // The menu stands in for the control on phones, and for a menu-only action at every size;
+  // from `sm` up any other control was opened from its own button, where focus goes back.
+  const fromMenu = action?.menuOnly === true;
   const onCloseAutoFocus = useCallback(
     (event: Event) => {
       const menu = registry?.menuTrigger.current;
       if (!menu || !displayed(menu)) return;
+      if (!fromMenu && !window.matchMedia(PHONE).matches) return;
       event.preventDefault();
       menu.focus();
     },
-    [registry],
+    [registry, fromMenu],
   );
 
   return { inMenu: registry !== null, onCloseAutoFocus };
@@ -271,8 +290,10 @@ export function PageActionsMenu({ className }: { className?: string }) {
   const registry = useContext(RegistryContext);
   const menuTrigger = registry?.menuTrigger;
   const sorted = useMemo(() => [...entries.values()].sort((a, b) => a.order - b.order), [entries]);
-  const busy = sorted.some((entry) => entry.pending);
-  const everySize = sorted.some((entry) => entry.menuOnly);
+  const everySize = registry?.menuOnly === true || sorted.some((entry) => entry.menuOnly);
+  // From `sm` up the other actions have their own button, which shows its own progress.
+  const busyEverySize = sorted.some((entry) => entry.pending && (entry.menuOnly || !everySize));
+  const busyOnPhones = sorted.some((entry) => entry.pending);
   // A dialog item's action waits for the menu to close (see `opensDialog`).
   const deferred = useRef<(() => void) | null>(null);
 
@@ -289,11 +310,19 @@ export function PageActionsMenu({ className }: { className?: string }) {
           variant="outline"
           size="icon-lg"
           aria-label={t("more")}
-          aria-busy={busy}
+          aria-busy={busyEverySize}
           className={cn(!everySize && "sm:hidden", className)}
         >
-          {busy ? (
+          {busyEverySize ? (
             <Loader2Icon aria-hidden className="animate-spin motion-reduce:animate-none" />
+          ) : busyOnPhones ? (
+            <>
+              <Loader2Icon
+                aria-hidden
+                className="animate-spin motion-reduce:animate-none sm:hidden"
+              />
+              <EllipsisIcon aria-hidden className="hidden sm:block" />
+            </>
           ) : (
             <EllipsisIcon aria-hidden />
           )}
@@ -348,6 +377,8 @@ function MenuEntry({
   onDeferred: (run: () => void) => void;
 }) {
   const icon = entry.icon();
+  // Hidden from `sm` up by CSS: keyboard focus skips it (it can't take focus), though Radix's
+  // typeahead may still match its label and need one more keypress there.
   const className = entry.menuOnly ? undefined : "sm:hidden";
   const variant = entry.destructive ? "destructive" : "default";
   const item =

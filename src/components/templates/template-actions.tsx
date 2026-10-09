@@ -47,7 +47,7 @@ export function TemplateActions({
     customers.length > 0
       ? {
           label: t("assign"),
-          order: 60,
+          order: 10,
           icon: <UserPlusIcon aria-hidden />,
           opensDialog: true,
           onSelect: () => setAssigning(true),
@@ -56,7 +56,7 @@ export function TemplateActions({
   );
   usePageAction("duplicate", {
     label: t("duplicate"),
-    order: 61,
+    order: 11,
     icon: <CopyIcon aria-hidden />,
     pending,
     onSelect: duplicate,
@@ -81,7 +81,7 @@ export function TemplateActions({
         <CopyIcon aria-hidden /> {t("duplicate")}
       </Button>
       {failed ? (
-        <p role="alert" className="text-destructive text-sm">
+        <p role="alert" className="text-destructive basis-full text-sm">
           {t("duplicateFailed")}
         </p>
       ) : null}

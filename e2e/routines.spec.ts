@@ -279,7 +279,7 @@ test("the editor fits a phone and the picker opens as a sheet", async ({
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
 });
 
-test("on a phone the routine page opens with one compact row: back, Save, More actions", async ({
+test("on a phone the routine page header: back, title, then Save and More actions", async ({
   physioPage: page,
   isMobile,
 }) => {
@@ -289,17 +289,23 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   const back = page.getByRole("link", { name: "Back to routines" });
   const save = page.getByRole("button", { name: "Save", exact: true });
   const more = page.getByRole("button", { name: "More actions" });
+  const title = routineTitle(page, "Compact header");
   const middle = async (locator: typeof back) => {
     const box = (await locator.boundingBox())!;
     return box.y + box.height / 2;
   };
+  // Save and the menu share a row under the title, which is a heading rather than an input.
   const row = await middle(more);
-  expect(Math.abs((await middle(back)) - row)).toBeLessThan(4);
   expect(Math.abs((await middle(save)) - row)).toBeLessThan(4);
-  // The title comes right under it, as a heading rather than an input.
-  const title = routineTitle(page, "Compact header");
-  expect((await title.boundingBox())!.y).toBeGreaterThan(row);
+  expect(await middle(back)).toBeLessThan(await middle(title));
+  expect(await middle(title)).toBeLessThan(row);
   await expect(page.getByRole("textbox", { name: "Routine name" })).toHaveCount(0);
+
+  // An edit shows "Unsaved changes" beside Save without moving it.
+  const saveBox = (await save.boundingBox())!;
+  await page.getByLabel("Notes for the patient").fill("Warm up first");
+  await expect(page.getByTestId("save-status")).toHaveText("Unsaved changes");
+  expect((await save.boundingBox())!).toEqual(saveBox);
 
   // The labelled buttons give way to the menu.
   for (const name of ["Export", "Share routine", "History", "Save as template…"]) {
@@ -308,11 +314,11 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   await more.click();
   const menu = page.getByRole("menu");
   await expect(menu.getByRole("menuitem")).toHaveText([
-    "Share routine",
+    "Save as template…",
+    "History",
     "Export PDF",
     "Export Excel",
-    "History",
-    "Save as template…",
+    "Share routine",
   ]);
   await expect(menu.getByRole("menuitemcheckbox")).toHaveCount(0);
   await menu.getByRole("menuitem", { name: "History" }).click();

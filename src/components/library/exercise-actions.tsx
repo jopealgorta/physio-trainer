@@ -69,7 +69,7 @@ export function ExerciseActions({
     order: 90,
     menuOnly: true,
     icon: archived ? <ArchiveRestoreIcon aria-hidden /> : <ArchiveIcon aria-hidden />,
-    disabled: pending,
+    pending,
     onSelect: toggleArchived,
   });
   const { onCloseAutoFocus } = usePageAction("delete", {

@@ -40,7 +40,7 @@ export function CustomerHeader({
   const archived = customer.archivedAt !== null;
 
   return (
-    <PageActions>
+    <PageActions menuOnly>
       <div className="grid gap-4">
         <PageHeader
           back={back}

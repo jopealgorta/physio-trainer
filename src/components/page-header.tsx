@@ -40,7 +40,8 @@ export function PageHeader({
     <div className="grid gap-3">
       {back ? <BackLink href={back.href} label={back.label} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 flex-[1_1_12rem] items-center gap-4">
+        {/* On phones the actions get their own row, so a status beside Save never moves it. */}
+        <div className="flex min-w-0 basis-full items-center gap-4 sm:flex-[1_1_12rem]">
           {leading}
           <div className="grid min-w-0 gap-1">
             {typeof title === "string" ? (
@@ -57,7 +58,10 @@ export function PageHeader({
           </div>
         </div>
         {hasActions ? (
-          <div data-testid="page-header-actions" className="flex flex-wrap items-center gap-2">
+          <div
+            data-testid="page-header-actions"
+            className="ml-auto flex flex-wrap items-center justify-end gap-2"
+          >
             {actions ? (
               withMenu ? (
                 <div

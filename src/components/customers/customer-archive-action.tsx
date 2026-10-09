@@ -56,7 +56,7 @@ export function CustomerArchiveAction({
     order: 90,
     menuOnly: true,
     icon: archived ? <ArchiveRestoreIcon aria-hidden /> : <ArchiveIcon aria-hidden />,
-    disabled: pending,
+    pending,
     opensDialog: !archived,
     onSelect: () => (archived ? setArchived(false) : setConfirming(true)),
   });
