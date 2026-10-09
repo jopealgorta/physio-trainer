@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { FormActions } from "@/components/form-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -340,15 +341,11 @@ export function BrandingForm({
           </Alert>
         ) : null}
 
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={pending}>
-            {pending ? t("saving") : t("save")}
-          </Button>
-          {/* Always mounted: screen readers only announce changes to an existing live region. */}
-          <p role="status" className="text-muted-foreground text-sm">
-            {state.status === "saved" && !pending ? t("saved") : null}
-          </p>
-        </div>
+        <FormActions
+          label={pending ? t("saving") : t("save")}
+          pending={pending}
+          status={state.status === "saved" && !pending ? t("saved") : null}
+        />
       </form>
 
       <section aria-labelledby={`${id}-preview`} className="grid gap-4 lg:sticky lg:top-6">

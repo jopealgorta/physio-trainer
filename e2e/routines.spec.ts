@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
-import { routineTitle } from "./helpers/page-actions";
+import { menuAction, routineTitle } from "./helpers/page-actions";
 import {
   addExercises,
   closePicker,
@@ -168,7 +168,7 @@ test("an exercise used by a routine cannot be deleted, and archiving hides it fr
   await page.goto("/library");
   await page.getByRole("link", { name: /Step-up/ }).click();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await menuAction(page, "Delete");
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete exercise" }).click();
   await expect(
     page.getByText(
@@ -177,7 +177,7 @@ test("an exercise used by a routine cannot be deleted, and archiving hides it fr
   ).toBeVisible();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
 
-  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await menuAction(page, "Archive");
   await expect(page.getByText(/This exercise is archived/)).toBeVisible();
 
   await page.goto(routineUrl);

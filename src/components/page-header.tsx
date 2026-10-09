@@ -40,7 +40,7 @@ export function PageHeader({
     <div className="grid gap-3">
       {back ? <BackLink href={back.href} label={back.label} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 flex-[1_1_16rem] items-center gap-4">
+        <div className="flex min-w-0 flex-[1_1_12rem] items-center gap-4">
           {leading}
           <div className="grid min-w-0 gap-1">
             {typeof title === "string" ? (

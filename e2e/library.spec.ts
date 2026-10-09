@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
 import { chooseOption } from "./helpers/select";
+import { expectMenuAction, menuAction } from "./helpers/page-actions";
 
 const SHORT = "https://youtube.com/shorts/dQw4w9WgXcQ?si=e2e";
 const VIDEO_A = "https://www.youtube.com/watch?v=aaaaaaaaaaa";
@@ -144,7 +145,7 @@ test("a physio builds, finds, archives and restores an exercise", async ({
 
   // Archive and restore.
   await page.getByRole("link", { name: /Single-leg bridge/ }).click();
-  await page.getByRole("button", { name: "Archive" }).click();
+  await menuAction(page, "Archive");
   await expect(page.getByText(/This exercise is archived/)).toBeVisible();
   await page.goto("/library?category=archived");
   await expect(page.getByRole("link", { name: /Single-leg bridge/ })).toBeVisible();
@@ -152,9 +153,9 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await expect(page.getByRole("link", { name: /Single-leg bridge/ })).toHaveCount(0);
   await page.goto("/library?category=archived");
   await page.getByRole("link", { name: /Single-leg bridge/ }).click();
-  await page.getByRole("button", { name: "Restore" }).click();
+  await menuAction(page, "Restore");
   await expect(page.getByText(/This exercise is archived/)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Archive" })).toBeVisible();
+  await expectMenuAction(page, "Archive");
   await page.goto("/library");
   await expect(page.getByRole("link", { name: /Single-leg bridge/ })).toBeVisible();
 });
@@ -213,7 +214,7 @@ test("deleting an exercise returns to the library", async ({ physioPage: page })
   await page.getByLabel("Name").fill("Throwaway plank");
   await page.getByRole("button", { name: "Create exercise" }).click();
   await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
-  await page.getByRole("button", { name: "Delete" }).click();
+  await menuAction(page, "Delete");
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete exercise" }).click();
   await expect(page).toHaveURL(/\/library$/);
   await expect(page.getByRole("link", { name: /Throwaway plank/ })).toHaveCount(0);

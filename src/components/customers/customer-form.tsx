@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useId, useState, type FormEvent } from "react";
 
+import { FormActions } from "@/components/form-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -337,16 +337,11 @@ export function CustomerForm({
         </Alert>
       ) : null}
 
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? t("saving") : t(editing ? "save" : "create")}
-        </Button>
-        {state.status === "saved" && !pending ? (
-          <p role="status" className="text-muted-foreground text-sm">
-            {t("saved")}
-          </p>
-        ) : null}
-      </div>
+      <FormActions
+        label={pending ? t("saving") : t(editing ? "save" : "create")}
+        pending={pending}
+        status={state.status === "saved" && !pending ? t("saved") : null}
+      />
     </form>
   );
 }

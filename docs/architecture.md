@@ -255,12 +255,23 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   swiped down to dismiss. vaul owns the drawer's touch gestures: put scrollable content in an
   inner `min-h-0 overflow-y-auto` box (it scrolls until it is back at its top, then the drag
   closes the drawer). Side panels (`Sheet` from the left or right) stay sheets.
-- **Page actions on phones**: a detail page with several secondary controls (the routine and
-  plan pages: Share, Export, History, templates) wraps them in `PageActions`
+- **Page layout**: every `(app)` page is a `grid gap-6` that starts with `PageHeader`
+  (`src/components/page-header.tsx`): the way back (`back`, a `BackLink`), the title (a string
+  becomes the `h1`; a detail page passes its `EditableTitle`), `meta` under it (badges, age,
+  "From template") and `description` on list pages. On the right, `primary` is the page's one
+  filled button (New…, Share, Save), shown at every size; `actions` are the rest, `outline`
+  buttons with an icon, in the order Edit, templates, History, Export, Share. Sections inside a
+  page use `SectionHeader` (h2, description, actions); forms end with `FormActions` (submit and
+  an always-mounted status). Don't hand-roll a back link, header row or form footer.
+- **Page actions (the "⋯" menu)**: a detail page wraps its header in `PageActions`
   (`src/components/page-actions.tsx`). Each control calls `usePageAction` to appear in the "⋯"
   `PageActionsMenu`, and `usePageNotice` for what it says inline (errors, "Version restored.").
-  The page hides the controls' own rows below `sm` (`hidden sm:flex`; their dialogs are
-  portalled, so they still open) and shows the menu and `PageNotices` there instead.
+  Inside `PageActions`, `PageHeader` hides `actions` below `sm` (their dialogs are portalled, so
+  they still open) and shows the menu and `PageNotices` there instead; links use
+  `PageActionLink`. Rare or destructive actions (Archive, Restore, Delete) have no button:
+  `menuOnly` keeps them in the menu at every size (last group, order 90+, `destructive` in
+  red), and the control renders only its confirmation dialog and errors, below the header. The
+  main action (`primary`, e.g. `ShareButton primary`) is never in the menu.
 - **Titles**: a detail page's name is an `h1` renamed in place with `EditableTitle` (pencil
   button; Enter or blur confirms, Escape cancels), not an always-on input.
 - **Navigation feedback**: every `(app)` route segment has a `loading.tsx` built from

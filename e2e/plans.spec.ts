@@ -31,6 +31,26 @@ async function createPlanFor(page: Page, customerPath: string, name: string) {
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
 }
 
+test("a physio starts a plan from the plans list by choosing the customer", async ({
+  physioPage: page,
+}) => {
+  await createCustomer(page, "Rita");
+  await page.goto("/plans");
+  await expect(page.getByText("Pick a customer to create their first weekly plan.")).toBeVisible();
+  await page.getByRole("button", { name: "New plan" }).click();
+  const dialog = page.getByRole("dialog", { name: "New plan" });
+  await expect(dialog.getByRole("button", { name: "Create plan" })).toBeDisabled();
+  await chooseOption(page, dialog.getByRole("combobox", { name: "Customer" }), "Rita");
+  await dialog.getByRole("button", { name: "Create plan" }).click();
+  await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "New plan", level: 1 })).toBeVisible();
+
+  // With a plan listed, the same button sits in the page header.
+  await page.goto("/plans");
+  await page.getByRole("button", { name: "New plan" }).click();
+  await expect(page.getByRole("dialog", { name: "New plan" })).toBeVisible();
+});
+
 const day = (page: Page, name: string) => page.getByRole("region", { name, exact: true });
 /** The routine names on a day, in order. */
 const routineNames = (page: Page, name: string) =>

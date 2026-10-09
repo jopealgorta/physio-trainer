@@ -3,18 +3,19 @@ import type { Locator, Page } from "@playwright/test";
 import { expect } from "./auth";
 
 /**
- * The "More actions" button when the page shows it (phones), else null. Waits until either it or
- * the control it stands in for is visible, so a page still settling is not mistaken for either.
+ * The "More actions" button when the control is not showing (phones), else null. Waits until
+ * either is visible, so a page still settling is not mistaken for either. (From `sm` up the menu
+ * can show too, for menu-only actions like Archive: the control showing decides.)
  */
 export async function phoneMenu(page: Page, control: Locator): Promise<Locator | null> {
   const more = page.getByRole("button", { name: "More actions" });
   await expect(more.or(control).filter({ visible: true }).first()).toBeVisible();
-  return (await more.isVisible()) ? more : null;
+  return (await control.filter({ visible: true }).count()) > 0 ? null : more;
 }
 
 /**
- * Routine and plan pages show their controls as buttons from `sm` up and in a "More actions"
- * menu on phones. Runs the named one either way: the button, or the menu item.
+ * Detail pages show their controls as buttons from `sm` up and in a "More actions" menu on
+ * phones. Runs the named one either way: the button, or the menu item.
  */
 export async function pageAction(page: Page, name: string | RegExp) {
   const button = page.getByRole("button", { name, exact: typeof name === "string" });
@@ -25,6 +26,19 @@ export async function pageAction(page: Page, name: string | RegExp) {
   } else {
     await button.click();
   }
+}
+
+/** Runs an action that lives only in the "More actions" menu (Archive, Restore, Delete). */
+export async function menuAction(page: Page, name: string | RegExp) {
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name, exact: typeof name === "string" }).click();
+}
+
+/** Checks the "More actions" menu offers an action (Archive after a restore), then closes it. */
+export async function expectMenuAction(page: Page, name: string | RegExp) {
+  await page.getByRole("button", { name: "More actions" }).click();
+  await expect(page.getByRole("menuitem", { name, exact: typeof name === "string" })).toBeVisible();
+  await page.keyboard.press("Escape");
 }
 
 /** Renames the routine through its title (pencil, type, Enter); Save still saves it. */
@@ -69,26 +83,12 @@ export async function renamePlan(page: Page, name: string) {
 export const routineTitle = (page: Page, name: string) =>
   page.getByRole("heading", { level: 1, name, exact: true });
 
-/** "From template: X" shows on the page from `sm` up and as a menu item (a link) on phones. */
+/** "From template: X" shows under the title of a copy. */
 export async function expectFromTemplate(page: Page) {
-  const more = await phoneMenu(page, page.getByText("From template:"));
-  if (more) {
-    await more.click();
-    await expect(page.getByRole("menuitem", { name: /^From template: / })).toBeVisible();
-    await page.keyboard.press("Escape");
-  } else {
-    await expect(page.getByText("From template:")).toBeVisible();
-  }
+  await expect(page.getByText("From template:")).toBeVisible();
 }
 
-/** Follows "From template: X" to the template: the link, or the menu item on phones. */
+/** Follows "From template: X" to the template. */
 export async function openFromTemplate(page: Page, name: string) {
-  const link = page.getByRole("link", { name });
-  const more = await phoneMenu(page, link);
-  if (more) {
-    await more.click();
-    await page.getByRole("menuitem", { name: `From template: ${name}` }).click();
-  } else {
-    await link.click();
-  }
+  await page.getByRole("link", { name }).click();
 }
