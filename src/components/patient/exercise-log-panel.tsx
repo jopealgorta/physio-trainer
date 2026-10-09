@@ -196,6 +196,9 @@ function LogFields({
   const removeLine = (index: number) => {
     const next = lines - 1;
     setLines(next);
+    // The button goes with its row: focus stays in the list, on the set above (rows before it
+    // keep their elements).
+    inputs.current[Math.max(index - 1, 0)]?.focus();
     // A discrete change: saved at once.
     if (update({ weights: fields.weights.filter((_, i) => i !== index) }, next)) flush();
   };
@@ -269,12 +272,13 @@ function LogFields({
                   </div>
                   {lines > prescribedLines ? (
                     // Keeps the inputs aligned whether or not the row can be removed.
-                    <div className="size-9 flex-none">
+                    <div className="size-11 flex-none">
                       {index >= prescribedLines ? (
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
+                          className="size-11"
                           aria-label={t("exerciseLog.sets.remove", { number: index + 1 })}
                           onClick={() => removeLine(index)}
                         >

@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
-import { pageAction } from "./helpers/page-actions";
+import { pageAction, renamePlan } from "./helpers/page-actions";
 import { addExercises, createExercise, createRoutine } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 
@@ -75,9 +75,8 @@ test("a plan's history lists a routine added to a day and restores the empty pla
 
   await page.goto(`${customer}?tab=plans`);
   await page.getByRole("button", { name: "New plan" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("History plan");
-  await page.getByRole("button", { name: "Create plan" }).click();
   await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
+  await renamePlan(page, "History plan");
 
   const monday = page.getByRole("region", { name: "Monday", exact: true });
   await page.getByRole("button", { name: "Add routine to Monday" }).click();

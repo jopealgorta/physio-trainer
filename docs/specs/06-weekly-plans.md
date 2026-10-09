@@ -123,7 +123,7 @@ Namespace `Plans`; weekday names via `Intl.DateTimeFormat` for the active locale
    entries reads as rest.
 3. How does "New routine" from a day start? **Answer:** a small dialog (name) creates a
    non-standalone draft, attaches it to the day and opens the routine editor with a "Back to
-   plan" link; the editor is not embedded in a sheet.
+   plan" link; the editor is not embedded in a sheet. (Later changed: no dialog, see below.)
 4. How much drag-and-drop? **Answer:** drag within a day and between days (move) on the
    desktop board with dnd-kit (keyboard included), plus an entry menu everywhere (move to day,
    copy to day, move up/down). Copy is menu-only.
@@ -184,3 +184,8 @@ Namespace `Plans`; weekday names via `Intl.DateTimeFormat` for the active locale
   integration and e2e suites were run against a local Postgres 16 with stubbed `auth`/`storage`
   schemas plus a small fake GoTrue for sign-in; CI runs them against real Supabase. The branding
   suites and two physios tests that need the real Auth/Storage APIs were not runnable there.
+- **No name dialog (quick-create change, 2026-10).** "New plan" on a customer and a day's "New
+  routine" create at once with a translated default name ("New plan"/"Nuevo plan", "New
+  routine"/"Nueva rutina") and no case, then open the editor; the name is edited from the title.
+  The board runs the day's create in a transition and shows a refusal (e.g. `dayFull`) in its
+  alert.

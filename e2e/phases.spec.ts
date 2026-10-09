@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
-import { routineTitle } from "./helpers/page-actions";
+import { nameNewRoutine, renamePlan, routineTitle } from "./helpers/page-actions";
 import { addExercises, createExercise, hasNoHorizontalOverflow } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 
@@ -20,9 +20,8 @@ async function createCustomer(page: Page, name: string) {
 async function createRoutineFor(page: Page, customerPath: string, name: string) {
   await page.goto(`${customerPath}?tab=routines`);
   await page.getByRole("button", { name: "New routine" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill(name);
-  await page.getByRole("button", { name: "Create routine" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+  await nameNewRoutine(page, name);
 }
 
 /** Sets the phase through the popover on a routine or plan page. */
@@ -108,9 +107,8 @@ test("a physio copies a plan into the next phase with independent routines", asy
 
   await page.goto(`${customer}?tab=plans`);
   await page.getByRole("button", { name: "New plan" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Week 1");
-  await page.getByRole("button", { name: "Create plan" }).click();
   await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
+  await renamePlan(page, "Week 1");
   const planUrl = page.url();
 
   await page.getByRole("button", { name: "Add routine to Monday" }).click();
@@ -158,13 +156,12 @@ test("a routine inside a plan has no phase controls of its own", async ({ physio
   const customer = await createCustomer(page, "Ana");
   await page.goto(`${customer}?tab=plans`);
   await page.getByRole("button", { name: "New plan" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Week 1");
-  await page.getByRole("button", { name: "Create plan" }).click();
+  await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
+  await renamePlan(page, "Week 1");
   await page.getByRole("button", { name: "Add routine to Monday" }).click();
-  await page.getByRole("menuitem", { name: "New routine…" }).click();
-  await page.getByRole("dialog").getByLabel("Name").fill("Gym upper");
-  await page.getByRole("button", { name: "Create and edit" }).click();
+  await page.getByRole("menuitem", { name: "New routine", exact: true }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}\?plan=/);
+  await nameNewRoutine(page, "Gym upper");
   await expect(routineTitle(page, "Gym upper")).toBeVisible();
   await expect(phaseBar(page)).toHaveCount(0);
 });

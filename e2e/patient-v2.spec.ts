@@ -10,6 +10,7 @@ import {
   insertRoutine,
 } from "./helpers/patient";
 import { addExercises, hasNoHorizontalOverflow } from "./helpers/routines";
+import { nameNewRoutine } from "./helpers/page-actions";
 
 /**
  * Picks a rating on a scale (inline log or session sheet), found by its group name (native
@@ -37,6 +38,12 @@ test.describe("patient page v2", () => {
     await region.getByLabel("Set 1 weight in kg").fill("20");
     await region.getByLabel("Set 2 weight in kg").fill("22,5");
     await region.getByLabel("Set 3 weight in kg").fill("25");
+    // A set added by mistake can be removed; the prescribed ones can't.
+    await region.getByRole("button", { name: "Add set" }).click();
+    await region.getByLabel("Set 4 weight in kg").fill("27,5");
+    await expect(region.getByRole("button", { name: /^Remove set/ })).toHaveCount(1);
+    await region.getByRole("button", { name: "Remove set 4" }).click();
+    await expect(region.getByLabel("Set 4 weight in kg")).toHaveCount(0);
     await rate(page, "Effort (RPE)", 6);
     await region.getByLabel("Comment (optional)").fill("Felt fine");
     await region.getByLabel("Comment (optional)").blur();
@@ -176,9 +183,8 @@ test.describe("patient page v2", () => {
     const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
     await page.goto(`/customers/${customerId}?tab=routines`);
     await page.getByRole("button", { name: "New routine" }).click();
-    await page.getByRole("dialog").getByLabel("Name").fill("Cardio");
-    await page.getByRole("button", { name: "Create routine" }).click();
     await expect(page).toHaveURL(/\/routines\/[0-9a-f-]{36}$/);
+    await nameNewRoutine(page, "Cardio");
     await addExercises(page, isMobile, ["Rowing"]);
     const row = page.getByTestId("item-row").filter({ hasText: "Rowing" });
     await row.getByRole("button", { name: "Edit prescription" }).click();

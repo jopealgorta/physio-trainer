@@ -348,6 +348,8 @@ describe("ExerciseLogPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Remove set 4" }));
     expect(screen.queryByLabelText("Set 4 weight in kg")).not.toBeInTheDocument();
+    // Focus stays in the list: on the set above the removed one.
+    expect(setInput(3)).toHaveFocus();
     expect(m.log).toHaveBeenLastCalledWith("7k2m9qpx", sent({ setWeightsKg: [20] }));
   });
 
