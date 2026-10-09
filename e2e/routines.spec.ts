@@ -314,9 +314,7 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
     "History",
     "Save as template…",
   ]);
-  await expect(
-    menu.getByRole("menuitemcheckbox", { name: "Include tracking boxes" }),
-  ).toBeVisible();
+  await expect(menu.getByRole("menuitemcheckbox")).toHaveCount(0);
   await menu.getByRole("menuitem", { name: "History" }).click();
   await expect(page.getByRole("dialog", { name: "Version history" })).toBeVisible();
   await page.keyboard.press("Escape");

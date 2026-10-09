@@ -75,9 +75,8 @@ function source(over: Partial<ExportSource> = {}): ExportSource {
     planRoutines: [],
     locale: "es",
     generatedOn: "2026-10-02",
-    branding: { clinicName: "Clinic", logoUrl: null, contact: null },
+    branding: { clinicName: "Clinic", logoUrl: null, accentColor: null, contact: null },
     shareUrl: null,
-    tracking: false,
     ...over,
   };
 }
@@ -232,7 +231,6 @@ describe("buildExportDocument", () => {
     const out = doc.routines[0].sections[0].blocks[0];
     if (out.kind !== "single") throw new Error("expected single");
     expect(out.item.summary).toBe(formatPrescription(i, t));
-    expect(out.item.videoId).toBe("abc");
     expect(out.item.videoUrl).toBe("https://www.youtube.com/watch?v=abc");
     expect(out.item.columns.reps).toBe("10");
   });
@@ -241,7 +239,6 @@ describe("buildExportDocument", () => {
     const out = doc.routines[0].sections[0].blocks[0];
     if (out.kind !== "single") throw new Error("expected single");
     expect(out.item.videoUrl).toBeNull();
-    expect(out.item.videoId).toBeNull();
   });
   it("computes isEmpty", () => {
     expect(buildExportDocument(source({ routines: [routine("R")] }), t).isEmpty).toBe(true);

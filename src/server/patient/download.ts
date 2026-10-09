@@ -72,7 +72,6 @@ export async function exportForPatient(
       generatedOn: data.today,
       branding: shell.branding,
       shareUrl: buildShareUrl(env.NEXT_PUBLIC_APP_URL, shell.handle, shell.slug, shell.code),
-      tracking: true,
     },
     summary,
   );

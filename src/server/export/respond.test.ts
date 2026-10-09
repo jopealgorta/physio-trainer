@@ -6,17 +6,17 @@ import { fileResponse, parseExportQuery } from "./respond";
 const q = (qs: string) => parseExportQuery(new URL(`https://x.test/api/export/routines/1${qs}`));
 
 describe("parseExportQuery", () => {
-  it("defaults tracking to true", () => {
-    expect(q("?format=pdf")).toEqual({ format: "pdf", tracking: true });
-    expect(q("?format=xlsx&tracking=1")).toEqual({ format: "xlsx", tracking: true });
+  it("reads the format", () => {
+    expect(q("?format=pdf")).toEqual({ format: "pdf" });
+    expect(q("?format=xlsx")).toEqual({ format: "xlsx" });
   });
-  it("reads tracking=0", () => {
-    expect(q("?format=xlsx&tracking=0")).toEqual({ format: "xlsx", tracking: false });
+  it("ignores the retired tracking parameter, so old URLs keep working", () => {
+    expect(q("?format=pdf&tracking=0")).toEqual({ format: "pdf" });
+    expect(q("?format=xlsx&tracking=yes")).toEqual({ format: "xlsx" });
   });
-  it("rejects a missing or unknown format and a bad tracking value", () => {
+  it("rejects a missing or unknown format", () => {
     expect(q("?format=doc")).toBeNull();
     expect(q("")).toBeNull();
-    expect(q("?format=pdf&tracking=yes")).toBeNull();
   });
 });
 

@@ -57,10 +57,10 @@ export async function exportForPhysio(
       branding: {
         clinicName: branding?.clinicName ?? "",
         logoUrl: branding?.logoUrl ?? null,
+        accentColor: branding?.accentColor ?? null,
         contact: branding?.contact ?? null,
       },
       shareUrl,
-      tracking: query.tracking,
     },
     summary,
   );

@@ -10,6 +10,8 @@ export type BrandTokens = { light: ModeTokens; dark: ModeTokens; adjusted: boole
 
 /** WCAG 2.x minimum for large text and UI components (buttons against the page). */
 export const MIN_UI_CONTRAST = 3;
+/** WCAG 2.x minimum for body text. */
+export const MIN_TEXT_CONTRAST = 4.5;
 /** `--background`/`--card` in light mode. */
 export const LIGHT_SURFACE = "#ffffff";
 /** `--card` in dark mode (oklch 0.205): lighter than the dark background, so the stricter check. */
@@ -112,12 +114,17 @@ export function oklchToHex(color: Oklch): string {
 }
 
 /** Moves lightness (keeping hue) towards black or white until `surface` contrast is enough. */
-function readableOn(accent: string, surface: string, direction: -1 | 1): string {
-  if (contrastRatio(accent, surface) >= MIN_UI_CONTRAST) return accent;
+function readableOn(
+  accent: string,
+  surface: string,
+  direction: -1 | 1,
+  minContrast: number = MIN_UI_CONTRAST,
+): string {
+  if (contrastRatio(accent, surface) >= minContrast) return accent;
   const lch = hexToOklch(accent);
   for (let l = lch.l; l >= 0 && l <= 1; l += direction * L_STEP) {
     const candidate = oklchToHex({ ...lch, l });
-    if (contrastRatio(candidate, surface) >= MIN_UI_CONTRAST) return candidate;
+    if (contrastRatio(candidate, surface) >= minContrast) return candidate;
   }
   return direction < 0 ? BLACK : WHITE;
 }
@@ -137,4 +144,11 @@ export function brandTokens(accent: string): BrandTokens {
     dark: { primary: dark, primaryForeground: foregroundFor(dark) },
     adjusted: light !== hex || dark !== hex,
   };
+}
+
+/** The accent as small text on paper (the PDF export): darkened, keeping hue, to 4.5:1 on white. */
+export function printAccent(accent: string): string {
+  const hex = normalizeHex(accent);
+  if (!hex) throw new Error(`Invalid accent colour: ${accent}`);
+  return readableOn(hex, LIGHT_SURFACE, -1, MIN_TEXT_CONTRAST);
 }

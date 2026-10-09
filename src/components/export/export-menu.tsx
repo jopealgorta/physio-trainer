@@ -17,10 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -108,21 +106,20 @@ function useShareExport() {
 }
 
 /**
- * "Export" dropdown (spec 14): PDF or Excel of a routine, plan or customer; tracking boxes
- * optional. On a desktop the items are plain download links (the browser streams the file); on
- * touch screens and in the installed app the file is fetched and handed to the share sheet,
- * since a download there opens a viewer with no way back.
+ * "Export" dropdown (spec 14): PDF or Excel of a routine, plan or customer. On a desktop the
+ * items are plain download links (the browser streams the file); on touch screens and in the
+ * installed app the file is fetched and handed to the share sheet, since a download there opens a
+ * viewer with no way back.
  */
 export function ExportMenu({ target }: { target: ExportTarget }) {
   const t = useTranslations("Export.menu");
-  const [tracking, setTracking] = useState(true);
   const share = useShareSheet();
   const exporter = useShareExport();
   const { pending } = exporter;
 
   const base = `/api/export/${target.kind}/${target.id}`;
   const hrefs = {
-    pdf: `${base}?format=pdf${tracking ? "" : "&tracking=0"}`,
+    pdf: `${base}?format=pdf`,
     xlsx: `${base}?format=xlsx`,
   } satisfies Record<ExportFormat, string>;
   const exportAs = (format: ExportFormat) => void exporter.run(hrefs[format], `export.${format}`);
@@ -133,12 +130,6 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
 
   const { onCloseAutoFocus } = usePageAction("exportPdf", menuItem("pdf", 20));
   usePageAction("exportXlsx", menuItem("xlsx", 21));
-  usePageAction("exportTracking", {
-    label: t("tracking"),
-    order: 22,
-    checked: tracking,
-    onSelect: () => setTracking((value) => !value),
-  });
   usePageNotice(
     "export",
     exporter.failed
@@ -179,14 +170,6 @@ export function ExportMenu({ target }: { target: ExportTarget }) {
         <DropdownMenuContent align="end" className="min-w-52">
           {item("pdf")}
           {item("xlsx")}
-          <DropdownMenuSeparator />
-          <DropdownMenuCheckboxItem
-            checked={tracking}
-            onCheckedChange={(value) => setTracking(value === true)}
-            onSelect={(event) => event.preventDefault()}
-          >
-            {t("tracking")}
-          </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
       {pending ? (

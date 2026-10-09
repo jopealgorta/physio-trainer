@@ -1,12 +1,13 @@
 import { contentDisposition, EXPORT_CONTENT_TYPES, type ExportFormat } from "./model";
 
-/** `format` is required (pdf|xlsx); `tracking` is "0" or "1" and defaults to on. Else null. */
-export function parseExportQuery(url: URL): { format: ExportFormat; tracking: boolean } | null {
+/**
+ * `format` is required (pdf|xlsx), else null. The retired `tracking` parameter (paper tick boxes)
+ * is ignored, so URLs saved before it went away keep working.
+ */
+export function parseExportQuery(url: URL): { format: ExportFormat } | null {
   const format = url.searchParams.get("format");
   if (format !== "pdf" && format !== "xlsx") return null;
-  const tracking = url.searchParams.get("tracking");
-  if (tracking !== null && tracking !== "0" && tracking !== "1") return null;
-  return { format, tracking: tracking !== "0" };
+  return { format };
 }
 
 export function fileResponse(

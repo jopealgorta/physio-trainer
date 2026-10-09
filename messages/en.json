@@ -1616,7 +1616,6 @@
       "trigger": "Export",
       "pdf": "Export PDF",
       "xlsx": "Export Excel",
-      "tracking": "Include tracking boxes",
       "exporting": "Exporting…",
       "error": "Couldn't export. Try again.",
       "ready": {
@@ -1644,7 +1643,7 @@
       "sessions": "{perWeek, plural, =0 {} one {# session a week} other {# sessions a week}}",
       "sessionsPerDay": "{perDay, plural, =0 {} one {# time a day} other {# times a day}}",
       "notes": "Notes",
-      "track": "Tick a box each day you do it",
+      "watchVideo": "Watch video",
       "nothing": "Nothing is scheduled right now.",
       "scan": "Scan for the latest version",
       "page": "Page {page} of {total}"

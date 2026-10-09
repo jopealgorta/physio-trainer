@@ -41,9 +41,14 @@ export type ExportSource = ExportSourceData & {
   kind: ExportKind;
   locale: Locale; // resolved customer locale
   generatedOn: string; // YYYY-MM-DD, physio's today
-  branding: { clinicName: string; logoUrl: string | null; contact: BrandingContact | null };
+  branding: {
+    clinicName: string;
+    logoUrl: string | null;
+    /** The physio's accent as set (the PDF makes it print-readable); null = neutral. */
+    accentColor: string | null;
+    contact: BrandingContact | null;
+  };
   shareUrl: string | null;
-  tracking: boolean;
 };
 
 export type SetColumns = {
@@ -66,7 +71,6 @@ export type ExportItem = {
   side: PrescriptionSide | null;
   notes: string | null;
   instructions: string | null;
-  videoId: string | null;
   videoUrl: string | null;
 };
 export type ExportBlock =
@@ -162,7 +166,6 @@ function exportItem(
     side: item.side,
     notes: item.notes,
     instructions: item.instructions,
-    videoId: media ? media.videoId : null,
     videoUrl: media ? youtubeWatchUrl(media.videoId, media.isShort) : null,
   } satisfies ExportItem;
 }

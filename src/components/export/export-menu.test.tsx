@@ -90,12 +90,8 @@ describe("ExportMenu on a desktop", () => {
       "href",
       "/api/export/routines/r1?format=xlsx",
     );
-    // The tracking boxes toggle keeps the menu open and only changes the PDF.
-    await user.click(screen.getByRole("menuitemcheckbox", { name: "Include tracking boxes" }));
-    expect(screen.getByRole("menuitem", { name: "Export PDF" })).toHaveAttribute(
-      "href",
-      "/api/export/routines/r1?format=pdf&tracking=0",
-    );
+    // The paper tracking boxes are gone, and so is their toggle.
+    expect(screen.queryByRole("menuitemcheckbox")).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -111,23 +107,6 @@ describe("ExportMenu on a touch screen", () => {
     expect(share.mock.calls[0]![0].files[0].name).toBe("knee.pdf");
     expect(clicked).toEqual([]);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-  });
-
-  it("leaves the tracking boxes out when unticked", async () => {
-    touchWithShare();
-    const user = userEvent.setup();
-    setup();
-    await user.click(screen.getByRole("button", { name: "Export" }));
-    await user.click(
-      await screen.findByRole("menuitemcheckbox", { name: "Include tracking boxes" }),
-    );
-    await user.click(screen.getByRole("menuitem", { name: "Export PDF" }));
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/export/routines/r1?format=pdf&tracking=0",
-        sameOrigin,
-      ),
-    );
   });
 
   it("downloads the fetched file where files cannot be shared", async () => {
@@ -246,32 +225,22 @@ describe("ExportMenu in a page's More actions menu", () => {
       </NextIntlClientProvider>,
     );
 
-  it("offers PDF, Excel and the tracking boxes as downloads on a desktop", async () => {
+  it("offers PDF and Excel as downloads on a desktop", async () => {
     const user = userEvent.setup();
     inMenu();
-    expect(await menuActions(user)).toEqual([
-      "Export PDF",
-      "Export Excel",
-      "Include tracking boxes",
-    ]);
+    expect(await menuActions(user)).toEqual(["Export PDF", "Export Excel"]);
     await user.click(screen.getByRole("button", { name: "More actions" }));
     expect(await screen.findByRole("menuitem", { name: "Export PDF" })).toHaveAttribute("download");
   });
 
-  it("exports from there on a touch screen, with the tracking choice", async () => {
+  it("exports from there on a touch screen", async () => {
     const share = touchWithShare();
     const user = userEvent.setup();
     inMenu();
     await user.click(screen.getByRole("button", { name: "More actions" }));
-    await user.click(
-      await screen.findByRole("menuitemcheckbox", { name: "Include tracking boxes" }),
-    );
-    await user.click(screen.getByRole("menuitem", { name: "Export PDF" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Export PDF" }));
     await waitFor(() => expect(share).toHaveBeenCalled());
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/export/routines/r1?format=pdf&tracking=0",
-      sameOrigin,
-    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/export/routines/r1?format=pdf", sameOrigin);
   });
 
   it("shows the export running on the menu button and repeats a failure in the notices", async () => {

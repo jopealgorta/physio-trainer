@@ -2,29 +2,26 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { Image, Link } from "@react-pdf/renderer";
 import { isValidElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Locale } from "@/i18n/config";
-import { youtubeCoverUrl } from "@/lib/youtube";
+import { printAccent } from "@/lib/color";
+import { youtubeWatchUrl } from "@/lib/youtube";
 import type { ContentItem } from "@/server/routines/content";
 
 import { buildExportDocument, type ExportSource, type SourceRoutine } from "../model";
 import { exportTranslators } from "../translate";
-import { ExportPdf, truncateText } from "./document";
+import { ExportPdf } from "./document";
 import { renderExportPdf } from "./render";
 
 // Unit tests run without the int config's server-only alias; the real package throws here.
 vi.mock("server-only", () => ({}));
 
-const THUMB = readFileSync(join(process.cwd(), "src/server/export/__fixtures__/thumb.jpg"));
-// Bytes after the JPEG's end marker make every cover a distinct image, as real covers are (the
-// renderer embeds identical images once, which would understate the size).
-const thumbFetch = vi.fn(
-  async (url: string | URL | Request) =>
-    new Response(new Uint8Array(Buffer.concat([THUMB, Buffer.from(String(url))])), {
-      headers: { "content-type": "image/jpeg" },
-    }),
+const LOGO = readFileSync(join(process.cwd(), "src/server/export/__fixtures__/logo.jpg"));
+const logoFetch = vi.fn(
+  async () => new Response(new Uint8Array(LOGO), { headers: { "content-type": "image/jpeg" } }),
 ) as unknown as typeof fetch;
 const failingFetch = vi.fn(async () => {
   throw new Error("offline");
@@ -94,6 +91,7 @@ function source(over: Partial<ExportSource> = {}): ExportSource {
     branding: {
       clinicName: "Kine Sur",
       logoUrl: "https://storage.example/logo.jpg",
+      accentColor: null,
       contact: {
         email: "hola@kinesur.com",
         phone: "+5491122334455",
@@ -102,7 +100,6 @@ function source(over: Partial<ExportSource> = {}): ExportSource {
       },
     },
     shareUrl: "https://physio.example/kinesur/knee-rehab-abc123",
-    tracking: true,
     ...over,
   };
 }
@@ -144,10 +141,46 @@ function styleOf(node: ReactNode, text: string): Record<string, unknown> | null 
   return styleOf(props.children, text);
 }
 
+/** The props of every element of `type` in the tree, expanding function components. */
+function elementsOf(node: ReactNode, type: unknown): Record<string, unknown>[] {
+  if (Array.isArray(node)) return node.flatMap((child) => elementsOf(child, type));
+  if (!isValidElement(node)) return [];
+  const element = node as { type: unknown; props: { children?: ReactNode } };
+  if (typeof element.type === "function") {
+    return elementsOf((element.type as (p: unknown) => ReactNode)(element.props), type);
+  }
+  const own = element.type === type ? [element.props as Record<string, unknown>] : [];
+  return [...own, ...elementsOf(element.props.children, type)];
+}
+
+/** Every fixed text drawn from a render prop, as it reads on `pageNumber` of `totalPages`. */
+function fixedTexts(node: ReactNode, pageNumber: number, totalPages = 3): string[] {
+  if (Array.isArray(node))
+    return node.flatMap((child) => fixedTexts(child, pageNumber, totalPages));
+  if (!isValidElement(node)) return [];
+  const element = node as {
+    type: unknown;
+    props: {
+      children?: ReactNode;
+      render?: (p: { pageNumber: number; totalPages: number }) => unknown;
+    };
+  };
+  if (typeof element.type === "function") {
+    return fixedTexts(
+      (element.type as (p: unknown) => ReactNode)(element.props),
+      pageNumber,
+      totalPages,
+    );
+  }
+  const own = element.props.render
+    ? [String(element.props.render({ pageNumber, totalPages }) ?? "")]
+    : [];
+  return [...own, ...fixedTexts(element.props.children, pageNumber, totalPages)];
+}
+
 const pageCount = (buffer: Buffer) =>
   (buffer.toString("latin1").match(/\/Type \/Page\b/g) ?? []).length;
 
-/** Covers are cached per video id, so a test that must reach fetch uses its own id `prefix`. */
 const tenExercises = (prefix: string) =>
   source({
     routines: [
@@ -162,30 +195,25 @@ const tenExercises = (prefix: string) =>
   });
 
 describe("renderExportPdf", () => {
-  it("renders 10 exercises with thumbnails under 2 MB and 3 s", async () => {
+  it("renders 10 exercises under 2 MB and 3 s", async () => {
     const { doc, t } = await build(tenExercises("sized"));
     const started = performance.now();
-    const buffer = await renderExportPdf(doc, t, { fetchImpl: thumbFetch });
+    const buffer = await renderExportPdf(doc, t, { fetchImpl: logoFetch });
     const elapsed = performance.now() - started;
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
     expect(buffer.length).toBeLessThan(2 * 1024 * 1024);
     expect(elapsed).toBeLessThan(3000);
   });
 
-  it("still renders when every image fails to load", async () => {
+  it("fetches only the logo, and still renders when it fails to load", async () => {
     const { doc, t } = await build(tenExercises("offline"));
     const buffer = await renderExportPdf(doc, t, { fetchImpl: failingFetch });
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
-    // Every cover and the logo really went to the (failing) network, none came from a cache.
+    // No video covers are fetched any more: the logo is the only image.
     const urls = (failingFetch as unknown as ReturnType<typeof vi.fn>).mock.calls.map(([url]) =>
       String(url),
     );
-    expect(urls.sort()).toEqual(
-      [
-        "https://storage.example/logo.jpg",
-        ...Array.from({ length: 10 }, (_, i) => youtubeCoverUrl(`offline${i + 1}`)),
-      ].sort(),
-    );
+    expect(urls).toEqual(["https://storage.example/logo.jpg"]);
   });
 
   it("paginates 25 long exercises with a plan, a superset and Spanish text", async () => {
@@ -225,8 +253,85 @@ describe("renderExportPdf", () => {
         ],
       }),
     );
-    const buffer = await renderExportPdf(doc, t, { fetchImpl: thumbFetch });
+    const buffer = await renderExportPdf(doc, t, { fetchImpl: logoFetch });
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+    expect(pageCount(buffer)).toBeGreaterThan(1);
+  });
+
+  /** Renders and fails on react-pdf's overflow warning: an unbreakable view taller than a page. */
+  async function renderWithoutOverflow(src: ExportSource) {
+    const { doc, t } = await build(src);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const buffer = await renderExportPdf(doc, t, { fetchImpl: failingFetch });
+      const overflow = warn.mock.calls.filter((args) => String(args[0]).includes("can't wrap"));
+      expect(overflow).toEqual([]);
+      return { doc, t, buffer };
+    } finally {
+      warn.mockRestore();
+    }
+  }
+
+  const longInstructions = "Keep the knee over the second toe and move slowly. ".repeat(97).trim();
+
+  it("prints instructions in full, breaking a first exercise longer than a page", async () => {
+    const { doc, t, buffer } = await renderWithoutOverflow(
+      source({
+        routines: [
+          routine("R", [{ kind: "single", item: item(1, { instructions: longInstructions }) }], {
+            notes: "Warm up first. ".repeat(60).trim(),
+          }),
+        ],
+      }),
+    );
+    expect(textOf(ExportPdf({ doc, t, logo: null }))).toContain(longInstructions);
+    expect(pageCount(buffer)).toBeGreaterThan(1);
+  });
+
+  it("breaks a long first exercise under a section heading", async () => {
+    const { buffer } = await renderWithoutOverflow(
+      source({
+        routines: [
+          {
+            ...routine("R", []),
+            sections: [
+              { key: "a", name: "Warm-up", blocks: [{ kind: "single", item: item(1) }] },
+              {
+                key: "b",
+                name: "Strength",
+                blocks: [
+                  {
+                    kind: "single",
+                    item: item(2, {
+                      instructions: longInstructions,
+                      notes: "Go slowly. ".repeat(45).trim(),
+                    }),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(pageCount(buffer)).toBeGreaterThan(1);
+  });
+
+  it("breaks a long first superset member", async () => {
+    const { buffer } = await renderWithoutOverflow(
+      source({
+        routines: [
+          routine("R", [
+            {
+              kind: "group",
+              key: "g",
+              restSeconds: 60,
+              items: [item(1, { instructions: longInstructions }), item(2)],
+            },
+          ]),
+        ],
+      }),
+    );
     expect(pageCount(buffer)).toBeGreaterThan(1);
   });
 
@@ -245,15 +350,12 @@ describe("renderExportPdf", () => {
         ],
       }),
     );
-    const texts = textOf(ExportPdf({ doc: two.doc, t: two.t, thumbnails: new Map(), logo: null }));
+    const texts = textOf(ExportPdf({ doc: two.doc, t: two.t, logo: null }));
     expect(texts).toContain("Calentamiento");
     expect(texts).toContain("Fuerza");
     expect(texts).not.toContain("Vacía");
     // A heading of its own: larger than the superset caption, in the text colour, not uppercase.
-    const heading = styleOf(
-      ExportPdf({ doc: two.doc, t: two.t, thumbnails: new Map(), logo: null }),
-      "Calentamiento",
-    );
+    const heading = styleOf(ExportPdf({ doc: two.doc, t: two.t, logo: null }), "Calentamiento");
     expect(heading).toMatchObject({ fontSize: 10.5, fontWeight: 700, color: "#171717" });
     expect(heading?.textTransform).toBeUndefined();
     expect(heading?.marginTop).toBeGreaterThan(0);
@@ -271,9 +373,7 @@ describe("renderExportPdf", () => {
         ],
       }),
     );
-    const oneTexts = textOf(
-      ExportPdf({ doc: one.doc, t: one.t, thumbnails: new Map(), logo: null }),
-    );
+    const oneTexts = textOf(ExportPdf({ doc: one.doc, t: one.t, logo: null }));
     expect(oneTexts).not.toContain("Solo uno");
     const buffer = await renderExportPdf(two.doc, two.t, { fetchImpl: failingFetch });
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
@@ -290,7 +390,7 @@ describe("renderExportPdf", () => {
         ],
       }),
     );
-    const texts = textOf(ExportPdf({ doc, t, thumbnails: new Map(), logo: null }));
+    const texts = textOf(ExportPdf({ doc, t, logo: null }));
     expect(texts).toContain("3 times a day");
     const buffer = await renderExportPdf(doc, t, { fetchImpl: failingFetch });
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
@@ -302,7 +402,7 @@ describe("renderExportPdf", () => {
         kind: "customer",
         title: null,
         shareUrl: null,
-        branding: { clinicName: "Kine Sur", logoUrl: null, contact: null },
+        branding: { clinicName: "Kine Sur", logoUrl: null, accentColor: null, contact: null },
       }),
     );
     expect(doc.isEmpty).toBe(true);
@@ -314,18 +414,129 @@ describe("renderExportPdf", () => {
   });
 });
 
-describe("truncateText", () => {
-  it("keeps short text and cuts long text at the limit with an ellipsis", () => {
-    expect(truncateText("short", 280)).toBe("short");
-    const cut = truncateText("x".repeat(300), 280);
-    expect(cut).toHaveLength(280);
-    expect(cut.endsWith("…")).toBe(true);
+describe("ExportPdf", () => {
+  const supersetRoutine = () =>
+    source({
+      routines: [
+        {
+          ...routine("R", []),
+          sections: [
+            { key: "a", name: "Warm-up", blocks: [{ kind: "single", item: item(1) }] },
+            {
+              key: "b",
+              name: "Strength",
+              blocks: [
+                { kind: "group", key: "g", restSeconds: 90, items: [item(2), item(3)] },
+                { kind: "single", item: item(4, { media: [] }) },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+  it("draws no exercise images, only the logo", async () => {
+    const { doc, t } = await build(supersetRoutine());
+    expect(elementsOf(ExportPdf({ doc, t, logo: null }), Image)).toHaveLength(0);
+    expect(elementsOf(ExportPdf({ doc, t, logo: "data:image/png;base64,AA" }), Image)).toHaveLength(
+      1,
+    );
   });
-  it("cuts at a word break when there is one", () => {
-    expect(truncateText("one two three four", 12)).toBe("one two…");
+
+  it("links each exercise that has a video, and no other", async () => {
+    const { doc, t } = await build(supersetRoutine());
+    const links = elementsOf(ExportPdf({ doc, t, logo: null }), Link).map((link) => link.src);
+    for (const id of ["video000001", "video000002", "video000003"]) {
+      expect(links).toContain(youtubeWatchUrl(id, false));
+    }
+    expect(links.filter((src) => String(src).includes("youtube"))).toHaveLength(3);
+    expect(
+      textOf(ExportPdf({ doc, t, logo: null })).filter((s) => s === "Watch video"),
+    ).toHaveLength(3);
   });
-  it("does not split a surrogate pair or leave trailing spaces", () => {
-    expect(truncateText("ab 😀😀😀", 4)).toBe("ab…");
-    expect(Array.from(truncateText("😀".repeat(10), 5))).toHaveLength(5);
+
+  it("links the clinic email, website and the share URL", async () => {
+    const { doc, t } = await build(
+      source({
+        branding: {
+          clinicName: "Kine Sur",
+          logoUrl: null,
+          accentColor: null,
+          contact: {
+            email: "hola@kinesur.com",
+            phone: "+5491122334455",
+            whatsappUrl: null,
+            website: "https://kinesur.com/",
+          },
+        },
+      }),
+    );
+    const links = elementsOf(ExportPdf({ doc, t, logo: null }), Link).map((link) => link.src);
+    expect(links).toEqual(
+      expect.arrayContaining([
+        "mailto:hola@kinesur.com",
+        "https://kinesur.com/",
+        "https://physio.example/kinesur/knee-rehab-abc123",
+      ]),
+    );
+    // The phone is printed, not linked.
+    expect(links.some((src) => String(src).includes("5491122334455"))).toBe(false);
+  });
+
+  it("numbers single exercises through the routine and keeps superset labels", async () => {
+    const { doc, t } = await build(supersetRoutine());
+    const texts = textOf(ExportPdf({ doc, t, logo: null }));
+    const labels = texts.filter((s) => /^(\d+|[A-Z]\d)$/.test(s));
+    expect(labels).toEqual(["1", "A1", "A2", "2"]);
+  });
+
+  it("restarts numbering for each routine", async () => {
+    const { doc, t } = await build(
+      source({
+        kind: "customer",
+        title: null,
+        routines: [
+          routine("R", [
+            { kind: "single", item: item(1) },
+            { kind: "single", item: item(2) },
+          ]),
+          routine("S", [{ kind: "single", item: item(3) }]),
+        ],
+      }),
+    );
+    const labels = textOf(ExportPdf({ doc, t, logo: null })).filter((s) => /^\d+$/.test(s));
+    expect(labels).toEqual(["1", "2", "1"]);
+  });
+
+  it("has no paper tracking boxes or hint", async () => {
+    const { doc, t } = await build(supersetRoutine());
+    const texts = textOf(ExportPdf({ doc, t, logo: null }));
+    expect(texts.join(" ")).not.toMatch(/tick/i);
+    // No narrow weekday initials row (M T W T F S S).
+    expect(texts.filter((s) => s === "M")).toHaveLength(0);
+  });
+
+  it("uses the clinic accent, made readable for print, for section headings", async () => {
+    const { doc, t } = await build({
+      ...supersetRoutine(),
+      branding: { ...source().branding, accentColor: "#3b82f6" },
+    });
+    const heading = styleOf(ExportPdf({ doc, t, logo: null }), "Warm-up");
+    expect(heading?.color).toBe(printAccent("#3b82f6"));
+  });
+
+  it("falls back to the neutral text colour without an accent", async () => {
+    const { doc, t } = await build(supersetRoutine());
+    expect(styleOf(ExportPdf({ doc, t, logo: null }), "Warm-up")?.color).toBe("#171717");
+  });
+
+  it("repeats the title and customer at the top of every page but the first", async () => {
+    const { doc, t } = await build(supersetRoutine());
+    const tree = ExportPdf({ doc, t, logo: null });
+    const first = fixedTexts(tree, 1).join(" ");
+    const second = fixedTexts(tree, 2).join(" ");
+    expect(first).not.toContain("Knee rehab");
+    expect(second).toContain("Knee rehab");
+    expect(second).toContain("For Ana");
   });
 });

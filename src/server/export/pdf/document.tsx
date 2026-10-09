@@ -1,7 +1,19 @@
-import { Document, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import {
+  Document,
+  Image,
+  Link,
+  Page,
+  Path,
+  Polygon,
+  StyleSheet,
+  Svg,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
-import { type Weekday, WEEKDAYS, weekdayName } from "@/lib/plans";
+import { normalizeHex, printAccent } from "@/lib/color";
+import { type Weekday, weekdayName } from "@/lib/plans";
 import { qrCode } from "@/lib/qr";
 
 import type {
@@ -15,45 +27,96 @@ import type {
 import { type ExportTranslate, frequencyLine } from "../translate";
 import { PDF_FONT } from "./fonts";
 
-/** Greyscale-safe palette: the PDF is often printed in black and white. */
+/**
+ * Greyscale-safe palette: the PDF is often printed in black and white. The clinic accent (made
+ * readable as small text on paper) is used sparingly: the title rule, section headings, the
+ * superset bar and video links.
+ */
 const FOREGROUND = "#171717";
 const SECONDARY = "#525252";
 const MUTED = "#737373";
 const RULE = "#d4d4d4";
 const LIGHT_RULE = "#e5e5e5";
-const PLACEHOLDER = "#f5f5f5";
-const GROUP_RULE = "#a3a3a3";
-const BOX_BORDER = "#525252";
+const CALLOUT = "#f5f5f5";
 
-const INSTRUCTIONS_MAX = 280;
-const BOX = 10;
-const BOX_COLUMN = 14;
+const MARGIN = 40;
+const GUTTER = 24;
+const VIDEO_COLUMN = 84;
+const ITEM_PADDING = 9;
+/** The superset bar sits in the page margin, so members line up with single exercises. */
+const GROUP_BAR = 2;
+const GROUP_INSET = 8;
+/** Above this many characters an exercise may break across pages instead of moving whole. */
+const LONG_INSTRUCTIONS = 1200;
+/** Room a heading needs below it, so it never sits alone at the bottom of a page. */
+const HEADING_PRESENCE = 72;
 
 const styles = StyleSheet.create({
   page: {
     fontFamily: PDF_FONT,
     fontSize: 10,
     color: FOREGROUND,
-    paddingTop: 32,
-    paddingHorizontal: 32,
-    paddingBottom: 96,
+    paddingTop: MARGIN,
+    paddingHorizontal: MARGIN,
+    paddingBottom: 100,
     // No lineHeight here: react-pdf 4.9 then lays the fixed footer out at the top of a page that
     // starts with a break and drops its border and page number. Set it per text style instead.
+  },
+  runningTitle: {
+    position: "absolute",
+    top: 20,
+    left: MARGIN,
+    width: 340,
+    fontSize: 8,
+    color: MUTED,
+    maxLines: 1,
+    textOverflow: "ellipsis",
+  },
+  runningCustomer: {
+    position: "absolute",
+    top: 20,
+    right: MARGIN,
+    width: 150,
+    fontSize: 8,
+    color: MUTED,
+    textAlign: "right",
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   brand: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: 16 },
   logo: { height: 40, maxWidth: 120, objectFit: "contain", marginRight: 12 },
   clinicName: { fontSize: 12, fontWeight: 700 },
   contact: { fontSize: 8.5, color: SECONDARY, marginTop: 2 },
+  contactLink: { color: SECONDARY, textDecoration: "none" },
   audience: { alignItems: "flex-end", flexShrink: 0 },
   audienceName: { fontSize: 10, fontWeight: 700 },
   audienceDate: { fontSize: 8.5, color: SECONDARY, marginTop: 2 },
-  title: { fontSize: 18, fontWeight: 700, marginTop: 18, lineHeight: 1.2 },
-  rule: { borderBottomWidth: 1, borderBottomColor: RULE, marginTop: 10, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: 700, marginTop: 22, lineHeight: 1.2 },
+  // The title rule: a hairline with a short accent bar sitting on it.
+  rule: { height: 2, marginTop: 10, marginBottom: 20 },
+  ruleLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0.75,
+    borderBottomWidth: 0.5,
+    borderBottomColor: RULE,
+  },
+  ruleAccent: { position: "absolute", left: 0, top: 0, width: 40, height: 2 },
   nothing: { fontSize: 11, color: SECONDARY },
   sectionTitle: { fontSize: 14, fontWeight: 700, lineHeight: 1.2 },
   meta: { fontSize: 9, color: SECONDARY, marginTop: 3 },
-  notes: { fontSize: 9.5, marginTop: 6, lineHeight: 1.3 },
+  notes: { fontSize: 9.5, marginTop: 6, lineHeight: 1.35 },
+  callout: {
+    fontSize: 9.5,
+    lineHeight: 1.4,
+    marginTop: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    backgroundColor: CALLOUT,
+    borderLeftWidth: 2,
+  },
   caption: {
     fontSize: 7.5,
     fontWeight: 700,
@@ -74,60 +137,62 @@ const styles = StyleSheet.create({
   rest: { color: MUTED },
   // No italic face is bundled (Outfit regular/bold only), so the note is set apart by colour.
   dayNote: { color: SECONDARY, marginTop: 2 },
-  trackHeader: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginTop: 12,
-    paddingBottom: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: RULE,
-  },
-  trackHint: { flex: 1, fontSize: 8, color: MUTED },
-  boxes: { flexDirection: "row", width: BOX_COLUMN * 7, marginLeft: 8 },
-  boxColumn: { width: BOX_COLUMN, alignItems: "center" },
-  initial: { fontSize: 8, fontWeight: 700, color: SECONDARY, textAlign: "center" },
-  box: { width: BOX, height: BOX, borderWidth: 1, borderColor: BOX_BORDER, marginTop: 1 },
-  items: { marginTop: 4 },
+  items: { marginTop: 6 },
   item: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: 8,
+    paddingVertical: ITEM_PADDING,
     borderBottomWidth: 0.5,
     borderBottomColor: LIGHT_RULE,
   },
-  thumb: { width: 80, height: 45, marginRight: 10, objectFit: "cover", borderRadius: 2 },
-  thumbPlaceholder: {
-    width: 80,
-    height: 45,
-    marginRight: 10,
-    backgroundColor: PLACEHOLDER,
-    borderRadius: 2,
+  // The number and the video link sit beside the body, not in flex columns: when a long exercise
+  // breaks across pages react-pdf drops the columns that already printed, but the body's own
+  // margins carry over, so the continuation stays indented.
+  number: {
+    position: "absolute",
+    top: ITEM_PADDING,
+    left: 0,
+    width: GUTTER,
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: MUTED,
+    lineHeight: 1.2,
   },
-  body: { flex: 1 },
+  body: { marginLeft: GUTTER, marginRight: VIDEO_COLUMN },
   name: { fontSize: 10.5, fontWeight: 700, lineHeight: 1.2 },
-  itemLabel: { color: SECONDARY },
   summary: { fontSize: 9.5, marginTop: 2, lineHeight: 1.3 },
-  itemNotes: { fontSize: 9, color: SECONDARY, marginTop: 2, lineHeight: 1.3 },
+  itemNotes: { fontSize: 9, color: SECONDARY, marginTop: 3, lineHeight: 1.3 },
   notesLabel: { fontWeight: 700 },
-  instructions: { fontSize: 8.5, color: SECONDARY, marginTop: 3, lineHeight: 1.35 },
-  group: { borderLeftWidth: 2, borderLeftColor: GROUP_RULE, paddingLeft: 8 },
-  groupFirst: { marginTop: 8 },
+  instructions: { fontSize: 9, color: SECONDARY, marginTop: 4, lineHeight: 1.4 },
+  videoColumn: {
+    position: "absolute",
+    top: ITEM_PADDING + 1.5,
+    right: 0,
+    width: VIDEO_COLUMN,
+    alignItems: "flex-end",
+  },
+  video: { flexDirection: "row", alignItems: "center", textDecoration: "none" },
+  play: { width: 5.5, height: 6.5, marginRight: 4 },
+  videoLabel: { fontSize: 8.5, fontWeight: 700 },
+  group: {
+    borderLeftWidth: GROUP_BAR,
+    paddingLeft: GROUP_INSET,
+    marginLeft: -(GROUP_BAR + GROUP_INSET),
+  },
+  groupFirst: { marginTop: 10 },
   groupCaption: { paddingTop: 4 },
-  sectionSpaced: { marginTop: 28 },
+  sectionSpaced: { marginTop: 30 },
   // A routine section's name: a step under the routine title, distinct from the superset caption.
   sectionHeading: {
     fontSize: 10.5,
     fontWeight: 700,
-    color: FOREGROUND,
     lineHeight: 1.2,
-    marginTop: 14,
-    marginBottom: 4,
+    marginTop: 16,
+    marginBottom: 2,
   },
   footer: {
     position: "absolute",
-    left: 32,
-    right: 32,
-    bottom: 24,
+    left: MARGIN,
+    right: MARGIN,
+    bottom: 26,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
@@ -138,25 +203,10 @@ const styles = StyleSheet.create({
   share: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: 16 },
   qr: { width: 56, height: 56, marginRight: 10 },
   scan: { fontSize: 8.5, fontWeight: 700 },
-  url: { fontSize: 8, color: SECONDARY, marginTop: 2 },
+  url: { fontSize: 8, color: SECONDARY, marginTop: 2, textDecoration: "none" },
   // A render-prop Text is measured before it has content: give it room up front.
   pageNumber: { fontSize: 8, color: SECONDARY, width: 120, textAlign: "right", flexShrink: 0 },
 });
-
-/**
- * At most `max` characters (code points), ending in "…" when cut. Cuts at the last word break
- * when one is in the second half, so a word is not chopped mid-way.
- */
-export function truncateText(text: string, max: number): string {
-  const chars = Array.from(text);
-  if (chars.length <= max) return text;
-  let kept = chars.slice(0, max - 1);
-  if (!/\s/.test(chars[max - 1])) {
-    const lastSpace = kept.findLastIndex((char) => /\s/.test(char));
-    if (lastSpace >= max / 2) kept = kept.slice(0, lastSpace);
-  }
-  return `${kept.join("").trimEnd()}…`;
-}
 
 const formatDay = (locale: string, day: string) =>
   new Intl.DateTimeFormat(locale, CALENDAR_DATE_FORMAT).format(calendarDateToDate(day));
@@ -181,13 +231,31 @@ function phaseLine(phase: ExportPhase | null, locale: string, t: ExportTranslate
 type Context = {
   doc: ExportDocument;
   t: ExportTranslate;
-  thumbnails: Map<string, string>;
+  /** The clinic accent, readable as small text on white; neutral without one. */
+  accent: string;
 };
 
-function Header({ doc, t, logo }: Context & { logo: string | null }) {
-  const { branding } = doc;
-  const contact = branding.contact
-    ? [branding.contact.email, branding.contact.phone, branding.contact.website].filter(Boolean)
+function accentOf(doc: ExportDocument): string {
+  const { accentColor } = doc.branding;
+  return accentColor && normalizeHex(accentColor) ? printAccent(accentColor) : FOREGROUND;
+}
+
+function Header({ doc, t, accent, logo }: Context & { logo: string | null }) {
+  const contact = doc.branding.contact;
+  const parts = contact
+    ? [
+        contact.email ? (
+          <Link key="email" src={`mailto:${contact.email}`} style={styles.contactLink}>
+            {contact.email}
+          </Link>
+        ) : null,
+        contact.phone ? <Text key="phone">{contact.phone}</Text> : null,
+        contact.website ? (
+          <Link key="website" src={contact.website} style={styles.contactLink}>
+            {contact.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+          </Link>
+        ) : null,
+      ].filter((part) => part !== null)
     : [];
   return (
     <View>
@@ -196,8 +264,12 @@ function Header({ doc, t, logo }: Context & { logo: string | null }) {
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt. */}
           {logo ? <Image src={logo} style={styles.logo} /> : null}
           <View style={{ flexShrink: 1 }}>
-            <Text style={styles.clinicName}>{branding.clinicName}</Text>
-            {contact.length > 0 ? <Text style={styles.contact}>{contact.join(" · ")}</Text> : null}
+            <Text style={styles.clinicName}>{doc.branding.clinicName}</Text>
+            {parts.length > 0 ? (
+              <Text style={styles.contact}>
+                {parts.flatMap((part, index) => (index === 0 ? [part] : [" · ", part]))}
+              </Text>
+            ) : null}
           </View>
         </View>
         <View style={styles.audience}>
@@ -210,8 +282,32 @@ function Header({ doc, t, logo }: Context & { logo: string | null }) {
         </View>
       </View>
       <Text style={styles.title}>{doc.title ?? t("pdf.allTitle")}</Text>
-      <View style={styles.rule} />
+      <View style={styles.rule}>
+        <View style={styles.ruleLine} />
+        <View style={[styles.ruleAccent, { backgroundColor: accent }]} />
+      </View>
     </View>
+  );
+}
+
+/** The document title and customer, at the top of every page after the first. */
+function RunningHeader({ doc, t }: Pick<Context, "doc" | "t">) {
+  const title = doc.title ?? t("pdf.allTitle");
+  const customer = t("pdf.forCustomer", { name: doc.customer.firstName });
+  return (
+    <>
+      {/* One line each, however long the title or name: page content starts right below. */}
+      <Text
+        style={styles.runningTitle}
+        fixed
+        render={({ pageNumber }) => (pageNumber > 1 ? title : "")}
+      />
+      <Text
+        style={styles.runningCustomer}
+        fixed
+        render={({ pageNumber }) => (pageNumber > 1 ? customer : "")}
+      />
+    </>
   );
 }
 
@@ -253,85 +349,73 @@ function PlanSection({ plan, spaced, doc, t }: Context & { plan: ExportPlan; spa
   );
 }
 
-function TrackHeader({ doc, t }: Context) {
+function VideoLink({ url, t, accent }: Pick<Context, "t" | "accent"> & { url: string }) {
   return (
-    <View style={styles.trackHeader}>
-      <Text style={styles.trackHint}>{t("pdf.track")}</Text>
-      <View style={styles.boxes}>
-        {WEEKDAYS.map((weekday) => (
-          <View key={weekday} style={styles.boxColumn}>
-            <Text style={styles.initial}>{weekdayName(doc.locale, weekday, "narrow")}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
+    <Link src={url} style={styles.video}>
+      {/* A play triangle: Outfit has no ▶ glyph. */}
+      <Svg style={styles.play} viewBox="0 0 11 13">
+        <Polygon points="0,0 11,6.5 0,13" fill={accent} />
+      </Svg>
+      <Text style={[styles.videoLabel, { color: accent }]}>{t("pdf.watchVideo")}</Text>
+    </Link>
   );
 }
 
-function TrackBoxes({ routine }: { routine: ExportRoutine }) {
-  const days = new Set<number>(routine.weekdays.length > 0 ? routine.weekdays : WEEKDAYS);
-  return (
-    <View style={styles.boxes}>
-      {WEEKDAYS.map((weekday) => (
-        <View key={weekday} style={styles.boxColumn}>
-          {days.has(weekday) ? <View style={styles.box} /> : null}
-        </View>
-      ))}
-    </View>
-  );
-}
+const isLong = (item: ExportItem) => (item.instructions?.length ?? 0) > LONG_INSTRUCTIONS;
+/** A heading moves with the exercise after it, unless that exercise must be free to break. */
+const keepsWithNext = (row: Row | undefined) => !(row?.kind === "item" && isLong(row.item));
 
-function ItemRow({
-  item,
-  routine,
-  doc,
-  t,
-  thumbnails,
-}: Context & { item: ExportItem; routine: ExportRoutine }) {
-  const thumbnail = item.videoId ? thumbnails.get(item.videoId) : undefined;
+function ItemRow({ item, number, t, accent }: Context & { item: ExportItem; number: string }) {
   return (
-    <View style={styles.item}>
-      {thumbnail ? (
-        // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt.
-        <Image src={thumbnail} style={styles.thumb} />
-      ) : (
-        <View style={styles.thumbPlaceholder} />
-      )}
+    <View style={styles.item} wrap={isLong(item)}>
+      <Text style={styles.number}>{number}</Text>
       <View style={styles.body}>
-        <Text style={styles.name}>
-          {item.label ? <Text style={styles.itemLabel}>{`${item.label}  `}</Text> : null}
-          {item.name}
-        </Text>
-        {item.summary ? <Text style={styles.summary}>{item.summary}</Text> : null}
-        {item.notes ? (
-          <Text style={styles.itemNotes}>
-            <Text style={styles.notesLabel}>{`${t("pdf.notes")}: `}</Text>
-            {item.notes}
-          </Text>
-        ) : null}
-        {item.instructions ? (
-          <Text style={styles.instructions}>
-            {truncateText(item.instructions, INSTRUCTIONS_MAX)}
-          </Text>
-        ) : null}
+        {/* A long exercise may break across pages, but never between its name and dose. */}
+        <View wrap={false}>
+          <Text style={styles.name}>{item.name}</Text>
+          {item.summary ? <Text style={styles.summary}>{item.summary}</Text> : null}
+          {item.notes ? (
+            <Text style={styles.itemNotes}>
+              <Text style={styles.notesLabel}>{`${t("pdf.notes")}: `}</Text>
+              {item.notes}
+            </Text>
+          ) : null}
+        </View>
+        {item.instructions ? <Text style={styles.instructions}>{item.instructions}</Text> : null}
       </View>
-      {doc.tracking ? <TrackBoxes routine={routine} /> : null}
+      {item.videoUrl ? (
+        <View style={styles.videoColumn}>
+          <VideoLink url={item.videoUrl} t={t} accent={accent} />
+        </View>
+      ) : null}
     </View>
   );
 }
 
-/** One exercise; superset members carry the group's left rule, the first one its caption too. */
-type ItemRowData = { kind: "item"; item: ExportItem; caption: string | null; inGroup: boolean };
+/**
+ * One exercise, numbered 1, 2, 3… through the routine or labelled A1, A2 inside a superset;
+ * superset members carry the group's left rule, the first one its caption too.
+ */
+type ItemRowData = {
+  kind: "item";
+  item: ExportItem;
+  number: string;
+  caption: string | null;
+  inGroup: boolean;
+};
 /** A section heading, shown only when the routine has two or more non-empty sections. */
 type HeadingRow = { kind: "heading"; name: string };
 type Row = ItemRowData | HeadingRow;
 
 function rows(routine: ExportRoutine, t: ExportTranslate): Row[] {
+  let singles = 0;
   return routine.sections.flatMap((section): Row[] => {
     const heading: Row[] = routine.sectionHeadings ? [{ kind: "heading", name: section.name }] : [];
     const items = section.blocks.flatMap((block: ExportBlock): ItemRowData[] => {
       if (block.kind === "single") {
-        return [{ kind: "item", item: block.item, caption: null, inGroup: false }];
+        singles += 1;
+        const number = String(singles);
+        return [{ kind: "item", item: block.item, number, caption: null, inGroup: false }];
       }
       const caption =
         block.restSeconds !== null
@@ -340,6 +424,7 @@ function rows(routine: ExportRoutine, t: ExportTranslate): Row[] {
       return block.items.map((item, index) => ({
         kind: "item",
         item,
+        number: item.label ?? "",
         caption: index === 0 ? caption : null,
         inGroup: true,
       }));
@@ -351,15 +436,19 @@ function rows(routine: ExportRoutine, t: ExportTranslate): Row[] {
 const rowKey = (row: Row, index: number) =>
   row.kind === "heading" ? `heading-${index}` : row.item.id;
 
-/** Never split across pages. Consecutive members' left rules touch, so a superset reads as one. */
-function RowView({ row, ...props }: Context & { row: ItemRowData; routine: ExportRoutine }) {
-  const style = row.inGroup ? (row.caption ? [styles.group, styles.groupFirst] : styles.group) : {};
+/** Consecutive members' left rules touch, so a superset reads as one. */
+function RowView({ row, ...context }: Context & { row: ItemRowData }) {
+  const style = row.inGroup
+    ? [styles.group, row.caption ? styles.groupFirst : {}, { borderLeftColor: context.accent }]
+    : {};
   return (
-    <View style={style} wrap={false}>
+    <View style={style} wrap={isLong(row.item)}>
       {row.caption ? (
-        <Text style={[styles.caption, styles.groupCaption]}>{row.caption}</Text>
+        <Text style={[styles.caption, styles.groupCaption, { color: context.accent }]}>
+          {row.caption}
+        </Text>
       ) : null}
-      <ItemRow item={row.item} {...props} />
+      <ItemRow item={row.item} number={row.number} {...context} />
     </View>
   );
 }
@@ -371,11 +460,7 @@ function leadingRows(all: Row[]): { lead: Row[]; rest: Row[] } {
   return { lead: all.slice(0, end), rest: all.slice(end) };
 }
 
-function GroupedRows({
-  list,
-  routine,
-  ...context
-}: Context & { list: Row[]; routine: ExportRoutine }) {
+function GroupedRows({ list, ...context }: Context & { list: Row[] }) {
   // Consecutive headings cannot occur (empty sections are dropped), so a heading is followed by
   // an exercise; they are rendered together in one unbreakable view.
   const out: React.ReactNode[] = [];
@@ -384,16 +469,19 @@ function GroupedRows({
     if (row.kind === "heading") {
       const next = list[i + 1];
       out.push(
-        <View key={rowKey(row, i)} wrap={false}>
-          <Text style={styles.sectionHeading}>{row.name}</Text>
-          {next && next.kind === "item" ? (
-            <RowView row={next} routine={routine} {...context} />
-          ) : null}
+        <View key={rowKey(row, i)} wrap={!keepsWithNext(next)}>
+          <Text
+            style={[styles.sectionHeading, { color: context.accent }]}
+            minPresenceAhead={HEADING_PRESENCE}
+          >
+            {row.name}
+          </Text>
+          {next && next.kind === "item" ? <RowView row={next} {...context} /> : null}
         </View>,
       );
       i++;
     } else {
-      out.push(<RowView key={rowKey(row, i)} row={row} routine={routine} {...context} />);
+      out.push(<RowView key={rowKey(row, i)} row={row} {...context} />);
     }
   }
   return <>{out}</>;
@@ -404,31 +492,37 @@ function RoutineSection({
   spaced,
   ...context
 }: Context & { routine: ExportRoutine; spaced: boolean }) {
-  const { doc, t } = context;
+  const { doc, t, accent } = context;
   const phase = phaseLine(routine.phase, doc.locale, t);
   const sessions = frequencyLine(routine, t);
   const { lead, rest } = leadingRows(rows(routine, t));
   return (
     <View style={spaced ? styles.sectionSpaced : undefined}>
-      {/* The heading never sits alone at the bottom of a page: it moves with the first exercise. */}
-      <View wrap={false}>
+      {/*
+        The heading never sits alone at the bottom of a page: it moves with the first exercise,
+        or, when that exercise is long enough to break, keeps room for its start below it.
+      */}
+      <View wrap={!keepsWithNext(lead.find((row) => row.kind === "item"))}>
         {/* A routine export is titled with the routine's name already. */}
         {doc.plans.length === 0 &&
         doc.routines.length === 1 &&
         routine.name === doc.title ? null : (
-          <Text style={styles.sectionTitle}>{routine.name}</Text>
+          <Text style={styles.sectionTitle} minPresenceAhead={HEADING_PRESENCE}>
+            {routine.name}
+          </Text>
         )}
         {phase ? <Text style={styles.meta}>{phase}</Text> : null}
         {sessions ? <Text style={styles.meta}>{sessions}</Text> : null}
-        {routine.notes ? <Text style={styles.notes}>{routine.notes}</Text> : null}
-        {doc.tracking && lead.length > 0 ? <TrackHeader {...context} /> : null}
+        {routine.notes ? (
+          <Text style={[styles.callout, { borderLeftColor: accent }]}>{routine.notes}</Text>
+        ) : null}
         {lead.length > 0 ? (
           <View style={styles.items}>
-            <GroupedRows list={lead} routine={routine} {...context} />
+            <GroupedRows list={lead} {...context} />
           </View>
         ) : null}
       </View>
-      <GroupedRows list={rest} routine={routine} {...context} />
+      <GroupedRows list={rest} {...context} />
     </View>
   );
 }
@@ -445,7 +539,9 @@ function Footer({ doc, t }: Pick<Context, "doc" | "t">) {
             </Svg>
             <View style={{ flexShrink: 1 }}>
               <Text style={styles.scan}>{t("pdf.scan")}</Text>
-              <Text style={styles.url}>{doc.shareUrl.replace(/^https?:\/\//, "")}</Text>
+              <Link src={doc.shareUrl} style={styles.url}>
+                {doc.shareUrl.replace(/^https?:\/\//, "")}
+              </Link>
             </View>
           </>
         ) : null}
@@ -464,13 +560,12 @@ function Footer({ doc, t }: Pick<Context, "doc" | "t">) {
 export type ExportPdfProps = {
   doc: ExportDocument;
   t: ExportTranslate;
-  thumbnails: Map<string, string>;
   logo: string | null;
 };
 
 /** The branded A4 export (spec 14): header, plan week tables, routines, QR footer. */
-export function ExportPdf({ doc, t, thumbnails, logo }: ExportPdfProps) {
-  const context: Context = { doc, t, thumbnails };
+export function ExportPdf({ doc, t, logo }: ExportPdfProps) {
+  const context: Context = { doc, t, accent: accentOf(doc) };
   const hasPlans = doc.plans.length > 0;
   return (
     <Document
@@ -480,6 +575,7 @@ export function ExportPdf({ doc, t, thumbnails, logo }: ExportPdfProps) {
     >
       <Page size="A4" style={styles.page}>
         {/* Fixed chrome goes first: react-pdf only repeats it on pages laid out after it. */}
+        <RunningHeader doc={doc} t={t} />
         <Footer doc={doc} t={t} />
         <Header {...context} logo={logo} />
         {doc.isEmpty ? (
