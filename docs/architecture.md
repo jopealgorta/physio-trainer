@@ -270,8 +270,10 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   they still open) and shows the menu and `PageNotices` there instead; links use
   `PageActionLink`. Rare or destructive actions (Archive, Restore, Delete) have no button:
   `menuOnly` keeps them in the menu at every size (last group, order 90+, `destructive` in
-  red), and the control renders only its confirmation dialog and errors, below the header. The
-  main action (`primary`, e.g. `ShareButton primary`) is never in the menu.
+  red), and the control renders only its confirmation dialog and errors, below the header; such a
+  page passes `<PageActions menuOnly>` so the button is in the server HTML. The menu follows the
+  button order (Edit 0, templates 10s, History 20, Export 30s, Share 40). The main action
+  (`primary`, e.g. `ShareButton primary`) is never in the menu.
 - **Titles**: a detail page's name is an `h1` renamed in place with `EditableTitle` (pencil
   button; Enter or blur confirms, Escape cancels), not an always-on input.
 - **Navigation feedback**: every `(app)` route segment has a `loading.tsx` built from
