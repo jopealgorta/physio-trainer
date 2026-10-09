@@ -63,6 +63,65 @@ describe("PageActions", () => {
     expect(within(menu).getAllByRole("separator")).toHaveLength(2);
   });
 
+  it("is for phones only while every action also has its own control", () => {
+    renderWith(
+      <PageActions>
+        <Control id="share" action={{ label: "Share", order: 10 }} />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    expect(more()).toHaveClass("sm:hidden");
+  });
+
+  it("shows menu-only actions at every size, red when destructive, the rest on phones only", async () => {
+    const user = userEvent.setup();
+    renderWith(
+      <PageActions>
+        <Control id="share" action={{ label: "Share", order: 10 }} />
+        <Control id="history" action={{ label: "History", order: 30 }} />
+        <Control id="archive" action={{ label: "Archive", order: 90, menuOnly: true }} />
+        <Control
+          id="delete"
+          action={{ label: "Delete", order: 91, menuOnly: true, destructive: true }}
+        />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    // From `sm` up the menu stays for the actions that have no button of their own.
+    expect(more()).not.toHaveClass("sm:hidden");
+    await user.click(more());
+    const menu = await screen.findByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "Share" })).toHaveClass("sm:hidden");
+    expect(within(menu).getByRole("menuitem", { name: "History" })).toHaveClass("sm:hidden");
+    expect(within(menu).getByRole("menuitem", { name: "Archive" })).not.toHaveClass("sm:hidden");
+    expect(within(menu).getByRole("menuitem", { name: "Delete" })).toHaveAttribute(
+      "data-variant",
+      "destructive",
+    );
+    // On phones: share | history | archive, delete. From `sm` up only archive and delete, so the
+    // separators before them that only phones need are hidden there.
+    const separators = within(menu).getAllByRole("separator", { hidden: true });
+    expect(separators.map((separator) => separator.getAttribute("class"))).toEqual([
+      expect.stringContaining("sm:hidden"),
+      expect.stringContaining("sm:hidden"),
+    ]);
+  });
+
+  it("separates menu-only groups from each other at every size", async () => {
+    const user = userEvent.setup();
+    renderWith(
+      <PageActions>
+        <Control id="edit" action={{ label: "Edit", order: 80, menuOnly: true }} />
+        <Control id="archive" action={{ label: "Archive", order: 90, menuOnly: true }} />
+        <PageActionsMenu />
+      </PageActions>,
+    );
+    await user.click(more());
+    const menu = await screen.findByRole("menu");
+    const [separator] = within(menu).getAllByRole("separator");
+    expect(separator).not.toHaveClass("sm:hidden");
+  });
+
   it("runs a dialog action once the menu has closed", async () => {
     const onSelect = vi.fn(() => {
       // The menu is gone by then, so the dialog does not fight it for focus.
