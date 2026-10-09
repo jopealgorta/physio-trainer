@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 
 import { useMenuOpened, usePageAction, usePageNotice } from "@/components/page-actions";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { TemplateKind } from "@/lib/templates";
 import { duplicateTemplateAction } from "@/server/templates/actions";
@@ -72,21 +71,19 @@ export function TemplateActions({
   }, [failed]);
 
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {customers.length > 0 ? (
-          <Button type="button" variant="outline" onClick={() => setAssigning(true)}>
-            <UserPlusIcon aria-hidden /> {t("assign")}
-          </Button>
-        ) : null}
-        <Button type="button" variant="outline" onClick={duplicate} disabled={pending}>
-          <CopyIcon aria-hidden /> {t("duplicate")}
+    <>
+      {customers.length > 0 ? (
+        <Button type="button" variant="outline" onClick={() => setAssigning(true)}>
+          <UserPlusIcon aria-hidden /> {t("assign")}
         </Button>
-      </div>
+      ) : null}
+      <Button type="button" variant="outline" onClick={duplicate} disabled={pending}>
+        <CopyIcon aria-hidden /> {t("duplicate")}
+      </Button>
       {failed ? (
-        <Alert variant="destructive">
-          <AlertDescription>{t("duplicateFailed")}</AlertDescription>
-        </Alert>
+        <p role="alert" className="text-destructive text-sm">
+          {t("duplicateFailed")}
+        </p>
       ) : null}
       <AssignTemplateDialog
         kind={kind}
@@ -96,6 +93,6 @@ export function TemplateActions({
         onOpenChange={setAssigning}
         onCloseAutoFocus={onCloseAutoFocus}
       />
-    </div>
+    </>
   );
 }

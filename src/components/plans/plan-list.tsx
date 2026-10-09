@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { IntentLink } from "@/components/intent-link";
+import { NewForCustomerPicker } from "@/components/new-for-customer-picker";
 import { StatusBadge } from "@/components/routines/status-badge";
 import { LinkPendingHint } from "@/components/navigation-pending";
 import { Button } from "@/components/ui/button";
@@ -132,18 +133,27 @@ export function PlanList({
   );
 }
 
-/** The physio has no plans at all: plans are created from a customer. */
-export function EmptyPlans() {
+/** No plans yet: create one for a customer, or add a customer first when there are none. */
+export function EmptyPlans({ customers }: { customers: { id: string; name: string }[] }) {
   const t = useTranslations("Plans.list.empty");
   return (
     <Card>
       <CardContent className="mx-auto grid max-w-md justify-items-center gap-3 py-10 text-center">
         <CalendarDaysIcon aria-hidden className="text-primary size-8" />
         <h2 className="text-base font-semibold">{t("title")}</h2>
-        <p className="text-muted-foreground text-sm">{t("body")}</p>
-        <Button asChild>
-          <Link href="/customers">{t("cta")}</Link>
-        </Button>
+        {customers.length > 0 ? (
+          <>
+            <p className="text-muted-foreground text-sm">{t("bodyPick")}</p>
+            <NewForCustomerPicker kind="plan" customers={customers} />
+          </>
+        ) : (
+          <>
+            <p className="text-muted-foreground text-sm">{t("body")}</p>
+            <Button asChild>
+              <Link href="/customers">{t("cta")}</Link>
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );

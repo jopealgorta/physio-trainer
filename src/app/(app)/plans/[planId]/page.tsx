@@ -1,12 +1,11 @@
-import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata, Route } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { ExportMenu } from "@/components/export/export-menu";
 import { HistorySheet } from "@/components/history/history-sheet";
-import { PageActions, PageActionsMenu, PageNotices } from "@/components/page-actions";
+import { PageActions } from "@/components/page-actions";
+import { PageHeader } from "@/components/page-header";
 import { PhaseBar } from "@/components/phases/phase-bar";
 import { ShareButton } from "@/components/sharing/share-button";
 import { PlanBoard } from "@/components/plans/plan-board";
@@ -46,60 +45,54 @@ export default async function PlanPage({ params }: PageProps<"/plans/[planId]">)
       }
     : { href: "/plans?tab=templates" as Route, label: t("back") };
 
-  // From `sm` up the controls sit in their rows; on a phone those rows are hidden and the
-  // controls (still mounted, owning their dialogs) are reached through "More actions".
+  // Every control stays mounted (owning its dialog); on a phone the secondary ones are reached
+  // through the header's "More actions".
   return (
     <PageActions>
       <div className="grid gap-6">
-        <div className="flex items-center justify-between gap-3 sm:flex-wrap">
-          <Link
-            href={back.href}
-            className="text-muted-foreground hover:text-foreground inline-flex min-w-0 items-center gap-1 text-sm"
-          >
-            <ArrowLeftIcon aria-hidden className="size-4 shrink-0" />
-            <span className="truncate">{back.label}</span>
-          </Link>
-          <div className="hidden flex-wrap items-center gap-2 sm:flex">
-            {/* A restore refreshes the page; the details form takes the restored values. */}
-            <HistorySheet kind="plan" id={plan.id} />
-            {/* A template (no customer) has nobody to share with or export for. */}
-            {plan.customerId ? (
-              <>
-                <ExportMenu target={{ kind: "plans", id: plan.id }} />
-                <ShareButton target={{ target: "weekly_plan", weeklyPlanId: plan.id }} />
-              </>
-            ) : null}
-          </div>
-          <PageActionsMenu />
-        </div>
-        <PageNotices />
-        <PlanTitle
-          planId={plan.id}
-          name={plan.name}
-          isTemplate={plan.isTemplate}
-          badges={
+        <PageHeader
+          back={back}
+          title={
+            <PlanTitle
+              planId={plan.id}
+              name={plan.name}
+              isTemplate={plan.isTemplate}
+              badges={
+                <>
+                  <StatusBadge status={plan.status} />
+                  {plan.isTemplate ? <TemplateBadge /> : null}
+                </>
+              }
+            />
+          }
+          meta={
+            plan.sourceTemplate ? (
+              <FromTemplate kind="plan" template={plan.sourceTemplate} />
+            ) : undefined
+          }
+          actions={
             <>
-              <StatusBadge status={plan.status} />
-              {plan.isTemplate ? <TemplateBadge /> : null}
+              {plan.isTemplate ? (
+                <TemplateActions
+                  kind="plan"
+                  template={{ id: plan.id, name: plan.name }}
+                  customers={customers}
+                />
+              ) : (
+                <SaveAsTemplateDialog kind="plan" sourceId={plan.id} defaultName={plan.name} />
+              )}
+              {/* A restore refreshes the page; the details form takes the restored values. */}
+              <HistorySheet kind="plan" id={plan.id} />
+              {/* A template (no customer) has nobody to share with or export for. */}
+              {plan.customerId ? <ExportMenu target={{ kind: "plans", id: plan.id }} /> : null}
             </>
           }
+          primary={
+            plan.customerId ? (
+              <ShareButton primary target={{ target: "weekly_plan", weeklyPlanId: plan.id }} />
+            ) : undefined
+          }
         />
-        <div className="hidden flex-wrap items-center gap-3 sm:flex">
-          {plan.isTemplate ? (
-            <TemplateActions
-              kind="plan"
-              template={{ id: plan.id, name: plan.name }}
-              customers={customers}
-            />
-          ) : (
-            <>
-              {plan.sourceTemplate ? (
-                <FromTemplate kind="plan" template={plan.sourceTemplate} />
-              ) : null}
-              <SaveAsTemplateDialog kind="plan" sourceId={plan.id} defaultName={plan.name} />
-            </>
-          )}
-        </div>
         {plan.customerId ? (
           <PhaseBar
             kind="plan"

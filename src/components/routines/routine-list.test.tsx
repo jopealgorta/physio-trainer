@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { RoutineSummary } from "@/server/routines/queries";
 
 vi.mock("@/server/routines/actions", () => ({ createRoutineAction: vi.fn() }));
+vi.mock("@/server/plans/actions", () => ({ createPlanAction: vi.fn() }));
 
 import messages from "../../../messages/en.json";
 import { EmptyRoutines, RoutineList } from "./routine-list";

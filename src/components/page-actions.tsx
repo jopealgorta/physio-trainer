@@ -326,13 +326,7 @@ export function PageActionsMenu({ className }: { className?: string }) {
               key={entry.id}
               entry={entry}
               separator={
-                onPhones && fromSm
-                  ? "always"
-                  : onPhones
-                    ? "phones"
-                    : fromSm
-                      ? "fromSm"
-                      : null
+                onPhones && fromSm ? "always" : onPhones ? "phones" : fromSm ? "fromSm" : null
               }
               onDeferred={(run) => (deferred.current = run)}
             />

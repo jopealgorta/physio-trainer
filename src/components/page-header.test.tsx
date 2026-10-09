@@ -59,11 +59,7 @@ describe("PageHeader", () => {
   it("on a detail page, puts the actions behind More actions on phones, keeping the primary", () => {
     renderWith(
       <PageActions>
-        <PageHeader
-          title="Knee rehab"
-          actions={<Share />}
-          primary={<Button>Save</Button>}
-        />
+        <PageHeader title="Knee rehab" actions={<Share />} primary={<Button>Save</Button>} />
       </PageActions>,
     );
     expect(screen.getByTestId("page-header-secondary")).toHaveClass("hidden", "sm:flex");

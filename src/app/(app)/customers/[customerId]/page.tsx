@@ -1,6 +1,4 @@
-import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -47,16 +45,11 @@ export default async function CustomerPage({
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-4">
-        <Link
-          href="/customers"
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeftIcon aria-hidden className="size-4" />
-          {t("form.back")}
-        </Link>
-        <CustomerHeader customer={customer} age={age} />
-      </div>
+      <CustomerHeader
+        customer={customer}
+        age={age}
+        back={{ href: "/customers", label: t("form.back") }}
+      />
       {customer.archivedAt ? (
         <Alert role="status">
           <AlertDescription>{t("detail.archivedNotice")}</AlertDescription>

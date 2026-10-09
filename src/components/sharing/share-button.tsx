@@ -25,10 +25,11 @@ import { ShareLinkPanel, type PanelError } from "./share-link-panel";
  */
 export function ShareButton({
   target,
-  variant = "outline",
+  primary = false,
 }: {
   target: ShareRef;
-  variant?: "outline" | "secondary";
+  /** The page's main action: a filled button, shown at every size, so not in the "⋯" menu. */
+  primary?: boolean;
 }) {
   const t = useTranslations("Sharing");
   const [open, setOpen] = useState(false);
@@ -74,25 +75,31 @@ export function ShareButton({
   }
 
   const link = state?.link;
-  const { onCloseAutoFocus } = usePageAction("share", {
-    label: t(`trigger.${target.target}`),
-    order: 10,
-    icon: <Share2Icon aria-hidden />,
-    opensDialog: true,
-    onSelect: () => onOpenChange(true),
-  });
+  const { onCloseAutoFocus } = usePageAction(
+    "share",
+    primary
+      ? null
+      : {
+          label: t(`trigger.${target.target}`),
+          order: 10,
+          icon: <Share2Icon aria-hidden />,
+          opensDialog: true,
+          onSelect: () => onOpenChange(true),
+        },
+  );
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <Button type="button" variant={variant}>
+        <Button type="button" variant={primary ? "default" : "outline"}>
           <Share2Icon aria-hidden />
           {t(`trigger.${target.target}`)}
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        onCloseAutoFocus={onCloseAutoFocus}
+        // Its own button is showing: focus goes back there, not to the "⋯" menu.
+        onCloseAutoFocus={primary ? undefined : onCloseAutoFocus}
         className="gap-4 p-4 text-sm sm:max-h-(--radix-popover-content-available-height) sm:w-96 sm:overflow-y-auto"
       >
         <div className="grid gap-1">

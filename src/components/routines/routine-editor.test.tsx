@@ -319,26 +319,34 @@ describe("RoutineEditor", () => {
     ).toBeDisabled();
   });
 
-  it("lays out the page's back link, controls and phase around the title, with History in More actions", async () => {
+  it("lays out the page header: back link, controls in order, Save as the main action", async () => {
     const user = userEvent.setup();
     setup({
       ...PROPS,
       top: {
-        back: <a href="#back">Back to routines</a>,
+        back: { href: "/routines", label: "Back to routines" },
+        meta: <span>From template: Knee</span>,
+        templates: <button type="button">Assign to customer…</button>,
         actions: <button type="button">Export</button>,
-        secondary: <button type="button">Save as template…</button>,
         phase: <p>Phase bar</p>,
       },
     });
-    expect(screen.getByRole("link", { name: "Back to routines" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save as template…" })).toBeInTheDocument();
-    expect(screen.getByText("Phase bar")).toBeInTheDocument();
-    // On phones the controls' rows give way to the menu (and Save moves up next to it).
-    expect(screen.getByRole("button", { name: "Export" }).parentElement).toHaveClass(
-      "hidden",
-      "sm:flex",
+    expect(screen.getByRole("link", { name: "Back to routines" })).toHaveAttribute(
+      "href",
+      "/routines",
     );
+    expect(screen.getByText("From template: Knee")).toBeInTheDocument();
+    expect(screen.getByText("Phase bar")).toBeInTheDocument();
+    // Templates, History, Export: one row that gives way to the menu on phones.
+    const secondary = screen.getByTestId("page-header-secondary");
+    expect(secondary).toHaveClass("hidden", "sm:flex");
+    expect(
+      within(secondary)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["Assign to customer…", "History", "Export"]);
+    // Save stays out of that row: it is there at every size.
+    expect(secondary).not.toContainElement(save());
     expect(await menuActions(user)).toEqual(["History"]);
   });
 

@@ -41,19 +41,17 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
   const categoryTree = <CategoryTree tree={tree} filters={filters} />;
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <PageHeader
         title={t("title")}
         description={t("description")}
-        actions={
-          <>
-            <CategoryManager tree={tree} />
-            <Button asChild>
-              <Link href="/library/new">
-                <PlusIcon aria-hidden /> {t("newExercise")}
-              </Link>
-            </Button>
-          </>
+        actions={<CategoryManager tree={tree} />}
+        primary={
+          <Button asChild>
+            <Link href="/library/new">
+              <PlusIcon aria-hidden /> {t("newExercise")}
+            </Link>
+          </Button>
         }
       />
       {layout === "empty-page" ? (

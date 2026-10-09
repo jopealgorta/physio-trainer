@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { NewForCustomerPicker } from "@/components/new-for-customer-picker";
 import { PendingContent, PendingScope } from "@/components/navigation-pending";
 import { PageHeader } from "@/components/page-header";
 import { EmptyPlans, NoPlanResults, PlanList } from "@/components/plans/plan-list";
@@ -54,18 +55,21 @@ export default async function PlansPage({ searchParams }: PageProps<"/plans">) {
   const { plans, truncated } = list;
   const filtered = hasActivePlanFilters(filters);
   const nothingYet = plans.length === 0 && !filtered;
+  // An empty list offers the same button in its empty state.
+  const newButton = nothingYet ? undefined : isTemplates ? (
+    <NewTemplateButton kind="plan" />
+  ) : assignable.length > 0 ? (
+    <NewForCustomerPicker kind="plan" customers={assignable} />
+  ) : undefined;
 
   return (
     <div className="grid gap-6">
-      <PageHeader
-        title={t("title")}
-        actions={isTemplates && !nothingYet ? <NewTemplateButton kind="plan" /> : undefined}
-      />
+      <PageHeader title={t("title")} description={t("description")} primary={newButton} />
       <PendingScope>
         <ListTabs kind="plan" active={filters.tab} />
         {nothingYet ? (
           <PendingContent>
-            {isTemplates ? <EmptyTemplates kind="plan" /> : <EmptyPlans />}
+            {isTemplates ? <EmptyTemplates kind="plan" /> : <EmptyPlans customers={assignable} />}
           </PendingContent>
         ) : (
           <div className="grid content-start gap-6">
