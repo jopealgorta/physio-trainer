@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { BackLink } from "@/components/back-link";
 import { PageActionsMenu, PageNotices, useInPageActions } from "@/components/page-actions";
+import { cn } from "@/lib/utils";
 
 /**
  * Every physio page's header: the way back, the title (with what sits beside it, e.g. an avatar,
@@ -38,10 +39,23 @@ export function PageHeader({
   const hasActions = Boolean(actions || primary || withMenu);
   return (
     <div className="grid gap-3">
-      {back ? <BackLink href={back.href} label={back.label} /> : null}
+      {/*
+       * On phones the actions never share the title's row (a status beside Save would wrap it):
+       * with a way back they sit at the end of its row, above the title, so the title changing
+       * height (a rename's hint) never moves Save under a tap; without one, on their own row.
+       */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        {/* On phones the actions get their own row, so a status beside Save never moves it. */}
-        <div className="flex min-w-0 basis-full items-center gap-4 sm:flex-[1_1_12rem]">
+        {back ? (
+          <div className="order-1 flex min-w-0 flex-1 sm:basis-full">
+            <BackLink href={back.href} label={back.label} />
+          </div>
+        ) : null}
+        <div
+          className={cn(
+            "flex min-w-0 basis-full items-center gap-4 sm:order-2 sm:flex-[1_1_12rem]",
+            back ? "order-3" : "order-1",
+          )}
+        >
           {leading}
           <div className="grid min-w-0 gap-1">
             {typeof title === "string" ? (
@@ -60,7 +74,7 @@ export function PageHeader({
         {hasActions ? (
           <div
             data-testid="page-header-actions"
-            className="ml-auto flex flex-wrap items-center justify-end gap-2"
+            className="order-2 ml-auto flex flex-wrap items-center justify-end gap-2 sm:order-3"
           >
             {actions ? (
               withMenu ? (

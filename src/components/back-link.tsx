@@ -7,7 +7,7 @@ export function BackLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href as Route}
-      className="text-muted-foreground hover:text-foreground inline-flex min-w-0 items-center gap-1 justify-self-start text-sm"
+      className="text-muted-foreground hover:text-foreground inline-flex max-w-full min-w-0 items-center gap-1 justify-self-start text-sm"
     >
       <ArrowLeftIcon aria-hidden className="size-4 shrink-0" />
       <span className="truncate">{label}</span>
