@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { openExercise } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 
 const SHORT = "https://youtube.com/shorts/dQw4w9WgXcQ?si=e2e";
@@ -95,16 +96,15 @@ test("a physio builds, finds, archives and restores an exercise", async ({
   await expect(page.getByText("Cover", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Create exercise" }).click();
 
-  await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
-  await page.reload();
+  await openExercise(page, "Single-leg bridge");
   await expect(page.getByLabel("Name")).toHaveValue("Single-leg bridge");
   await expect(page.getByLabel("Categories")).toHaveText("Lower limb › Glutes, Mobility");
   await expect(page.getByRole("button", { name: "Body areas Glute" })).toBeVisible();
 
-  // Edit keeps typed values after saving.
+  // Saving an edit returns to the library; the exercise kept the change.
   await page.getByLabel("Instructions").fill("Push through the heel.\nSqueeze at the top.");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
+  await openExercise(page, "Single-leg bridge");
   await expect(page.getByLabel("Instructions")).toHaveValue(
     "Push through the heel.\nSqueeze at the top.",
   );
@@ -193,8 +193,7 @@ test("reordering videos changes the cover", async ({ physioPage: page }) => {
   await moveUp(page, "Reorder Video 2", "Video 2");
   await expect(covers.first()).toHaveAttribute("src", /bbbbbbbbbbb/);
   await page.getByRole("button", { name: "Create exercise" }).click();
-  await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
-  await page.reload();
+  await openExercise(page, "Two videos");
   await expect(covers.first()).toHaveAttribute("src", /bbbbbbbbbbb/);
   await expect(covers.nth(1)).toHaveAttribute("src", /aaaaaaaaaaa/);
 });
@@ -212,7 +211,7 @@ test("deleting an exercise returns to the library", async ({ physioPage: page })
   await page.goto("/library/new");
   await page.getByLabel("Name").fill("Throwaway plank");
   await page.getByRole("button", { name: "Create exercise" }).click();
-  await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
+  await openExercise(page, "Throwaway plank");
   await page.getByRole("button", { name: "Delete" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete exercise" }).click();
   await expect(page).toHaveURL(/\/library$/);
@@ -257,7 +256,6 @@ test("an exercise gets a brand new category without leaving the form", async ({
   await expect(page.getByLabel("Name")).toHaveValue("Dead bug");
   await expect(page.getByLabel("Instructions")).toHaveValue("Keep the lower back down.");
   await page.getByRole("button", { name: "Create exercise" }).click();
-  await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
-  await page.reload();
+  await openExercise(page, "Dead bug");
   await expect(page.getByLabel("Categories")).toHaveText("Core, Core › Anti-extension");
 });

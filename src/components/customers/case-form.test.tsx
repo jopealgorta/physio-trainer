@@ -27,7 +27,12 @@ type Action = (state: CaseFormState, formData: FormData) => Promise<CaseFormStat
 
 function setup(
   action: Action,
-  props: { values?: Partial<CaseFormValues>; customerId?: string; onSaved?: () => void } = {},
+  props: {
+    values?: Partial<CaseFormValues>;
+    customerId?: string;
+    onSaved?: () => void;
+    onCancel?: () => void;
+  } = {},
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
@@ -36,6 +41,7 @@ function setup(
         customerId={props.customerId ?? "cust-1"}
         defaults={{ ...defaults, ...props.values }}
         onSaved={props.onSaved}
+        onCancel={props.onCancel ?? (() => {})}
       />
     </NextIntlClientProvider>,
   );
@@ -200,14 +206,23 @@ describe("CaseForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("This customer no longer exists.");
   });
 
-  it("announces a save and calls onSaved", async () => {
+  it("calls onSaved once after a save", async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();
     const action = vi.fn(async (): Promise<CaseFormState> => ({ status: "saved" }));
     setup(action, { values: { id: "case-9", title: "ACL" }, onSaved });
     await user.click(screen.getByRole("button", { name: "Save case" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Saved");
-    expect(onSaved).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     expect(screen.getByLabelText("Title")).toHaveValue("ACL");
+  });
+
+  it("cancels without saving", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    const action = idleAction();
+    setup(action, { onCancel });
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(action).not.toHaveBeenCalled();
   });
 });

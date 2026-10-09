@@ -1,4 +1,5 @@
 import { expect, test } from "./helpers/auth";
+import { formStatus } from "./helpers/form";
 import { chooseOption } from "./helpers/select";
 
 test("a physio updates their profile", async ({ physioPage: page, physio }) => {
@@ -12,7 +13,7 @@ test("a physio updates their profile", async ({ physioPage: page, physio }) => {
   await expect(page.getByText("Available", { exact: true })).toBeVisible();
   await chooseOption(page, page.getByLabel("Timezone"), /^Europe\/Madrid/);
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
+  await expect(formStatus(page).filter({ hasText: /^Saved$/ })).toBeVisible();
   // React resets a form after its action; the chosen zone must survive that, not snap back.
   await expect(page.getByLabel("Timezone")).toHaveText(/^Europe\/Madrid/);
 
@@ -50,7 +51,7 @@ test("settings sections are tabs driven by the URL", async ({ physioPage: page }
     "aria-current",
     "page",
   );
-  await expect(page.getByText("How your clinic looks to patients")).toBeVisible();
+  await expect(page.getByLabel("Clinic or practice name")).toBeVisible();
   await page.goBack();
   await expect(page.getByLabel("Display name")).toBeVisible();
 });

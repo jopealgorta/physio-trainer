@@ -41,7 +41,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
   const categoryTree = <CategoryTree tree={tree} filters={filters} />;
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <PageHeader
         title={t("title")}
         description={t("description")}
@@ -60,7 +60,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
         <EmptyLibrary />
       ) : (
         <PendingScope>
-          <div className="grid gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
+          <div className="grid gap-6 md:grid-cols-[14rem_minmax(0,1fr)]">
             <aside className="hidden md:block">{categoryTree}</aside>
             <div className="grid content-start gap-6">
               <LibraryToolbar filters={filters}>{categoryTree}</LibraryToolbar>

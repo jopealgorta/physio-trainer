@@ -30,7 +30,11 @@ function setup(
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <CustomerForm action={action} defaults={{ ...defaults, ...values }} />
+      <CustomerForm
+        action={action}
+        defaults={{ ...defaults, ...values }}
+        cancelHref="/customers/abc"
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -228,13 +232,9 @@ describe("CustomerForm", () => {
     expect(await screen.findByText("Check this field.")).toBeInTheDocument();
   });
 
-  it("announces a successful save", async () => {
-    const user = userEvent.setup();
-    const action = vi.fn(async (): Promise<CustomerFormState> => ({ status: "saved" }));
-    setup(action, { id: "abc", firstName: "Ana" });
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Saved");
-    expect(screen.getByLabelText("First name")).toHaveValue("Ana");
+  it("offers Cancel back to where the form came from", () => {
+    setup(idleAction(), { id: "abc", firstName: "Ana" });
+    expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/customers/abc");
   });
 
   it("shows the not-found alert", async () => {

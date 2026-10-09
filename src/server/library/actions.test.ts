@@ -50,10 +50,10 @@ describe("saveExerciseAction", () => {
     expect(m.createExercise).not.toHaveBeenCalled();
   });
 
-  it("creates and redirects to the new exercise", async () => {
+  it("creates and redirects to the library", async () => {
     m.createExercise.mockResolvedValue({ ok: true, data: { id: UUID } });
     await expect(saveExerciseAction(idle, form({ name: "Plank" }))).rejects.toThrow(
-      `REDIRECT /library/${UUID}`,
+      /^REDIRECT \/library$/,
     );
     expect(m.createExercise).toHaveBeenCalledWith(
       {},
@@ -63,11 +63,11 @@ describe("saveExerciseAction", () => {
     expect(m.revalidatePath).toHaveBeenCalledWith("/library", "layout");
   });
 
-  it("updates in place", async () => {
+  it("updates and redirects to the library", async () => {
     m.updateExercise.mockResolvedValue({ ok: true, data: { id: UUID } });
-    await expect(saveExerciseAction(idle, form({ id: UUID, name: "Plank" }))).resolves.toEqual({
-      status: "saved",
-    });
+    await expect(saveExerciseAction(idle, form({ id: UUID, name: "Plank" }))).rejects.toThrow(
+      /^REDIRECT \/library$/,
+    );
     expect(m.updateExercise).toHaveBeenCalledWith(
       {},
       "physio-1",

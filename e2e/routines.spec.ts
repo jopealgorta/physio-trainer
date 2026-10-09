@@ -279,7 +279,7 @@ test("the editor fits a phone and the picker opens as a sheet", async ({
   expect(await hasNoHorizontalOverflow(page)).toBe(true);
 });
 
-test("on a phone the routine page opens with one compact row: back, Save, More actions", async ({
+test("on a phone the routine page opens with one compact row and Save pinned below", async ({
   physioPage: page,
   isMobile,
 }) => {
@@ -295,7 +295,12 @@ test("on a phone the routine page opens with one compact row: back, Save, More a
   };
   const row = await middle(more);
   expect(Math.abs((await middle(back)) - row)).toBeLessThan(4);
-  expect(Math.abs((await middle(save)) - row)).toBeLessThan(4);
+  // Save is in the footer pinned to the bottom of the screen, like every form's.
+  const viewport = page.viewportSize()!;
+  expect((await save.boundingBox())!.y + (await save.boundingBox())!.height).toBeLessThanOrEqual(
+    viewport.height,
+  );
+  expect(await middle(save)).toBeGreaterThan(viewport.height - 80);
   // The title comes right under it, as a heading rather than an input.
   const title = routineTitle(page, "Compact header");
   expect((await title.boundingBox())!.y).toBeGreaterThan(row);

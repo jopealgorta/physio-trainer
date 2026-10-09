@@ -19,7 +19,7 @@ export default async function NewCustomerPage() {
   const t = await getTranslations("Customers.form");
   const profile = await withPhysio((tx, physioId) => getProfile(tx, physioId));
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <div className="grid gap-2">
         <Link
           href="/customers"
@@ -32,6 +32,7 @@ export default async function NewCustomerPage() {
       </div>
       <CustomerForm
         action={saveCustomerAction}
+        cancelHref="/customers"
         defaults={{
           firstName: "",
           lastName: null,

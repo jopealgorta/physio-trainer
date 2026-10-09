@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { formStatus } from "./helpers/form";
 import { hasNoHorizontalOverflow } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
 import { nameNewRoutine, renamePlan } from "./helpers/page-actions";
@@ -144,7 +145,7 @@ test("a physio builds a weekly plan, edits it from the board, and it persists", 
   // A plan with routines can be activated, and the plans list shows its week.
   await chooseOption(page, page.getByRole("combobox", { name: "Status" }), "Active");
   await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
+  await expect(formStatus(page).filter({ hasText: /^Saved$/ })).toBeVisible();
   await page.goto("/plans");
   // A table on wide screens, cards on narrow ones: only the rendered one is in the a11y tree.
   await expect(page.getByRole("link", { name: "Week 1" })).toBeVisible();
@@ -198,7 +199,7 @@ test("archiving a routine used by an active plan is blocked and names the plan",
   await addExisting(page, "Monday", "Shared rehab");
   await chooseOption(page, page.getByRole("combobox", { name: "Status" }), "Active");
   await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
+  await expect(formStatus(page).filter({ hasText: /^Saved$/ })).toBeVisible();
 
   await page.goto(routineUrl);
   await chooseOption(page, page.getByRole("combobox", { name: "Status" }), "Archived");

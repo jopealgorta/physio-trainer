@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { formStatus } from "@/test/form";
 import { chooseOption } from "@/test/select";
 
 import messages from "../../../messages/en.json";
@@ -26,6 +27,22 @@ beforeEach(() => {
 });
 
 describe("PlanDetailsForm", () => {
+  it("puts the board between the fields and the pinned footer, whose Save submits", async () => {
+    const user = userEvent.setup();
+    setup({ children: <p>The board</p> });
+    const save = screen.getByRole("button", { name: "Save details" });
+    const footer = save.closest('[data-slot="form-footer"]');
+    expect(footer).not.toBeNull();
+    const board = screen.getByText("The board");
+    expect(screen.getByLabelText("Notes for the patient").compareDocumentPosition(board)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(board.compareDocumentPosition(footer!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    await user.type(screen.getByLabelText("Notes for the patient"), "Ice");
+    await user.click(save);
+    await waitFor(() => expect(updatePlanAction).toHaveBeenCalled());
+  });
+
   it("has no name field (the title renames the plan) and saves without a name", async () => {
     const user = userEvent.setup();
     setup();
@@ -88,9 +105,9 @@ describe("PlanDetailsForm", () => {
 
     await user.type(notes, "v2");
     await user.click(screen.getByRole("button", { name: "Save details" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    await waitFor(() => expect(formStatus()).toHaveTextContent("Saved"));
     rerenderWith({ ...INITIAL, notes: "v2" });
-    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+    expect(formStatus()).toHaveTextContent("Saved");
 
     // A board action re-renders the page with the same details: edits in progress stay.
     await user.type(notes, "!");
@@ -109,14 +126,14 @@ describe("PlanDetailsForm", () => {
 
     await user.type(notes, "Ice after{Enter}");
     await user.click(screen.getByRole("button", { name: "Save details" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    await waitFor(() => expect(formStatus()).toHaveTextContent("Saved"));
     // The page re-renders with what the server stored: trimmed.
     rerender(
       <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
         <PlanDetailsForm planId="p1" initial={{ ...INITIAL, notes: "Ice after" }} cases={[]} />
       </NextIntlClientProvider>,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+    expect(formStatus()).toHaveTextContent("Saved");
     expect(notes).toHaveValue("Ice after\n");
     expect(screen.getByRole("button", { name: "Save details" })).toBeDisabled();
   });

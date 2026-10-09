@@ -28,7 +28,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
   const showEmptyPage = !anyCustomers && !hasActiveCustomerFilters(filters);
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <PageHeader
         title={t("title")}
         description={t("description")}

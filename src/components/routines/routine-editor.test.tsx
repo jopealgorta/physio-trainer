@@ -160,6 +160,16 @@ beforeEach(() => {
 });
 
 describe("RoutineEditor", () => {
+  it("keeps Save and the save state in the pinned footer, after the blocks", () => {
+    setup();
+    const footer = save().closest('[data-slot="form-footer"]');
+    expect(footer).not.toBeNull();
+    expect(footer).toContainElement(saveStatus());
+    expect(screen.getByText("Squat").compareDocumentPosition(footer!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it("shows the customer as a link, the block list and the picker", () => {
     setup();
     expect(screen.getByRole("link", { name: "Ana Pérez" })).toHaveAttribute(

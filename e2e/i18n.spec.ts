@@ -1,4 +1,5 @@
 import { createPhysio, deletePhysio, expect, signIn, test } from "./helpers/auth";
+import { formStatus } from "./helpers/form";
 import { chooseOption } from "./helpers/select";
 
 test.describe("with a Spanish browser", () => {
@@ -40,7 +41,7 @@ test("a physio switches the app to Spanish in Settings", async ({ physioPage: pa
   await page.goto("/settings");
   await chooseOption(page, page.getByLabel("Language"), "Español");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("status").filter({ hasText: /^Guardado$/ })).toBeVisible();
+  await expect(formStatus(page).filter({ hasText: /^Guardado$/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Configuración", level: 1 })).toBeVisible();
 
   await page.reload();

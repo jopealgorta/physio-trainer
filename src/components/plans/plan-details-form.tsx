@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useId, useState, useTransition, type FormEvent } from "react";
 
+import { Field, FormFooter } from "@/components/form-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -41,12 +42,16 @@ type SaveError =
   | "generic"
   | "notesTooLong";
 
-/** Status, case and notes of a plan. Saves with the button (the board saves on its own). */
+/**
+ * Status, case and notes of a plan, then `children` (the board, which saves on its own), then
+ * the pinned footer whose Save saves the details.
+ */
 export function PlanDetailsForm({
   planId,
   initial,
   cases,
   isTemplate = false,
+  children,
 }: {
   planId: string;
   /**
@@ -57,6 +62,7 @@ export function PlanDetailsForm({
   cases: { id: string; title: string }[];
   /** Templates are active or archived (no draft). */
   isTemplate?: boolean;
+  children?: React.ReactNode;
 }) {
   const t = useTranslations("Plans.board.details");
   const tErrors = useTranslations("Plans.board.errors");
@@ -115,86 +121,90 @@ export function PlanDetailsForm({
     });
   }
 
+  const formId = `${id}-form`;
+
   return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-4 rounded-lg border p-4">
-      <h2 className="text-base font-semibold">{t("title")}</h2>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor={`${id}-status`}>{t("status")}</Label>
-          <Select
-            value={values.status}
-            onValueChange={(next) => {
-              // "" only comes from Radix's internal <select>, never from a choice.
-              const status = statuses.find((candidate) => candidate === next);
-              if (status) change({ status });
-            }}
-          >
-            <SelectTrigger id={`${id}-status`} className="w-full">
-              <SelectValue>{tStatus(values.status)}</SelectValue>
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {statuses.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {tStatus(status)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {cases.length > 0 ? (
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-case`}>{t("case")}</Label>
+    <>
+      <form id={formId} onSubmit={onSubmit} noValidate className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field>
+            <Label htmlFor={`${id}-status`}>{t("status")}</Label>
             <Select
-              value={toSelectValue(values.caseId ?? "")}
+              value={values.status}
               onValueChange={(next) => {
-                if (next === "") return;
-                change({ caseId: fromSelectValue(next) || null });
+                // "" only comes from Radix's internal <select>, never from a choice.
+                const status = statuses.find((candidate) => candidate === next);
+                if (status) change({ status });
               }}
             >
-              <SelectTrigger id={`${id}-case`} className="w-full">
-                <SelectValue>
-                  {values.caseId ? caseTitles.get(values.caseId) : t("noCase")}
-                </SelectValue>
+              <SelectTrigger id={`${id}-status`} className="w-full">
+                <SelectValue>{tStatus(values.status)}</SelectValue>
               </SelectTrigger>
               <SelectContent position="popper">
-                <SelectItem value={toSelectValue("")}>{t("noCase")}</SelectItem>
-                {cases.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.title}
+                {statuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {tStatus(status)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
+          {cases.length > 0 ? (
+            <Field>
+              <Label htmlFor={`${id}-case`}>{t("case")}</Label>
+              <Select
+                value={toSelectValue(values.caseId ?? "")}
+                onValueChange={(next) => {
+                  if (next === "") return;
+                  change({ caseId: fromSelectValue(next) || null });
+                }}
+              >
+                <SelectTrigger id={`${id}-case`} className="w-full">
+                  <SelectValue>
+                    {values.caseId ? caseTitles.get(values.caseId) : t("noCase")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value={toSelectValue("")}>{t("noCase")}</SelectItem>
+                  {cases.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : null}
+        </div>
+        <Field>
+          <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
+          <Textarea
+            id={`${id}-notes`}
+            value={values.notes}
+            maxLength={PLAN_NOTES_MAX}
+            rows={2}
+            aria-describedby={`${id}-notes-hint`}
+            onChange={(event) => change({ notes: event.target.value })}
+          />
+          <p id={`${id}-notes-hint`} className="text-muted-foreground text-sm">
+            {t("notesHint")}
+          </p>
+        </Field>
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{tErrors(error, { max: PLAN_NOTES_MAX })}</AlertDescription>
+          </Alert>
         ) : null}
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
-        <Textarea
-          id={`${id}-notes`}
-          value={values.notes}
-          maxLength={PLAN_NOTES_MAX}
-          rows={3}
-          aria-describedby={`${id}-notes-hint`}
-          onChange={(event) => change({ notes: event.target.value })}
-        />
-        <p id={`${id}-notes-hint`} className="text-muted-foreground text-xs">
-          {t("notesHint")}
-        </p>
-      </div>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{tErrors(error, { max: PLAN_NOTES_MAX })}</AlertDescription>
-        </Alert>
-      ) : null}
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending || !dirty}>
+      </form>
+
+      {children}
+
+      <FormFooter wide status={dirty ? t("unsaved") : justSaved ? t("saved") : null}>
+        {/* Outside the form, so the board between them can hold forms of its own. */}
+        <Button type="submit" form={formId} disabled={pending || !dirty}>
           {pending ? t("saving") : t("save")}
         </Button>
-        <p role="status" className="text-muted-foreground text-xs">
-          {dirty ? t("unsaved") : justSaved ? t("saved") : ""}
-        </p>
-      </div>
-    </form>
+      </FormFooter>
+    </>
   );
 }

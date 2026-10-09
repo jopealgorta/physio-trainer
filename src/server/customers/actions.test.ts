@@ -69,11 +69,11 @@ describe("saveCustomerAction", () => {
     expect(m.revalidatePath).toHaveBeenCalledWith("/customers", "layout");
   });
 
-  it("updates in place", async () => {
+  it("updates and redirects back to the customer", async () => {
     m.updateCustomer.mockResolvedValue({ ok: true, data: null });
-    await expect(saveCustomerAction(idle, form({ id: UUID, firstName: "Ana" }))).resolves.toEqual({
-      status: "saved",
-    });
+    await expect(saveCustomerAction(idle, form({ id: UUID, firstName: "Ana" }))).rejects.toThrow(
+      `REDIRECT /customers/${UUID}`,
+    );
     expect(m.updateCustomer).toHaveBeenCalledWith(
       {},
       "physio-1",

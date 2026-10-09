@@ -65,7 +65,10 @@ export function CaseSheet({
           <SheetTitle>{t(editing ? "edit" : "new")}</SheetTitle>
           <SheetDescription>{t("sheetDescription", { name: customerName })}</SheetDescription>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div
+          data-slot="form-scroll"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6"
+        >
           <CaseForm
             action={saveCaseAction}
             customerId={customerId}
@@ -74,6 +77,7 @@ export function CaseSheet({
               setOpen(false);
               router.refresh();
             }}
+            onCancel={() => setOpen(false)}
           />
         </div>
       </SheetContent>

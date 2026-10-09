@@ -18,7 +18,7 @@ export default async function NewExercisePage() {
   const t = await getTranslations("Library.form");
   const categories = await withPhysio((tx, physioId) => listCategoryTree(tx, physioId));
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <div className="grid gap-2">
         <Link
           href="/library"
@@ -32,6 +32,7 @@ export default async function NewExercisePage() {
       <ExerciseForm
         action={saveExerciseAction}
         categories={categories}
+        cancel={{ href: "/library" }}
         defaults={{
           name: "",
           kind: "strength",

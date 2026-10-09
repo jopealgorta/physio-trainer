@@ -85,7 +85,10 @@ export function NoteSheet({
           <SheetTitle>{t(editing ? "sheetTitleEdit" : "sheetTitleNew")}</SheetTitle>
           <SheetDescription>{t("sheetDescription", { name: customerName })}</SheetDescription>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div
+          data-slot="form-scroll"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6"
+        >
           <NoteEditor
             action={saveVisitNoteAction}
             customerId={customerId}
@@ -95,6 +98,7 @@ export function NoteSheet({
               setOpen(false);
               router.refresh();
             }}
+            onCancel={() => setOpen(false)}
           />
         </div>
       </SheetContent>

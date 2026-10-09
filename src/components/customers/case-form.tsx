@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useEffect, useId, type FormEvent } from "react";
 
 import { BodyAreaPicker } from "@/components/body-areas/body-area-picker";
+import { Field, FieldRow, FormBody, FormCancel, FormFooter } from "@/components/form-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,7 @@ export function CaseForm({
   customerId,
   defaults,
   onSaved,
+  onCancel,
 }: {
   action: (state: CaseFormState, formData: FormData) => Promise<CaseFormState>;
   /** Owner of a new case; ignored when `defaults.id` is set. */
@@ -75,6 +77,8 @@ export function CaseForm({
   defaults: CaseFormValues;
   /** Called once after each successful save (the sheet closes itself here). */
   onSaved?: () => void;
+  /** Cancel: the sheet closes without saving. */
+  onCancel: () => void;
 }) {
   const t = useTranslations("Cases");
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -126,177 +130,182 @@ export function CaseForm({
         <input type="hidden" name="customerId" value={customerId} />
       )}
 
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-title`}>{t("title")}</Label>
-        <Input
-          id={`${id}-title`}
-          name="title"
-          defaultValue={defaults.title}
-          placeholder={t("titleHint")}
-          maxLength={CASE_TITLE_MAX}
-          autoComplete="off"
-          required
-          aria-invalid={invalid("title")}
-          aria-describedby={describedBy("title")}
-        />
-        {errorText("title")}
-      </div>
+      <FormBody>
+        <FieldRow>
+          <Field>
+            <Label htmlFor={`${id}-title`}>{t("title")}</Label>
+            <Input
+              id={`${id}-title`}
+              name="title"
+              defaultValue={defaults.title}
+              placeholder={t("titleHint")}
+              maxLength={CASE_TITLE_MAX}
+              autoComplete="off"
+              required
+              aria-invalid={invalid("title")}
+              aria-describedby={describedBy("title")}
+            />
+            {errorText("title")}
+          </Field>
 
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-diagnosis`}>{t("diagnosis")}</Label>
-        <Input
-          id={`${id}-diagnosis`}
-          name="diagnosis"
-          defaultValue={defaults.diagnosis ?? ""}
-          maxLength={DIAGNOSIS_MAX}
-          autoComplete="off"
-          aria-invalid={invalid("diagnosis")}
-          aria-describedby={describedBy("diagnosis")}
-        />
-        {errorText("diagnosis")}
-      </div>
+          <Field>
+            <Label htmlFor={`${id}-diagnosis`}>{t("diagnosis")}</Label>
+            <Input
+              id={`${id}-diagnosis`}
+              name="diagnosis"
+              defaultValue={defaults.diagnosis ?? ""}
+              maxLength={DIAGNOSIS_MAX}
+              autoComplete="off"
+              aria-invalid={invalid("diagnosis")}
+              aria-describedby={describedBy("diagnosis")}
+            />
+            {errorText("diagnosis")}
+          </Field>
+        </FieldRow>
 
-      <div className="grid gap-2">
-        <BodyAreaPicker
-          mode="single"
-          withSide
-          name="bodyArea"
-          sideName="side"
-          label={t("bodyArea")}
-          defaultValue={defaults.bodyArea ? { area: defaults.bodyArea, side: defaults.side } : null}
-          invalid={invalid("bodyArea") || invalid("side")}
-          describedBy={
-            [describedBy("bodyArea"), describedBy("side")].filter(Boolean).join(" ") || undefined
-          }
-        />
-        {errorText("bodyArea")}
-        {errorText("side")}
-      </div>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-injuryOn`}>{t("injuryOn")}</Label>
-          <Input
-            id={`${id}-injuryOn`}
-            name="injuryOn"
-            type="date"
-            defaultValue={defaults.injuryOn ?? ""}
-            aria-invalid={invalid("injuryOn")}
-            aria-describedby={describedBy("injuryOn")}
+        <Field>
+          <BodyAreaPicker
+            mode="single"
+            withSide
+            name="bodyArea"
+            sideName="side"
+            label={t("bodyArea")}
+            defaultValue={
+              defaults.bodyArea ? { area: defaults.bodyArea, side: defaults.side } : null
+            }
+            invalid={invalid("bodyArea") || invalid("side")}
+            describedBy={
+              [describedBy("bodyArea"), describedBy("side")].filter(Boolean).join(" ") || undefined
+            }
           />
-          {errorText("injuryOn")}
-        </div>
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-surgeryOn`}>{t("surgeryOn")}</Label>
-          <Input
-            id={`${id}-surgeryOn`}
-            name="surgeryOn"
-            type="date"
-            defaultValue={defaults.surgeryOn ?? ""}
-            aria-invalid={invalid("surgeryOn")}
-            aria-describedby={describedBy("surgeryOn")}
+          {errorText("bodyArea")}
+          {errorText("side")}
+        </Field>
+
+        <FieldRow>
+          <Field>
+            <Label htmlFor={`${id}-injuryOn`}>{t("injuryOn")}</Label>
+            <Input
+              id={`${id}-injuryOn`}
+              name="injuryOn"
+              type="date"
+              defaultValue={defaults.injuryOn ?? ""}
+              aria-invalid={invalid("injuryOn")}
+              aria-describedby={describedBy("injuryOn")}
+            />
+            {errorText("injuryOn")}
+          </Field>
+          <Field>
+            <Label htmlFor={`${id}-surgeryOn`}>{t("surgeryOn")}</Label>
+            <Input
+              id={`${id}-surgeryOn`}
+              name="surgeryOn"
+              type="date"
+              defaultValue={defaults.surgeryOn ?? ""}
+              aria-invalid={invalid("surgeryOn")}
+              aria-describedby={describedBy("surgeryOn")}
+            />
+            {errorText("surgeryOn")}
+          </Field>
+        </FieldRow>
+
+        <Field>
+          <Label htmlFor={`${id}-precautions`}>{t("precautions")}</Label>
+          <Textarea
+            id={`${id}-precautions`}
+            name="precautions"
+            rows={3}
+            defaultValue={defaults.precautions ?? ""}
+            maxLength={PRECAUTIONS_MAX}
+            aria-invalid={invalid("precautions")}
+            aria-describedby={describedBy("precautions", `${id}-precautions-hint`)}
           />
-          {errorText("surgeryOn")}
-        </div>
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-precautions`}>{t("precautions")}</Label>
-        <Textarea
-          id={`${id}-precautions`}
-          name="precautions"
-          rows={3}
-          defaultValue={defaults.precautions ?? ""}
-          maxLength={PRECAUTIONS_MAX}
-          aria-invalid={invalid("precautions")}
-          aria-describedby={describedBy("precautions", `${id}-precautions-hint`)}
-        />
-        <p id={`${id}-precautions-hint`} className="text-muted-foreground text-sm">
-          {t("precautionsHint")}
-        </p>
-        {errorText("precautions")}
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-goals`}>{t("goals")}</Label>
-        <Textarea
-          id={`${id}-goals`}
-          name="goals"
-          rows={3}
-          defaultValue={defaults.goals ?? ""}
-          maxLength={GOALS_MAX}
-          aria-invalid={invalid("goals")}
-          aria-describedby={describedBy("goals")}
-        />
-        {errorText("goals")}
-      </div>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-initialPain`}>{t("initialPain")}</Label>
-          <Input
-            id={`${id}-initialPain`}
-            name="initialPain"
-            inputMode="numeric"
-            defaultValue={defaults.initialPain === null ? "" : String(defaults.initialPain)}
-            autoComplete="off"
-            aria-invalid={invalid("initialPain")}
-            aria-describedby={describedBy("initialPain", `${id}-initialPain-hint`)}
-          />
-          <p id={`${id}-initialPain-hint`} className="text-muted-foreground text-sm">
-            {t("initialPainHint")}
+          <p id={`${id}-precautions-hint`} className="text-muted-foreground text-sm">
+            {t("precautionsHint")}
           </p>
-          {errorText("initialPain")}
-        </div>
-        <div className="grid content-start gap-2">
-          <Label htmlFor={`${id}-openedOn`}>{t("openedOn")}</Label>
-          <Input
-            id={`${id}-openedOn`}
-            name="openedOn"
-            type="date"
-            defaultValue={defaults.openedOn ?? ""}
-            aria-invalid={invalid("openedOn")}
-            aria-describedby={describedBy("openedOn", editing ? undefined : `${id}-openedOn-hint`)}
+          {errorText("precautions")}
+        </Field>
+
+        <Field>
+          <Label htmlFor={`${id}-goals`}>{t("goals")}</Label>
+          <Textarea
+            id={`${id}-goals`}
+            name="goals"
+            rows={3}
+            defaultValue={defaults.goals ?? ""}
+            maxLength={GOALS_MAX}
+            aria-invalid={invalid("goals")}
+            aria-describedby={describedBy("goals")}
           />
-          {editing ? null : (
-            <p id={`${id}-openedOn-hint`} className="text-muted-foreground text-sm">
-              {t("openedOnHint")}
+          {errorText("goals")}
+        </Field>
+
+        <FieldRow>
+          <Field>
+            <Label htmlFor={`${id}-initialPain`}>{t("initialPain")}</Label>
+            <Input
+              id={`${id}-initialPain`}
+              name="initialPain"
+              inputMode="numeric"
+              defaultValue={defaults.initialPain === null ? "" : String(defaults.initialPain)}
+              autoComplete="off"
+              aria-invalid={invalid("initialPain")}
+              aria-describedby={describedBy("initialPain", `${id}-initialPain-hint`)}
+            />
+            <p id={`${id}-initialPain-hint`} className="text-muted-foreground text-sm">
+              {t("initialPainHint")}
             </p>
-          )}
-          {errorText("openedOn")}
-        </div>
-      </div>
+            {errorText("initialPain")}
+          </Field>
+          <Field>
+            <Label htmlFor={`${id}-openedOn`}>{t("openedOn")}</Label>
+            <Input
+              id={`${id}-openedOn`}
+              name="openedOn"
+              type="date"
+              defaultValue={defaults.openedOn ?? ""}
+              aria-invalid={invalid("openedOn")}
+              aria-describedby={describedBy(
+                "openedOn",
+                editing ? undefined : `${id}-openedOn-hint`,
+              )}
+            />
+            {editing ? null : (
+              <p id={`${id}-openedOn-hint`} className="text-muted-foreground text-sm">
+                {t("openedOnHint")}
+              </p>
+            )}
+            {errorText("openedOn")}
+          </Field>
+        </FieldRow>
 
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
-        <Textarea
-          id={`${id}-notes`}
-          name="notes"
-          rows={4}
-          defaultValue={defaults.notes ?? ""}
-          maxLength={CASE_NOTES_MAX}
-          aria-invalid={invalid("notes")}
-          aria-describedby={describedBy("notes")}
-        />
-        {errorText("notes")}
-      </div>
+        <Field>
+          <Label htmlFor={`${id}-notes`}>{t("notes")}</Label>
+          <Textarea
+            id={`${id}-notes`}
+            name="notes"
+            rows={3}
+            defaultValue={defaults.notes ?? ""}
+            maxLength={CASE_NOTES_MAX}
+            aria-invalid={invalid("notes")}
+            aria-describedby={describedBy("notes")}
+          />
+          {errorText("notes")}
+        </Field>
 
-      {state.status === "error" && state.formError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{t(`errors.${state.formError}`)}</AlertDescription>
-        </Alert>
-      ) : null}
+        {state.status === "error" && state.formError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{t(`errors.${state.formError}`)}</AlertDescription>
+          </Alert>
+        ) : null}
+      </FormBody>
 
-      <div className="flex items-center gap-3">
+      <FormFooter variant="panel">
+        <FormCancel onClick={onCancel} />
         <Button type="submit" disabled={pending}>
           {pending ? t("saving") : t(editing ? "save" : "create")}
         </Button>
-        {state.status === "saved" && !pending ? (
-          <p role="status" className="text-muted-foreground text-sm">
-            {t("saved")}
-          </p>
-        ) : null}
-      </div>
+      </FormFooter>
     </form>
   );
 }

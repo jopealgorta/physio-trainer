@@ -2,7 +2,7 @@ import { HeaderSkeleton, ListSkeleton, LoadingPage, ToolbarSkeleton } from "@/co
 
 export default function Loading() {
   return (
-    <LoadingPage className="gap-8">
+    <LoadingPage>
       <HeaderSkeleton description actions={1} />
       <div className="grid gap-6">
         <ToolbarSkeleton filters={1} />

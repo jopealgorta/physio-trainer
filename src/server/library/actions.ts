@@ -1,6 +1,5 @@
 "use server";
 
-import type { Route } from "next";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -68,8 +67,7 @@ export async function saveExerciseAction(
   );
   if (!result.ok) return mutationErrorState(result.error);
   revalidateLibrary();
-  if (!id) redirect(`/library/${result.data.id}` as Route);
-  return { status: "saved" };
+  redirect("/library");
 }
 
 /**

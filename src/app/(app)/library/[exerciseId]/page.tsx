@@ -40,7 +40,7 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
   const t = await getTranslations("Library");
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <div className="grid gap-2">
         <Link
           href="/library"
@@ -68,6 +68,7 @@ export default async function ExerciseDetailPage({ params }: PageProps<"/library
       <ExerciseForm
         action={saveExerciseAction}
         categories={categories}
+        cancel={{ href: "/library" }}
         defaults={{
           id: exercise.id,
           name: exercise.name,

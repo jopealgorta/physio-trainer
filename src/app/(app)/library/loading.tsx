@@ -8,9 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <LoadingPage className="gap-8">
+    <LoadingPage>
       <HeaderSkeleton description actions={2} />
-      <div className="grid gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
+      <div className="grid gap-6 md:grid-cols-[14rem_minmax(0,1fr)]">
         <div className="hidden content-start gap-2 md:grid">
           {[0, 1, 2, 3, 4].map((index) => (
             <Skeleton key={index} className="h-7 w-full" />

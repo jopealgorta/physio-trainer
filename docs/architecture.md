@@ -233,7 +233,23 @@ the one-line summary with `formatPrescription` (`src/lib/prescription.ts`).
   return a typed result (`{ ok: true, data } | { ok: false, error }`). No business logic in
   components or actions.
 - **Forms**: native `<form action>` + `useActionState`; the same zod schema validates client
-  hints and the server.
+  hints and the server. Every form uses the shell in `src/components/form-layout.tsx`:
+  - Fields go in `FormBody`, which sets one width (`max-w-2xl`) and `gap-4`. Each label,
+    control and hint sits in a `Field`, and short fields are paired in a `FieldRow` (two
+    columns from `sm`).
+  - Actions go in a sticky `FormFooter`: a status on the left ("Saved", "Unsaved changes", a
+    shortcut hint; an `aria-live` region, see `formStatus()` in `src/test/form.ts`) and
+    `[Cancel] [Save]` on the right.
+  - Use `variant="page"` in `<main>` and `"panel"` in a sheet or dialog. A sheet or dialog's
+    scroll box is `min-h-0 overflow-y-auto px-6` with no bottom padding.
+  - Where Save takes you:
+    - Create and edit both return to where the form was opened from (customer → its page,
+      exercise → the library), and `FormCancel` goes to the same place.
+    - Sheets and dialogs close.
+    - Settings and the routine/plan editors stay on the page and say "Saved". Editors use
+      `wide`, Save only.
+  - Login and onboarding are short centred cards with one full-width button. Dialogs use
+    `DialogFooter` with `[Cancel] [Primary]`.
 - **Strings**: every user-visible string goes in **every** `messages/<locale>.json` under a
   namespace per feature, in the same change (`src/i18n/messages.test.ts` enforces same keys,
   ICU arguments and tags). No hard-coded copy in components. Dates, numbers and lists use

@@ -49,7 +49,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </div>
           <MobileNav />
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-10 md:py-10">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-10 md:py-8">
           {children}
         </main>
       </div>

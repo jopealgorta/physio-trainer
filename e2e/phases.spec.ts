@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./helpers/auth";
+import { formStatus } from "./helpers/form";
 import { nameNewRoutine, renamePlan, routineTitle } from "./helpers/page-actions";
 import { addExercises, createExercise, hasNoHorizontalOverflow } from "./helpers/routines";
 import { chooseOption } from "./helpers/select";
@@ -122,7 +123,7 @@ test("a physio copies a plan into the next phase with independent routines", asy
 
   await chooseOption(page, page.getByRole("combobox", { name: "Status" }), "Active");
   await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
+  await expect(formStatus(page).filter({ hasText: /^Saved$/ })).toBeVisible();
 
   await setPhase(page, "Phase 1", dateIn(-7));
   await expect(phaseBar(page).getByText("Current")).toBeVisible();

@@ -178,7 +178,7 @@ test.describe("patient page v2", () => {
     await page.getByLabel("Name").fill("Rowing");
     await page.getByRole("radio", { name: "Aerobic" }).click();
     await page.getByRole("button", { name: "Create exercise" }).click();
-    await expect(page).toHaveURL(/\/library\/[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/library$/);
 
     const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
     await page.goto(`/customers/${customerId}?tab=routines`);

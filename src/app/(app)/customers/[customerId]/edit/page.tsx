@@ -34,7 +34,7 @@ export default async function EditCustomerPage({
   const t = await getTranslations("Customers");
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <div className="grid gap-2">
         <Link
           href={`/customers/${customer.id}`}
@@ -47,6 +47,7 @@ export default async function EditCustomerPage({
       </div>
       <CustomerForm
         action={saveCustomerAction}
+        cancelHref={`/customers/${customer.id}`}
         defaults={{
           id: customer.id,
           firstName: customer.firstName,

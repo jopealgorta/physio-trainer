@@ -13,7 +13,7 @@ export default function Loading() {
         </div>
       </div>
       <Skeleton className="h-8 w-56 max-w-full" />
-      <FormSkeleton fields={2} />
+      <FormSkeleton fields={2} footer={false} className="max-w-none" />
       <div className="grid gap-3 lg:auto-cols-[minmax(11rem,1fr)] lg:grid-flow-col">
         {[0, 1, 2, 3, 4, 5, 6].map((index) => (
           <Skeleton key={index} className="h-40" />

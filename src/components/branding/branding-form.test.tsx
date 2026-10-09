@@ -5,6 +5,7 @@ import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resizeLogo } from "@/lib/resize-image";
+import { formStatus } from "@/test/form";
 
 import messages from "../../../messages/en.json";
 
@@ -200,7 +201,7 @@ describe("BrandingForm", () => {
     expect(formData.get("showContactToPatients")).toBe("on");
     expect(formData.get("removeLogo")).toBeNull();
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    await waitFor(() => expect(formStatus()).toHaveTextContent("Saved"));
     expect(within(patientPage()).getByRole("img", { name: "Kine Sur logo" })).toHaveAttribute(
       "src",
       "https://cdn.example/logo.png",
@@ -237,9 +238,9 @@ describe("BrandingForm", () => {
     const action = vi.fn<Props["action"]>(async () => ({ status: "saved", logoUrl: null }));
     const user = userEvent.setup();
     renderForm({ action });
-    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(formStatus()).toBeEmptyDOMElement();
     await user.click(screen.getByRole("button", { name: "Save branding" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    await waitFor(() => expect(formStatus()).toHaveTextContent("Saved"));
   });
 
   it("shows field errors from the server", async () => {
