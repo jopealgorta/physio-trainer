@@ -43,6 +43,14 @@ describe("PlanDetailsForm", () => {
     await waitFor(() => expect(updatePlanAction).toHaveBeenCalled());
   });
 
+  it('groups status, case and notes in one card headed "Plan details"', () => {
+    setup({ cases: [{ id: "c1", title: "Knee" }] });
+    const card = screen.getByRole("form", { name: "Plan details" });
+    expect(card).toContainElement(screen.getByRole("combobox", { name: "Status" }));
+    expect(card).toContainElement(screen.getByRole("combobox", { name: "Case" }));
+    expect(card).toContainElement(screen.getByLabelText("Notes for the patient"));
+  });
+
   it("has no name field (the title renames the plan) and saves without a name", async () => {
     const user = userEvent.setup();
     setup();

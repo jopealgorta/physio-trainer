@@ -849,6 +849,7 @@
         "days": "{count, plural, one {# día de entrenamiento} other {# días de entrenamiento}}"
       },
       "details": {
+        "title": "Detalles del plan",
         "nameHint": "Se muestra como título en la vista previa del enlace cuando lo compartís.",
         "status": "Estado",
         "case": "Caso",
@@ -865,6 +866,7 @@
         "rest": "Día de descanso",
         "count": "{count, plural, one {# rutina} other {# rutinas}}",
         "add": "Agregar rutina al {day}",
+        "addRoutine": "Agregar rutina",
         "addShort": "Agregar",
         "addExisting": "Rutina existente…",
         "addNew": "Nueva rutina",

@@ -849,6 +849,7 @@
         "days": "{count, plural, one {# training day} other {# training days}}"
       },
       "details": {
+        "title": "Plan details",
         "nameHint": "Shown as the title in the link preview when you share it.",
         "status": "Status",
         "case": "Case",
@@ -865,6 +866,7 @@
         "rest": "Rest day",
         "count": "{count, plural, one {# routine} other {# routines}}",
         "add": "Add routine to {day}",
+        "addRoutine": "Add routine",
         "addShort": "Add",
         "addExisting": "Existing routine…",
         "addNew": "New routine",

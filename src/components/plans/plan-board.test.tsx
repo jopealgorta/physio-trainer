@@ -128,11 +128,37 @@ describe("PlanBoard layout", () => {
     expect(namesIn("Monday")).toEqual(["Routine a", "Routine b"]);
   });
 
-  it("summarises the week", () => {
+  it("summarises the week in one chip per figure", () => {
     setup([entry({ id: "a", exerciseCount: 5 }), entry({ id: "b", weekday: 4, exerciseCount: 2 })]);
-    expect(
-      screen.getByText("2 routines a week · 7 exercises in total · 2 training days"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("2 routines a week")).toBeInTheDocument();
+    expect(screen.getByText("7 exercises in total")).toBeInTheDocument();
+    expect(screen.getByText("2 training days")).toBeInTheDocument();
+  });
+
+  it("never scrolls sideways: no overflow-x anywhere on the board", () => {
+    const { container } = setup([entry({ id: "a" })]);
+    expect(container.querySelector('[class*="overflow-x"]')).toBeNull();
+  });
+
+  it("lays the days out as rows that wrap their cards", () => {
+    setup([entry({ id: "a" })]);
+    const cards = within(day("Monday")).getByRole("list");
+    expect(cards.className).toContain("auto-fill");
+  });
+
+  it("gives a rest day one dashed add button instead of the plus", async () => {
+    const user = userEvent.setup();
+    setup([entry({ id: "a" })]);
+    const rest = within(day("Tuesday")).getByRole("button", { name: "Add routine to Tuesday" });
+    expect(rest).toHaveTextContent("Add routine");
+    expect(within(day("Tuesday")).getAllByRole("button", { name: /^Add routine to/ })).toHaveLength(
+      1,
+    );
+    // A day with routines keeps the compact plus.
+    const plus = within(day("Monday")).getByRole("button", { name: "Add routine to Monday" });
+    expect(plus).not.toHaveTextContent("Add routine");
+    await user.click(rest);
+    expect(await screen.findByRole("menuitem", { name: "New routine" })).toBeVisible();
   });
 
   it("links a routine to its editor with a way back to the plan", () => {

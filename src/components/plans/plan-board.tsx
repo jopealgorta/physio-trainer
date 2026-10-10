@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  closestCorners,
   DndContext,
   DragOverlay,
   KeyboardSensor,
@@ -14,10 +13,10 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
+  rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PlusIcon, StickyNoteIcon } from "lucide-react";
@@ -60,6 +59,7 @@ import {
 import type { PlanEntryDetail, AttachableRoutine } from "@/server/plans/queries";
 import type { PlanActionError } from "@/server/plans/schemas";
 
+import { pointerFirst } from "./collision";
 import { EntryCard } from "./entry-card";
 import { AttachRoutineDialog, EntryLabelDialog, RemoveEntryDialog } from "./entry-dialogs";
 import { EntryMenu } from "./entry-menu";
@@ -280,13 +280,17 @@ export function PlanBoard({
         <h2 id={`${dndId}-week`} className="text-lg font-semibold">
           {t("week")}
         </h2>
-        <p className="text-muted-foreground text-sm" aria-live="polite">
+        <ul className="flex flex-wrap gap-1.5 text-xs" aria-live="polite">
           {[
             t("summary.routines", { count: summary.totalSessions }),
             t("summary.exercises", { count: summary.totalExercises }),
             t("summary.days", { count: summary.activeDays }),
-          ].join(" · ")}
-        </p>
+          ].map((figure) => (
+            <li key={figure} className="bg-muted text-muted-foreground rounded-full px-2.5 py-1">
+              {figure}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {error ? (
@@ -298,7 +302,7 @@ export function PlanBoard({
       <DndContext
         id={dndId}
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={pointerFirst}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveId(null)}
@@ -307,11 +311,11 @@ export function PlanBoard({
           screenReaderInstructions: { draggable: t("dnd.instructions") },
         }}
       >
-        <div className="grid gap-3 lg:auto-cols-[minmax(11rem,1fr)] lg:grid-flow-col lg:overflow-x-auto lg:pb-2">
+        <div className="bg-card divide-y overflow-hidden rounded-xl border">
           {WEEKDAYS.map((weekday) => {
             const dayEntries = days[weekday - 1];
             return (
-              <DayColumn
+              <DayRow
                 key={weekday}
                 weekday={weekday}
                 name={dayName(weekday)}
@@ -329,9 +333,9 @@ export function PlanBoard({
               >
                 <SortableContext
                   items={dayEntries.map((entry) => entry.id)}
-                  strategy={verticalListSortingStrategy}
+                  strategy={rectSortingStrategy}
                 >
-                  <ul className="grid gap-2">
+                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-2">
                     {dayEntries.map((entry, index) => (
                       <SortableEntry
                         key={entry.id}
@@ -378,7 +382,7 @@ export function PlanBoard({
                     ))}
                   </ul>
                 </SortableContext>
-              </DayColumn>
+              </DayRow>
             );
           })}
         </div>
@@ -439,7 +443,7 @@ export function PlanBoard({
   );
 }
 
-function DayColumn({
+function DayRow({
   weekday,
   name,
   count,
@@ -466,59 +470,97 @@ function DayColumn({
   const t = useTranslations("Plans.board.day");
   const headingId = useId();
   const { setNodeRef, isOver } = useDroppable({ id: dayDroppableId(weekday) });
+  const empty = count === 0;
+  const addLabel = t("add", { day: name });
+  const addTitle = full ? t("full", { max: MAX_ENTRIES_PER_DAY }) : addLabel;
 
   return (
     <section
       aria-labelledby={headingId}
       data-weekday={weekday}
       className={cn(
-        "bg-muted/40 grid content-start gap-2 rounded-lg border p-2 transition-colors",
-        isOver && "border-primary/50 bg-primary/5",
+        "grid content-start gap-3 p-3 transition-colors sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-4",
+        isOver ? "bg-primary/5" : "bg-muted/30",
       )}
     >
-      <header className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 id={headingId} className="truncate text-sm font-semibold capitalize">
-            {name}
-          </h3>
-          <p className="text-muted-foreground text-xs">
-            {count === 0 ? t("rest") : t("count", { count })}
-          </p>
-          {note ? (
-            <p className="text-muted-foreground mt-1 line-clamp-3 text-xs whitespace-pre-line">
-              {note}
+      <header className="grid content-start gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h3 id={headingId} className="truncate text-sm font-semibold capitalize">
+              {name}
+            </h3>
+            <p className="text-muted-foreground text-xs">
+              {empty ? t("rest") : t("count", { count })}
             </p>
-          ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <DayNotePopover name={name} note={note} onSave={onSaveNote} />
+            {empty ? null : (
+              <AddRoutineMenu onAddExisting={onAddExisting} onAddNew={onAddNew} creating={creating}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={full}
+                  aria-label={addLabel}
+                  title={addTitle}
+                >
+                  <PlusIcon aria-hidden />
+                </Button>
+              </AddRoutineMenu>
+            )}
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <DayNotePopover name={name} note={note} onSave={onSaveNote} />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                disabled={full}
-                aria-label={t("add", { day: name })}
-                title={full ? t("full", { max: MAX_ENTRIES_PER_DAY }) : t("add", { day: name })}
-              >
-                <PlusIcon aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={onAddExisting}>{t("addExisting")}</DropdownMenuItem>
-              <DropdownMenuItem disabled={creating} onSelect={onAddNew}>
-                {t("addNew")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {note ? (
+          <p className="text-muted-foreground line-clamp-3 text-xs whitespace-pre-line">{note}</p>
+        ) : null}
       </header>
-      {/* The droppable covers the whole list so an empty day can still receive a card. */}
-      <div ref={setNodeRef} className="min-h-10 rounded-md">
+      {/* The droppable covers the whole zone so an empty day can still receive a card. */}
+      <div ref={setNodeRef} className="min-h-10 min-w-0 rounded-md">
+        {empty ? (
+          <AddRoutineMenu onAddExisting={onAddExisting} onAddNew={onAddNew} creating={creating}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={full}
+              aria-label={addLabel}
+              title={addTitle}
+              className="text-muted-foreground border-muted-foreground/30 h-12 w-full border-dashed"
+            >
+              <PlusIcon aria-hidden />
+              {t("addRoutine")}
+            </Button>
+          </AddRoutineMenu>
+        ) : null}
         {children}
       </div>
     </section>
+  );
+}
+
+/** The "existing or new routine" menu behind a day's add button. */
+function AddRoutineMenu({
+  onAddExisting,
+  onAddNew,
+  creating,
+  children,
+}: {
+  onAddExisting: () => void;
+  onAddNew: () => void;
+  creating: boolean;
+  children: React.ReactNode;
+}) {
+  const t = useTranslations("Plans.board.day");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onAddExisting}>{t("addExisting")}</DropdownMenuItem>
+        <DropdownMenuItem disabled={creating} onSelect={onAddNew}>
+          {t("addNew")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
