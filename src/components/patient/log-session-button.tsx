@@ -97,6 +97,8 @@ export function LogSessionButton({
         closeLabel={t("close")}
       >
         <LogForm
+          // A fresh form (prefilled from that day's log) when the page refreshes into the next day.
+          key={shownDate}
           code={code}
           routineId={routineId}
           entryId={entryId}

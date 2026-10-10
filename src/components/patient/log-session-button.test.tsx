@@ -216,6 +216,28 @@ describe("LogSessionButton", () => {
     expect(m.log.mock.calls[0]![1].performedOn).toBe(TODAY);
   });
 
+  it("starts a fresh form when the page moves on to the next day with the sheet open", async () => {
+    const user = userEvent.setup();
+    const ui = (shownDate: string) => (
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <LogSessionButton
+          code="7k2m9qpx"
+          routineId={ROUTINE}
+          entryId={null}
+          routineName="Knee rehab"
+          canLog
+          logs={[log({ comment: "Stairs" })]}
+          shownDate={shownDate}
+        />
+      </NextIntlClientProvider>
+    );
+    const { rerender } = render(ui(TODAY));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByLabelText("Comment (optional)")).toHaveValue("Stairs");
+    rerender(ui("2026-10-08"));
+    expect(screen.getByLabelText("Comment (optional)")).toHaveValue("");
+  });
+
   it("only shows the state for a day that can no longer be logged", () => {
     setup({ canLog: false, logs: [log({ performedOn: "2026-10-01" })], shownDate: "2026-10-01" });
     expect(screen.getByText("Done")).toBeInTheDocument();

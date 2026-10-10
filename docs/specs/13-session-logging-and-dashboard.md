@@ -65,8 +65,8 @@ Charts follow the repo's dataviz conventions (tokens, light/dark, accessible lab
 1. Logging goes through a Server Action in `src/server/patient/log-session.ts`: resolve link
    (spec 10 rules, PIN included) → verify the routine (and entry) is reachable from the link
    and active on `performed_on` → upsert.
-2. `performed_on` comes from the patient's device date; accept only today or yesterday in the
-   physio's timezone ±1 day. Older dates are rejected.
+2. `performed_on` is today in the physio's time zone; any other date is rejected (was "today or
+   yesterday" until 2026-10-10; see Decisions).
 3. ~~Rate limit: 30 writes per link per hour.~~ Dropped (see Open questions 3).
 4. **Adherence** = logged-completed sessions / planned sessions in a window. Planned sessions:
    plan entries per active day + single routines' `sessions_per_week` (pro-rated). Implement in

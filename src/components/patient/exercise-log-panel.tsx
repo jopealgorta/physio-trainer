@@ -82,9 +82,11 @@ export function ExerciseLogPanel({
       aria-label={t("exerciseLog.title", { name: item.name })}
       className="grid gap-4 border-t px-1 pt-3 pb-1"
     >
-      {/* A draft wins over the saved log: that save may still be on the way, or blocked by an
-          invalid weight. */}
+      {/* Fresh fields per day (the page can refresh into the next one past midnight); unmounting
+          the old ones sends their pending save. A draft wins over the saved log: that save may
+          still be on the way, or blocked by an invalid weight. */}
       <LogFields
+        key={date}
         id={id}
         item={item}
         logging={logging}

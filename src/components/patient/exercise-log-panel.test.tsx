@@ -76,21 +76,21 @@ function setup({
   const remember = vi.fn();
   // What ExerciseList keeps per exercise and day: the fields as last typed.
   const drafts = new Map<string, LogDraft>();
-  const logging: ExerciseLogging = {
+  const loggingOn = (shownDate: string): ExerciseLogging => ({
     code: "7k2m9qpx",
     routineId: ROUTINE,
     entryId: ENTRY,
     canLog,
-    shownDate: TODAY,
+    shownDate,
     logs,
-  };
-  const ui = (shown: boolean) => (
+  });
+  const ui = (shown: boolean, shownDate = TODAY) => (
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? messages : es}>
       {shown ? (
         <ExerciseLogPanel
           id="log-squat"
           item={item}
-          logging={logging}
+          logging={loggingOn(shownDate)}
           logFor={(date) => exerciseLogFor(logs, item.exerciseId, date)}
           remember={remember}
           draftFor={(date) => drafts.get(date)}
@@ -101,7 +101,14 @@ function setup({
   );
   const view = render(ui(true));
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-  return { ...view, user, remember, hide: () => view.rerender(ui(false)) };
+  return {
+    ...view,
+    user,
+    remember,
+    hide: () => view.rerender(ui(false)),
+    /** The page refreshed into another day while the panel stayed open (past midnight). */
+    showDate: (date: string) => view.rerender(ui(true, date)),
+  };
 }
 
 function deferred<T>() {
@@ -383,6 +390,19 @@ describe("ExerciseLogPanel", () => {
     expect(m.log).toHaveBeenCalledWith(
       "7k2m9qpx",
       expect.objectContaining({ performedOn: TODAY, setWeightsKg: [20] }),
+    );
+  });
+
+  it("starts fresh fields when the page moves on to the next day", async () => {
+    const { user, showDate } = setup({ logs: [saved({ setWeightsKg: [7.5] })] });
+    expect(setInput(1)).toHaveValue("7.5");
+    showDate("2026-10-08");
+    expect(setInput(1)).toHaveValue("");
+    await user.type(setInput(2), "20");
+    await wait(AUTOSAVE_DELAY_MS);
+    expect(m.log).toHaveBeenLastCalledWith(
+      "7k2m9qpx",
+      expect.objectContaining({ performedOn: "2026-10-08", setWeightsKg: [null, 20] }),
     );
   });
 

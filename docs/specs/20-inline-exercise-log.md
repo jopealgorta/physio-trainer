@@ -89,7 +89,7 @@ with only `weight_kg` keep showing it.
 
 ## Behaviour and rules
 
-1. Logging rules of spec 13/19 unchanged (today/yesterday, reachable routine, exercise in the
+1. Logging rules of spec 13/19 unchanged (today/yesterday, today only since 2026-10-10; reachable routine, exercise in the
    routine, a physio previewing never writes).
 2. Autosave: 800 ms after the last change, immediately on blur of a field and on collapse /
    unmount. Saves of one exercise run one at a time; while one is in flight, only the latest
@@ -148,7 +148,8 @@ Answered 2026-10-03 before design:
   `weight_kg = null`.
 - **No refresh per save.** The list does one debounced `router.refresh()` 1500 ms after the last
   save, so back/forward navigation does not restore stale logs that autosave would then overwrite.
-- **`DayToggle` takes a `name`**, so several open panels do not share one radio group.
+- **`DayToggle` takes a `name`**, so several open panels do not share one radio group. (The toggle
+  was removed on 2026-10-10: today only, spec 13.)
 - **An aerobic exercise with a legacy weight still shows its set line**, so the weight can be
   cleared.
 - **Two rows of the same exercise share one log** (logs are keyed by exercise); each row has its
