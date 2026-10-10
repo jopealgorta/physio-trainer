@@ -1390,11 +1390,6 @@
       "edit": "Editar",
       "title": "¿Cómo te fue?",
       "close": "Cerrar",
-      "day": {
-        "label": "Día",
-        "today": "Hoy",
-        "yesterday": "Ayer"
-      },
       "pain": {
         "legend": "Dolor (opcional)",
         "hint": "0 es sin dolor y 10 es el peor dolor que puedas imaginar.",
@@ -1425,7 +1420,7 @@
       "errors": {
         "generic": "Algo salió mal. Probá de nuevo.",
         "invalid": "Revisá lo que ingresaste y probá de nuevo.",
-        "date": "Solo podés registrar hoy o ayer.",
+        "date": "Solo podés registrar hoy.",
         "unreachable": "Esa rutina no era parte de tu plan ese día.",
         "unavailable": "Este enlace ya no está disponible.",
         "preview": "Estás viendo una vista previa, así que no se guardó nada."
@@ -1455,7 +1450,7 @@
       "errors": {
         "generic": "Algo salió mal. Probá de nuevo.",
         "invalid": "Revisá lo que ingresaste y probá de nuevo.",
-        "date": "Solo podés registrar hoy o ayer.",
+        "date": "Solo podés registrar hoy.",
         "unreachable": "Este ejercicio no era parte de tu plan ese día.",
         "unavailable": "Este enlace ya no está disponible.",
         "preview": "Estás viendo una vista previa, así que no se guardó nada."

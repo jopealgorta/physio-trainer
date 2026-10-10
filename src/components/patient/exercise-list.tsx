@@ -15,16 +15,16 @@ import type { PatientItem, PatientSection } from "@/server/patient/view";
 
 import { ExerciseDetail } from "./exercise-detail";
 import { ExerciseLogPanel, exerciseLogFor, type LogDraft } from "./exercise-log-panel";
-import { useSavedLogs, type LoggableDay } from "./log-sheet";
+import { useSavedLogs } from "./log-sheet";
 
 /** What the rows need to show and write exercise logs for one routine (and plan entry). */
 export type ExerciseLogging = {
   code: string;
   routineId: string;
   entryId: string | null;
-  /** The days that can still be logged (none, e.g. the physio previewing). */
-  days: LoggableDay[];
-  /** The day the filled Log toggle stands for. */
+  /** Whether the shown day can be logged: it is today, and the visitor is not the physio previewing. */
+  canLog: boolean;
+  /** The day the filled Log toggle stands for, and the day a log is saved for. */
   shownDate: string;
   /** This routine and entry's exercise logs, any day. */
   logs: PatientExerciseLog[];
@@ -218,7 +218,7 @@ function ExerciseRow({
   const current = currentItemId === item.id;
   const video = item.media[0];
   const log = logs ? logs.logFor(logs.logging.shownDate) : null;
-  const canLog = logs !== undefined && logs.logging.days.length > 0;
+  const canLog = logs !== undefined && logs.logging.canLog;
   const expanded = canLog && logs.expanded;
   const logLabel = t("exercise.log", { name: item.name });
   const done = doneSets ? (doneSets[item.id] ?? 0) : null;

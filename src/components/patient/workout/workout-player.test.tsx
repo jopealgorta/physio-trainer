@@ -93,7 +93,7 @@ const logging = (patch: Partial<ExerciseLogging> = {}): ExerciseLogging => ({
   code: "7k2m9qpx",
   routineId: "routine-1",
   entryId: null,
-  days: [{ date: "2026-10-01", relative: "today" }],
+  canLog: true,
   shownDate: "2026-10-01",
   logs: [],
   ...patch,
@@ -379,7 +379,7 @@ describe("WorkoutPlayer", () => {
   });
 
   it("has no log button when nothing can be logged (the physio previewing)", () => {
-    setup(routineOf(item("a", "Squat")), "en", undefined, logging({ days: [] }));
+    setup(routineOf(item("a", "Squat")), "en", undefined, logging({ canLog: false }));
     expect(within(bar()).queryByRole("button", { name: "Log exercise" })).not.toBeInTheDocument();
   });
 

@@ -2,8 +2,10 @@ import { expect, signIn, test } from "./helpers/auth";
 import {
   insertCustomer,
   insertCustomerLink,
+  insertPlan,
   insertRoutine,
   insertWorkoutRoutine,
+  isoWeekdayIn,
 } from "./helpers/patient";
 
 /** Picks a rating on a scale of the log sheet, found by its group name (native radios, visually hidden: click their label). */
@@ -99,8 +101,8 @@ test.describe("session logging", () => {
     await page.goto(link.path);
     await page.getByRole("button", { name: "Log Squat" }).click();
     const region = page.getByRole("region", { name: "How did Squat go?" });
-    // A single routine: today or yesterday, like the routine's own log.
-    await expect(region.getByText("Yesterday")).toBeVisible();
+    // Logged for today: there is no day to pick.
+    await expect(region.getByText("Yesterday")).toHaveCount(0);
     const set1 = region.getByLabel("Set 1 weight in kg");
     await set1.fill("12,5");
     await set1.blur();
@@ -119,6 +121,32 @@ test.describe("session logging", () => {
     await expect(page.getByRole("region", { name: "Logged" })).toHaveCount(0);
     // The auto-created session was empty, so clearing the log removed it.
     await expect(page.getByRole("button", { name: "Mark as done" })).toBeVisible();
+  });
+
+  test("a patient logs today's plan day only; yesterday's is read-only", async ({
+    page,
+    physio,
+  }) => {
+    const customerId = await insertCustomer(physio.id, { firstName: "Ana" });
+    const routineId = await insertRoutine(physio.id, customerId, "Gym", {
+      standalone: false,
+      exercise: "Squat",
+    });
+    const [today, yesterday] = [isoWeekdayIn(0), isoWeekdayIn(-1)];
+    const planId = await insertPlan(physio.id, customerId, "Week 1", [
+      { weekday: yesterday, routineId },
+      { weekday: today, routineId },
+    ]);
+    const link = await insertCustomerLink(physio, customerId, { weeklyPlanId: planId });
+
+    await page.goto(`${link.path}?day=${yesterday}`);
+    await expect(page.getByRole("heading", { name: "Gym", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mark as done" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Log Squat" })).toHaveCount(0);
+
+    await page.goto(link.path);
+    await expect(page.getByRole("button", { name: "Mark as done" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log Squat" })).toBeVisible();
   });
 
   test("the physio previewing a link cannot log a session", async ({ page, physio }) => {

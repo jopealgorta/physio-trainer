@@ -13,14 +13,7 @@ import { LOG_COMMENT_MAX } from "@/lib/session-logs";
 import { logSessionAction, type LogActionResult } from "@/server/patient/actions";
 import type { PatientLog } from "@/server/patient/log-session";
 
-import {
-  DayToggle,
-  LogSheet,
-  useLogDay,
-  useLogSubmit,
-  useSavedLogs,
-  type LoggableDay,
-} from "./log-sheet";
+import { LogSheet, useLogSubmit, useSavedLogs } from "./log-sheet";
 import { PainScale } from "./pain-scale";
 import { RpeScale } from "./rpe-scale";
 import { PATIENT_ROW_BUTTON } from "./row-button";
@@ -33,11 +26,11 @@ type Props = {
   routineId: string;
   entryId: string | null;
   routineName: string;
-  /** The days this routine can still be logged on (today and/or yesterday), oldest first. */
-  days: LoggableDay[];
+  /** Whether this visitor may log the shown day: it is today, and the visitor is not the physio previewing. */
+  canLog: boolean;
   /** The logs already saved for this routine and plan entry (any days). */
   logs: PatientLog[];
-  /** The day this card stands for: the state shown on the button. */
+  /** The day this card stands for: the state shown on the button, and the day a log is saved for. */
   shownDate: string;
   /** Open the sheet straight away (the workout's finish screen). */
   defaultOpen?: boolean;
@@ -53,7 +46,7 @@ export function LogSessionButton({
   routineId,
   entryId,
   routineName,
-  days,
+  canLog,
   logs,
   shownDate,
   defaultOpen = false,
@@ -65,8 +58,6 @@ export function LogSessionButton({
     (date) => logs.find((entry) => entry.performedOn === date) ?? null,
     logs,
   );
-  const { day, select, reset } = useLogDay(days, shownDate);
-
   const shown = logFor(shownDate);
   const done = shown?.completed === true;
 
@@ -76,7 +67,7 @@ export function LogSessionButton({
       {t("done")}
     </span>
   );
-  if (!day) return done ? doneBadge : null;
+  if (!canLog) return done ? doneBadge : null;
 
   const onSaved = (log: PatientLog) => {
     remember(log.performedOn, log);
@@ -94,10 +85,7 @@ export function LogSessionButton({
         variant={done ? "outline" : "default"}
         // Done, the badge says it all and Edit stays compact; to do, it shares the row equally.
         className={done ? "h-12 flex-none px-5 text-base" : PATIENT_ROW_BUTTON}
-        onClick={() => {
-          reset();
-          setOpen(true);
-        }}
+        onClick={() => setOpen(true)}
       >
         {done ? t("edit") : t("markDone")}
       </Button>
@@ -109,15 +97,13 @@ export function LogSessionButton({
         closeLabel={t("close")}
       >
         <LogForm
-          // A fresh form (prefilled from that day's log) whenever the day changes.
-          key={day.date}
+          // A fresh form (prefilled from that day's log) when the page refreshes into the next day.
+          key={shownDate}
           code={code}
           routineId={routineId}
           entryId={entryId}
-          day={day}
-          days={days}
-          initial={logFor(day.date)}
-          onDayChange={select}
+          date={shownDate}
+          initial={shown}
           onSaved={onSaved}
         />
       </LogSheet>
@@ -129,19 +115,15 @@ function LogForm({
   code,
   routineId,
   entryId,
-  day,
-  days,
+  date,
   initial,
-  onDayChange,
   onSaved,
 }: {
   code: string;
   routineId: string;
   entryId: string | null;
-  day: LoggableDay;
-  days: LoggableDay[];
+  date: string;
   initial: PatientLog | null;
-  onDayChange: (date: string) => void;
   onSaved: (log: PatientLog) => void;
 }) {
   const t = useTranslations("Patient.logging");
@@ -161,7 +143,7 @@ function LogForm({
         logSessionAction(code, {
           routineId,
           entryId,
-          performedOn: day.date,
+          performedOn: date,
           completed,
           pain,
           rpe,
@@ -179,8 +161,6 @@ function LogForm({
       onSubmit={onSubmit}
       className="grid gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
-      <DayToggle days={days} value={day.date} onChange={onDayChange} />
-
       <div className="grid gap-2">
         <Label htmlFor={`${id}-comment`} className="text-sm">
           {t("comment.label")}
