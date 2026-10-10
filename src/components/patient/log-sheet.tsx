@@ -1,7 +1,7 @@
 "use client";
 
 import { XIcon } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import { useState, useTransition, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { cn } from "@/lib/utils";
-
-/** A day the patient may still log (spec 13): today or yesterday in the physio's time zone. */
-export type LoggableDay = { date: string; relative: "today" | "yesterday" };
 
 /**
  * The bottom sheet the routine's "Mark as done" log opens in (an exercise's log is inline since
@@ -70,66 +66,6 @@ export function LogSheet({
       </DrawerContent>
     </Drawer>
   );
-}
-
-/** Today / Yesterday, when a log can be for either (single routines). Nothing for one day. */
-export function DayToggle({
-  days,
-  value,
-  onChange,
-  name = "day",
-}: {
-  days: LoggableDay[];
-  value: string;
-  onChange: (date: string) => void;
-  /** The radios' group: unique per page when several toggles can show at once outside a form. */
-  name?: string;
-}) {
-  const t = useTranslations("Patient.logging.day");
-  if (days.length < 2) return null;
-  return (
-    <fieldset className="grid gap-2">
-      <legend className="text-sm font-medium">{t("label")}</legend>
-      <div className="grid grid-cols-2 gap-2">
-        {days.map((option) => (
-          <label
-            key={option.date}
-            className={cn(
-              "has-focus-visible:ring-ring/50 flex h-12 cursor-pointer items-center justify-center rounded-lg border text-base font-medium has-focus-visible:ring-[3px]",
-              option.date === value
-                ? "bg-primary text-primary-foreground border-transparent"
-                : "bg-background hover:bg-muted",
-            )}
-          >
-            <input
-              type="radio"
-              name={name}
-              value={option.date}
-              checked={option.date === value}
-              onChange={() => onChange(option.date)}
-              className="sr-only"
-            />
-            {t(option.relative)}
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-/**
- * The day a log sheet is for: the shown day when it can be logged, else the latest loggable one.
- * `reset` goes back to it (on opening the sheet); `day` is undefined only when nothing can be logged.
- */
-export function useLogDay(days: LoggableDay[], shownDate: string) {
-  const initial = () =>
-    days.find((day) => day.date === shownDate)?.date ?? days.at(-1)?.date ?? shownDate;
-  const [selected, setSelected] = useState(initial);
-  return {
-    day: days.find((day) => day.date === selected) ?? days[0],
-    select: setSelected,
-    reset: () => setSelected(initial()),
-  };
 }
 
 /**

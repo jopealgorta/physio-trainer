@@ -4,7 +4,6 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import { CALENDAR_DATE_FORMAT, calendarDateToDate } from "@/lib/calendar-date";
-import { addDays } from "@/lib/phases";
 import { weekdayName, type Weekday } from "@/lib/plans";
 import { dateForWeekday, isLoggableDate, loggedWeekdays } from "@/lib/session-logs";
 import { workoutHref } from "@/lib/workout/enabled";
@@ -15,7 +14,6 @@ import type { PatientRoutine, PatientView } from "@/server/patient/view";
 import { DayStrip } from "./day-strip";
 import type { ExerciseLogging } from "./exercise-list";
 import { LogSessionButton } from "./log-session-button";
-import type { LoggableDay } from "./log-sheet";
 import { RoutineView } from "./routine-view";
 import { sessionSummary } from "./session-summary-data";
 
@@ -54,19 +52,14 @@ export async function PatientHome({
   // A lone routine needs no "Your routines" heading; its own name is the next level down.
   const routinesHeading = view.plans.length > 0 || view.routines.length > 1;
 
-  // A plan day stands for one date of this week; single routines are done on any day, so the
-  // patient picks today or yesterday in the sheet.
-  const day = (date: string): LoggableDay => ({
-    date,
-    relative: date === view.today ? "today" : "yesterday",
-  });
+  // A plan day stands for one date of this week; single routines for today. Only today can be
+  // logged: another day is another session.
   const dayDate = dateForWeekday(view.today, view.weekday);
-  const planDays = logging.canLog && isLoggableDate(dayDate, view.today) ? [day(dayDate)] : [];
-  const singleDays = logging.canLog ? [day(addDays(view.today, -1)), day(view.today)] : [];
+  const canLogDay = logging.canLog && isLoggableDate(dayDate, view.today);
   const logSlot = (
     routine: { id: string; name: string },
     entryId: string | null,
-    days: LoggableDay[],
+    canLog: boolean,
     shownDate: string,
   ) => (
     <LogSessionButton
@@ -74,24 +67,24 @@ export async function PatientHome({
       routineId={routine.id}
       entryId={entryId}
       routineName={routine.name}
-      days={days}
+      canLog={canLog}
       logs={logging.logs.filter(
         (entry) => entry.routineId === routine.id && entry.entryId === entryId,
       )}
       shownDate={shownDate}
     />
   );
-  // The same days and shown date as the routine's log slot, for each of its exercises.
+  // The same day as the routine's log slot, for each of its exercises.
   const exerciseLogging = (
     routineId: string,
     entryId: string | null,
-    days: LoggableDay[],
+    canLog: boolean,
     shownDate: string,
   ): ExerciseLogging => ({
     code: logging.code,
     routineId,
     entryId,
-    days,
+    canLog,
     shownDate,
     logs: logging.exerciseLogs.filter(
       (entry) => entry.routineId === routineId && entry.entryId === entryId,
@@ -193,8 +186,13 @@ export async function PatientHome({
                     label={entry.label}
                     locale={locale}
                     startHref={workoutHref(path, entry.routine.id, entry.id)}
-                    logSlot={logSlot(entry.routine, entry.id, planDays, dayDate)}
-                    exerciseLogging={exerciseLogging(entry.routine.id, entry.id, planDays, dayDate)}
+                    logSlot={logSlot(entry.routine, entry.id, canLogDay, dayDate)}
+                    exerciseLogging={exerciseLogging(
+                      entry.routine.id,
+                      entry.id,
+                      canLogDay,
+                      dayDate,
+                    )}
                     summary={summary(entry.routine, entry.id, dayDate)}
                   />
                 ))
@@ -223,8 +221,8 @@ export async function PatientHome({
               locale={locale}
               headingLevel={routinesHeading ? 3 : 2}
               startHref={workoutHref(path, routine.id)}
-              logSlot={logSlot(routine, null, singleDays, view.today)}
-              exerciseLogging={exerciseLogging(routine.id, null, singleDays, view.today)}
+              logSlot={logSlot(routine, null, logging.canLog, view.today)}
+              exerciseLogging={exerciseLogging(routine.id, null, logging.canLog, view.today)}
               summary={summary(routine, null, view.today)}
             />
           ))}

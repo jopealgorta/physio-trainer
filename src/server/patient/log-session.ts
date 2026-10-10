@@ -29,7 +29,7 @@ export type LogSessionResult =
  * Saves (or edits) the log of one routine on one day (spec 13). The link is already resolved and
  * unlocked; the customer, physio and link ids come from it. The routine and plan entry come from
  * the request, so they must be reachable from the link and active on `performedOn`, and the day
- * must be today or yesterday in the physio's time zone. One row per routine, entry and day:
+ * must be today in the physio's time zone. One row per routine, entry and day:
  * saving again edits it.
  */
 export async function logSession(

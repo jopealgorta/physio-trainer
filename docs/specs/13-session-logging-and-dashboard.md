@@ -13,7 +13,7 @@ of who needs attention. This is what makes the app better than sending a PDF.
 ## Goals
 
 - Patient: "Mark as done" per routine per day (plan entry or single routine), pain slider,
-  comment; edit today's and yesterday's logs.
+  comment; edit today's log (today only since 2026-10-10, see Decisions).
 - Physio: customer **Activity** tab (calendar heatmap, pain chart, comments feed) and the
   **Dashboard** (`/dashboard`) replacing its placeholder.
 
@@ -86,7 +86,8 @@ Namespaces `Patient.logging`, `Activity`, `Dashboard`.
 
 ## Acceptance criteria
 
-- [x] Patient can log/edit today's and yesterday's sessions with pain and comment; state persists.
+- [x] Patient can log/edit today's session with pain and comment; state persists (yesterday
+      dropped on 2026-10-10).
 - [x] Cross-customer and unreachable-routine writes rejected (integration tests).
 - [x] Activity tab heatmap, pain chart and comments feed; comments marked seen.
 - [x] Dashboard "Needs attention" rules implemented and unit-tested; links to customers.
@@ -123,11 +124,14 @@ Namespaces `Patient.logging`, `Activity`, `Dashboard`.
   `comment` or `performed_on` change, so deleting a link or the physio marking a comment as seen
   does not move a customer up "Recently active".
 - **Date comes from the page, not the device.** `performed_on` is computed from the physio's time
-  zone (spec 10: that is the patient's "today") and the server accepts only today or yesterday in
-  it, so there is no device-clock skew to tolerate (deviation from "patient's local date").
+  zone (spec 10: that is the patient's "today") and the server accepts only today in it, so there
+  is no device-clock skew to tolerate (deviation from "patient's local date").
+- **Today only (2026-10-10, supersedes "today or yesterday").** A patient logs the day they do the
+  session; another day is another session, so there is no logging after the fact and no
+  "Today / Yesterday" picker. `isLoggableDate` is `date === today` and the server rejects any
+  other day with `date`. Logs already saved for yesterday stay, read-only.
 - **Which day a card logs.** A plan day of the week strip stands for its date in the current
-  Monday-Sunday week (`dateForWeekday`); on a Monday, Sunday means yesterday so yesterday is always
-  reachable. Single routines have no day of their own: the sheet offers "Today / Yesterday".
+  Monday-Sunday week (`dateForWeekday`); only today's can be logged. Single routines log today.
   Other days show their state (Done) but cannot be edited.
 - **Reachability** is `isReachable` (`src/server/patient/view.ts`), the predicate behind the
   workout route generalised to a date and an optional plan entry, so the page, the workout and

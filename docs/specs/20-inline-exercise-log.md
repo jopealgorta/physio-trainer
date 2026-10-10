@@ -60,7 +60,7 @@ No new routes.
 - The row's Log icon button becomes a disclosure toggle (`aria-expanded`, `aria-controls`),
   filled when the shown day has a log. Several rows can be open at once.
 - The section renders inside the row's card, under the row, full width:
-  1. Today / Yesterday toggle (single routines, as before).
+  1. Today / Yesterday toggle (single routines, as before; removed 2026-10-10, spec 13: today only).
   2. **Sets** (strength exercises): one line per prescribed set (at least one): "Set 1",
      the set's target ("10 reps · 20 kg") and a kg input (`inputMode="decimal"`,
      `enterKeyHint="next"`; Enter moves to the next set). Placeholder: the previous set's typed

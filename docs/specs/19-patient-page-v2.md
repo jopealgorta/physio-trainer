@@ -155,7 +155,7 @@ No new routes.
 
 ## Behaviour and rules
 
-1. Exercise logs follow spec 13's rules: today or yesterday in the physio's time zone, the
+1. Exercise logs follow spec 13's rules: today only (also yesterday until 2026-10-10) in the physio's time zone, the
    routine (and entry) must be reachable from the link and active that day (`isReachable`), the
    exercise must be in that routine, a signed-in physio previewing never writes.
 2. Saving an exercise log with every field empty deletes it.

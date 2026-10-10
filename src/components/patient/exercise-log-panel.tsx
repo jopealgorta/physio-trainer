@@ -21,7 +21,6 @@ import type { LogExerciseInput, PatientExerciseLog } from "@/server/patient/log-
 import type { PatientItem } from "@/server/patient/view";
 
 import type { ExerciseLogging } from "./exercise-list";
-import { DayToggle, useLogDay } from "./log-sheet";
 import { RpeScale } from "./rpe-scale";
 import { setTargets } from "./set-targets";
 import { useAutosave } from "./use-autosave";
@@ -62,8 +61,8 @@ type Props = {
 };
 
 /**
- * The inline log of one exercise (spec 20), inside its row's card: the day, a weight per set,
- * the RPE and a comment, saved as the patient types. Nothing when no day can be logged.
+ * The inline log of one exercise (spec 20), inside its row's card: a weight per set, the RPE and
+ * a comment for the shown day, saved as the patient types. Nothing when it cannot be logged.
  */
 export function ExerciseLogPanel({
   id,
@@ -75,25 +74,23 @@ export function ExerciseLogPanel({
   keepDraft,
 }: Props) {
   const t = useTranslations("Patient");
-  const { day, select } = useLogDay(logging.days, logging.shownDate);
-  if (!day) return null;
+  if (!logging.canLog) return null;
+  const date = logging.shownDate;
   return (
     <section
       id={id}
       aria-label={t("exerciseLog.title", { name: item.name })}
       className="grid gap-4 border-t px-1 pt-3 pb-1"
     >
-      <DayToggle days={logging.days} value={day.date} onChange={select} name={`${id}-day`} />
-      {/* Fresh fields per day; unmounting the old ones sends their pending save. A draft wins
-          over the saved log: that save may still be on the way, or blocked by an invalid weight. */}
+      {/* A draft wins over the saved log: that save may still be on the way, or blocked by an
+          invalid weight. */}
       <LogFields
-        key={day.date}
         id={id}
         item={item}
         logging={logging}
-        date={day.date}
-        draft={draftFor(day.date)}
-        log={logFor(day.date)}
+        date={date}
+        draft={draftFor(date)}
+        log={logFor(date)}
         remember={remember}
         keepDraft={keepDraft}
       />
