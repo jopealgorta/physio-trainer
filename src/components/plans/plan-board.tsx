@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  closestCorners,
   DndContext,
   DragOverlay,
   KeyboardSensor,
@@ -60,6 +59,7 @@ import {
 import type { PlanEntryDetail, AttachableRoutine } from "@/server/plans/queries";
 import type { PlanActionError } from "@/server/plans/schemas";
 
+import { pointerFirst } from "./collision";
 import { EntryCard } from "./entry-card";
 import { AttachRoutineDialog, EntryLabelDialog, RemoveEntryDialog } from "./entry-dialogs";
 import { EntryMenu } from "./entry-menu";
@@ -302,7 +302,7 @@ export function PlanBoard({
       <DndContext
         id={dndId}
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={pointerFirst}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveId(null)}

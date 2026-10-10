@@ -238,8 +238,10 @@ test("dragging a card to another day moves it (desktop)", async ({
   await addExisting(page, "Monday", "Drag me");
 
   const handle = page.getByRole("button", { name: "Move Drag me" });
-  // Mouse coordinates are viewport coordinates: bring the board into view before measuring it
-  // (the plan form above it is tall enough to push the cards below a 720 px viewport).
+  // Mouse coordinates are viewport coordinates. The days are rows now, so Wednesday sits well
+  // below Monday: a viewport that shows the whole board keeps the drag from auto-scrolling the
+  // page (which would slide another day under the pointer) and keeps both days on screen.
+  await page.setViewportSize({ width: 1280, height: 1600 });
   await handle.scrollIntoViewIfNeeded();
   const from = await handle.boundingBox();
   const to = await day(page, "Wednesday").boundingBox();
