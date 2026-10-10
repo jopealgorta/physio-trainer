@@ -170,12 +170,17 @@ Namespace `Plans`; weekday names via `Intl.DateTimeFormat` for the active locale
   draft, attaches it and redirects to `/routines/[id]?plan=<planId>`; the editor page shows
   "Back to plan" when `plan` is a uuid (the plan page itself 404s for anything not the
   physio's).
-- **Board UX.** Desktop shows seven columns Monday to Sunday (each at least 11 rem wide, the row
-  scrolls sideways when the screen is narrower); below `lg` it is a vertical day list. Dragging
+- **Board UX.** One row per day, Monday to Sunday, at every width (revised from seven
+  columns that scrolled sideways on laptops): a 12 rem rail with the day name, count, note and
+  add button, and the day's cards in a wrapping grid (`auto-fill`, at least 14 rem); below `sm`
+  the rail sits above the cards. A rest day shows one dashed "Add routine" button in place of
+  the plus. The week summary is one chip per figure. Nothing scrolls sideways. Dragging
   uses dnd-kit with one `SortableContext` per day plus a droppable per day (so an empty day can
   receive a card), a drag overlay and translated announcements; the handle is hidden below `md`.
   Menu moves append to the target day. Everything goes through one `run()` that applies the
   change optimistically (`useOptimistic`) and rolls back with the server's reason on refusal.
+- **Details card.** Status, case and notes sit in one bordered card headed "Plan details"
+  (status and case stacked beside the notes from `lg`); Save stays in the pinned footer.
 - **Details form** saves with a button (unlike board actions) and is not remounted when the
   plan version moves, so a board action never wipes what is being typed.
 - **Server Actions must be `async function` declarations**: a `"use server"` file cannot export

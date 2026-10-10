@@ -126,8 +126,17 @@ export function PlanDetailsForm({
 
   return (
     <>
-      <form id={formId} onSubmit={onSubmit} noValidate className="grid gap-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <form
+        id={formId}
+        onSubmit={onSubmit}
+        noValidate
+        aria-labelledby={`${id}-title`}
+        className="bg-card grid gap-4 rounded-xl border p-4 lg:grid-cols-[16rem_minmax(0,1fr)]"
+      >
+        <h2 id={`${id}-title`} className="text-lg font-semibold lg:col-span-2">
+          {t("title")}
+        </h2>
+        <div className="grid content-start gap-4">
           <Field>
             <Label htmlFor={`${id}-status`}>{t("status")}</Label>
             <Select
@@ -183,7 +192,7 @@ export function PlanDetailsForm({
             id={`${id}-notes`}
             value={values.notes}
             maxLength={PLAN_NOTES_MAX}
-            rows={2}
+            rows={4}
             aria-describedby={`${id}-notes-hint`}
             onChange={(event) => change({ notes: event.target.value })}
           />
@@ -192,7 +201,7 @@ export function PlanDetailsForm({
           </p>
         </Field>
         {error ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="lg:col-span-2">
             <AlertDescription>{tErrors(error, { max: PLAN_NOTES_MAX })}</AlertDescription>
           </Alert>
         ) : null}
