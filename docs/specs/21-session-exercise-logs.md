@@ -86,7 +86,7 @@ No new routes.
 
 ## Behaviour and rules
 
-1. Logging rules of specs 13/19/20 unchanged (today/yesterday, routine reachable, exercise in the
+1. Logging rules of specs 13/19/20 unchanged (today only since 2026-10-10, was today/yesterday; routine reachable, exercise in the
    routine, a physio previewing never writes).
 2. Saving an exercise log, in one transaction: find the session of the routine, entry and day;
    if there is none, create it with `completed = true` and nothing else; an existing session is

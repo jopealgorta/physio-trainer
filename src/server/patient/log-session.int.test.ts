@@ -142,11 +142,13 @@ describe("logSession", () => {
       expect(await rows(inPlan)).toHaveLength(2);
     });
 
-    it("lets yesterday be logged and keeps days apart", async () => {
-      const result = await log(customerCode, { performedOn: YESTERDAY, pain: 1 });
-      expect(result.ok).toBe(true);
-      const days = (await rows(standalone)).map((row) => row.performedOn).sort();
-      expect(days).toEqual([YESTERDAY, TODAY]);
+    it("refuses yesterday: another day is another session", async () => {
+      expect(await log(customerCode, { performedOn: YESTERDAY, pain: 1 })).toEqual({
+        ok: false,
+        error: "date",
+      });
+      const days = (await rows(standalone)).map((row) => row.performedOn);
+      expect(days).toEqual([TODAY]);
     });
 
     it("undoes a session by saving it as not completed", async () => {
@@ -169,7 +171,11 @@ describe("logSession", () => {
   });
 
   describe("date window", () => {
-    it("rejects days before yesterday and after today", async () => {
+    it("rejects every day but today", async () => {
+      expect(await log(customerCode, { performedOn: YESTERDAY })).toEqual({
+        ok: false,
+        error: "date",
+      });
       expect(await log(customerCode, { performedOn: "2026-10-05" })).toEqual({
         ok: false,
         error: "date",
@@ -225,15 +231,16 @@ describe("logSession", () => {
         startsOn: TODAY,
       });
       expect((await log(customerCode, { routineId: later })).ok).toBe(true);
-      expect((await log(customerCode, { routineId: later, performedOn: YESTERDAY })).ok).toBe(
-        false,
-      );
+      const tomorrow = await insertRoutine(physio.id, customerId, {
+        status: "active",
+        startsOn: "2026-10-08",
+      });
+      expect((await log(customerCode, { routineId: tomorrow })).ok).toBe(false);
       const ended = await insertRoutine(physio.id, customerId, {
         status: "active",
         endsOn: YESTERDAY,
       });
       expect((await log(customerCode, { routineId: ended })).ok).toBe(false);
-      expect((await log(customerCode, { routineId: ended, performedOn: YESTERDAY })).ok).toBe(true);
     });
 
     it("rejects an entry whose plan is not active that day or whose routine is a draft", async () => {
@@ -347,11 +354,12 @@ describe("logSession", () => {
       await db.delete(weeklyPlanEntries).where(eq(weeklyPlanEntries.id, entry));
       expect(await rows(entryRoutine)).toHaveLength(2);
 
-      const disposable = await linkFor(physio, { target: "routine", routineId: entryRoutine });
-      await log(disposable.code, { routineId: entryRoutine, performedOn: YESTERDAY, pain: 1 });
-      const [before] = (await rows(entryRoutine)).filter((r) => r.performedOn === YESTERDAY);
+      const linked = await insertRoutine(physio.id, customerId, { status: "active" });
+      const disposable = await linkFor(physio, { target: "routine", routineId: linked });
+      await log(disposable.code, { routineId: linked, pain: 1 });
+      const [before] = await rows(linked);
       await db.delete(shareLinks).where(eq(shareLinks.id, disposable.id));
-      const [after] = (await rows(entryRoutine)).filter((r) => r.performedOn === YESTERDAY);
+      const [after] = await rows(linked);
       expect(after!.shareLinkId).toBeNull();
       expect(after!.updatedAt).toEqual(before!.updatedAt);
     });

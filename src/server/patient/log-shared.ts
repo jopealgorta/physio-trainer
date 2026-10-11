@@ -14,8 +14,8 @@ import { isReachable } from "./view";
 type LogTable = typeof sessionLogs | typeof exerciseLogs;
 
 /**
- * The write preamble every patient log shares: the day must be today or yesterday in the
- * physio's time zone, and the routine/entry must be reachable from the link on that day.
+ * The write preamble every patient log shares: the day must be today in the physio's time zone
+ * (another day is another session), and the routine/entry must be reachable from the link on that day.
  */
 export async function checkLoggable(
   shell: Pick<LinkShell, "physioId" | "timeZone">,

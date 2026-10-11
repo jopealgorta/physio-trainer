@@ -37,24 +37,15 @@ export function parseWeight(value: string): number | null | undefined {
   return rounded <= WEIGHT_MAX ? rounded : undefined;
 }
 
-/** The days a patient may still log, oldest first: yesterday and today (the physio's days). */
-export function loggableDates(today: string): [string, string] {
-  return [addDays(today, -1), today];
-}
-
-export const isLoggableDate = (date: string, today: string): boolean =>
-  loggableDates(today).includes(date);
-
 /**
- * The date a weekday of the patient page's strip stands for: its day in the current
- * Monday-Sunday week. On a Monday, Sunday means yesterday instead of next Sunday (a plan repeats
- * weekly, so it shows the same content) so that yesterday can always be logged.
+ * A patient logs the day they do the session: today only, in the physio's time zone. Another day
+ * is another session, so there is no logging after the fact.
  */
+export const isLoggableDate = (date: string, today: string): boolean => date === today;
+
+/** The date a weekday of the patient page's strip stands for: its day in the current Monday-Sunday week. */
 export function dateForWeekday(today: string, weekday: number): string {
-  const monday = addDays(today, -(isoWeekday(today) - 1));
-  const date = addDays(monday, weekday - 1);
-  const yesterday = addDays(today, -1);
-  return date > today && weekday === isoWeekday(yesterday) ? yesterday : date;
+  return addDays(today, weekday - isoWeekday(today));
 }
 
 /** Trimmed comment, null when blank. Length is validated separately (`LOG_COMMENT_MAX`). */
@@ -63,14 +54,12 @@ export function normalizeComment(value: string | null | undefined): string | nul
   return trimmed === "" ? null : trimmed;
 }
 
-/** The days the patient page needs logs for: its week, plus yesterday when that is last week's Sunday. */
+/** The days the patient page needs logs for: its Monday-Sunday week. */
 export function weekLogRange(today: string): [from: string, to: string] {
-  const monday = addDays(today, -(isoWeekday(today) - 1));
-  const yesterday = addDays(today, -1);
-  return [monday < yesterday ? monday : yesterday, addDays(monday, 6)];
+  return [dateForWeekday(today, 1), dateForWeekday(today, 7)];
 }
 
-/** Weekdays of the page's week (see `dateForWeekday`) that have a completed session logged. */
+/** Weekdays of the page's week that have a completed session logged. */
 export function loggedWeekdays(
   today: string,
   logs: readonly { performedOn: string; completed: boolean }[],

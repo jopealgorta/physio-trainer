@@ -126,7 +126,7 @@ No new routes.
 - Each row has a small "Log" button (when the visitor can log) and chips with what is already
   logged for the shown day ("Pain 3 · RPE 6 · 20 kg"). The button opens the exercise log sheet:
   pain scale, RPE scale, weight (kg), comment, Save / Clear. Single routines get the same
-  Today/Yesterday toggle as the routine log.
+  Today/Yesterday toggle as the routine log (removed 2026-10-10: today only, spec 13).
 - The routine log sheet ("Mark as done") gains an RPE scale under the pain scale.
 - Day notes show under the day heading, above the plans of that day.
 
@@ -155,7 +155,7 @@ No new routes.
 
 ## Behaviour and rules
 
-1. Exercise logs follow spec 13's rules: today or yesterday in the physio's time zone, the
+1. Exercise logs follow spec 13's rules: today only (also yesterday until 2026-10-10) in the physio's time zone, the
    routine (and entry) must be reachable from the link and active that day (`isReachable`), the
    exercise must be in that routine, a signed-in physio previewing never writes.
 2. Saving an exercise log with every field empty deletes it.
@@ -193,7 +193,7 @@ New keys under `Patient` (list, exercise log sheet, RPE scale), `Workout` (botto
 - [x] Workout mode shows the list with the current exercise highlighted and a bottom bar with
       timer and controls; previous behaviour (sets, hold, timed, rest, cues, resume) intact.
 - [x] Routine log sheet saves an optional RPE.
-- [x] Patient can log pain, RPE, weight and comment per exercise (today/yesterday), edit and
+- [x] Patient can log pain, RPE, weight and comment per exercise (today; yesterday until 2026-10-10), edit and
       clear it; unreachable/cross-customer writes rejected.
 - [x] Physio sees exercise logs and RPE in the Activity tab; exercise pain ≥ 7 shows under
       "Needs attention"; exercise comments are "New".
@@ -227,7 +227,8 @@ Answered 2026-10-03 before design:
 5. Where does the physio see exercise logs? **Answer:** Activity tab; exercise comments count as
    new comments, exercise pain ≥ 7 counts for "Needs attention".
 6. When can the patient log an exercise? **Answer:** same rules as the routine log
-   (today/yesterday), from the patient page and from workout mode, independent of "Mark as done".
+   (today/yesterday; today only since 2026-10-10), from the patient page and from workout mode,
+   independent of "Mark as done".
 7. Where do day notes show? **Answer:** plan board, patient page, PDF/Excel; also in version
    history and template/phase copies.
 
@@ -238,7 +239,7 @@ Answered 2026-10-03 before design:
   exercise used twice in one routine shares one log. The patient may only log an exercise that
   belongs to the routine reachable from the link, otherwise `unreachable` and no row.
 - **Shared log helpers.** `src/server/patient/log-shared.ts` (shared by session and exercise
-  logs) with the parsing helpers in `src/lib/session-logs.ts` (including "12,5" decimal commas) and `log-sheet.tsx` (`DayToggle`, `LogSheet` and
+  logs) with the parsing helpers in `src/lib/session-logs.ts` (including "12,5" decimal commas) and `log-sheet.tsx` (`LogSheet` and, until 2026-10-10, `DayToggle`, and
   the submit hooks) back the routine sheet, the exercise sheet and the workout bar. Both seen-logic
   paths (session and exercise comments) share `markSeen`, the unseen fragments and `useShownAsNew`.
 - **Minutes display.** Aerobic durations are typed and shown in minutes ("30" or "1:30"); storage

@@ -59,7 +59,7 @@ const logging = (logs: PatientExerciseLog[] = []): ExerciseLogging => ({
   code: "7k2m9qpx",
   routineId: ROUTINE,
   entryId: null,
-  days: [],
+  canLog: false,
   shownDate: TODAY,
   logs,
 });
@@ -178,14 +178,14 @@ describe("ExerciseList", () => {
     expect(screen.queryByRole("list", { name: "Logged" })).not.toBeInTheDocument();
     expect(screen.queryByText("RPE 7")).not.toBeInTheDocument();
     expect(screen.queryByText("20 · – · 25 kg")).not.toBeInTheDocument();
-    // Owner preview (no loggable days): no Log toggle.
+    // Owner preview (cannot log): no Log toggle.
     expect(screen.queryByRole("button", { name: "Log Squat" })).not.toBeInTheDocument();
   });
 
   describe("inline log", () => {
     const loggable = (logs: PatientExerciseLog[] = []): ExerciseLogging => ({
       ...logging(logs),
-      days: [{ date: TODAY, relative: "today" }],
+      canLog: true,
     });
 
     beforeEach(() => {

@@ -15,7 +15,6 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: m.refresh }) })
 const ROUTINE = "3e473832-bc4d-475b-9a6a-0356874dc603";
 const ENTRY = "af43053e-79a1-463a-881c-569985a6b8aa";
 const TODAY = "2026-10-07";
-const YESTERDAY = "2026-10-06";
 
 const log = (patch: Partial<PatientLog> = {}): PatientLog => ({
   routineId: ROUTINE,
@@ -39,7 +38,7 @@ function setup(
         routineId={ROUTINE}
         entryId={null}
         routineName="Knee rehab"
-        days={[{ date: TODAY, relative: "today" }]}
+        canLog
         logs={[]}
         shownDate={TODAY}
         {...props}
@@ -82,11 +81,11 @@ describe("LogSessionButton", () => {
   });
 
   it("shows only the Done state, or nothing, when the day can no longer be logged", () => {
-    const { unmount } = setup({ days: [], logs: [log()] });
+    const { unmount } = setup({ canLog: false, logs: [log()] });
     expect(screen.getByText("Done")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     unmount();
-    const empty = setup({ days: [] });
+    const empty = setup({ canLog: false });
     expect(empty.container).toBeEmptyDOMElement();
   });
 
@@ -128,7 +127,7 @@ describe("LogSessionButton", () => {
           routineId={ROUTINE}
           entryId={null}
           routineName="Knee rehab"
-          days={[{ date: TODAY, relative: "today" }]}
+          canLog
           logs={logs}
           shownDate={TODAY}
         />
@@ -205,35 +204,48 @@ describe("LogSessionButton", () => {
     expect(screen.queryByText("Done")).not.toBeInTheDocument();
   });
 
-  it("lets a routine without a day of its own pick today or yesterday", async () => {
+  it("logs the shown day without asking which day it was", async () => {
     const user = userEvent.setup();
-    setup({
-      days: [
-        { date: YESTERDAY, relative: "yesterday" },
-        { date: TODAY, relative: "today" },
-      ],
-      logs: [log({ performedOn: YESTERDAY, pain: 2 })],
-    });
-    // The card stands for today, which has no log yet.
+    setup();
     await user.click(screen.getByRole("button", { name: "Mark as done" }));
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByRole("radio", { name: "Today" })).toBeChecked();
-    await user.click(within(dialog).getByRole("radio", { name: "Yesterday" }));
-    // Yesterday's saved log fills the form.
-    expect(pain("2")).toBeChecked();
+    expect(within(dialog).queryByRole("group", { name: "Day" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("radio", { name: "Yesterday" })).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(m.log).toHaveBeenCalled());
-    expect(m.log.mock.calls[0]![1].performedOn).toBe(YESTERDAY);
+    expect(m.log.mock.calls[0]![1].performedOn).toBe(TODAY);
+  });
+
+  it("starts a fresh form when the page moves on to the next day with the sheet open", async () => {
+    const user = userEvent.setup();
+    const ui = (shownDate: string) => (
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <LogSessionButton
+          code="7k2m9qpx"
+          routineId={ROUTINE}
+          entryId={null}
+          routineName="Knee rehab"
+          canLog
+          logs={[log({ comment: "Stairs" })]}
+          shownDate={shownDate}
+        />
+      </NextIntlClientProvider>
+    );
+    const { rerender } = render(ui(TODAY));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByLabelText("Comment (optional)")).toHaveValue("Stairs");
+    rerender(ui("2026-10-08"));
+    expect(screen.getByLabelText("Comment (optional)")).toHaveValue("");
   });
 
   it("only shows the state for a day that can no longer be logged", () => {
-    setup({ days: [], logs: [log({ performedOn: "2026-10-01" })], shownDate: "2026-10-01" });
+    setup({ canLog: false, logs: [log({ performedOn: "2026-10-01" })], shownDate: "2026-10-01" });
     expect(screen.getByText("Done")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("shows nothing for an unlogged day that can no longer be logged", () => {
-    setup({ days: [], logs: [], shownDate: "2026-10-01" });
+    setup({ canLog: false, logs: [], shownDate: "2026-10-01" });
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByText("Done")).not.toBeInTheDocument();
   });
@@ -244,9 +256,7 @@ describe("LogSessionButton", () => {
     setup();
     await user.click(screen.getByRole("button", { name: "Mark as done" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "You can only log today or yesterday.",
-    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("You can only log today.");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(m.refresh).not.toHaveBeenCalled();
   });

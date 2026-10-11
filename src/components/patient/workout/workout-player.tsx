@@ -286,7 +286,7 @@ function Player({
 
   // Which exercises have their inline log expanded; the bar's "Log exercise" toggles the current one.
   const [openLogs, setOpenLogs] = useState<ReadonlySet<string>>(() => new Set());
-  const canLog = exerciseLogging !== undefined && exerciseLogging.days.length > 0;
+  const canLog = exerciseLogging !== undefined && exerciseLogging.canLog;
   const logOpen = openLogs.has(item.id);
   const toggleLog = () => {
     const next = new Set(openLogs);

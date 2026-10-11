@@ -10,7 +10,6 @@ import type { PatientExerciseLog } from "@/server/patient/log-exercise";
 import type { PatientItem } from "@/server/patient/view";
 import type { ExerciseLogging } from "./exercise-list";
 import { ExerciseLogPanel, exerciseLogFor, numericLoad, type LogDraft } from "./exercise-log-panel";
-import type { LoggableDay } from "./log-sheet";
 import { AUTOSAVE_DELAY_MS } from "./use-autosave";
 
 const m = vi.hoisted(() => ({ log: vi.fn() }));
@@ -20,7 +19,6 @@ const ROUTINE = "3e473832-bc4d-475b-9a6a-0356874dc603";
 const ENTRY = "af43053e-79a1-463a-881c-569985a6b8aa";
 const SQUAT = "0b8f5f0e-8f53-4c39-9f0e-4f3f1f8c1a01";
 const TODAY = "2026-10-07";
-const YESTERDAY = "2026-10-06";
 
 const prescribedSet = (load: string | null = null) => ({
   reps: 12,
@@ -64,38 +62,35 @@ const saved = (patch: Partial<PatientExerciseLog> = {}): PatientExerciseLog => (
   ...patch,
 });
 
-const today: LoggableDay = { date: TODAY, relative: "today" };
-const yesterday: LoggableDay = { date: YESTERDAY, relative: "yesterday" };
-
 function setup({
   item = squat,
   logs = [],
-  days = [today],
+  canLog = true,
   locale = "en",
 }: {
   item?: PatientItem;
   logs?: PatientExerciseLog[];
-  days?: LoggableDay[];
+  canLog?: boolean;
   locale?: "en" | "es";
 } = {}) {
   const remember = vi.fn();
   // What ExerciseList keeps per exercise and day: the fields as last typed.
   const drafts = new Map<string, LogDraft>();
-  const logging: ExerciseLogging = {
+  const loggingOn = (shownDate: string): ExerciseLogging => ({
     code: "7k2m9qpx",
     routineId: ROUTINE,
     entryId: ENTRY,
-    days,
-    shownDate: TODAY,
+    canLog,
+    shownDate,
     logs,
-  };
-  const ui = (shown: boolean) => (
+  });
+  const ui = (shown: boolean, shownDate = TODAY) => (
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? messages : es}>
       {shown ? (
         <ExerciseLogPanel
           id="log-squat"
           item={item}
-          logging={logging}
+          logging={loggingOn(shownDate)}
           logFor={(date) => exerciseLogFor(logs, item.exerciseId, date)}
           remember={remember}
           draftFor={(date) => drafts.get(date)}
@@ -106,7 +101,14 @@ function setup({
   );
   const view = render(ui(true));
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-  return { ...view, user, remember, hide: () => view.rerender(ui(false)) };
+  return {
+    ...view,
+    user,
+    remember,
+    hide: () => view.rerender(ui(false)),
+    /** The page refreshed into another day while the panel stayed open (past midnight). */
+    showDate: (date: string) => view.rerender(ui(true, date)),
+  };
 }
 
 function deferred<T>() {
@@ -311,7 +313,7 @@ describe("ExerciseLogPanel", () => {
     await user.type(setInput(1), "20");
     await wait(AUTOSAVE_DELAY_MS);
     expect(screen.getByText("Couldn't save.")).toBeInTheDocument();
-    expect(screen.getByText("You can only log today or yesterday.")).toBeInTheDocument();
+    expect(screen.getByText("You can only log today.")).toBeInTheDocument();
     expect(setInput(1)).toHaveValue("20");
 
     await user.click(screen.getByRole("button", { name: "Retry" }));
@@ -379,47 +381,33 @@ describe("ExerciseLogPanel", () => {
     expect(m.log).toHaveBeenCalledWith("7k2m9qpx", sent({ setWeightsKg: [20] }));
   });
 
-  it("saves the day being left before showing the other day's log", async () => {
-    const { user } = setup({
-      days: [yesterday, today],
-      logs: [saved({ performedOn: YESTERDAY, setWeightsKg: [7.5] })],
-    });
-    expect(setInput(1)).toHaveValue("");
+  it("logs the shown day without asking which day it was", async () => {
+    const { user } = setup();
+    expect(screen.queryByRole("group", { name: "Day" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Yesterday" })).not.toBeInTheDocument();
     await user.type(setInput(1), "20");
-    await user.click(screen.getByRole("radio", { name: "Yesterday" }));
-    expect(m.log).toHaveBeenCalledTimes(1);
-    expect(m.log).toHaveBeenCalledWith("7k2m9qpx", sent({ setWeightsKg: [20] }));
-    expect(setInput(1)).toHaveValue("7.5");
-  });
-
-  it("shows what was typed on coming back to a day whose save is still on the way", async () => {
-    const save = deferred<{ ok: true; data: PatientExerciseLog }>();
-    m.log.mockReturnValueOnce(save.promise);
-    const { user } = setup({ days: [yesterday, today] });
-    await user.type(setInput(1), "20");
-    await user.click(screen.getByRole("radio", { name: "Yesterday" }));
-    expect(m.log).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole("radio", { name: "Today" }));
-    expect(setInput(1)).toHaveValue("20");
-    await act(async () => save.resolve({ ok: true, data: saved({ setWeightsKg: [20] }) }));
-    expect(setInput(1)).toHaveValue("20");
-  });
-
-  it("keeps an invalid weight, unsaved, across a day switch", async () => {
-    const { user } = setup({ days: [yesterday, today] });
-    await user.type(setInput(2), "abc");
-    await user.click(screen.getByRole("radio", { name: "Yesterday" }));
-    expect(setInput(2)).toHaveValue("");
-    await user.click(screen.getByRole("radio", { name: "Today" }));
-    expect(setInput(2)).toHaveValue("abc");
-    expect(setInput(2)).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByText("Enter a weight between 0 and 999.9 kg.")).toBeInTheDocument();
     await wait(AUTOSAVE_DELAY_MS);
-    expect(m.log).not.toHaveBeenCalled();
+    expect(m.log).toHaveBeenCalledWith(
+      "7k2m9qpx",
+      expect.objectContaining({ performedOn: TODAY, setWeightsKg: [20] }),
+    );
+  });
+
+  it("starts fresh fields when the page moves on to the next day", async () => {
+    const { user, showDate } = setup({ logs: [saved({ setWeightsKg: [7.5] })] });
+    expect(setInput(1)).toHaveValue("7.5");
+    showDate("2026-10-08");
+    expect(setInput(1)).toHaveValue("");
+    await user.type(setInput(2), "20");
+    await wait(AUTOSAVE_DELAY_MS);
+    expect(m.log).toHaveBeenLastCalledWith(
+      "7k2m9qpx",
+      expect.objectContaining({ performedOn: "2026-10-08", setWeightsKg: [null, 20] }),
+    );
   });
 
   it("renders nothing when no day can be logged", () => {
-    setup({ days: [] });
+    setup({ canLog: false });
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 

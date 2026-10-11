@@ -3,7 +3,6 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import type { ExerciseLogging } from "@/components/patient/exercise-list";
-import type { LoggableDay } from "@/components/patient/log-sheet";
 import { LogSessionButton } from "@/components/patient/log-session-button";
 import { PinGate } from "@/components/patient/pin-gate";
 import { Unavailable } from "@/components/patient/unavailable";
@@ -81,12 +80,11 @@ export default async function WorkoutPage({
     getPatientExerciseLogs(shell, link, today, today),
   ]);
   // The workout logs today only; the owner previewing the link sees the logged state but never writes.
-  const days: LoggableDay[] = owner ? [] : [{ date: today, relative: "today" }];
   const exerciseLogging: ExerciseLogging = {
     code: shell.code,
     routineId: routine.id,
     entryId,
-    days,
+    canLog: !owner,
     shownDate: today,
     logs: exerciseLogs.filter((log) => log.routineId === routine.id && log.entryId === entryId),
   };
@@ -101,7 +99,7 @@ export default async function WorkoutPage({
           routineId={routine.id}
           entryId={entryId}
           routineName={routine.name}
-          days={days}
+          canLog={!owner}
           logs={logs.filter((log) => log.routineId === routine.id && log.entryId === entryId)}
           shownDate={today}
           defaultOpen={!owner}

@@ -322,10 +322,12 @@ describe("logExercise", () => {
       expect(found.map((s) => s.weeklyPlanEntryId).sort()).toEqual([entryId, null].sort());
     });
 
-    it("logs yesterday into yesterday's session", async () => {
-      await log(customerCode, { performedOn: YESTERDAY, rpe: 4 });
-      const found = await sessions(standalone);
-      expect(found.map((s) => s.performedOn)).toEqual([YESTERDAY]);
+    it("refuses yesterday: another day is another session", async () => {
+      expect(await log(customerCode, { performedOn: YESTERDAY, rpe: 4 })).toEqual({
+        ok: false,
+        error: "date",
+      });
+      expect(await sessions(standalone)).toEqual([]);
     });
 
     it("deletes the session when its last log is cleared and it is empty", async () => {

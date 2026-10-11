@@ -7,24 +7,17 @@ import {
   loggedWeekdays,
   weekLogRange,
   isLoggableDate,
-  loggableDates,
   normalizeComment,
   normalizeSetWeights,
   parseWeight,
 } from "./session-logs";
 
 // 2026-10-02 is a Friday, 2026-10-05 a Monday.
-describe("loggableDates / isLoggableDate", () => {
-  it("allows today and yesterday only", () => {
-    expect(loggableDates("2026-10-02")).toEqual(["2026-10-01", "2026-10-02"]);
+describe("isLoggableDate", () => {
+  it("allows today only: another day is another session", () => {
     expect(isLoggableDate("2026-10-02", "2026-10-02")).toBe(true);
-    expect(isLoggableDate("2026-10-01", "2026-10-02")).toBe(true);
-    expect(isLoggableDate("2026-09-30", "2026-10-02")).toBe(false);
+    expect(isLoggableDate("2026-10-01", "2026-10-02")).toBe(false);
     expect(isLoggableDate("2026-10-03", "2026-10-02")).toBe(false);
-  });
-
-  it("crosses a month boundary", () => {
-    expect(loggableDates("2026-11-01")).toEqual(["2026-10-31", "2026-11-01"]);
   });
 });
 
@@ -35,10 +28,9 @@ describe("dateForWeekday", () => {
     expect(dateForWeekday("2026-10-02", 7)).toBe("2026-10-04");
   });
 
-  it("maps Sunday to yesterday on a Monday so yesterday can be logged", () => {
+  it("maps Sunday to the coming Sunday on a Monday", () => {
     expect(dateForWeekday("2026-10-05", 1)).toBe("2026-10-05");
-    expect(dateForWeekday("2026-10-05", 7)).toBe("2026-10-04");
-    expect(dateForWeekday("2026-10-05", 2)).toBe("2026-10-06");
+    expect(dateForWeekday("2026-10-05", 7)).toBe("2026-10-11");
   });
 });
 
@@ -60,9 +52,9 @@ describe("normalizeComment", () => {
 });
 
 describe("weekLogRange", () => {
-  it("spans the Monday-Sunday week, reaching back to yesterday on a Monday", () => {
+  it("spans the Monday-Sunday week", () => {
     expect(weekLogRange("2026-10-02")).toEqual(["2026-09-28", "2026-10-04"]);
-    expect(weekLogRange("2026-10-05")).toEqual(["2026-10-04", "2026-10-11"]);
+    expect(weekLogRange("2026-10-05")).toEqual(["2026-10-05", "2026-10-11"]);
   });
 });
 
@@ -81,8 +73,8 @@ describe("loggedWeekdays", () => {
     ).toEqual([2, 5]);
   });
 
-  it("counts yesterday's log on the Sunday of a Monday's strip", () => {
-    expect(loggedWeekdays("2026-10-05", [log("2026-10-04"), log("2026-10-05")])).toEqual([1, 7]);
+  it("leaves last week's Sunday out of a Monday's strip", () => {
+    expect(loggedWeekdays("2026-10-05", [log("2026-10-04"), log("2026-10-05")])).toEqual([1]);
   });
 });
 

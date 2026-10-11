@@ -41,7 +41,7 @@ const patientColumns = {
  * The link is already resolved and unlocked; customer, physio and link ids come from it. The
  * routine, plan entry and exercise come from the request: the routine and entry must be
  * reachable from the link and active that day, the exercise must belong to that routine, and the
- * day must be today or yesterday in the physio's time zone.
+ * day must be today in the physio's time zone.
  *
  * Every exercise log belongs to the routine's session for that day (spec 21): the first log
  * creates it as done, later ones join it without changing it, and an undone session stays undone.

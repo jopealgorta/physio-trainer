@@ -1390,11 +1390,6 @@
       "edit": "Edit",
       "title": "How did it go?",
       "close": "Close",
-      "day": {
-        "label": "Day",
-        "today": "Today",
-        "yesterday": "Yesterday"
-      },
       "pain": {
         "legend": "Pain (optional)",
         "hint": "0 is no pain, 10 is the worst pain you can imagine.",
@@ -1425,7 +1420,7 @@
       "errors": {
         "generic": "Something went wrong. Try again.",
         "invalid": "Check what you entered and try again.",
-        "date": "You can only log today or yesterday.",
+        "date": "You can only log today.",
         "unreachable": "This routine was not part of your plan on that day.",
         "unavailable": "This link is no longer available.",
         "preview": "You are previewing this page, so nothing was saved."
@@ -1455,7 +1450,7 @@
       "errors": {
         "generic": "Something went wrong. Try again.",
         "invalid": "Check what you entered and try again.",
-        "date": "You can only log today or yesterday.",
+        "date": "You can only log today.",
         "unreachable": "This exercise was not part of your plan on that day.",
         "unavailable": "This link is no longer available.",
         "preview": "You are previewing this page, so nothing was saved."
